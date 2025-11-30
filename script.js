@@ -136,22 +136,6 @@ let currentState = {
 let radarChartInstance = null;
 let barChartInstance = null;
 
-// --- Initialization ---
-document.addEventListener('DOMContentLoaded', () => {
-    renderHomePage();
-    renderNav();
-    initCharts();
-
-    // Mobile menu toggle
-    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
-        const menu = document.getElementById('mobile-menu');
-        menu.classList.toggle('hidden');
-    });
-    
-    // Show home page by default
-    showHomePage();
-});
-
 // --- Page Navigation Functions ---
 
 function showHomePage() {
@@ -167,15 +151,45 @@ function showModulesPage() {
 }
 
 function updateNavActive(page) {
-    const homeBtn = document.getElementById('nav-home');
-    if (homeBtn) {
-        if (page === 'home') {
-            homeBtn.classList.add('active-nav');
-        } else {
-            homeBtn.classList.remove('active-nav');
-        }
+    // No home button in nav anymore, logo is the home button
+    // Just update module buttons active state
+    if (page === 'modules') {
+        updateNavActiveState();
     }
 }
+
+function updateNavActiveState() {
+    // Update active state for module buttons
+    const container = document.getElementById('nav-container');
+    const buttons = Array.from(container.querySelectorAll('button'));
+    buttons.forEach((btn, index) => {
+        if (index === currentState.activeModuleId) {
+            btn.classList.add('active-nav');
+        } else {
+            btn.classList.remove('active-nav');
+        }
+    });
+}
+
+// Make functions globally available (will be set after function declarations)
+window.showHomePage = showHomePage;
+window.showModulesPage = showModulesPage;
+
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', () => {
+    renderHomePage();
+    renderNav();
+    initCharts();
+
+    // Mobile menu toggle
+    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+        const menu = document.getElementById('mobile-menu');
+        menu.classList.toggle('hidden');
+    });
+    
+    // Show home page by default
+    showHomePage();
+});
 
 // --- Render Functions ---
 
@@ -206,20 +220,9 @@ function renderNav() {
     const container = document.getElementById('nav-container');
     const mobileContainer = document.getElementById('mobile-nav-container');
     
-    // Clear only module buttons, keep home button
-    const existingHomeBtn = container.querySelector('#nav-home');
-    const moduleButtons = Array.from(container.children).filter(child => child.id !== 'nav-home');
-    moduleButtons.forEach(btn => btn.remove());
-    
+    // Clear all buttons
+    container.innerHTML = '';
     mobileContainer.innerHTML = '';
-    const mobileHomeBtn = document.createElement('button');
-    mobileHomeBtn.onclick = () => {
-        showHomePage();
-        document.getElementById('mobile-menu').classList.add('hidden');
-    };
-    mobileHomeBtn.className = "block px-3 py-2 rounded-md text-base font-medium cursor-pointer mobile-nav-link";
-    mobileHomeBtn.textContent = "Главная";
-    mobileContainer.appendChild(mobileHomeBtn);
 
     courseData.modules.forEach(mod => {
         // Desktop
@@ -259,8 +262,8 @@ function loadModule(id) {
     document.getElementById('module-desc').textContent = data.description;
     document.getElementById('profile-analysis').innerHTML = data.analysis;
 
-    // Update Nav State
-    renderNav();
+    // Update Nav State - update active state without full re-render
+    updateNavActiveState();
 
     // Render Syllabus List
     const listContainer = document.getElementById('syllabus-list');
@@ -300,6 +303,10 @@ function toggleAccordion(index) {
         icon.style.transform = 'rotate(0deg)';
     }
 }
+
+// Make additional functions globally available
+window.loadModule = loadModule;
+window.toggleAccordion = toggleAccordion;
 
 // --- Chart Logic ---
 
