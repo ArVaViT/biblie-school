@@ -34,8 +34,12 @@ def register_user(db: Session, user_data: RegisterRequest) -> tuple[User, str]:
         raise
     except Exception as e:
         db.rollback()
-        print(f"Database error during registration: {str(e)}")
-        raise ValueError(f"Failed to register user: {str(e)}")
+        import traceback
+        error_msg = f"Database error during registration: {str(e)}"
+        print(error_msg)
+        print(traceback.format_exc())
+        # Сохраняем оригинальную ошибку для диагностики
+        raise RuntimeError(f"Failed to register user: {str(e)}") from e
 
 
 def authenticate_user(db: Session, login_data: LoginRequest) -> tuple[User, str]:
