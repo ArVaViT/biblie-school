@@ -13,6 +13,7 @@ Full-stack приложение для управления курсами с Re
 ## Структура проекта
 
 ```
+
 biblie-school/
 ├── frontend/          # React приложение
 ├── backend/           # FastAPI приложение
