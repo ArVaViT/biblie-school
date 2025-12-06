@@ -9,13 +9,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS
+# CORS - настроен для работы с Vercel и разными окружениями
+# Если CORS_ORIGINS не задан или пустой, разрешаем все origins для разработки
+cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # Include API router
