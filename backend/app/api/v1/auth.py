@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.dependencies import get_current_user
@@ -8,6 +8,36 @@ from app.schemas.user import UserResponse
 from app.services.auth_service import register_user, authenticate_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.options("/register")
+async def options_register(request: Request):
+    """Handle OPTIONS preflight requests for register endpoint"""
+    origin = request.headers.get("origin", "*")
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": origin if origin != "*" else "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
+            "Access-Control-Max-Age": "3600",
+        }
+    )
+
+
+@router.options("/login")
+async def options_login(request: Request):
+    """Handle OPTIONS preflight requests for login endpoint"""
+    origin = request.headers.get("origin", "*")
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": origin if origin != "*" else "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
+            "Access-Control-Max-Age": "3600",
+        }
+    )
 
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
