@@ -5,12 +5,18 @@ from typing import List, Optional
 
 class ChapterBase(BaseModel):
     title: str
-    content: str | None = None
+    content: Optional[str] = None
     order_index: int = 0
 
 
 class ChapterCreate(ChapterBase):
     pass
+
+
+class ChapterUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    order_index: Optional[int] = None
 
 
 class ChapterResponse(ChapterBase):
@@ -23,12 +29,18 @@ class ChapterResponse(ChapterBase):
 
 class ModuleBase(BaseModel):
     title: str
-    description: str | None = None
+    description: Optional[str] = None
     order_index: int = 0
 
 
 class ModuleCreate(ModuleBase):
     pass
+
+
+class ModuleUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    order_index: Optional[int] = None
 
 
 class ModuleResponse(ModuleBase):
@@ -42,19 +54,25 @@ class ModuleResponse(ModuleBase):
 
 class CourseBase(BaseModel):
     title: str
-    description: str | None = None
-    image_url: str | None = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class CourseCreate(CourseBase):
     pass
 
 
+class CourseUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+
+
 class CourseResponse(CourseBase):
     id: str
     created_by: str
     created_at: datetime
-    updated_at: datetime | None
+    updated_at: Optional[datetime] = None
     modules: List[ModuleResponse] = []
 
     class Config:
@@ -67,8 +85,7 @@ class EnrollmentResponse(BaseModel):
     course_id: str
     enrolled_at: datetime
     progress: int
-    course: CourseResponse | None = None
+    course: Optional[CourseResponse] = None
 
     class Config:
         from_attributes = True
-
