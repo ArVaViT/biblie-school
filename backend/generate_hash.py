@@ -1,10 +1,8 @@
-"""Генерация bcrypt хеша для тестового пароля"""
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+"""Generate a bcrypt hash for a test password."""
+import bcrypt
 
 password = "testpass123"
-hashed = pwd_context.hash(password)
+hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-print(f"Пароль: {password}")
-print(f"Хеш: {hashed}")
+print(f"Password: {password}")
+print(f"Hash: {hashed}")

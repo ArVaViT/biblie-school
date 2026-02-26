@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Скрипт для тестирования регистрации через реальный API
-"""
+"""Test registration via the real API."""
 import requests
 import json
 import sys
@@ -11,99 +9,90 @@ from datetime import datetime
 API_URL = "https://biblie-school-backend.vercel.app/api/v1/auth/register"
 OUTPUT_FILE = "test_register_result.json"
 
+
 def test_register(email, password, full_name):
-    """Тестирует регистрацию пользователя"""
+    """Test user registration."""
     print(f"\n{'='*60}")
-    print(f"Тестирование регистрации")
+    print("Testing registration")
     print(f"{'='*60}")
     print(f"URL: {API_URL}")
     print(f"Email: {email}")
-    print(f"Имя: {full_name}")
-    print(f"Время: {datetime.now().isoformat()}")
+    print(f"Name: {full_name}")
+    print(f"Time: {datetime.now().isoformat()}")
     print(f"{'='*60}\n")
-    
-    # Данные для регистрации
+
     data = {
         "email": email,
         "password": password,
-        "full_name": full_name
+        "full_name": full_name,
     }
-    
-    # Заголовки
+
     headers = {
         "Content-Type": "application/json",
-        "Origin": "https://biblie-school-frontend.vercel.app"
+        "Origin": "https://biblie-school-frontend.vercel.app",
     }
-    
+
     try:
-        print("Отправка POST запроса...")
-        response = requests.post(
-            API_URL,
-            json=data,
-            headers=headers,
-            timeout=30
-        )
-        
-        print(f"\nСтатус код: {response.status_code}")
-        print(f"Заголовки ответа:")
+        print("Sending POST request...")
+        response = requests.post(API_URL, json=data, headers=headers, timeout=30)
+
+        print(f"\nStatus code: {response.status_code}")
+        print("Response headers:")
         for key, value in response.headers.items():
-            if key.lower().startswith('access-control') or key.lower() == 'content-type':
+            if key.lower().startswith("access-control") or key.lower() == "content-type":
                 print(f"  {key}: {value}")
-        
-        print(f"\nТело ответа:")
+
+        print("\nResponse body:")
         try:
             response_json = response.json()
             print(json.dumps(response_json, indent=2, ensure_ascii=False))
-            
+
             if response.status_code == 201:
-                print(f"\n✅ УСПЕХ! Пользователь зарегистрирован:")
+                print(f"\nSUCCESS! User registered:")
                 print(f"   ID: {response_json.get('user', {}).get('id', 'N/A')}")
                 print(f"   Email: {response_json.get('user', {}).get('email', 'N/A')}")
-                print(f"   Имя: {response_json.get('user', {}).get('full_name', 'N/A')}")
-                print(f"   Токен получен: {'Да' if response_json.get('access_token') else 'Нет'}")
-                
-                # Сохраняем результат в файл
-                with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+                print(f"   Name: {response_json.get('user', {}).get('full_name', 'N/A')}")
+                token_status = "yes" if response_json.get("access_token") else "no"
+                print(f"   Token received: {token_status}")
+
+                with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
                     json.dump(response_json, f, indent=2, ensure_ascii=False)
-                print(f"\nРезультат сохранен в {OUTPUT_FILE}")
-                
+                print(f"\nResult saved to {OUTPUT_FILE}")
+
                 return True
             else:
-                print(f"\n❌ ОШИБКА: {response.status_code}")
+                print(f"\nFAILED: {response.status_code}")
                 return False
-                
+
         except json.JSONDecodeError:
             print(response.text)
             return False
-            
+
     except requests.exceptions.RequestException as e:
-        print(f"\n❌ ОШИБКА ЗАПРОСА: {str(e)}")
+        print(f"\nREQUEST ERROR: {str(e)}")
         error_info = {
             "error": str(e),
             "error_type": type(e).__name__,
-            "status_code": getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None,
-            "response_text": e.response.text if hasattr(e, 'response') and e.response else None
+            "status_code": getattr(e.response, "status_code", None) if hasattr(e, "response") else None,
+            "response_text": e.response.text if hasattr(e, "response") and e.response else None,
         }
-        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             json.dump(error_info, f, indent=2, ensure_ascii=False)
-        print(f"Ошибка сохранена в {OUTPUT_FILE}")
+        print(f"Error saved to {OUTPUT_FILE}")
         return False
 
+
 if __name__ == "__main__":
-    # Генерируем уникальный email
     timestamp = int(datetime.now().timestamp())
-    
-    # Тест 1: Базовая регистрация
+
     email1 = f"test_user_{timestamp}@example.com"
     test_register(email1, "testpass123", "Test User")
-    
-    # Тест 2: Еще один пользователь
+
     timestamp2 = timestamp + 1
     email2 = f"test_user_{timestamp2}@example.com"
-    test_register(email2, "mypassword456", "Иван Иванов")
-    
-    # Тест 3: Проверка дубликата (должна быть ошибка)
+    test_register(email2, "mypassword456", "Another User")
+
     print(f"\n{'='*60}")
-    print("Тест 3: Попытка регистрации с существующим email (должна быть ошибка)")
+    print("Test 3: Attempt to register with existing email (should fail)")
     print(f"{'='*60}\n")
     test_register(email1, "anotherpass", "Duplicate User")

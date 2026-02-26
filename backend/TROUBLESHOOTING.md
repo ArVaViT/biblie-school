@@ -1,64 +1,63 @@
-# Решение проблем
+# Troubleshooting
 
-## Таблицы базы данных
+## Database Tables
 
-Все необходимые таблицы должны быть созданы. Если их нет, примените миграцию:
+All required tables must exist. If they are missing, apply the migration:
 
-### Автоматическое применение (локально)
+### Automatic (local)
 ```bash
 cd backend
 python apply_migrations.py
 ```
 
-### Ручное применение через Supabase SQL Editor
-1. Откройте [Supabase Dashboard](https://app.supabase.com)
-2. Ваш проект → **SQL Editor** → **New Query**
-3. Скопируйте содержимое `backend/migrations/001_initial_schema.sql`
-4. Вставьте и выполните (Run)
+### Manual via Supabase SQL Editor
+1. Open [Supabase Dashboard](https://app.supabase.com)
+2. Your project -> **SQL Editor** -> **New Query**
+3. Copy the contents of `backend/migrations/001_initial_schema.sql`
+4. Paste and run
 
-### Проверка таблиц
+### Verify tables
 ```bash
 python check_tables.py
 ```
 
-## Проблема: 500 ошибка при регистрации
+## Problem: 500 error on registration
 
-### Проверьте логи в Vercel
-1. [Vercel Dashboard](https://vercel.com) → ваш backend проект
-2. **Deployments** → последний деплой → **Functions** → **Logs**
+### Check Vercel logs
+1. [Vercel Dashboard](https://vercel.com) -> your backend project
+2. **Deployments** -> latest deploy -> **Functions** -> **Logs**
 
-### Проверьте подключение к БД
-Откройте: `https://your-backend.vercel.app/api/v1/health/db`
+### Check database connection
+Open: `https://your-backend.vercel.app/api/v1/health/db`
 
-### Проверьте DATABASE_URL
+### Check DATABASE_URL
 
-Для Vercel **обязательно** используйте Connection Pooling string:
+For Vercel you **must** use the Connection Pooling string:
 
-1. [Supabase Dashboard](https://app.supabase.com) → ваш проект
-2. **Settings** → **Database** → **Connection Pooling**
-3. Режим **Transaction**
-4. Скопируйте Connection String
+1. [Supabase Dashboard](https://app.supabase.com) -> your project
+2. **Settings** -> **Database** -> **Connection Pooling**
+3. Mode: **Transaction**
+4. Copy the Connection String
 
-**Важно:**
-- ✅ Порт должен быть **6543** (не 5432)
-- ✅ Username: `postgres.[PROJECT-REF]`
-- ✅ В конце: `?pgbouncer=true`
+**Important:**
+- Port must be **6543** (not 5432)
+- Username: `postgres.[PROJECT-REF]`
+- Append: `?sslmode=require`
 
-Пример:
+Example:
 ```
-postgresql://postgres.[REF]:[PASSWORD]@aws-0-...pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require
+postgresql://postgres.[REF]:[PASSWORD]@aws-0-...pooler.supabase.com:6543/postgres?sslmode=require
 ```
 
-### Обновите DATABASE_URL в Vercel
-1. [Vercel Dashboard](https://vercel.com) → ваш backend проект
-2. **Settings** → **Environment Variables**
-3. Обновите `DATABASE_URL` на Connection Pooling string
-4. Выберите все окружения (Production, Preview, Development)
-5. **Передеплойте** проект
+### Update DATABASE_URL in Vercel
+1. [Vercel Dashboard](https://vercel.com) -> your backend project
+2. **Settings** -> **Environment Variables**
+3. Update `DATABASE_URL` to the Connection Pooling string
+4. Select all environments (Production, Preview, Development)
+5. **Redeploy** the project
 
-## Частые ошибки
+## Common Errors
 
-- **"Wrong password"** → Неправильный username/password в DATABASE_URL
-- **"Cannot assign requested address"** → Используется прямой URL вместо Connection Pooling
-- **"relation does not exist"** → Таблицы не созданы (примените миграцию)
-
+- **"Wrong password"** — Incorrect username/password in DATABASE_URL
+- **"Cannot assign requested address"** — Using direct URL instead of Connection Pooling
+- **"relation does not exist"** — Tables not created (apply the migration)

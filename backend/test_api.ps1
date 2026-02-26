@@ -1,4 +1,4 @@
-# Скрипт для тестирования регистрации
+# Script for testing registration via API
 $timestamp = [int][double]::Parse((Get-Date -UFormat %s))
 $email = "test_user_$timestamp@example.com"
 $body = @{
@@ -8,11 +8,11 @@ $body = @{
 } | ConvertTo-Json
 
 Write-Host "=========================================="
-Write-Host "Тестирование регистрации"
+Write-Host "Testing registration"
 Write-Host "=========================================="
 Write-Host "URL: https://biblie-school-backend.vercel.app/api/v1/auth/register"
 Write-Host "Email: $email"
-Write-Host "Имя: Test User API"
+Write-Host "Name: Test User API"
 Write-Host "=========================================="
 Write-Host ""
 
@@ -23,27 +23,26 @@ try {
         -ContentType "application/json" `
         -Headers @{"Origin"="https://biblie-school-frontend.vercel.app"} `
         -ErrorAction Stop
-    
-    Write-Host "✅ УСПЕХ! Пользователь зарегистрирован:" -ForegroundColor Green
+
+    Write-Host "SUCCESS! User registered:" -ForegroundColor Green
     Write-Host "   ID: $($response.user.id)"
     Write-Host "   Email: $($response.user.email)"
-    Write-Host "   Имя: $($response.user.full_name)"
-    Write-Host "   Токен: $($response.access_token.Substring(0, 20))..."
+    Write-Host "   Name: $($response.user.full_name)"
+    Write-Host "   Token: $($response.access_token.Substring(0, 20))..."
     Write-Host ""
-    Write-Host "Полный ответ:" -ForegroundColor Cyan
+    Write-Host "Full response:" -ForegroundColor Cyan
     $response | ConvertTo-Json -Depth 10
-    
-    # Сохраняем в файл
+
     $response | ConvertTo-Json -Depth 10 | Out-File -FilePath "test_register_result.json" -Encoding UTF8
     Write-Host ""
-    Write-Host "Результат сохранен в test_register_result.json" -ForegroundColor Yellow
-    
+    Write-Host "Result saved to test_register_result.json" -ForegroundColor Yellow
+
 } catch {
-    Write-Host "❌ ОШИБКА:" -ForegroundColor Red
+    Write-Host "ERROR:" -ForegroundColor Red
     Write-Host $_.Exception.Message
     if ($_.ErrorDetails.Message) {
-        Write-Host "Детали: $($_.ErrorDetails.Message)" -ForegroundColor Red
+        Write-Host "Details: $($_.ErrorDetails.Message)" -ForegroundColor Red
     }
     Write-Host ""
-    Write-Host "Статус код: $($_.Exception.Response.StatusCode.value__)"
+    Write-Host "Status code: $($_.Exception.Response.StatusCode.value__)"
 }
