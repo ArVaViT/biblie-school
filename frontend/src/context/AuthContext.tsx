@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, us
 import type { User } from "@/types"
 import { supabase } from "@/lib/supabase"
 import { authService } from "@/services/auth"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 interface AuthContextValue {
   user: User | null
@@ -16,7 +17,16 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-const LOADING_TIMEOUT_MS = 6000
+function userFromSupabase(su: SupabaseUser): User {
+  return {
+    id: su.id,
+    email: su.email ?? "",
+    full_name: su.user_metadata?.full_name ?? null,
+    role: su.user_metadata?.role ?? "student",
+    created_at: su.created_at,
+    updated_at: su.updated_at ?? "",
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -51,27 +61,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mounted.current = true
 
     const timeout = setTimeout(() => {
-      if (mounted.current && loading) setLoading(false)
-    }, LOADING_TIMEOUT_MS)
+      if (mounted.current) setLoading(false)
+    }, 6000)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted.current) return
 
-        if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
           if (session?.user) {
+            if (!initialised.current) {
+              setUser(userFromSupabase(session.user))
+            }
+
             const profile = await loadProfile(session.user.id, session.user.email ?? "")
-            if (mounted.current) setUser(profile)
-          } else {
-            if (mounted.current) setUser(null)
+            if (mounted.current) {
+              setUser(profile ?? userFromSupabase(session.user))
+            }
+          } else if (mounted.current) {
+            setUser(null)
           }
         }
 
-        if (event === "SIGNED_OUT") {
-          if (mounted.current) setUser(null)
+        if (event === "SIGNED_OUT" && mounted.current) {
+          setUser(null)
         }
 
-        if (!initialised.current || event === "INITIAL_SESSION") {
+        if (!initialised.current) {
           initialised.current = true
           if (mounted.current) {
             clearTimeout(timeout)
@@ -86,20 +102,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(timeout)
       subscription.unsubscribe()
     }
-  }, [loadProfile, loading])
-
-  const refreshUser = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) {
-      const profile = await loadProfile(session.user.id, session.user.email ?? "")
-      if (mounted.current) setUser(profile)
-    } else {
-      if (mounted.current) setUser(null)
-    }
   }, [loadProfile])
 
   const login = useCallback(async (email: string, password: string) => {
-    await authService.login(email, password)
+    const result = await authService.login(email, password)
+    if (result.user) {
+      setUser(userFromSupabase(result.user))
+    }
   }, [])
 
   const register = useCallback(
@@ -116,6 +125,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = useCallback(async (email: string) => {
     await authService.resetPassword(email)
   }, [])
+
+  const refreshUser = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user) {
+      const profile = await loadProfile(session.user.id, session.user.email ?? "")
+      if (mounted.current) setUser(profile ?? userFromSupabase(session.user))
+    } else if (mounted.current) {
+      setUser(null)
+    }
+  }, [loadProfile])
 
   const logout = useCallback(async () => {
     await authService.logout()

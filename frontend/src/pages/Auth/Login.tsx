@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -25,7 +25,6 @@ export default function Login() {
   const [serverError, setServerError] = useState("")
   const [loading, setLoading] = useState(false)
   const { login, signInWithGoogle } = useAuth()
-  const navigate = useNavigate()
 
   const handleChange = (field: keyof LoginFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -50,11 +49,9 @@ export default function Login() {
     setLoading(true)
     try {
       await login(result.data.email, result.data.password)
-      navigate("/dashboard", { replace: true })
     } catch (err: unknown) {
       const supaErr = err as { message?: string }
       setServerError(supaErr.message || "Login failed. Please try again.")
-    } finally {
       setLoading(false)
     }
   }
