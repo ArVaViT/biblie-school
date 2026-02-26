@@ -1,4 +1,9 @@
-from supabase import create_client, Client
+try:
+    from supabase import create_client, Client
+except ImportError:
+    create_client = None  # type: ignore
+    Client = None  # type: ignore
+
 from app.core.config import settings
 from app.models.file import File
 from sqlalchemy.orm import Session

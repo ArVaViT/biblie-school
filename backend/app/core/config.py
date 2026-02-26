@@ -47,9 +47,6 @@ class Settings(BaseSettings):
                 os.getenv("SUPABASE_JWT_SECRET")
             )
         
-        # Проверка обязательных полей
-        if not self.SUPABASE_KEY:
-            raise ValueError("SUPABASE_KEY, SUPABASE_ANON_KEY, or NEXT_PUBLIC_SUPABASE_ANON_KEY must be set")
         if not self.DATABASE_URL:
             raise ValueError("DATABASE_URL or POSTGRES_URL must be set")
         if not self.JWT_SECRET_KEY:
