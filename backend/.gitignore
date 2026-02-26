@@ -38,3 +38,4 @@ venv.bak/
 .coverage
 htmlcov/
 
+.vercel
