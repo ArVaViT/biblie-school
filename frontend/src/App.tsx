@@ -4,6 +4,9 @@ import { ThemeProvider } from "./context/ThemeContext"
 import Header from "./components/layout/Header"
 import Login from "./pages/Auth/Login"
 import Register from "./pages/Auth/Register"
+import ForgotPassword from "./pages/Auth/ForgotPassword"
+import ResetPassword from "./pages/Auth/ResetPassword"
+import AuthCallback from "./pages/Auth/AuthCallback"
 import HomePage from "./pages/Home/HomePage"
 import Dashboard from "./pages/Dashboard/Dashboard"
 import ProfilePage from "./pages/Profile/ProfilePage"
@@ -57,6 +60,10 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth/confirm" element={<AuthCallback />} />
           <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />

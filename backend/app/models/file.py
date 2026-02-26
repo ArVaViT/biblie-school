@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -11,6 +12,5 @@ class File(Base):
     url = Column(String, nullable=False)
     file_type = Column(String, nullable=False)
     course_id = Column(String, ForeignKey("courses.id"), nullable=True)
-    user_id = Column(String, ForeignKey("users.id"), nullable=True)
+    user_id = Column(PgUUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
-

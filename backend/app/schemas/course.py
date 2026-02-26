@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
+from uuid import UUID
 
 
 class ChapterBase(BaseModel):
@@ -70,7 +71,7 @@ class CourseUpdate(BaseModel):
 
 class CourseResponse(CourseBase):
     id: str
-    created_by: str
+    created_by: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
     modules: List[ModuleResponse] = []
@@ -81,7 +82,7 @@ class CourseResponse(CourseBase):
 
 class EnrollmentResponse(BaseModel):
     id: str
-    user_id: str
+    user_id: UUID
     course_id: str
     enrolled_at: datetime
     progress: int

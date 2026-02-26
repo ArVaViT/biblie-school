@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
-import { authService } from "@/services/auth"
+import { useAuth } from "@/context/AuthContext"
 import type { Course } from "@/types"
 import { BookOpen, Play, ArrowRight } from "lucide-react"
 
@@ -12,6 +12,7 @@ export default function CourseDetail() {
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState(false)
+  const { user } = useAuth()
 
   useEffect(() => {
     const load = async () => {
@@ -28,7 +29,7 @@ export default function CourseDetail() {
   }, [id])
 
   const handleEnroll = async () => {
-    if (!id || !authService.isAuthenticated()) return
+    if (!id || !user) return
     setEnrolling(true)
     try {
       await coursesService.enrollInCourse(id)
@@ -82,7 +83,7 @@ export default function CourseDetail() {
             {course.description}
           </p>
         )}
-        {authService.isAuthenticated() && (
+        {user && (
           <Button onClick={handleEnroll} disabled={enrolling} className="mt-6">
             {enrolling ? "Enrolling..." : "Enroll in Course"}
           </Button>

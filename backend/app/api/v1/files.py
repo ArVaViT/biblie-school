@@ -5,8 +5,6 @@ from app.api.dependencies import get_current_user
 from app.models.user import User
 from app.services.file_service import upload_file_to_storage
 from app.models.file import File as FileModel
-from app.schemas.user import UserResponse
-
 router = APIRouter(prefix="/files", tags=["files"])
 
 

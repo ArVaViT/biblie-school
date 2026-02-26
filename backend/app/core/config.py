@@ -36,11 +36,11 @@ class Settings(BaseSettings):
         if self.DATABASE_URL:
             self.DATABASE_URL = self.DATABASE_URL.strip()
 
-        if not self.JWT_SECRET_KEY:
-            self.JWT_SECRET_KEY = (
-                os.getenv("JWT_SECRET_KEY") or
-                os.getenv("SUPABASE_JWT_SECRET")
-            )
+        supabase_jwt = os.getenv("SUPABASE_JWT_SECRET")
+        if supabase_jwt:
+            self.JWT_SECRET_KEY = supabase_jwt.strip()
+        elif not self.JWT_SECRET_KEY:
+            self.JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
         if self.JWT_SECRET_KEY:
             self.JWT_SECRET_KEY = self.JWT_SECRET_KEY.strip()
 
