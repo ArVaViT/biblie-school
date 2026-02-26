@@ -1,45 +1,32 @@
 from sqlalchemy.orm import Session
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.schemas.auth import RegisterRequest, LoginRequest
-from app.schemas.user import UserResponse
 import uuid
 
 
 def register_user(db: Session, user_data: RegisterRequest) -> tuple[User, str]:
-    try:
-        # Check if user exists
-        existing_user = db.query(User).filter(User.email == user_data.email).first()
-        if existing_user:
-            raise ValueError("User with this email already exists")
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    if existing_user:
+        raise ValueError("User with this email already exists")
 
-        # Create new user
-        hashed_password = get_password_hash(user_data.password)
-        user = User(
-            id=str(uuid.uuid4()),
-            email=user_data.email,
-            hashed_password=hashed_password,
-            full_name=user_data.full_name,
-            role=UserRole.STUDENT
-        )
+    user = User(
+        id=str(uuid.uuid4()),
+        email=user_data.email,
+        hashed_password=get_password_hash(user_data.password),
+        full_name=user_data.full_name,
+        role=user_data.role,
+    )
+    try:
         db.add(user)
         db.commit()
         db.refresh(user)
-
-        # Create token
-        access_token = create_access_token(data={"sub": user.id})
-        return user, access_token
-    except ValueError:
+    except Exception:
         db.rollback()
         raise
-    except Exception as e:
-        db.rollback()
-        import traceback
-        error_msg = f"Database error during registration: {str(e)}"
-        print(error_msg)
-        print(traceback.format_exc())
-        # Сохраняем оригинальную ошибку для диагностики
-        raise RuntimeError(f"Failed to register user: {str(e)}") from e
+
+    access_token = create_access_token(data={"sub": user.id, "role": user.role})
+    return user, access_token
 
 
 def authenticate_user(db: Session, login_data: LoginRequest) -> tuple[User, str]:
@@ -49,6 +36,5 @@ def authenticate_user(db: Session, login_data: LoginRequest) -> tuple[User, str]
     if not verify_password(login_data.password, user.hashed_password):
         raise ValueError("Incorrect email or password")
 
-    access_token = create_access_token(data={"sub": user.id})
+    access_token = create_access_token(data={"sub": user.id, "role": user.role})
     return user, access_token
-
