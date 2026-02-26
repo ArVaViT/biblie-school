@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { authService } from "@/services/auth"
+import AuthLayout from "@/components/layout/AuthLayout"
 import { z } from "zod"
+import { Loader2, CheckCircle2 } from "lucide-react"
 
 const resetSchema = z
   .object({
@@ -44,7 +45,7 @@ export default function ResetPassword() {
     try {
       await authService.updatePassword(result.data.password)
       setSuccess(true)
-      setTimeout(() => navigate("/dashboard", { replace: true }), 2000)
+      setTimeout(() => navigate("/dashboard", { replace: true }), 2500)
     } catch (err: unknown) {
       const supaErr = err as { message?: string }
       setServerError(supaErr.message || "Failed to reset password.")
@@ -55,71 +56,82 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-4">
-        <Card className="w-full max-w-md shadow-lg animate-fade-in">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl tracking-tight">Password Updated</CardTitle>
-            <CardDescription className="mt-2">
-              Your password has been successfully updated. Redirecting to dashboard...
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
+      <AuthLayout heading="Password updated" subheading="You're all set">
+        <div className="flex flex-col items-center text-center gap-4 py-6 animate-fade-in">
+          <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center">
+            <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Your password has been updated successfully.
+            <br />Redirecting to dashboard...
+          </p>
+          <div className="h-1 w-24 rounded-full bg-muted overflow-hidden">
+            <div className="h-full bg-primary animate-[grow_2.5s_ease-out_forwards] rounded-full" />
+          </div>
+        </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-4">
-      <Card className="w-full max-w-md shadow-lg animate-fade-in">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="text-2xl tracking-tight">Set New Password</CardTitle>
-          <CardDescription>Choose a strong password for your account</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4 pt-4">
-            {serverError && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                {serverError}
-              </div>
+    <AuthLayout heading="Set new password" subheading="Choose a strong password for your account">
+      <div className="space-y-6 animate-fade-in">
+        {serverError && (
+          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
+            {serverError}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="password">New Password</Label>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              className="h-11"
+              value={form.password}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, password: e.target.value }))
+                setErrors((prev) => ({ ...prev, password: undefined }))
+              }}
+              aria-invalid={!!errors.password}
+              autoFocus
+            />
+            {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              className="h-11"
+              value={form.confirmPassword}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                setErrors((prev) => ({ ...prev, confirmPassword: undefined }))
+              }}
+              aria-invalid={!!errors.confirmPassword}
+            />
+            {errors.confirmPassword && (
+              <p className="text-xs text-destructive mt-1">{errors.confirmPassword}</p>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={form.password}
-                onChange={(e) => {
-                  setForm((prev) => ({ ...prev, password: e.target.value }))
-                  setErrors((prev) => ({ ...prev, password: undefined }))
-                }}
-                aria-invalid={!!errors.password}
-              />
-              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={form.confirmPassword}
-                onChange={(e) => {
-                  setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
-                  setErrors((prev) => ({ ...prev, confirmPassword: undefined }))
-                }}
-                aria-invalid={!!errors.confirmPassword}
-              />
-              {errors.confirmPassword && (
-                <p className="text-xs text-destructive">{errors.confirmPassword}</p>
-              )}
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Updating..." : "Update Password"}
-            </Button>
-          </CardFooter>
+          </div>
+
+          <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Update Password"
+            )}
+          </Button>
         </form>
-      </Card>
-    </div>
+      </div>
+    </AuthLayout>
   )
 }

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { AuthProvider, useAuth } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import Header from "./components/layout/Header"
@@ -39,17 +39,34 @@ function TeacherRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/auth/reset-password", "/auth/callback", "/auth/confirm"]
+
 function AppRoutes() {
   const { loading } = useAuth()
+  const location = useLocation()
+  const isAuthPage = AUTH_PATHS.some((p) => location.pathname.startsWith(p))
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
           <span className="text-sm text-muted-foreground">Loading...</span>
         </div>
       </div>
+    )
+  }
+
+  if (isAuthPage) {
+    return (
+      <Routes>
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/confirm" element={<AuthCallback />} />
+      </Routes>
     )
   }
 
@@ -58,12 +75,6 @@ function AppRoutes() {
       <Header />
       <main className="flex-1">
         <Routes>
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-          <Route path="/auth/reset-password" element={<ResetPassword />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/auth/confirm" element={<AuthCallback />} />
           <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
@@ -71,6 +82,7 @@ function AppRoutes() {
           <Route path="/courses/:courseId/modules/:moduleId" element={<ModuleView />} />
           <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
           <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">

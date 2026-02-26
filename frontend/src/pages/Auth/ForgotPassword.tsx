@@ -3,9 +3,9 @@ import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
-import { ArrowLeft } from "lucide-react"
+import AuthLayout from "@/components/layout/AuthLayout"
+import { ArrowLeft, Loader2, MailCheck } from "lucide-react"
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("")
@@ -37,67 +37,72 @@ export default function ForgotPassword() {
 
   if (sent) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-4">
-        <Card className="w-full max-w-md shadow-lg animate-fade-in">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl tracking-tight">Check Your Email</CardTitle>
-            <CardDescription className="mt-2">
-              If an account exists for <strong>{email}</strong>, we sent a password reset link.
-              Please check your inbox.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Link to="/login" className="w-full">
-              <Button variant="outline" className="w-full">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Sign In
-              </Button>
-            </Link>
-          </CardFooter>
-        </Card>
-      </div>
+      <AuthLayout heading="Check your email" subheading="We've sent you a password reset link">
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex flex-col items-center text-center gap-4 py-4">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <MailCheck className="h-8 w-8 text-primary" />
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              If an account exists for <strong className="text-foreground">{email}</strong>,
+              you'll receive a reset link shortly. Check your inbox.
+            </p>
+          </div>
+          <Link to="/login" className="block">
+            <Button variant="outline" className="w-full h-11">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Sign In
+            </Button>
+          </Link>
+        </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-4">
-      <Card className="w-full max-w-md shadow-lg animate-fade-in">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="text-2xl tracking-tight">Reset Password</CardTitle>
-          <CardDescription>Enter your email and we'll send you a reset link</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4 pt-4">
-            {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                {error}
-              </div>
+    <AuthLayout heading="Reset password" subheading="Enter your email and we'll send you a reset link">
+      <div className="space-y-6 animate-fade-in">
+        {error && (
+          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email address</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="h-11"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              "Send Reset Link"
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Sending..." : "Send Reset Link"}
-            </Button>
-            <Link
-              to="/login"
-              className="text-xs text-center text-muted-foreground hover:text-primary transition-colors"
-            >
-              <ArrowLeft className="h-3 w-3 inline mr-1" />
-              Back to Sign In
-            </Link>
-          </CardFooter>
+          </Button>
         </form>
-      </Card>
-    </div>
+
+        <Link
+          to="/login"
+          className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Sign In
+        </Link>
+      </div>
+    </AuthLayout>
   )
 }
