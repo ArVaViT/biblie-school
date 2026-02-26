@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { useAuth } from "@/context/AuthContext"
 import type { Enrollment } from "@/types"
-import { BookOpen, User as UserIcon, GraduationCap, BookOpenCheck } from "lucide-react"
+import { BookOpen, GraduationCap, BookOpenCheck, ArrowRight } from "lucide-react"
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -13,7 +13,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadMyCourses = async () => {
+    const load = async () => {
       try {
         const data = await coursesService.getMyCourses()
         setEnrollments(data)
@@ -23,99 +23,105 @@ export default function Dashboard() {
         setLoading(false)
       }
     }
-    loadMyCourses()
+    load()
   }, [])
 
-  const roleLabel = user?.role === "teacher" ? "Teacher" : "Student"
-  const RoleIcon = user?.role === "teacher" ? BookOpenCheck : GraduationCap
+  const isTeacher = user?.role === "teacher" || user?.role === "admin"
+  const RoleIcon = isTeacher ? BookOpenCheck : GraduationCap
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
-        <p className="text-muted-foreground">Your profile and courses</p>
+        <div className="flex items-center gap-3 mb-1">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <RoleIcon className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Welcome back, {user?.full_name?.split(" ")[0] || "there"}
+            </h1>
+            <p className="text-sm text-muted-foreground capitalize">{user?.role} dashboard</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <UserIcon className="h-5 w-5" />
-              <CardTitle>Profile</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
+      {isTeacher && (
+        <Card className="mb-6 bg-primary/5 border-primary/20">
+          <CardContent className="flex items-center justify-between py-4">
             <div>
-              <p className="text-sm text-muted-foreground">Name</p>
-              <p className="font-medium">{user?.full_name || "Not specified"}</p>
+              <h3 className="font-medium text-sm">Teacher Tools</h3>
+              <p className="text-xs text-muted-foreground">Create and manage your courses</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium">{user?.email}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Role</p>
-              <div className="flex items-center gap-1.5">
-                <RoleIcon className="h-4 w-4 text-primary" />
-                <p className="font-medium">{roleLabel}</p>
-              </div>
-            </div>
+            <Link to="/teacher">
+              <Button size="sm" variant="outline" className="h-8 text-xs">
+                Manage Courses
+                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+              </Button>
+            </Link>
           </CardContent>
         </Card>
+      )}
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              <CardTitle>My Courses</CardTitle>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            <CardTitle className="text-lg">My Courses</CardTitle>
+          </div>
+          <CardDescription>Courses you are enrolled in</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
-            <CardDescription>Courses you are enrolled in</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : enrollments.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>You are not enrolled in any courses yet</p>
-                <Link to="/">
-                  <Button className="mt-4">Browse Courses</Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {enrollments.map((enrollment) => (
-                  <div
-                    key={enrollment.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div>
-                      <h3 className="font-semibold">{enrollment.course?.title || "Course"}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: `${enrollment.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{enrollment.progress}%</span>
+          ) : enrollments.length === 0 ? (
+            <div className="text-center py-12">
+              <BookOpen className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">
+                You are not enrolled in any courses yet
+              </p>
+              <Link to="/">
+                <Button size="sm">Browse Courses</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {enrollments.map((enrollment) => (
+                <div
+                  key={enrollment.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-sm truncate">
+                      {enrollment.course?.title || "Course"}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all duration-500"
+                          style={{ width: `${enrollment.progress}%` }}
+                        />
                       </div>
+                      <span className="text-xs text-muted-foreground">
+                        {enrollment.progress}%
+                      </span>
                     </div>
-                    {enrollment.course && (
-                      <Link to={`/courses/${enrollment.course.id}`}>
-                        <Button variant="outline" size="sm">
-                          Continue
-                        </Button>
-                      </Link>
-                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  {enrollment.course && (
+                    <Link to={`/courses/${enrollment.course.id}`}>
+                      <Button variant="ghost" size="sm" className="h-8 text-xs shrink-0 ml-4">
+                        Continue
+                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

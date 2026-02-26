@@ -39,24 +39,27 @@ export default function Login() {
     try {
       await login(result.data.email, result.data.password)
       navigate("/dashboard", { replace: true })
-    } catch (err: any) {
-      setServerError(err.response?.data?.detail || "Login failed. Please try again.")
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } }
+      setServerError(axiosErr.response?.data?.detail || "Login failed. Please try again.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
+    <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-4">
+      <Card className="w-full max-w-md shadow-lg animate-fade-in">
+        <CardHeader className="text-center pb-2">
+          <CardTitle className="text-2xl tracking-tight">Welcome Back</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-4">
             {serverError && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{serverError}</div>
+              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                {serverError}
+              </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -68,7 +71,7 @@ export default function Login() {
                 onChange={(e) => handleChange("email", e.target.value)}
                 aria-invalid={!!errors.email}
               />
-              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -79,14 +82,14 @@ export default function Login() {
                 onChange={(e) => handleChange("password", e.target.value)}
                 aria-invalid={!!errors.password}
               />
-              {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
-            <p className="text-sm text-center text-muted-foreground">
+            <p className="text-xs text-center text-muted-foreground">
               Don&apos;t have an account?{" "}
               <Link to="/register" className="text-primary hover:underline font-medium">
                 Register

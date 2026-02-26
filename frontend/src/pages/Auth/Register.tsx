@@ -54,8 +54,9 @@ export default function Register() {
     try {
       await register(result.data.email, result.data.password, result.data.full_name, result.data.role)
       navigate("/dashboard", { replace: true })
-    } catch (err: any) {
-      setServerError(err.response?.data?.detail || "Registration failed. Please try again.")
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } }
+      setServerError(axiosErr.response?.data?.detail || "Registration failed. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -77,19 +78,20 @@ export default function Register() {
   ]
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Create Account</CardTitle>
+    <div className="flex items-center justify-center min-h-[calc(100vh-7rem)] px-4 py-8">
+      <Card className="w-full max-w-md shadow-lg animate-fade-in">
+        <CardHeader className="text-center pb-2">
+          <CardTitle className="text-2xl tracking-tight">Create Account</CardTitle>
           <CardDescription>Choose your role and get started</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-5">
+          <CardContent className="space-y-5 pt-4">
             {serverError && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{serverError}</div>
+              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                {serverError}
+              </div>
             )}
 
-            {/* Role selector */}
             <div className="space-y-2">
               <Label>I am a</Label>
               <div className="grid grid-cols-2 gap-3">
@@ -101,20 +103,24 @@ export default function Register() {
                       key={r.value}
                       type="button"
                       onClick={() => handleChange("role", r.value)}
-                      className={`relative flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
+                      className={`relative flex flex-col items-center gap-1.5 rounded-lg border-2 p-4 transition-all ${
                         selected
                           ? "border-primary bg-primary/5 shadow-sm"
                           : "border-border hover:border-muted-foreground/30"
                       }`}
                     >
-                      <Icon className={`h-7 w-7 ${selected ? "text-primary" : "text-muted-foreground"}`} />
-                      <span className={`text-sm font-medium ${selected ? "text-primary" : ""}`}>{r.label}</span>
-                      <span className="text-xs text-muted-foreground text-center">{r.description}</span>
+                      <Icon className={`h-6 w-6 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className={`text-sm font-medium ${selected ? "text-primary" : ""}`}>
+                        {r.label}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground text-center leading-tight">
+                        {r.description}
+                      </span>
                     </button>
                   )
                 })}
               </div>
-              {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
+              {errors.role && <p className="text-xs text-destructive">{errors.role}</p>}
             </div>
 
             <div className="space-y-2">
@@ -126,7 +132,7 @@ export default function Register() {
                 onChange={(e) => handleChange("full_name", e.target.value)}
                 aria-invalid={!!errors.full_name}
               />
-              {errors.full_name && <p className="text-sm text-destructive">{errors.full_name}</p>}
+              {errors.full_name && <p className="text-xs text-destructive">{errors.full_name}</p>}
             </div>
 
             <div className="space-y-2">
@@ -139,7 +145,7 @@ export default function Register() {
                 onChange={(e) => handleChange("email", e.target.value)}
                 aria-invalid={!!errors.email}
               />
-              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -151,7 +157,7 @@ export default function Register() {
                 onChange={(e) => handleChange("password", e.target.value)}
                 aria-invalid={!!errors.password}
               />
-              {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
 
             <div className="space-y-2">
@@ -163,14 +169,16 @@ export default function Register() {
                 onChange={(e) => handleChange("confirmPassword", e.target.value)}
                 aria-invalid={!!errors.confirmPassword}
               />
-              {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+              {errors.confirmPassword && (
+                <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+              )}
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Create Account"}
             </Button>
-            <p className="text-sm text-center text-muted-foreground">
+            <p className="text-xs text-center text-muted-foreground">
               Already have an account?{" "}
               <Link to="/login" className="text-primary hover:underline font-medium">
                 Sign In
