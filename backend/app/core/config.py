@@ -32,20 +32,22 @@ class Settings(BaseSettings):
                 os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
             )
         
-        # DATABASE_URL может быть как DATABASE_URL, так и POSTGRES_URL
         if not self.DATABASE_URL:
             self.DATABASE_URL = (
                 os.getenv("DATABASE_URL") or 
                 os.getenv("POSTGRES_URL") or 
                 os.getenv("POSTGRES_PRISMA_URL")
             )
+        if self.DATABASE_URL:
+            self.DATABASE_URL = self.DATABASE_URL.strip()
         
-        # JWT_SECRET_KEY может быть как JWT_SECRET_KEY, так и SUPABASE_JWT_SECRET
         if not self.JWT_SECRET_KEY:
             self.JWT_SECRET_KEY = (
                 os.getenv("JWT_SECRET_KEY") or 
                 os.getenv("SUPABASE_JWT_SECRET")
             )
+        if self.JWT_SECRET_KEY:
+            self.JWT_SECRET_KEY = self.JWT_SECRET_KEY.strip()
         
         if not self.DATABASE_URL:
             raise ValueError("DATABASE_URL or POSTGRES_URL must be set")
