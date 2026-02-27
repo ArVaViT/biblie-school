@@ -1,15 +1,24 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
+import { storageService } from "@/services/storage"
 import type { Course, Module, Chapter } from "@/types"
 import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
-  GripVertical, FileText, Save,
+  GripVertical, FileText, Save, Upload, Image, Paperclip,
+  Download, Loader2, X,
 } from "lucide-react"
+
+interface MaterialFile {
+  name: string
+  path: string
+  size?: number
+  created?: string
+}
 
 export default function CourseEditor() {
   const { courseId } = useParams<{ courseId: string }>()
@@ -26,6 +35,13 @@ export default function CourseEditor() {
   const [editingChapter, setEditingChapter] = useState<string | null>(null)
   const [chapterContent, setChapterContent] = useState("")
 
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [materials, setMaterials] = useState<MaterialFile[]>([])
+  const [uploadingMaterial, setUploadingMaterial] = useState(false)
+
+  const coverRef = useRef<HTMLInputElement>(null)
+  const materialRef = useRef<HTMLInputElement>(null)
+
   const load = useCallback(async () => {
     if (!courseId) return
     try {
@@ -34,6 +50,9 @@ export default function CourseEditor() {
       setTitle(data.title)
       setDescription(data.description ?? "")
       setImageUrl(data.image_url ?? "")
+
+      const files = await storageService.listCourseMaterials(courseId).catch(() => [])
+      setMaterials(files)
     } catch {
       navigate("/teacher")
     } finally {
@@ -59,6 +78,57 @@ export default function CourseEditor() {
     }
   }
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !courseId) return
+    setUploadingCover(true)
+    try {
+      const url = await storageService.uploadCourseImage(courseId, file)
+      setImageUrl(url)
+      await coursesService.updateCourse(courseId, { image_url: url })
+    } catch (err) {
+      console.error("Cover upload failed:", err)
+    } finally {
+      setUploadingCover(false)
+      if (coverRef.current) coverRef.current.value = ""
+    }
+  }
+
+  const handleMaterialUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !courseId) return
+    setUploadingMaterial(true)
+    try {
+      await storageService.uploadCourseMaterial(courseId, file)
+      const files = await storageService.listCourseMaterials(courseId)
+      setMaterials(files)
+    } catch (err) {
+      console.error("Material upload failed:", err)
+    } finally {
+      setUploadingMaterial(false)
+      if (materialRef.current) materialRef.current.value = ""
+    }
+  }
+
+  const downloadMaterial = async (mat: MaterialFile) => {
+    try {
+      const url = await storageService.getSignedMaterialUrl(mat.path)
+      window.open(url, "_blank")
+    } catch (err) {
+      console.error("Download failed:", err)
+    }
+  }
+
+  const deleteMaterial = async (mat: MaterialFile) => {
+    if (!confirm(`Delete "${mat.name}"?`)) return
+    try {
+      await storageService.deleteCourseMaterial(mat.path)
+      setMaterials((prev) => prev.filter((m) => m.path !== mat.path))
+    } catch (err) {
+      console.error("Delete failed:", err)
+    }
+  }
+
   const toggleModule = (id: string) => {
     setExpandedModules((prev) => {
       const next = new Set(prev)
@@ -67,7 +137,6 @@ export default function CourseEditor() {
     })
   }
 
-  // --- Module CRUD ---
   const addModule = async () => {
     if (!courseId) return
     const order = (course?.modules?.length ?? 0)
@@ -84,16 +153,6 @@ export default function CourseEditor() {
   const renameModule = async (mod: Module, newTitle: string) => {
     if (!courseId || !newTitle.trim()) return
     await coursesService.updateModule(courseId, mod.id, { title: newTitle.trim() })
-    setCourse((prev) =>
-      prev
-        ? {
-            ...prev,
-            modules: prev.modules?.map((m) =>
-              m.id === mod.id ? { ...m, title: newTitle.trim() } : m,
-            ),
-          }
-        : prev,
-    )
   }
 
   const removeModule = async (modId: string) => {
@@ -104,7 +163,6 @@ export default function CourseEditor() {
     )
   }
 
-  // --- Chapter CRUD ---
   const addChapter = async (mod: Module) => {
     if (!courseId) return
     const order = (mod.chapters?.length ?? 0)
@@ -126,9 +184,7 @@ export default function CourseEditor() {
 
   const saveChapter = async (mod: Module, ch: Chapter) => {
     if (!courseId) return
-    await coursesService.updateChapter(courseId, mod.id, ch.id, {
-      content: chapterContent,
-    })
+    await coursesService.updateChapter(courseId, mod.id, ch.id, { content: chapterContent })
     setCourse((prev) =>
       prev
         ? {
@@ -227,14 +283,126 @@ export default function CourseEditor() {
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+
+          {/* Cover image */}
           <div className="space-y-2">
-            <Label>Cover Image URL</Label>
-            <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            <Label>Cover Image</Label>
+            {imageUrl ? (
+              <div className="relative w-full h-40 rounded-lg overflow-hidden border">
+                <img src={imageUrl} alt="Cover" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => coverRef.current?.click()}
+                  className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center"
+                >
+                  {uploadingCover ? (
+                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  ) : (
+                    <span className="text-white text-sm font-medium flex items-center gap-1.5">
+                      <Image className="h-4 w-4" /> Change Cover
+                    </span>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => coverRef.current?.click()}
+                disabled={uploadingCover}
+                className="w-full h-32 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground"
+              >
+                {uploadingCover ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="h-6 w-6" />
+                    <span className="text-sm">Upload cover image</span>
+                  </>
+                )}
+              </button>
+            )}
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handleCoverUpload}
+            />
           </div>
+
           <Button onClick={saveCourse} disabled={saving} size="sm">
             <Save className="h-4 w-4 mr-1.5" />
             {saving ? "Saving..." : "Save Changes"}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Course Materials */}
+      <Card className="mb-8">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Course Materials</CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => materialRef.current?.click()}
+              disabled={uploadingMaterial}
+            >
+              {uploadingMaterial ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              ) : (
+                <Paperclip className="h-4 w-4 mr-1.5" />
+              )}
+              Upload File
+            </Button>
+            <input
+              ref={materialRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.mp3,.wav,.ogg,.mp4"
+              className="hidden"
+              onChange={handleMaterialUpload}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          {materials.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No materials uploaded yet. Upload PDFs, documents, or audio files.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {materials.map((mat) => (
+                <div
+                  key={mat.path}
+                  className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm flex-1 truncate">{mat.name}</span>
+                  {mat.size && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {(mat.size / 1024).toFixed(0)} KB
+                    </span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 shrink-0"
+                    onClick={() => downloadMaterial(mat)}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
+                    onClick={() => deleteMaterial(mat)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

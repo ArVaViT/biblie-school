@@ -60,7 +60,11 @@ export default function Header() {
 
               <Link to="/profile">
                 <Button variant="ghost" size="sm" className="h-8 text-xs">
-                  <UserIcon className="h-3.5 w-3.5 mr-1" />
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover mr-1" />
+                  ) : (
+                    <UserIcon className="h-3.5 w-3.5 mr-1" />
+                  )}
                   <span className="hidden sm:inline">Profile</span>
                 </Button>
               </Link>

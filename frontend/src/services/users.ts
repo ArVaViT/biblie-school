@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase"
 import type { Profile } from "@/types"
 
 export const usersService = {
-  async updateProfile(data: { full_name?: string }): Promise<Profile> {
+  async updateProfile(data: { full_name?: string; avatar_url?: string }): Promise<Profile> {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error("Not authenticated")
 

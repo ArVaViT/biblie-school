@@ -116,12 +116,12 @@ export default function TeacherDashboard() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="img">Cover Image URL (optional)</Label>
+                <Label htmlFor="img">Cover Image URL (optional — or upload after creating)</Label>
                 <Input
                   id="img"
                   value={form.image_url}
                   onChange={(e) => setForm((p) => ({ ...p, image_url: e.target.value }))}
-                  placeholder="https://..."
+                  placeholder="https://... (you can upload in the editor)"
                 />
                 {errors.image_url && <p className="text-sm text-destructive">{errors.image_url}</p>}
               </div>
