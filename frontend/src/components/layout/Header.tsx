@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext"
 import { useTheme } from "@/context/ThemeContext"
 import {
   LogOut, LayoutDashboard, GraduationCap, BookOpenCheck,
-  Moon, Sun, User as UserIcon, PenTool,
+  Moon, Sun, User as UserIcon, PenTool, ShieldCheck,
 } from "lucide-react"
 
 export default function Header() {
@@ -41,6 +41,15 @@ export default function Header() {
                 )}
                 <span className="capitalize">{user.role}</span>
               </div>
+
+              {user.role === "admin" && (
+                <Link to="/admin">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs">
+                    <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                    <span className="hidden sm:inline">Admin</span>
+                  </Button>
+                </Link>
+              )}
 
               {isTeacher && (
                 <Link to="/teacher">

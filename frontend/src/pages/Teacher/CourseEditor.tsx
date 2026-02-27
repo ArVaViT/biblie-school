@@ -4,13 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import RichTextEditor from "@/components/editor/RichTextEditor"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
 import type { Course, Module, Chapter } from "@/types"
 import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
   GripVertical, FileText, Save, Upload, Image, Paperclip,
-  Download, Loader2, X,
+  Download, Loader2, X, Video,
 } from "lucide-react"
 
 interface MaterialFile {
@@ -34,6 +35,7 @@ export default function CourseEditor() {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
   const [editingChapter, setEditingChapter] = useState<string | null>(null)
   const [chapterContent, setChapterContent] = useState("")
+  const [chapterVideoUrl, setChapterVideoUrl] = useState("")
 
   const [uploadingCover, setUploadingCover] = useState(false)
   const [materials, setMaterials] = useState<MaterialFile[]>([])
@@ -184,7 +186,10 @@ export default function CourseEditor() {
 
   const saveChapter = async (mod: Module, ch: Chapter) => {
     if (!courseId) return
-    await coursesService.updateChapter(courseId, mod.id, ch.id, { content: chapterContent })
+    await coursesService.updateChapter(courseId, mod.id, ch.id, {
+      content: chapterContent,
+      video_url: chapterVideoUrl.trim() || undefined,
+    })
     setCourse((prev) =>
       prev
         ? {
@@ -194,7 +199,7 @@ export default function CourseEditor() {
                 ? {
                     ...m,
                     chapters: m.chapters?.map((c) =>
-                      c.id === ch.id ? { ...c, content: chapterContent } : c,
+                      c.id === ch.id ? { ...c, content: chapterContent, video_url: chapterVideoUrl.trim() || null } : c,
                     ),
                   }
                 : m,
@@ -526,6 +531,7 @@ export default function CourseEditor() {
                                   } else {
                                     setEditingChapter(ch.id)
                                     setChapterContent(ch.content ?? "")
+                                    setChapterVideoUrl(ch.video_url ?? "")
                                   }
                                 }}
                                 className="shrink-0 text-xs"
@@ -542,13 +548,27 @@ export default function CourseEditor() {
                               </Button>
                             </div>
                             {editingChapter === ch.id && (
-                              <div className="mt-3 space-y-2">
-                                <textarea
-                                  className="flex min-h-[160px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring font-mono"
-                                  value={chapterContent}
-                                  onChange={(e) => setChapterContent(e.target.value)}
-                                  placeholder="Write chapter content here... (HTML supported)"
-                                />
+                              <div className="mt-3 space-y-3">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs flex items-center gap-1.5">
+                                    <Video className="h-3.5 w-3.5" />
+                                    YouTube Video URL (optional)
+                                  </Label>
+                                  <Input
+                                    value={chapterVideoUrl}
+                                    onChange={(e) => setChapterVideoUrl(e.target.value)}
+                                    placeholder="https://www.youtube.com/watch?v=..."
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Content</Label>
+                                  <RichTextEditor
+                                    content={chapterContent}
+                                    onChange={setChapterContent}
+                                    placeholder="Write chapter content here..."
+                                  />
+                                </div>
                                 <Button
                                   size="sm"
                                   onClick={() => saveChapter(mod, ch)}
