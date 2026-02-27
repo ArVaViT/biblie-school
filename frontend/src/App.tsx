@@ -15,6 +15,8 @@ import CourseDetail from "./pages/Course/CourseDetail"
 import ModuleView from "./pages/Course/ModuleView"
 import TeacherDashboard from "./pages/Teacher/TeacherDashboard"
 import CourseEditor from "./pages/Teacher/CourseEditor"
+import TeacherAnalytics from "./pages/Teacher/TeacherAnalytics"
+import AdminDashboard from "./pages/Admin/AdminDashboard"
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -35,6 +37,16 @@ function TeacherRoute({ children }: { children: React.ReactNode }) {
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== "teacher" && user.role !== "admin") {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <>{children}</>
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== "admin") {
     return <Navigate to="/dashboard" replace />
   }
   return <>{children}</>
@@ -84,6 +96,8 @@ function AppRoutes() {
           <Route path="/courses/:courseId/modules/:moduleId" element={<ModuleView />} />
           <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
           <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
+          <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>

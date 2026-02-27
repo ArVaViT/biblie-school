@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
 import type { Course } from "@/types"
-import { Plus, Pencil, Trash2, BookOpen, Layers } from "lucide-react"
+import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff } from "lucide-react"
 
 export default function TeacherDashboard() {
   const [courses, setCourses] = useState<Course[]>([])
@@ -16,6 +16,22 @@ export default function TeacherDashboard() {
   const [form, setForm] = useState<CourseFormData>({ title: "", description: "", image_url: "" })
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
   const [saving, setSaving] = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+
+  const handleToggleStatus = async (course: Course) => {
+    const newStatus = course.status === "published" ? "draft" : "published"
+    setTogglingId(course.id)
+    try {
+      await coursesService.updateCourse(course.id, { status: newStatus })
+      setCourses((prev) =>
+        prev.map((c) => (c.id === course.id ? { ...c, status: newStatus } : c)),
+      )
+    } catch (err) {
+      console.error("Failed to update course status:", err)
+    } finally {
+      setTogglingId(null)
+    }
+  }
 
   const load = async () => {
     try {
@@ -173,7 +189,18 @@ export default function TeacherDashboard() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg truncate">{course.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-lg truncate">{course.title}</h3>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        course.status === "published"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      }`}
+                    >
+                      {course.status === "published" ? "Published" : "Draft"}
+                    </span>
+                  </div>
                   {course.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                       {course.description}
@@ -190,8 +217,26 @@ export default function TeacherDashboard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  <Link to={`/teacher/courses/${course.id}/analytics`}>
+                    <Button variant="ghost" size="sm" title="Analytics">
+                      <BarChart3 className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title={course.status === "published" ? "Unpublish" : "Publish"}
+                    disabled={togglingId === course.id}
+                    onClick={() => handleToggleStatus(course)}
+                  >
+                    {course.status === "published" ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Link to={`/teacher/courses/${course.id}`}>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" title="Edit">
                       <Pencil className="h-4 w-4" />
                     </Button>
                   </Link>
@@ -200,6 +245,7 @@ export default function TeacherDashboard() {
                     size="sm"
                     onClick={() => handleDelete(course.id)}
                     className="text-destructive hover:text-destructive"
+                    title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
