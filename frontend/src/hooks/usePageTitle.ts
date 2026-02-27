@@ -1,0 +1,36 @@
+import { useEffect } from "react"
+import { useLocation } from "react-router-dom"
+
+const BASE = "Bible School"
+
+const TITLES: Record<string, string> = {
+  "/login": "Sign In",
+  "/register": "Create Account",
+  "/forgot-password": "Forgot Password",
+  "/auth/reset-password": "Reset Password",
+  "/auth/callback": "Authenticating…",
+  "/auth/confirm": "Confirming Email…",
+  "/dashboard": "Dashboard",
+  "/profile": "My Profile",
+  "/teacher": "Teacher Dashboard",
+  "/": "Home",
+}
+
+function matchTitle(pathname: string): string {
+  if (TITLES[pathname]) return TITLES[pathname]
+
+  if (pathname.startsWith("/teacher/courses/")) return "Course Editor"
+  if (/^\/courses\/[^/]+\/modules\//.test(pathname)) return "Module"
+  if (pathname.startsWith("/courses/")) return "Course"
+
+  return ""
+}
+
+export function usePageTitle() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    const sub = matchTitle(pathname)
+    document.title = sub ? `${sub} — ${BASE}` : BASE
+  }, [pathname])
+}

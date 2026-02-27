@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { AuthProvider, useAuth } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
+import { usePageTitle } from "./hooks/usePageTitle"
 import Header from "./components/layout/Header"
 import Login from "./pages/Auth/Login"
 import Register from "./pages/Auth/Register"
@@ -45,6 +46,7 @@ function AppRoutes() {
   const { loading } = useAuth()
   const location = useLocation()
   const isAuthPage = AUTH_PATHS.some((p) => location.pathname.startsWith(p))
+  usePageTitle()
 
   if (loading) {
     return (
