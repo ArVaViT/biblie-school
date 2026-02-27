@@ -12,6 +12,7 @@ class Course(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
+    status = Column(String, default="draft", nullable=False)
     created_by = Column(PgUUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -40,6 +41,7 @@ class Chapter(Base):
     module_id = Column(String, ForeignKey("modules.id"), nullable=False)
     title = Column(String, nullable=False)
     content = Column(String, nullable=True)
+    video_url = Column(String, nullable=True)
     order_index = Column(Integer, default=0, nullable=False)
 
     module = relationship("Module", back_populates="chapters")

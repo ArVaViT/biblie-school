@@ -15,6 +15,7 @@ export interface Course {
   title: string
   description: string | null
   image_url: string | null
+  status: 'draft' | 'published'
   created_by: string
   created_at: string
   updated_at: string
@@ -35,7 +36,15 @@ export interface Chapter {
   module_id: string
   title: string
   content: string | null
+  video_url: string | null
   order_index: number
+}
+
+export interface ChapterProgress {
+  id: string
+  user_id: string
+  chapter_id: string
+  completed_at: string
 }
 
 export interface Enrollment {

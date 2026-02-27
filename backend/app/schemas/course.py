@@ -7,6 +7,7 @@ from uuid import UUID
 class ChapterBase(BaseModel):
     title: str
     content: Optional[str] = None
+    video_url: Optional[str] = None
     order_index: int = 0
 
 
@@ -17,6 +18,7 @@ class ChapterCreate(ChapterBase):
 class ChapterUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
+    video_url: Optional[str] = None
     order_index: Optional[int] = None
 
 
@@ -67,10 +69,12 @@ class CourseUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
+    status: Optional[str] = None
 
 
 class CourseResponse(CourseBase):
     id: str
+    status: str = "draft"
     created_by: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None

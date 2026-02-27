@@ -17,7 +17,7 @@ import uuid
 def get_courses(
     db: Session, *, skip: int = 0, limit: int = 100, search: str | None = None
 ) -> list[Course]:
-    query = db.query(Course)
+    query = db.query(Course).filter(Course.status == "published")
     if search:
         term = f"%{search}%"
         query = query.filter(
@@ -128,6 +128,7 @@ def create_chapter(db: Session, module_id: str, data: ChapterCreate) -> Chapter:
         module_id=module_id,
         title=data.title,
         content=data.content,
+        video_url=data.video_url,
         order_index=data.order_index,
     )
     db.add(chapter)
