@@ -52,6 +52,7 @@ export default function Login() {
     } catch (err: unknown) {
       const supaErr = err as { message?: string }
       setServerError(supaErr.message || "Login failed. Please try again.")
+    } finally {
       setLoading(false)
     }
   }

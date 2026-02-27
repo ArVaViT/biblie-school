@@ -32,83 +32,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const mounted = useRef(true)
-  const initialised = useRef(false)
 
-  const loadProfile = useCallback(async (userId: string, email: string): Promise<User | null> => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single()
-
-      if (error || !data) return null
-
-      return {
-        id: data.id,
-        email: data.email || email,
-        full_name: data.full_name,
-        role: data.role,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-      }
-    } catch {
-      return null
-    }
+  const enrichProfile = useCallback((userId: string, email: string) => {
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single()
+      .then(({ data }) => {
+        if (!mounted.current || !data) return
+        setUser({
+          id: data.id,
+          email: data.email || email,
+          full_name: data.full_name,
+          role: data.role,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+        })
+      })
   }, [])
 
   useEffect(() => {
     mounted.current = true
 
-    const timeout = setTimeout(() => {
-      if (mounted.current) setLoading(false)
-    }, 6000)
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!mounted.current) return
 
-        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+        if (event === "INITIAL_SESSION") {
           if (session?.user) {
-            if (!initialised.current) {
-              setUser(userFromSupabase(session.user))
-            }
-
-            const profile = await loadProfile(session.user.id, session.user.email ?? "")
-            if (mounted.current) {
-              setUser(profile ?? userFromSupabase(session.user))
-            }
-          } else if (mounted.current) {
-            setUser(null)
+            setUser(userFromSupabase(session.user))
+            enrichProfile(session.user.id, session.user.email ?? "")
           }
+          setLoading(false)
+          return
         }
 
-        if (event === "SIGNED_OUT" && mounted.current) {
+        if (event === "SIGNED_IN" && session?.user) {
+          setUser(userFromSupabase(session.user))
+          enrichProfile(session.user.id, session.user.email ?? "")
+          return
+        }
+
+        if (event === "TOKEN_REFRESHED" && session?.user) {
+          enrichProfile(session.user.id, session.user.email ?? "")
+          return
+        }
+
+        if (event === "SIGNED_OUT") {
           setUser(null)
-        }
-
-        if (!initialised.current) {
-          initialised.current = true
-          if (mounted.current) {
-            clearTimeout(timeout)
-            setLoading(false)
-          }
         }
       },
     )
 
     return () => {
       mounted.current = false
-      clearTimeout(timeout)
       subscription.unsubscribe()
     }
-  }, [loadProfile])
+  }, [enrichProfile])
 
   const login = useCallback(async (email: string, password: string) => {
-    const result = await authService.login(email, password)
-    if (result.user) {
-      setUser(userFromSupabase(result.user))
-    }
+    const { user: su } = await authService.login(email, password)
+    if (su) setUser(userFromSupabase(su))
   }, [])
 
   const register = useCallback(
@@ -128,13 +113,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) {
-      const profile = await loadProfile(session.user.id, session.user.email ?? "")
-      if (mounted.current) setUser(profile ?? userFromSupabase(session.user))
-    } else if (mounted.current) {
-      setUser(null)
+    if (!session?.user) {
+      if (mounted.current) setUser(null)
+      return
     }
-  }, [loadProfile])
+    setUser(userFromSupabase(session.user))
+    enrichProfile(session.user.id, session.user.email ?? "")
+  }, [enrichProfile])
 
   const logout = useCallback(async () => {
     await authService.logout()

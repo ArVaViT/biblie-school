@@ -1,20 +1,36 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
 
 export default function AuthCallback() {
   const navigate = useNavigate()
+  const handled = useRef(false)
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY") {
+    const go = (path: string) => {
+      if (handled.current) return
+      handled.current = true
+      navigate(path, { replace: true })
+    }
+
+    const timeout = setTimeout(() => go("/login"), 8000)
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
         if (event === "PASSWORD_RECOVERY") {
-          navigate("/auth/reset-password", { replace: true })
-        } else {
-          navigate("/dashboard", { replace: true })
+          clearTimeout(timeout)
+          go("/auth/reset-password")
+        } else if (session) {
+          clearTimeout(timeout)
+          go("/dashboard")
         }
-      }
-    })
+      },
+    )
+
+    return () => {
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
   }, [navigate])
 
   return (
