@@ -18,6 +18,7 @@ export default function Header() {
   }
 
   const isTeacher = user?.role === "teacher" || user?.role === "admin"
+  const isPendingTeacher = user?.role === "pending_teacher"
 
   return (
     <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
@@ -33,13 +34,21 @@ export default function Header() {
 
           {user ? (
             <>
-              <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground border rounded-full px-2.5 py-1">
+              <div className={`hidden sm:flex items-center gap-1.5 text-xs border rounded-full px-2.5 py-1 ${
+                isPendingTeacher
+                  ? "text-amber-600 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-950/30"
+                  : "text-muted-foreground"
+              }`}>
                 {isTeacher ? (
+                  <BookOpenCheck className="h-3.5 w-3.5" />
+                ) : isPendingTeacher ? (
                   <BookOpenCheck className="h-3.5 w-3.5" />
                 ) : (
                   <GraduationCap className="h-3.5 w-3.5" />
                 )}
-                <span className="capitalize">{user.role}</span>
+                <span className="capitalize">
+                  {isPendingTeacher ? "Pending Teacher" : user.role}
+                </span>
               </div>
 
               {user.role === "admin" && (

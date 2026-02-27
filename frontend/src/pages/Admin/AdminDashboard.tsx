@@ -6,7 +6,8 @@ import { useAuth } from "@/context/AuthContext"
 import { coursesService } from "@/services/courses"
 import { supabase } from "@/lib/supabase"
 import type { UserRole } from "@/types"
-import { Users, BookOpen, GraduationCap, Shield, Search } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Users, BookOpen, GraduationCap, Shield, Search, Clock, CheckCircle, XCircle } from "lucide-react"
 
 interface ProfileRow {
   id: string
@@ -89,9 +90,40 @@ export default function AdminDashboard() {
     { label: "Total Enrollments", value: stats.enrollments, icon: GraduationCap, color: "text-purple-600 bg-purple-100 dark:bg-purple-900/40 dark:text-purple-400" },
   ]
 
+  const pendingTeachers = users.filter((u) => u.role === "pending_teacher")
+
+  const handleApproveTeacher = async (userId: string) => {
+    setUpdatingId(userId)
+    try {
+      await coursesService.updateUserRole(userId, "teacher")
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: "teacher" as UserRole } : u)),
+      )
+    } catch (err) {
+      console.error("Failed to approve teacher:", err)
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const handleDenyTeacher = async (userId: string) => {
+    setUpdatingId(userId)
+    try {
+      await coursesService.updateUserRole(userId, "student")
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: "student" as UserRole } : u)),
+      )
+    } catch (err) {
+      console.error("Failed to deny teacher:", err)
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
   const roleBadgeClass: Record<UserRole, string> = {
     admin: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
     teacher: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    pending_teacher: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
     student: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400",
   }
 
@@ -125,6 +157,69 @@ export default function AdminDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Pending Teacher Approvals */}
+      {pendingTeachers.length > 0 && (
+        <Card className="mb-8 border-amber-200 dark:border-amber-800">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-600" />
+              Pending Teacher Approvals
+              <span className="text-sm font-normal bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5">
+                {pendingTeachers.length}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {pendingTeachers.map((u) => (
+                <div
+                  key={u.id}
+                  className="flex items-center justify-between p-4 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {u.avatar_url ? (
+                      <img src={u.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">
+                        {(u.full_name?.[0] ?? u.email[0]).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{u.full_name || "No name"}</p>
+                      <p className="text-sm text-muted-foreground truncate">{u.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Registered {new Date(u.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                    <Button
+                      size="sm"
+                      onClick={() => handleApproveTeacher(u.id)}
+                      disabled={updatingId === u.id}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1.5" />
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDenyTeacher(u.id)}
+                      disabled={updatingId === u.id}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <XCircle className="h-4 w-4 mr-1.5" />
+                      Deny
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Users Table */}
       <Card>
@@ -195,6 +290,7 @@ export default function AdminDashboard() {
                             className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                           >
                             <option value="student">student</option>
+                            <option value="pending_teacher">pending teacher</option>
                             <option value="teacher">teacher</option>
                             <option value="admin">admin</option>
                           </select>

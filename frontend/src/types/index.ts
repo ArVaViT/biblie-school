@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'teacher' | 'student'
+export type UserRole = 'admin' | 'teacher' | 'pending_teacher' | 'student'
 
 export interface User {
   id: string
@@ -54,6 +54,17 @@ export interface Enrollment {
   enrolled_at: string
   progress: number
   course?: Course
+}
+
+export interface StudentGrade {
+  id: string
+  student_id: string
+  course_id: string
+  grade: string | null
+  comment: string | null
+  graded_by: string
+  graded_at: string
+  updated_at: string
 }
 
 export interface FileMetadata {

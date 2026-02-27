@@ -16,6 +16,11 @@ export const authService = {
       },
     })
     if (error) throw error
+
+    if (data.user && data.user.identities?.length === 0) {
+      throw new Error("DUPLICATE_EMAIL")
+    }
+
     return data
   },
 

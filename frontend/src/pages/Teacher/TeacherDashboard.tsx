@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
 import type { Course } from "@/types"
-import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff } from "lucide-react"
+import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList } from "lucide-react"
 
 export default function TeacherDashboard() {
   const navigate = useNavigate()
@@ -221,6 +221,11 @@ export default function TeacherDashboard() {
                   <Link to={`/teacher/courses/${course.id}/analytics`}>
                     <Button variant="ghost" size="sm" title="Analytics">
                       <BarChart3 className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link to={`/teacher/courses/${course.id}/gradebook`}>
+                    <Button variant="ghost" size="sm" title="Gradebook">
+                      <ClipboardList className="h-4 w-4" />
                     </Button>
                   </Link>
                   <Button

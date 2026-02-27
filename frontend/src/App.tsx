@@ -16,6 +16,7 @@ import ModuleView from "./pages/Course/ModuleView"
 import TeacherDashboard from "./pages/Teacher/TeacherDashboard"
 import CourseEditor from "./pages/Teacher/CourseEditor"
 import TeacherAnalytics from "./pages/Teacher/TeacherAnalytics"
+import TeacherGradebook from "./pages/Teacher/TeacherGradebook"
 import AdminDashboard from "./pages/Admin/AdminDashboard"
 
 function RouteSpinner() {
@@ -60,10 +61,22 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function PendingTeacherBanner() {
+  return (
+    <div className="border-b bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+      <div className="container mx-auto px-4 py-3 text-center">
+        <p className="text-sm text-amber-800 dark:text-amber-300">
+          Your teacher account is pending administrator approval. You can browse courses as a student in the meantime.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/auth/reset-password", "/auth/callback", "/auth/confirm"]
 
 function AppRoutes() {
-  const { loading } = useAuth()
+  const { user, loading } = useAuth()
   const location = useLocation()
   const isAuthPage = AUTH_PATHS.some((p) => location.pathname.startsWith(p))
   usePageTitle()
@@ -95,6 +108,7 @@ function AppRoutes() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
+      {user?.role === "pending_teacher" && <PendingTeacherBanner />}
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
@@ -105,6 +119,7 @@ function AppRoutes() {
           <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
           <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
           <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
+          <Route path="/teacher/courses/:courseId/gradebook" element={<TeacherRoute><TeacherGradebook /></TeacherRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

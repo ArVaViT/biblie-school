@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/AuthContext"
 import { registerSchema } from "@/lib/validations/auth"
 import AuthLayout from "@/components/layout/AuthLayout"
-import { GraduationCap, BookOpenCheck, Loader2, MailCheck, ArrowLeft } from "lucide-react"
+import { GraduationCap, BookOpenCheck, Loader2, MailCheck, ArrowLeft, Clock, Mail } from "lucide-react"
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -52,6 +52,7 @@ export default function Register() {
   })
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
   const [serverError, setServerError] = useState("")
+  const [duplicateEmail, setDuplicateEmail] = useState(false)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const { register, signInWithGoogle } = useAuth()
@@ -82,7 +83,11 @@ export default function Register() {
       setSuccess(true)
     } catch (err: unknown) {
       const supaErr = err as { message?: string }
-      setServerError(supaErr.message || "Registration failed. Please try again.")
+      if (supaErr.message === "DUPLICATE_EMAIL") {
+        setDuplicateEmail(true)
+      } else {
+        setServerError(supaErr.message || "Registration failed. Please try again.")
+      }
     } finally {
       setLoading(false)
     }
@@ -97,19 +102,78 @@ export default function Register() {
     }
   }
 
-  if (success) {
+  if (duplicateEmail) {
     return (
-      <AuthLayout heading="Check your email" subheading="Almost there — just one more step">
+      <AuthLayout heading="Account may exist" subheading="This email might already be registered">
         <div className="space-y-6 animate-fade-in">
           <div className="flex flex-col items-center text-center gap-4 py-4">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <MailCheck className="h-8 w-8 text-primary" />
+            <div className="h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <Mail className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                An account with <strong className="text-foreground">{form.email}</strong> may already exist.
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Please try signing in instead, or use the "Forgot password" option if you can't remember your credentials.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Link to="/login" className="block">
+              <Button className="w-full h-11">
+                Go to Sign In
+              </Button>
+            </Link>
+            <Link to="/forgot-password" className="block">
+              <Button variant="outline" className="w-full h-11">
+                Forgot Password?
+              </Button>
+            </Link>
+            <a href="mailto:support@bibleschool.com" className="block">
+              <Button variant="ghost" className="w-full h-11 text-muted-foreground">
+                Contact Support
+              </Button>
+            </a>
+          </div>
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  if (success) {
+    const isTeacher = form.role === "teacher"
+    return (
+      <AuthLayout
+        heading={isTeacher ? "Application submitted" : "Check your email"}
+        subheading={isTeacher ? "One more step before you can start teaching" : "Almost there — just one more step"}
+      >
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex flex-col items-center text-center gap-4 py-4">
+            <div className={`h-16 w-16 rounded-full flex items-center justify-center ${
+              isTeacher
+                ? "bg-amber-100 dark:bg-amber-900/30"
+                : "bg-primary/10"
+            }`}>
+              {isTeacher ? (
+                <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+              ) : (
+                <MailCheck className="h-8 w-8 text-primary" />
+              )}
             </div>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 We sent a confirmation link to <strong className="text-foreground">{form.email}</strong>.
                 <br />Click the link in the email to activate your account.
               </p>
+              {isTeacher && (
+                <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                  <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+                    After confirming your email, your teacher account will need to be approved by an administrator.
+                    You'll be able to log in, but course creation tools will be available once approved.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           <Link to="/login" className="block">
