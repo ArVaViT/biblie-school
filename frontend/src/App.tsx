@@ -18,23 +18,31 @@ import CourseEditor from "./pages/Teacher/CourseEditor"
 import TeacherAnalytics from "./pages/Teacher/TeacherAnalytics"
 import AdminDashboard from "./pages/Admin/AdminDashboard"
 
+function RouteSpinner() {
+  return (
+    <div className="flex justify-center py-20">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>
+  )
+}
+
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return null
+  if (loading) return <RouteSpinner />
   if (!user) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return null
+  if (loading) return <RouteSpinner />
   if (user) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 
 function TeacherRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return null
+  if (loading) return <RouteSpinner />
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== "teacher" && user.role !== "admin") {
     return <Navigate to="/dashboard" replace />
@@ -44,7 +52,7 @@ function TeacherRoute({ children }: { children: React.ReactNode }) {
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return null
+  if (loading) return <RouteSpinner />
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== "admin") {
     return <Navigate to="/dashboard" replace />

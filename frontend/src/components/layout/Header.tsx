@@ -70,7 +70,12 @@ export default function Header() {
               <Link to="/profile">
                 <Button variant="ghost" size="sm" className="h-8 text-xs">
                   {user.avatar_url ? (
-                    <img src={user.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover mr-1" />
+                    <img
+                      src={user.avatar_url}
+                      alt=""
+                      className="h-5 w-5 rounded-full object-cover mr-1"
+                      onError={(e) => { e.currentTarget.style.display = "none" }}
+                    />
                   ) : (
                     <UserIcon className="h-3.5 w-3.5 mr-1" />
                   )}

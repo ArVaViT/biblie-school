@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,7 @@ import type { Course } from "@/types"
 import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff } from "lucide-react"
 
 export default function TeacherDashboard() {
+  const navigate = useNavigate()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -62,7 +63,7 @@ export default function TeacherDashboard() {
     }
     setSaving(true)
     try {
-      await coursesService.createCourse({
+      const newCourse = await coursesService.createCourse({
         title: result.data.title,
         description: result.data.description || undefined,
         image_url: result.data.image_url || undefined,
@@ -70,7 +71,7 @@ export default function TeacherDashboard() {
       setForm({ title: "", description: "", image_url: "" })
       setShowCreate(false)
       setErrors({})
-      await load()
+      navigate(`/teacher/courses/${newCourse.id}`)
     } catch {
       setErrors({ title: "Failed to create course" })
     } finally {

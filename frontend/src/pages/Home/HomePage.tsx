@@ -8,6 +8,7 @@ import { Search, BookOpen } from "lucide-react"
 export default function HomePage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
@@ -18,11 +19,13 @@ export default function HomePage() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const data = await coursesService.getCourses(debouncedSearch || undefined)
       setCourses(data)
-    } catch (error) {
-      console.error("Failed to load courses:", error)
+    } catch (err) {
+      console.error("Failed to load courses:", err)
+      setError("Failed to load courses. Please try again later.")
     } finally {
       setLoading(false)
     }
@@ -53,6 +56,18 @@ export default function HomePage() {
       {loading ? (
         <div className="flex justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <BookOpen className="h-12 w-12 text-destructive/40 mb-4" />
+          <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <button
+            onClick={load}
+            className="text-sm text-primary hover:underline"
+          >
+            Try again
+          </button>
         </div>
       ) : courses.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

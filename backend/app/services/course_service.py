@@ -71,9 +71,13 @@ def delete_course(db: Session, course: Course) -> None:
 # ---------------------------------------------------------------------------
 
 def get_module(db: Session, course_id: str, module_id: str) -> Module | None:
-    return db.query(Module).filter(
-        Module.id == module_id, Module.course_id == course_id
-    ).first()
+    from sqlalchemy.orm import joinedload
+    return (
+        db.query(Module)
+        .options(joinedload(Module.chapters))
+        .filter(Module.id == module_id, Module.course_id == course_id)
+        .first()
+    )
 
 
 def create_module(db: Session, course_id: str, data: ModuleCreate) -> Module:

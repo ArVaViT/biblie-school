@@ -39,6 +39,7 @@ export default function ModuleView() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>()
   const [module, setModule] = useState<Module | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
@@ -47,20 +48,30 @@ export default function ModuleView() {
   useEffect(() => {
     const load = async () => {
       if (!courseId || !moduleId) return
+      setError(null)
       try {
         const mod = await coursesService.getModule(courseId, moduleId)
         setModule(mod)
 
         const chapterIds = (mod.chapters ?? []).map((c) => c.id)
         if (chapterIds.length > 0) {
-          const progress = await coursesService.getChapterProgress(chapterIds)
-          setCompletedIds(new Set(progress.map((p: ChapterProgress) => p.chapter_id)))
+          try {
+            const progress = await coursesService.getChapterProgress(chapterIds)
+            setCompletedIds(new Set(progress.map((p: ChapterProgress) => p.chapter_id)))
+          } catch {
+            // Progress may fail if not logged in — non-critical
+          }
         }
 
-        const files = await storageService.listCourseMaterials(courseId)
-        setMaterials(files)
-      } catch (error) {
-        console.error("Failed to load module:", error)
+        try {
+          const files = await storageService.listCourseMaterials(courseId)
+          setMaterials(files)
+        } catch {
+          // Materials may fail if not enrolled — non-critical
+        }
+      } catch (err) {
+        console.error("Failed to load module:", err)
+        setError("Failed to load module. Please try again.")
       } finally {
         setLoading(false)
       }
@@ -136,11 +147,16 @@ export default function ModuleView() {
     )
   }
 
-  if (!module) {
+  if (error || !module) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
         <Book className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-        <h2 className="text-lg font-medium">Module not found</h2>
+        <h2 className="text-lg font-medium mb-2">
+          {error ?? "Module not found"}
+        </h2>
+        <Link to={courseId ? `/courses/${courseId}` : "/dashboard"}>
+          <Button variant="outline" size="sm">Back to Course</Button>
+        </Link>
       </div>
     )
   }

@@ -51,6 +51,18 @@ async def get_course_detail(course_id: str, db: Session = Depends(get_db)):
     return course
 
 
+@router.get("/{course_id}/modules/{module_id}", response_model=ModuleResponse)
+async def get_module_detail(
+    course_id: str,
+    module_id: str,
+    db: Session = Depends(get_db),
+):
+    module = get_module(db, course_id, module_id)
+    if not module:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Module not found")
+    return module
+
+
 # ---------------------------------------------------------------------------
 # Teacher course CRUD
 # ---------------------------------------------------------------------------

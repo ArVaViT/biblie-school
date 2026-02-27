@@ -12,6 +12,7 @@ export default function CourseDetail() {
   const [course, setCourse] = useState<Course | null>(null)
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [enrolling, setEnrolling] = useState(false)
   const { user } = useAuth()
 
@@ -26,8 +27,9 @@ export default function CourseDetail() {
         setCourse(courseData)
         const match = enrollments.find((e) => e.course_id === id)
         if (match) setEnrollment(match)
-      } catch (error) {
-        console.error("Failed to load course:", error)
+      } catch (err) {
+        console.error("Failed to load course:", err)
+        setError("Failed to load course. Please try again.")
       } finally {
         setLoading(false)
       }
@@ -41,8 +43,9 @@ export default function CourseDetail() {
     try {
       const enrolled = await coursesService.enrollInCourse(id)
       setEnrollment(enrolled)
-    } catch (error) {
-      console.error("Failed to enroll:", error)
+    } catch (err) {
+      console.error("Failed to enroll:", err)
+      setError("Failed to enroll. Please try again.")
     } finally {
       setEnrolling(false)
     }
@@ -56,11 +59,14 @@ export default function CourseDetail() {
     )
   }
 
-  if (!course) {
+  if (error || !course) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
         <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-        <h2 className="text-lg font-medium">Course not found</h2>
+        <h2 className="text-lg font-medium mb-2">{error ?? "Course not found"}</h2>
+        <Link to="/">
+          <Button variant="outline" size="sm">Back to Courses</Button>
+        </Link>
       </div>
     )
   }
@@ -83,11 +89,12 @@ export default function CourseDetail() {
       </Link>
 
       {course.image_url && (
-        <div className="w-full h-56 sm:h-72 mb-8 overflow-hidden rounded-xl">
+        <div className="w-full h-56 sm:h-72 mb-8 overflow-hidden rounded-xl bg-muted">
           <img
             src={course.image_url}
             alt={course.title}
             className="w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none" }}
           />
         </div>
       )}

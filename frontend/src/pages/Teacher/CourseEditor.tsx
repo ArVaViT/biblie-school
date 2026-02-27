@@ -32,6 +32,7 @@ export default function CourseEditor() {
   const [description, setDescription] = useState("")
   const [imageUrl, setImageUrl] = useState("")
 
+  const [showDetails, setShowDetails] = useState(false)
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
   const [editingChapter, setEditingChapter] = useState<string | null>(null)
   const [chapterContent, setChapterContent] = useState("")
@@ -270,12 +271,26 @@ export default function CourseEditor() {
         Back to Courses
       </Button>
 
-      {/* Course details */}
+      {/* Course details — collapsible */}
       <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Course Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <div
+          className="flex items-center justify-between p-6 cursor-pointer select-none"
+          onClick={() => setShowDetails(!showDetails)}
+        >
+          <CardTitle className="text-lg">Course Details</CardTitle>
+          <div className="flex items-center gap-2">
+            {!showDetails && (
+              <span className="text-sm text-muted-foreground truncate max-w-[200px]">{title}</span>
+            )}
+            {showDetails ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </div>
+        {showDetails && (
+        <CardContent className="space-y-4 pt-0">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -340,6 +355,7 @@ export default function CourseEditor() {
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         </CardContent>
+        )}
       </Card>
 
       {/* Course Materials */}
