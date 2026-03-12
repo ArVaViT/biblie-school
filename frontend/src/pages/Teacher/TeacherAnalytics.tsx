@@ -35,8 +35,8 @@ export default function TeacherAnalytics() {
         ])
         setAnalytics(analyticsData)
         setCourseTitle(course.title)
-      } catch (err) {
-        console.error("Failed to load analytics:", err)
+      } catch {
+        // analytics remains null — fallback UI handles this
       } finally {
         setLoading(false)
       }

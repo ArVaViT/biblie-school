@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import type { Certificate, Enrollment } from "@/types"
+import { toast } from "@/hooks/use-toast"
 import { Award, ArrowLeft, ScrollText, Loader2 } from "lucide-react"
 
 export default function CertificatesPage() {
@@ -20,8 +21,8 @@ export default function CertificatesPage() {
         ])
         setCertificates(certs)
         setEnrollments(courses)
-      } catch (err) {
-        console.error("Failed to load certificates:", err)
+      } catch {
+        toast({ title: "Failed to load certificates", variant: "destructive" })
       } finally {
         setLoading(false)
       }

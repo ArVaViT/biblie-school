@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.user import User, UserRole
+from app.models.course import Course, Module, Chapter
 
 security = HTTPBearer()
 
@@ -56,3 +57,25 @@ async def require_admin(
             detail="Admin access required",
         )
     return current_user
+
+
+def verify_course_owner(db: Session, course_id: str, teacher_id) -> Course:
+    """Verify the teacher owns this course. Raises 404 or 403."""
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if str(course.created_by) != str(teacher_id):
+        raise HTTPException(status_code=403, detail="You do not own this course")
+    return course
+
+
+def verify_chapter_owner(db: Session, chapter_id: str, teacher_id) -> Chapter:
+    """Resolve chapter -> module -> course and verify ownership."""
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    module = db.query(Module).filter(Module.id == chapter.module_id).first()
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    verify_course_owner(db, module.course_id, teacher_id)
+    return chapter

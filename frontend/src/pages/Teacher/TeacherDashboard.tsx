@@ -58,8 +58,7 @@ export default function TeacherDashboard() {
         prev.map((c) => (c.id === course.id ? { ...c, status: newStatus } : c)),
       )
       toast({ title: `Course ${newStatus === "published" ? "published" : "unpublished"}`, variant: "success" })
-    } catch (err) {
-      console.error("Failed to update course status:", err)
+    } catch {
       toast({ title: "Failed to update status", variant: "destructive" })
     } finally {
       setTogglingId(null)
@@ -76,8 +75,7 @@ export default function TeacherDashboard() {
       ])
       setCourses(data)
       setPendingCerts(certs)
-    } catch (err) {
-      console.error("Failed to load courses:", err)
+    } catch {
       setError("Failed to load your courses. Please try again.")
     } finally {
       setLoading(false)
@@ -121,13 +119,12 @@ export default function TeacherDashboard() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this course and all its content?")) return
+    if (!confirm("This will permanently delete this course and all its modules, chapters, and student data. This action cannot be undone.\n\nAre you sure?")) return
     try {
       await coursesService.deleteCourse(id)
       setCourses((prev) => prev.filter((c) => c.id !== id))
       toast({ title: "Course deleted", variant: "success" })
-    } catch (err) {
-      console.error("Failed to delete course:", err)
+    } catch {
       toast({ title: "Failed to delete course", variant: "destructive" })
     }
   }
@@ -221,7 +218,7 @@ export default function TeacherDashboard() {
                     <p className="text-sm text-muted-foreground truncate">{cert.course_title || "Course"}</p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                       <Clock className="h-3 w-3" />
-                      Requested {new Date(cert.requested_at).toLocaleDateString()}
+                      Requested {cert.requested_at ? new Date(cert.requested_at).toLocaleDateString() : "Unknown"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-4">

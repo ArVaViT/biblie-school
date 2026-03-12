@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher
+from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner
 from app.models.user import User
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.schemas.assignment import (
@@ -39,6 +39,7 @@ async def create_assignment(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
+    verify_chapter_owner(db, data.chapter_id, teacher.id)
     assignment = Assignment(**data.model_dump())
     db.add(assignment)
     db.commit()
@@ -56,6 +57,7 @@ async def update_assignment(
     assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
+    verify_chapter_owner(db, assignment.chapter_id, teacher.id)
 
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(assignment, field, value)
@@ -74,6 +76,7 @@ async def delete_assignment(
     assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
+    verify_chapter_owner(db, assignment.chapter_id, teacher.id)
     db.delete(assignment)
     db.commit()
 
@@ -107,6 +110,10 @@ async def list_submissions(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
+    assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
+    if not assignment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
+    verify_chapter_owner(db, assignment.chapter_id, teacher.id)
     return (
         db.query(AssignmentSubmission)
         .filter(AssignmentSubmission.assignment_id == assignment_id)
@@ -125,6 +132,10 @@ async def grade_submission(
     submission = db.query(AssignmentSubmission).filter(AssignmentSubmission.id == submission_id).first()
     if not submission:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+    assignment = db.query(Assignment).filter(Assignment.id == submission.assignment_id).first()
+    if not assignment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
+    verify_chapter_owner(db, assignment.chapter_id, teacher.id)
 
     submission.grade = data.grade
     submission.feedback = data.feedback

@@ -5,7 +5,7 @@ from uuid import UUID
 import uuid
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher
+from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner
 from app.models.user import User
 from app.models.quiz import Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer
 from app.schemas.quiz import (
@@ -32,6 +32,11 @@ async def get_chapter_quiz(
     return quiz
 
 
+def _verify_quiz_owner(db: Session, quiz: Quiz, teacher_id) -> None:
+    """Resolve quiz -> chapter -> module -> course and verify ownership."""
+    verify_chapter_owner(db, quiz.chapter_id, teacher_id)
+
+
 @router.get("/{quiz_id}", response_model=QuizResponse)
 async def get_quiz_detail(
     quiz_id: UUID,
@@ -42,6 +47,7 @@ async def get_quiz_detail(
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    _verify_quiz_owner(db, quiz, teacher.id)
     return quiz
 
 
@@ -51,6 +57,7 @@ async def create_quiz(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
+    verify_chapter_owner(db, data.chapter_id, teacher.id)
     quiz = Quiz(
         chapter_id=data.chapter_id,
         title=data.title,
@@ -95,6 +102,7 @@ async def update_quiz(
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    _verify_quiz_owner(db, quiz, teacher.id)
 
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(quiz, field, value)
@@ -113,6 +121,7 @@ async def delete_quiz(
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    _verify_quiz_owner(db, quiz, teacher.id)
     db.delete(quiz)
     db.commit()
 
@@ -187,6 +196,10 @@ async def get_quiz_attempts(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    if not quiz:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    _verify_quiz_owner(db, quiz, teacher.id)
     return (
         db.query(QuizAttempt)
         .filter(QuizAttempt.quiz_id == quiz_id)

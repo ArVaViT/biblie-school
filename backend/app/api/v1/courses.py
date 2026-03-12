@@ -28,8 +28,8 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 
 @router.get("", response_model=list[CourseResponse])
 async def list_courses(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     search: Optional[str] = Query(None, min_length=1, max_length=200),
     db: Session = Depends(get_db),
 ) -> list[CourseResponse]:

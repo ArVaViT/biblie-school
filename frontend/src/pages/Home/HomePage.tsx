@@ -24,8 +24,7 @@ export default function HomePage() {
     try {
       const data = await coursesService.getCourses(debouncedSearch || undefined)
       setCourses(data)
-    } catch (err) {
-      console.error("Failed to load courses:", err)
+    } catch {
       setError("Failed to load courses. Please try again later.")
     } finally {
       setLoading(false)

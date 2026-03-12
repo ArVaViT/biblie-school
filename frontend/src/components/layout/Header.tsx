@@ -84,6 +84,10 @@ export default function Header() {
                 </Link>
               )}
 
+              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Courses
+              </Link>
+
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
                   <LayoutDashboard className="h-3.5 w-3.5 mr-1" />

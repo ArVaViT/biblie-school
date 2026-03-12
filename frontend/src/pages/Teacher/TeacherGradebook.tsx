@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
 import type { StudentGrade } from "@/types"
+import { toast } from "@/hooks/use-toast"
 import {
   ArrowLeft, Save, Users, Award, MessageSquare,
   ChevronDown, ChevronRight, TrendingUp,
@@ -66,8 +67,7 @@ export default function TeacherGradebook() {
         setGrades(gradeMap)
         setForms(formMap)
       }
-    } catch (err) {
-      console.error("Failed to load gradebook:", err)
+    } catch {
       setError("Failed to load gradebook. Please try again.")
     } finally {
       setLoading(false)
@@ -106,8 +106,9 @@ export default function TeacherGradebook() {
         comment: form.comment.trim() || undefined,
       })
       setGrades((prev) => new Map(prev).set(userId, data))
-    } catch (err) {
-      console.error("Failed to save grade:", err)
+      toast({ title: "Grade saved", variant: "success" })
+    } catch {
+      toast({ title: "Failed to save grade", variant: "destructive" })
     } finally {
       setSaving(null)
     }

@@ -23,8 +23,7 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
       const cert = await coursesService.requestCertificate(courseId)
       onCertificateUpdate(cert)
       toast({ title: "Certificate requested!", variant: "success" })
-    } catch (err) {
-      console.error("Failed to request certificate:", err)
+    } catch {
       toast({ title: "Failed to request certificate", variant: "destructive" })
     } finally {
       setRequesting(false)
@@ -167,11 +166,13 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
                     Issue Date
                   </p>
                   <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                    {new Date(certificate.issued_at).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {certificate.issued_at
+                      ? new Date(certificate.issued_at).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : "Pending"}
                   </p>
                 </div>
               </div>

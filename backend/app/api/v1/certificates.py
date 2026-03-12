@@ -182,6 +182,14 @@ async def reject_certificate(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Certificate cannot be rejected (current status: {cert.status})",
         )
+    from app.models.user import UserRole
+    if current_user.role != UserRole.ADMIN.value:
+        course = db.query(Course).filter(Course.id == cert.course_id).first()
+        if not course or str(course.created_by) != str(current_user.id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only reject certificates for your own courses",
+            )
     cert.status = "rejected"
     db.commit()
     db.refresh(cert)

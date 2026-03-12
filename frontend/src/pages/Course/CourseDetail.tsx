@@ -62,15 +62,14 @@ export default function CourseDetail() {
           const cert = await coursesService.getCourseCertificate(id)
           setCertificate(cert)
         }
-      } catch (err) {
-        console.error("Failed to load course:", err)
+      } catch {
         setError("Failed to load course. Please try again.")
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [id, user])
+  }, [id, user?.id])
 
   const handleEnroll = async () => {
     if (!id || !user) return
@@ -79,8 +78,7 @@ export default function CourseDetail() {
       const enrolled = await coursesService.enrollInCourse(id)
       setEnrollment(enrolled)
       toast({ title: "Enrolled successfully", variant: "success" })
-    } catch (err) {
-      console.error("Failed to enroll:", err)
+    } catch {
       setError("Failed to enroll. Please try again.")
       toast({ title: "Failed to enroll", variant: "destructive" })
     } finally {

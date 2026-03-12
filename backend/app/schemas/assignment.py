@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 
@@ -58,4 +58,4 @@ class SubmissionResponse(BaseModel):
 class GradeSubmissionRequest(BaseModel):
     grade: int
     feedback: Optional[str] = None
-    status: str = "graded"
+    status: Literal["graded", "pending"] = "graded"

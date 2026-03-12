@@ -13,7 +13,7 @@ import {
   Circle,
   Download,
   Paperclip,
-  Trophy,
+
   ChevronDown,
   ChevronRight,
   Lock,
@@ -22,6 +22,7 @@ import {
   ClipboardList,
   File,
 } from "lucide-react"
+import { toast } from "@/hooks/use-toast"
 import StudentNotes from "@/components/course/StudentNotes"
 import QuizTaker from "@/components/quiz/QuizTaker"
 import AssignmentPanel from "@/components/assignment/AssignmentPanel"
@@ -151,8 +152,7 @@ export default function ModuleView() {
         } catch {
           // non-critical
         }
-      } catch (err) {
-        console.error("Failed to load module:", err)
+      } catch {
         setError("Failed to load module. Please try again.")
       } finally {
         setLoading(false)
@@ -224,11 +224,13 @@ export default function ModuleView() {
           : new Set([...completedIds, chapter.id])
 
         const total = sortedChapters.length
-        if (total > 0 && sortedChapters.every((c) => updatedCompleted.has(c.id))) {
-          await coursesService.updateProgress(courseId, 100)
+        const completedCount = updatedCompleted.size
+        const progress = total > 0 ? Math.round((completedCount / total) * 100) : 0
+        if (courseId) {
+          await coursesService.updateProgress(courseId, progress)
         }
-      } catch (error) {
-        console.error("Failed to update chapter progress:", error)
+      } catch {
+        toast({ title: "Failed to update chapter progress", variant: "destructive" })
       } finally {
         setTogglingIds((prev) => {
           const next = new Set(prev)
@@ -245,8 +247,8 @@ export default function ModuleView() {
     try {
       const url = await storageService.getSignedMaterialUrl(path)
       window.open(url, "_blank")
-    } catch (error) {
-      console.error("Failed to get download URL:", error)
+    } catch {
+      toast({ title: "Failed to download file", variant: "destructive" })
     } finally {
       setDownloadingPath(null)
     }
@@ -294,28 +296,10 @@ export default function ModuleView() {
       </div>
 
       {allComplete && (
-        <div className="mb-8 rounded-xl border-2 border-green-500/30 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-6 text-center animate-fade-in">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <Trophy className="h-8 w-8 text-green-600 dark:text-green-400" />
-            <h2 className="text-xl font-bold text-green-700 dark:text-green-300">
-              Congratulations! You've completed this module!
-            </h2>
-            <Trophy className="h-8 w-8 text-green-600 dark:text-green-400" />
-          </div>
-          <p className="text-sm text-green-600 dark:text-green-400">
-            All {sortedChapters.length} chapters finished
-          </p>
-          <div className="mt-3 flex justify-center gap-1">
-            {["🎉", "✨", "🌟", "🎊", "💫"].map((emoji, i) => (
-              <span
-                key={i}
-                className="text-2xl animate-bounce"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                {emoji}
-              </span>
-            ))}
-          </div>
+        <div className="mt-4 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-center mb-8">
+          <CheckCircle className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
+          <h3 className="font-serif text-lg font-semibold text-emerald-800 dark:text-emerald-300">Module Complete</h3>
+          <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">Well done. You have completed all chapters in this module.</p>
         </div>
       )}
 

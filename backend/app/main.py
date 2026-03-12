@@ -26,10 +26,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-try:
-    cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"]
-except Exception:
-    cors_origins = ["*"]
+cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"]
 
 # credentials=True is not allowed with origin "*"
 allow_credentials = "*" not in cors_origins

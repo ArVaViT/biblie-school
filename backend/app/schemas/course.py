@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 
@@ -9,7 +9,7 @@ class ChapterBase(BaseModel):
     content: Optional[str] = None
     video_url: Optional[str] = None
     order_index: int = 0
-    chapter_type: str = "content"
+    chapter_type: Literal["content", "quiz", "assignment", "mixed"] = "content"
     requires_completion: bool = False
 
 
@@ -22,7 +22,7 @@ class ChapterUpdate(BaseModel):
     content: Optional[str] = None
     video_url: Optional[str] = None
     order_index: Optional[int] = None
-    chapter_type: Optional[str] = None
+    chapter_type: Optional[Literal["content", "quiz", "assignment", "mixed"]] = None
     requires_completion: Optional[bool] = None
 
 
@@ -75,7 +75,7 @@ class CourseUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[Literal["draft", "published"]] = None
     enrollment_start: Optional[datetime] = None
     enrollment_end: Optional[datetime] = None
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.core.database import get_db
-from app.api.dependencies import require_teacher
+from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner
 from app.models.user import User
 from app.models.chapter_block import ChapterBlock
 from app.schemas.chapter_block import BlockCreate, BlockUpdate, BlockResponse, BlockReorderItem
@@ -14,6 +14,7 @@ router = APIRouter(prefix="/blocks", tags=["blocks"])
 @router.get("/chapter/{chapter_id}", response_model=list[BlockResponse])
 async def list_blocks(
     chapter_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return (
@@ -31,6 +32,7 @@ async def create_block(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
+    verify_chapter_owner(db, chapter_id, teacher.id)
     block = ChapterBlock(
         chapter_id=chapter_id,
         block_type=data.block_type,
@@ -57,6 +59,7 @@ async def update_block(
     block = db.query(ChapterBlock).filter(ChapterBlock.id == block_id).first()
     if not block:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
+    verify_chapter_owner(db, block.chapter_id, teacher.id)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(block, field, value)
     db.commit()
@@ -73,6 +76,7 @@ async def delete_block(
     block = db.query(ChapterBlock).filter(ChapterBlock.id == block_id).first()
     if not block:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
+    verify_chapter_owner(db, block.chapter_id, teacher.id)
     db.delete(block)
     db.commit()
 
@@ -84,6 +88,7 @@ async def reorder_blocks(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
+    verify_chapter_owner(db, chapter_id, teacher.id)
     for item in items:
         block = db.query(ChapterBlock).filter(
             ChapterBlock.id == item.id,

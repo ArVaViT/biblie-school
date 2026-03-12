@@ -83,8 +83,7 @@ export default function StudentProgress() {
       try {
         const result = await coursesService.getStudentProgress(courseId)
         setData(result)
-      } catch (err) {
-        console.error("Failed to load student progress:", err)
+      } catch {
         toast({ title: "Failed to load student progress", variant: "destructive" })
       } finally {
         setLoading(false)

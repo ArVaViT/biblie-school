@@ -9,9 +9,9 @@ import { storageService } from "@/services/storage"
 import type { Course, Announcement } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
-  Pencil, Calendar, Megaphone, Plus, Trash2, ArrowLeft, GripVertical,
+  Pencil, Calendar, Megaphone, Plus, Trash2, ArrowLeft,
   Layers, Save, Upload, Image, Loader2, X, Eye, EyeOff, BookOpen,
-  Settings, Download, Paperclip,
+  Download, Paperclip,
 } from "lucide-react"
 
 interface MaterialFile { name: string; path: string; size?: number }
@@ -91,6 +91,7 @@ export default function CourseEditor() {
     setSaving(true)
     try {
       await coursesService.updateCourse(courseId, { enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null, enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null })
+      setCourse(p => p ? { ...p, enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null, enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null } : p)
       toast({ title: "Enrollment saved", variant: "success" }); setModal(null)
     } catch { toast({ title: "Failed to save", variant: "destructive" }) } finally { setSaving(false) }
   }
@@ -197,10 +198,10 @@ export default function CourseEditor() {
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-4 pt-4 border-t">
-            <Button variant="outline" size="sm" onClick={() => setModal("details")} title="Edit details"><Pencil className="h-3.5 w-3.5" /></Button>
-            <Button variant="outline" size="sm" onClick={() => setModal("enroll")} title="Enrollment"><Calendar className="h-3.5 w-3.5" /></Button>
-            <Button variant="outline" size="sm" onClick={() => setModal("announce")} title="Announcements"><Megaphone className="h-3.5 w-3.5" /></Button>
-            <Button variant="outline" size="sm" onClick={() => setModal("materials")} title="Materials"><Settings className="h-3.5 w-3.5" /></Button>
+            <Button variant="outline" size="sm" onClick={() => setModal("details")}><Pencil className="h-3.5 w-3.5 mr-1.5" />Edit Details</Button>
+            <Button variant="outline" size="sm" onClick={() => setModal("enroll")}><Calendar className="h-3.5 w-3.5 mr-1.5" />Enrollment</Button>
+            <Button variant="outline" size="sm" onClick={() => setModal("announce")}><Megaphone className="h-3.5 w-3.5 mr-1.5" />Announcements</Button>
+            <Button variant="outline" size="sm" onClick={() => setModal("materials")}><Paperclip className="h-3.5 w-3.5 mr-1.5" />Materials</Button>
             <div className="flex-1" />
             <Button variant="outline" size="sm" onClick={togglePublish}>
               {pub ? <EyeOff className="h-3.5 w-3.5 mr-1.5" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}{pub ? "Unpublish" : "Publish"}
@@ -223,7 +224,6 @@ export default function CourseEditor() {
         <div className="space-y-2">{modules.map((mod, i) => (
           <Card key={mod.id} className="group flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors cursor-pointer"
             onClick={() => navigate(`/teacher/courses/${courseId}/modules/${mod.id}/edit`)}>
-            <GripVertical className="h-4 w-4 text-muted-foreground/30 shrink-0" />
             <span className="text-xs font-mono text-muted-foreground/50 w-6 text-right shrink-0">{i + 1}</span>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{mod.title}</p>

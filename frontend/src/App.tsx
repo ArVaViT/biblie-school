@@ -123,7 +123,7 @@ function AppRoutes() {
         <ErrorBoundary>
           <Suspense fallback={<RouteSpinner />}>
             <Routes>
-              <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
+              <Route path="/" element={<HomePage />} />
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
               <Route path="/certificates" element={<PrivateRoute><CertificatesPage /></PrivateRoute>} />

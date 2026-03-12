@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           updated_at: data.updated_at,
         })
       })
+      .then(() => {}, () => {})
   }, [])
 
   useEffect(() => {
@@ -124,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [enrichProfile])
 
   const logout = useCallback(async () => {
-    await authService.logout()
+    try { await authService.logout() } catch { /* ignore */ }
     setUser(null)
   }, [])
 

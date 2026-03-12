@@ -1,10 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 
 class GradeUpsert(BaseModel):
-    grade: str | None = None
-    comment: str | None = None
+    grade: str | None = Field(None, max_length=20)
+    comment: str | None = Field(None, max_length=5000)
 
 
 class GradeResponse(BaseModel):

@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 
 class NoteUpsert(BaseModel):
-    content: str
+    content: str = Field(..., max_length=50000)
 
 
 class NoteResponse(BaseModel):

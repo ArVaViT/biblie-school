@@ -166,7 +166,7 @@ export default function ModuleEditor() {
       })
       updateChapterLocal(ch.id, {
         content: chapterContent,
-        video_url: chapterVideoUrl.trim() || null,
+        video_url: chapterVideoUrl.trim() || undefined,
       })
       toast({ title: "Chapter saved", variant: "success" })
     } catch {
@@ -314,6 +314,7 @@ export default function ModuleEditor() {
                       className="h-3.5 w-3.5 rounded border-input"
                     />
                     <Shield className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Teacher-marked</span>
                   </label>
 
                   <Button

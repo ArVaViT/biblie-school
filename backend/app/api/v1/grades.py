@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import uuid
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher
+from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
 from app.models.user import User
 from app.models.student_grade import StudentGrade
 from app.schemas.grade import GradeUpsert, GradeResponse
@@ -52,6 +52,7 @@ async def list_course_grades(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> list[GradeResponse]:
+    verify_course_owner(db, course_id, teacher.id)
     return (
         db.query(StudentGrade)
         .filter(StudentGrade.course_id == course_id)
@@ -67,6 +68,7 @@ async def get_student_grade(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> GradeResponse:
+    verify_course_owner(db, course_id, teacher.id)
     grade = (
         db.query(StudentGrade)
         .filter(
@@ -91,6 +93,7 @@ async def upsert_student_grade(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> GradeResponse:
+    verify_course_owner(db, course_id, teacher.id)
     grade = (
         db.query(StudentGrade)
         .filter(

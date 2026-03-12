@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 
 class BlockCreate(BaseModel):
-    block_type: str
+    block_type: Literal["text", "video", "quiz", "assignment", "file"]
     order_index: int = 0
     content: Optional[str] = None
     video_url: Optional[str] = None

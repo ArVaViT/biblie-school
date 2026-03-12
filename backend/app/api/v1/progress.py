@@ -5,7 +5,7 @@ from sqlalchemy import func as sqla_func
 from uuid import UUID
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher
+from app.api.dependencies import get_current_user, require_teacher, verify_course_owner, verify_chapter_owner
 from app.models.user import User
 from app.models.course import Course, Module, Chapter
 from app.models.enrollment import Enrollment
@@ -22,9 +22,7 @@ async def get_course_student_progress(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    course = db.query(Course).filter(Course.id == course_id).first()
-    if not course:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    course = verify_course_owner(db, course_id, teacher.id)
 
     chapters = (
         db.query(Chapter)
@@ -178,9 +176,8 @@ async def teacher_complete_chapter(
     db: Session = Depends(get_db),
 ):
     """Teacher marks a student's chapter as complete."""
+    verify_chapter_owner(db, chapter_id, teacher.id)
     chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
 
     progress = (
         db.query(ChapterProgress)
@@ -212,6 +209,7 @@ async def teacher_uncomplete_chapter(
     db: Session = Depends(get_db),
 ):
     """Teacher removes a student's chapter completion."""
+    verify_chapter_owner(db, chapter_id, teacher.id)
     progress = (
         db.query(ChapterProgress)
         .filter(ChapterProgress.user_id == student_id, ChapterProgress.chapter_id == chapter_id)

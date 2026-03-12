@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.core.database import get_db
-from app.api.dependencies import require_teacher
+from app.api.dependencies import require_teacher, verify_course_owner
 from app.models.user import User
 from app.models.course import Course
 from app.models.enrollment import Enrollment
@@ -17,12 +17,7 @@ async def get_course_analytics(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    course = db.query(Course).filter(Course.id == course_id).first()
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Course '{course_id}' not found",
-        )
+    course = verify_course_owner(db, course_id, teacher.id)
 
     enrollments = (
         db.query(Enrollment, User)

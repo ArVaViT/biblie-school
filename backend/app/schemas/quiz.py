@@ -5,7 +5,7 @@ from uuid import UUID
 
 
 class QuizOptionCreate(BaseModel):
-    option_text: str
+    option_text: str = Field(..., max_length=500)
     is_correct: bool = False
     order_index: int = 0
 
@@ -31,7 +31,7 @@ class QuizOptionStudentResponse(BaseModel):
 
 
 class QuizQuestionCreate(BaseModel):
-    question_text: str
+    question_text: str = Field(..., max_length=1000)
     question_type: str = "multiple_choice"
     order_index: int = 0
     points: int = 1
@@ -67,7 +67,7 @@ class QuizCreate(BaseModel):
     chapter_id: str
     title: str
     description: Optional[str] = None
-    passing_score: int = 70
+    passing_score: int = Field(70, ge=0, le=100)
     questions: list[QuizQuestionCreate] = []
 
 

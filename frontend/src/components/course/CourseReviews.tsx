@@ -31,8 +31,8 @@ export default function CourseReviews({ courseId, isEnrolled, certificate }: Pro
     try {
       const data = await coursesService.getCourseReviews(courseId)
       setReviews(data)
-    } catch (err) {
-      console.error("Failed to load reviews:", err)
+    } catch {
+      toast({ title: "Failed to load reviews", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -69,8 +69,7 @@ export default function CourseReviews({ courseId, isEnrolled, certificate }: Pro
       setRating(0)
       setComment("")
       setEditingId(null)
-    } catch (err) {
-      console.error("Failed to submit review:", err)
+    } catch {
       toast({ title: "Failed to submit review", variant: "destructive" })
     } finally {
       setSubmitting(false)
@@ -95,8 +94,7 @@ export default function CourseReviews({ courseId, isEnrolled, certificate }: Pro
       await coursesService.deleteReview(reviewId)
       setReviews((prev) => prev.filter((r) => r.id !== reviewId))
       toast({ title: "Review deleted", variant: "success" })
-    } catch (err) {
-      console.error("Failed to delete review:", err)
+    } catch {
       toast({ title: "Failed to delete review", variant: "destructive" })
     }
   }

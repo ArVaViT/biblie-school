@@ -29,4 +29,4 @@ async def check_database(db: Session = Depends(get_db)) -> dict:
             "users_table_exists": users_table_exists,
         }
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
+        raise HTTPException(status_code=503, detail="Database connection failed")

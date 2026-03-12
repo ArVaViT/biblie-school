@@ -28,8 +28,7 @@ export default function Dashboard() {
       setEnrollments(enrollData)
       setCertificates(certData)
       setGrades(gradeData)
-    } catch (err) {
-      console.error("Failed to load courses:", err)
+    } catch {
       setError("Failed to load your courses. Please try again.")
     } finally {
       setLoading(false)

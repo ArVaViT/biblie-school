@@ -36,10 +36,6 @@ export default function AdminDashboard() {
   const [adminCerts, setAdminCerts] = useState<(Certificate & { student_name?: string; course_title?: string; approved_by_name?: string; approved_at?: string })[]>([])
   const [certActionId, setCertActionId] = useState<string | null>(null)
 
-  if (user?.role !== "admin") {
-    return <Navigate to="/dashboard" replace />
-  }
-
   const load = async () => {
     setLoading(true)
     setError(null)
@@ -58,8 +54,7 @@ export default function AdminDashboard() {
           enrollments: enrollmentsCount.count ?? 0,
         })
         setAdminCerts(certs)
-      } catch (err) {
-        console.error("Failed to load admin data:", err)
+      } catch {
         setError("Failed to load admin data. Please try again.")
       } finally {
         setLoading(false)
@@ -80,6 +75,10 @@ export default function AdminDashboard() {
     )
   }, [users, search])
 
+  if (user?.role !== "admin") {
+    return <Navigate to="/dashboard" replace />
+  }
+
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setUpdatingId(userId)
     try {
@@ -88,8 +87,7 @@ export default function AdminDashboard() {
         prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
       )
       toast({ title: "Role updated", variant: "success" })
-    } catch (err) {
-      console.error("Failed to update role:", err)
+    } catch {
       toast({ title: "Failed to update role", variant: "destructive" })
     } finally {
       setUpdatingId(null)
@@ -112,8 +110,7 @@ export default function AdminDashboard() {
         prev.map((u) => (u.id === userId ? { ...u, role: "teacher" as UserRole } : u)),
       )
       toast({ title: "Teacher approved", variant: "success" })
-    } catch (err) {
-      console.error("Failed to approve teacher:", err)
+    } catch {
       toast({ title: "Failed to approve teacher", variant: "destructive" })
     } finally {
       setUpdatingId(null)
@@ -128,8 +125,7 @@ export default function AdminDashboard() {
         prev.map((u) => (u.id === userId ? { ...u, role: "student" as UserRole } : u)),
       )
       toast({ title: "Teacher denied", variant: "success" })
-    } catch (err) {
-      console.error("Failed to deny teacher:", err)
+    } catch {
       toast({ title: "Failed to deny teacher", variant: "destructive" })
     } finally {
       setUpdatingId(null)
