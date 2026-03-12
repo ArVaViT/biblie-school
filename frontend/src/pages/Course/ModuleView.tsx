@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
+import DOMPurify from "dompurify"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
@@ -285,7 +286,7 @@ export default function ModuleView() {
                     {chapter.content && (
                       <div
                         className="prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: chapter.content }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content ?? "") }}
                       />
                     )}
                   </CardContent>

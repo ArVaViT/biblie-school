@@ -1,7 +1,9 @@
+import { lazy, Suspense } from "react"
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { AuthProvider, useAuth } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import { usePageTitle } from "./hooks/usePageTitle"
+import ErrorBoundary from "./components/ErrorBoundary"
 import Header from "./components/layout/Header"
 import Login from "./pages/Auth/Login"
 import Register from "./pages/Auth/Register"
@@ -14,10 +16,11 @@ import ProfilePage from "./pages/Profile/ProfilePage"
 import CourseDetail from "./pages/Course/CourseDetail"
 import ModuleView from "./pages/Course/ModuleView"
 import TeacherDashboard from "./pages/Teacher/TeacherDashboard"
-import CourseEditor from "./pages/Teacher/CourseEditor"
-import TeacherAnalytics from "./pages/Teacher/TeacherAnalytics"
-import TeacherGradebook from "./pages/Teacher/TeacherGradebook"
-import AdminDashboard from "./pages/Admin/AdminDashboard"
+
+const CourseEditor = lazy(() => import("./pages/Teacher/CourseEditor"))
+const TeacherGradebook = lazy(() => import("./pages/Teacher/TeacherGradebook"))
+const TeacherAnalytics = lazy(() => import("./pages/Teacher/TeacherAnalytics"))
+const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"))
 
 function RouteSpinner() {
   return (
@@ -110,19 +113,23 @@ function AppRoutes() {
       <Header />
       {user?.role === "pending_teacher" && <PendingTeacherBanner />}
       <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
-          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-          <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-          <Route path="/courses/:id" element={<CourseDetail />} />
-          <Route path="/courses/:courseId/modules/:moduleId" element={<ModuleView />} />
-          <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
-          <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
-          <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
-          <Route path="/teacher/courses/:courseId/gradebook" element={<TeacherRoute><TeacherGradebook /></TeacherRoute>} />
-          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+        <ErrorBoundary>
+          <Suspense fallback={<RouteSpinner />}>
+            <Routes>
+              <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
+              <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+              <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+              <Route path="/courses/:id" element={<CourseDetail />} />
+              <Route path="/courses/:courseId/modules/:moduleId" element={<ModuleView />} />
+              <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
+              <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
+              <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
+              <Route path="/teacher/courses/:courseId/gradebook" element={<TeacherRoute><TeacherGradebook /></TeacherRoute>} />
+              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </main>
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">
         Bible School &copy; {new Date().getFullYear()}

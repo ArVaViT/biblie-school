@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from app.models.course import Course, Module, Chapter
 from app.models.enrollment import Enrollment
@@ -17,7 +17,9 @@ import uuid
 def get_courses(
     db: Session, *, skip: int = 0, limit: int = 100, search: str | None = None
 ) -> list[Course]:
-    query = db.query(Course).filter(Course.status == "published")
+    query = db.query(Course).options(
+        joinedload(Course.modules).joinedload(Module.chapters)
+    ).filter(Course.status == "published")
     if search:
         term = f"%{search}%"
         query = query.filter(
@@ -27,12 +29,18 @@ def get_courses(
 
 
 def get_course(db: Session, course_id: str) -> Course | None:
-    return db.query(Course).filter(Course.id == course_id).first()
+    return (
+        db.query(Course)
+        .options(joinedload(Course.modules).joinedload(Module.chapters))
+        .filter(Course.id == course_id)
+        .first()
+    )
 
 
 def get_teacher_courses(db: Session, teacher_id: str) -> list[Course]:
     return (
         db.query(Course)
+        .options(joinedload(Course.modules).joinedload(Module.chapters))
         .filter(Course.created_by == teacher_id)
         .order_by(Course.created_at.desc())
         .all()
@@ -71,7 +79,6 @@ def delete_course(db: Session, course: Course) -> None:
 # ---------------------------------------------------------------------------
 
 def get_module(db: Session, course_id: str, module_id: str) -> Module | None:
-    from sqlalchemy.orm import joinedload
     return (
         db.query(Module)
         .options(joinedload(Module.chapters))
@@ -178,7 +185,13 @@ def enroll_user_in_course(db: Session, user_id: str, course_id: str) -> Enrollme
 
 
 def get_user_courses(db: Session, user_id: str) -> list[Enrollment]:
-    return db.query(Enrollment).filter(Enrollment.user_id == user_id).all()
+    return (
+        db.query(Enrollment)
+        .options(joinedload(Enrollment.course).joinedload(Course.modules))
+        .filter(Enrollment.user_id == user_id)
+        .order_by(Enrollment.enrolled_at.desc())
+        .all()
+    )
 
 
 def update_enrollment_progress(

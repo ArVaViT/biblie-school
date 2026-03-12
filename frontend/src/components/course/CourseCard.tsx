@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,22 +10,17 @@ interface CourseCardProps {
 }
 
 export default function CourseCard({ course }: CourseCardProps) {
+  const [imgError, setImgError] = useState(false)
+
   return (
     <Card className="group flex flex-col overflow-hidden hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
-      {course.image_url ? (
+      {course.image_url && !imgError ? (
         <div className="w-full h-44 overflow-hidden bg-muted">
           <img
             src={course.image_url}
             alt={course.title}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            onError={(e) => {
-              const parent = e.currentTarget.parentElement as HTMLElement
-              e.currentTarget.remove()
-              parent.classList.add("flex", "items-center", "justify-center")
-              const icon = document.createElement("div")
-              icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground/30"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`
-              parent.appendChild(icon)
-            }}
+            onError={() => setImgError(true)}
           />
         </div>
       ) : (

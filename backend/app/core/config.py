@@ -54,11 +54,9 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         if not self.CORS_ORIGINS:
-            return ["*"]
+            return ["http://localhost:3000", "http://localhost:5173"]
         origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
-        if "*" in origins:
-            return ["*"]
-        return origins
+        return [o for o in origins if o]
 
     class Config:
         env_file = ".env"

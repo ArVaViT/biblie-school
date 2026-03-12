@@ -68,10 +68,14 @@ export const coursesService = {
   },
 
   async unmarkChapterComplete(chapterId: string): Promise<void> {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error("Not authenticated")
+
     const { error } = await supabase
       .from("chapter_progress")
       .delete()
       .eq("chapter_id", chapterId)
+      .eq("user_id", session.user.id)
 
     if (error) throw error
   },
@@ -110,22 +114,12 @@ export const coursesService = {
 
   // Admin: all users
   async getAllUsers() {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false })
-
-    if (error) throw error
-    return data ?? []
+    const response = await api.get("/users/admin/users")
+    return response.data
   },
 
   async updateUserRole(userId: string, role: string) {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role })
-      .eq("id", userId)
-
-    if (error) throw error
+    await api.put(`/users/admin/users/${userId}/role`, null, { params: { role } })
   },
 
   // Teacher CRUD — Courses

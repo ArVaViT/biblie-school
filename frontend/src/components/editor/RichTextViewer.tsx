@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { cn } from "@/lib/utils";
 
 interface RichTextViewerProps {
@@ -15,7 +16,7 @@ export default function RichTextViewer({
         "prose prose-sm sm:prose-base max-w-none",
         className
       )}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
     />
   );
 }
