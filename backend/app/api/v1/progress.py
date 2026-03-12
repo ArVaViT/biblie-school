@@ -117,34 +117,65 @@ async def get_course_student_progress(
         if s.submitted_at and (uid not in latest_sub_by_user or s.submitted_at > latest_sub_by_user[uid]):
             latest_sub_by_user[uid] = s.submitted_at
 
+    all_progress = (
+        db.query(ChapterProgress)
+        .filter(
+            ChapterProgress.chapter_id.in_(chapter_ids),
+            ChapterProgress.completed == True,
+        )
+        .all()
+    ) if chapter_ids else []
+
+    progress_by_user: dict[str, dict[str, ChapterProgress]] = defaultdict(dict)
+    for p in all_progress:
+        progress_by_user[str(p.user_id)][str(p.chapter_id)] = p
+
     student_progress = []
     for enrollment, user in enrollments:
         uid = str(user.id)
 
-        quiz_scores_by_chapter = {}
+        quiz_results = []
         for ch_id in quiz_map:
             best_attempts = attempts_by_user_chapter.get((uid, ch_id), [])
             if best_attempts:
                 best = max(best_attempts, key=lambda a: (a.score or 0))
-                quiz_scores_by_chapter[ch_id] = {
-                    "chapter_title": chapter_map.get(ch_id),
-                    "best_score": best.score,
-                    "max_score": best.max_score,
-                    "passed": best.passed,
-                    "attempts": len(best_attempts),
-                }
+                quiz_results.append({
+                    "chapter_title": chapter_map.get(str(ch_id), ""),
+                    "chapter_id": str(ch_id),
+                    "score": best.score or 0,
+                    "max_score": best.max_score or 0,
+                    "passed": bool(best.passed),
+                })
 
-        assignment_grades_by_chapter = {}
+        assignment_results = []
         for ch_id in assignment_map:
             submissions = subs_by_user_chapter.get((uid, ch_id), [])
-            if submissions:
-                graded = [s for s in submissions if s.grade is not None]
-                assignment_grades_by_chapter[ch_id] = {
-                    "chapter_title": chapter_map.get(ch_id),
-                    "submissions": len(submissions),
-                    "graded": len(graded),
-                    "avg_grade": round(sum(s.grade for s in graded) / len(graded), 1) if graded else None,
-                }
+            for a in assignment_map[ch_id]:
+                a_subs = [s for s in submissions if str(s.assignment_id) == str(a.id)]
+                if a_subs:
+                    latest = max(a_subs, key=lambda s: s.submitted_at or datetime.min)
+                    assignment_results.append({
+                        "chapter_title": chapter_map.get(str(ch_id), ""),
+                        "chapter_id": str(ch_id),
+                        "title": a.title,
+                        "status": latest.status or "submitted",
+                        "grade": latest.grade,
+                        "max_score": a.max_score or 0,
+                    })
+
+        user_progress = progress_by_user.get(uid, {})
+        chapters_completed = len(user_progress)
+
+        chapter_infos = []
+        for ch in chapters:
+            cp = user_progress.get(str(ch.id))
+            chapter_infos.append({
+                "id": str(ch.id),
+                "title": ch.title,
+                "requires_completion": bool(getattr(ch, "requires_completion", False)),
+                "completed": cp is not None,
+                "completed_by": cp.completion_type if cp else None,
+            })
 
         latest_activity = enrollment.enrolled_at
         for ts in [latest_quiz_by_user.get(uid), latest_sub_by_user.get(uid)]:
@@ -152,14 +183,17 @@ async def get_course_student_progress(
                 latest_activity = ts
 
         student_progress.append({
-            "user_id": uid,
+            "id": uid,
             "full_name": user.full_name or user.email,
             "email": user.email,
             "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
-            "overall_progress": enrollment.progress,
-            "quiz_scores": quiz_scores_by_chapter,
-            "assignment_grades": assignment_grades_by_chapter,
-            "latest_activity": latest_activity.isoformat() if latest_activity else None,
+            "progress": enrollment.progress,
+            "chapters_completed": chapters_completed,
+            "total_chapters": len(chapter_ids),
+            "quiz_results": quiz_results,
+            "assignment_results": assignment_results,
+            "last_activity": latest_activity.isoformat() if latest_activity else None,
+            "chapters": chapter_infos,
         })
 
     return {

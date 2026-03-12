@@ -108,8 +108,8 @@ export default function StudentProgress() {
       const q = search.toLowerCase()
       list = list.filter(
         (s) =>
-          s.full_name.toLowerCase().includes(q) ||
-          s.email.toLowerCase().includes(q),
+          (s.full_name ?? "").toLowerCase().includes(q) ||
+          (s.email ?? "").toLowerCase().includes(q),
       )
     }
     list = [...list].sort((a, b) => {

@@ -6,12 +6,12 @@ import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
-import type { Course, Announcement } from "@/types"
+import type { Course, Announcement, Cohort } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
   Pencil, Calendar, Megaphone, Plus, Trash2,
   Layers, Save, Upload, Image, Loader2, X, Eye, EyeOff, BookOpen, ChevronRight,
-  Download, Paperclip,
+  Download, Paperclip, Users, CheckCircle,
 } from "lucide-react"
 
 interface MaterialFile { name: string; path: string; size?: number }
@@ -71,7 +71,11 @@ export default function CourseEditor() {
   const [mats, setMats] = useState<MaterialFile[]>([])
   const [uploadingMat, setUploadingMat] = useState(false)
   const matRef = useRef<HTMLInputElement>(null)
-  const [modal, setModal] = useState<"details" | "enroll" | "announce" | "materials" | null>(null)
+  const [modal, setModal] = useState<"details" | "enroll" | "announce" | "materials" | "cohorts" | null>(null)
+  const [cohorts, setCohorts] = useState<Cohort[]>([])
+  const [cohortForm, setCohortForm] = useState<{ name: string; start_date: string; end_date: string; enrollment_start: string; enrollment_end: string; max_students: string }>({ name: "", start_date: "", end_date: "", enrollment_start: "", enrollment_end: "", max_students: "" })
+  const [editingCohortId, setEditingCohortId] = useState<string | null>(null)
+  const [savingCohort, setSavingCohort] = useState(false)
 
   const load = useCallback(async () => {
     if (!courseId) return
@@ -81,6 +85,7 @@ export default function CourseEditor() {
       setEnrollStart(d.enrollment_start?.slice(0, 16) ?? ""); setEnrollEnd(d.enrollment_end?.slice(0, 16) ?? "")
       setMats(await storageService.listCourseMaterials(courseId).catch(() => []))
       setAnns(await coursesService.getAnnouncements(courseId).catch(() => []))
+      setCohorts(await coursesService.getCourseCohorts(courseId).catch(() => []))
     } catch { navigate("/teacher") } finally { setLoading(false) }
   }, [courseId, navigate])
 
@@ -190,6 +195,67 @@ export default function CourseEditor() {
     catch { toast({ title: "Failed", variant: "destructive" }) }
   }
 
+  const resetCohortForm = () => {
+    setCohortForm({ name: "", start_date: "", end_date: "", enrollment_start: "", enrollment_end: "", max_students: "" })
+    setEditingCohortId(null)
+  }
+
+  const startEditCohort = (c: Cohort) => {
+    setCohortForm({
+      name: c.name,
+      start_date: c.start_date.slice(0, 10),
+      end_date: c.end_date.slice(0, 10),
+      enrollment_start: c.enrollment_start?.slice(0, 16) ?? "",
+      enrollment_end: c.enrollment_end?.slice(0, 16) ?? "",
+      max_students: c.max_students?.toString() ?? "",
+    })
+    setEditingCohortId(c.id)
+  }
+
+  const saveCohort = async () => {
+    if (!courseId || !cohortForm.name.trim() || !cohortForm.start_date || !cohortForm.end_date) return
+    setSavingCohort(true)
+    const payload = {
+      name: cohortForm.name.trim(),
+      start_date: cohortForm.start_date,
+      end_date: cohortForm.end_date,
+      enrollment_start: cohortForm.enrollment_start ? new Date(cohortForm.enrollment_start).toISOString() : null,
+      enrollment_end: cohortForm.enrollment_end ? new Date(cohortForm.enrollment_end).toISOString() : null,
+      max_students: cohortForm.max_students ? parseInt(cohortForm.max_students) : null,
+    }
+    try {
+      if (editingCohortId) {
+        const updated = await coursesService.updateCohort(editingCohortId, payload)
+        setCohorts(p => p.map(c => c.id === editingCohortId ? updated : c))
+        toast({ title: "Cohort updated", variant: "success" })
+      } else {
+        const created = await coursesService.createCohort(courseId, payload)
+        setCohorts(p => [...p, created])
+        toast({ title: "Cohort created", variant: "success" })
+      }
+      resetCohortForm()
+    } catch { toast({ title: "Failed to save cohort", variant: "destructive" }) }
+    finally { setSavingCohort(false) }
+  }
+
+  const deleteCohort = async (id: string) => {
+    if (!confirm("Delete this cohort?")) return
+    try {
+      await coursesService.deleteCohort(id)
+      setCohorts(p => p.filter(c => c.id !== id))
+      toast({ title: "Cohort deleted", variant: "success" })
+    } catch { toast({ title: "Failed", variant: "destructive" }) }
+  }
+
+  const completeCohort = async (id: string) => {
+    if (!confirm("Mark this cohort as completed? This cannot be undone.")) return
+    try {
+      await coursesService.completeCohort(id)
+      setCohorts(p => p.map(c => c.id === id ? { ...c, status: "completed" as const } : c))
+      toast({ title: "Cohort completed", variant: "success" })
+    } catch { toast({ title: "Failed", variant: "destructive" }) }
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -248,6 +314,7 @@ export default function CourseEditor() {
             <Button variant="outline" size="sm" onClick={() => setModal("enroll")}><Calendar className="h-3.5 w-3.5 mr-1.5" />Enrollment</Button>
             <Button variant="outline" size="sm" onClick={() => setModal("announce")}><Megaphone className="h-3.5 w-3.5 mr-1.5" />Announcements</Button>
             <Button variant="outline" size="sm" onClick={() => setModal("materials")}><Paperclip className="h-3.5 w-3.5 mr-1.5" />Materials</Button>
+            <Button variant="outline" size="sm" onClick={() => { resetCohortForm(); setModal("cohorts") }}><Users className="h-3.5 w-3.5 mr-1.5" />Cohorts</Button>
             <div className="flex-1" />
             <Button variant="outline" size="sm" onClick={togglePublish}>
               {pub ? <EyeOff className="h-3.5 w-3.5 mr-1.5" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}{pub ? "Unpublish" : "Publish"}
@@ -369,6 +436,87 @@ export default function CourseEditor() {
               ))}</div>}
         </div>
       </Modal>
+
+      {/* Cohorts Modal */}
+      <Modal open={modal === "cohorts"} onClose={() => { setModal(null); resetCohortForm() }} title="Manage Cohorts">
+        <div className="space-y-4">
+          <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {editingCohortId ? "Edit Cohort" : "Create Cohort"}
+            </p>
+            <Input value={cohortForm.name} onChange={e => setCohortForm(p => ({ ...p, name: e.target.value }))} placeholder="Cohort name (e.g. Spring 2026)" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-xs">Start Date</Label><Input type="date" value={cohortForm.start_date} onChange={e => setCohortForm(p => ({ ...p, start_date: e.target.value }))} className="text-sm" /></div>
+              <div className="space-y-1"><Label className="text-xs">End Date</Label><Input type="date" value={cohortForm.end_date} onChange={e => setCohortForm(p => ({ ...p, end_date: e.target.value }))} className="text-sm" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-xs">Enrollment Start</Label><Input type="datetime-local" value={cohortForm.enrollment_start} onChange={e => setCohortForm(p => ({ ...p, enrollment_start: e.target.value }))} className="text-sm" /></div>
+              <div className="space-y-1"><Label className="text-xs">Enrollment End</Label><Input type="datetime-local" value={cohortForm.enrollment_end} onChange={e => setCohortForm(p => ({ ...p, enrollment_end: e.target.value }))} className="text-sm" /></div>
+            </div>
+            <div className="space-y-1"><Label className="text-xs">Max Students (optional)</Label><Input type="number" value={cohortForm.max_students} onChange={e => setCohortForm(p => ({ ...p, max_students: e.target.value }))} placeholder="Unlimited" className="text-sm" /></div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={saveCohort} disabled={savingCohort || !cohortForm.name.trim() || !cohortForm.start_date || !cohortForm.end_date}>
+                <Save className="h-3.5 w-3.5 mr-1.5" />{savingCohort ? "Saving…" : editingCohortId ? "Update Cohort" : "Create Cohort"}
+              </Button>
+              {editingCohortId && (
+                <Button size="sm" variant="ghost" onClick={resetCohortForm}>Cancel</Button>
+              )}
+            </div>
+          </div>
+
+          {cohorts.length === 0
+            ? <p className="text-sm text-muted-foreground text-center py-4">No cohorts yet.</p>
+            : <div className="space-y-2 max-h-72 overflow-y-auto">{cohorts.map(c => (
+                <div key={c.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-medium truncate">{c.name}</p>
+                      <CohortStatusBadge status={c.status} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(c.start_date).toLocaleDateString()} &mdash; {new Date(c.end_date).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {c.student_count} student{c.student_count !== 1 ? "s" : ""}
+                      {c.max_students && ` / ${c.max_students} max`}
+                    </p>
+                    {c.enrollment_start && c.enrollment_end && (
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                        Enrollment: {new Date(c.enrollment_start).toLocaleDateString()} — {new Date(c.enrollment_end).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => startEditCohort(c)}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    {c.status === "active" && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs text-emerald-600 hover:text-emerald-700" onClick={() => completeCohort(c.id)}>
+                        <CheckCircle className="h-3 w-3" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteCohort(c.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}</div>}
+        </div>
+      </Modal>
     </div>
+  )
+}
+
+function CohortStatusBadge({ status }: { status: Cohort["status"] }) {
+  const styles: Record<Cohort["status"], string> = {
+    upcoming: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+    active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+    completed: "bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-400",
+    archived: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+  }
+  return (
+    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${styles[status]}`}>
+      {status}
+    </span>
   )
 }

@@ -26,6 +26,7 @@ const ModuleEditor = lazy(() => import("./pages/Teacher/ModuleEditor"))
 const TeacherGradebook = lazy(() => import("./pages/Teacher/TeacherGradebook"))
 const TeacherAnalytics = lazy(() => import("./pages/Teacher/TeacherAnalytics"))
 const StudentProgress = lazy(() => import("./pages/Teacher/StudentProgress"))
+const ChapterView = lazy(() => import("./pages/Course/ChapterView"))
 const ChapterEditor = lazy(() => import("./pages/Teacher/ChapterEditor"))
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"))
 
@@ -130,6 +131,7 @@ function AppRoutes() {
               <Route path="/certificates" element={<PrivateRoute><CertificatesPage /></PrivateRoute>} />
               <Route path="/courses/:id" element={<PrivateRoute><CourseDetail /></PrivateRoute>} />
               <Route path="/courses/:courseId/modules/:moduleId" element={<PrivateRoute><ModuleView /></PrivateRoute>} />
+              <Route path="/courses/:courseId/modules/:moduleId/chapters/:chapterId" element={<PrivateRoute><ChapterView /></PrivateRoute>} />
               <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/modules/:moduleId/edit" element={<TeacherRoute><ModuleEditor /></TeacherRoute>} />

@@ -26,6 +26,7 @@ function matchTitle(pathname: string): string {
   if (/^\/teacher\/courses\/[^/]+\/progress$/.test(pathname)) return "Student Progress"
   if (/^\/teacher\/courses\/[^/]+\/analytics$/.test(pathname)) return "Course Analytics"
   if (pathname.startsWith("/teacher/courses/")) return "Course Editor"
+  if (/^\/courses\/[^/]+\/modules\/[^/]+\/chapters\/[^/]+$/.test(pathname)) return "Chapter"
   if (/^\/courses\/[^/]+\/modules\//.test(pathname)) return "Module"
   if (pathname.startsWith("/courses/")) return "Course"
   if (pathname.startsWith("/admin")) return "Admin Panel"

@@ -2,7 +2,7 @@ import api from "./api"
 import { supabase } from "@/lib/supabase"
 import type {
   Course, Module, Chapter, Enrollment, ChapterProgress, Announcement, StudentNote, StudentGrade,
-  Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock,
+  Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, Cohort,
 } from "../types"
 
 export const coursesService = {
@@ -22,9 +22,36 @@ export const coursesService = {
     return response.data
   },
 
+  // Cohorts
+  async getCourseCohorts(courseId: string): Promise<Cohort[]> {
+    const response = await api.get<Cohort[]>(`/cohorts/course/${courseId}`)
+    return response.data
+  },
+  async createCohort(courseId: string, data: any): Promise<Cohort> {
+    const response = await api.post<Cohort>(`/cohorts/course/${courseId}`, data)
+    return response.data
+  },
+  async updateCohort(cohortId: string, data: any): Promise<Cohort> {
+    const response = await api.put<Cohort>(`/cohorts/${cohortId}`, data)
+    return response.data
+  },
+  async deleteCohort(cohortId: string): Promise<void> {
+    await api.delete(`/cohorts/${cohortId}`)
+  },
+  async getCohortStudents(cohortId: string) {
+    const response = await api.get(`/cohorts/${cohortId}/students`)
+    return response.data
+  },
+  async completeCohort(cohortId: string): Promise<void> {
+    await api.post(`/cohorts/${cohortId}/complete`)
+  },
+
   // Enrollment
-  async enrollInCourse(courseId: string): Promise<Enrollment> {
-    const response = await api.post<Enrollment>(`/courses/${courseId}/enroll`)
+  async enrollInCourse(courseId: string, cohortId?: string): Promise<Enrollment> {
+    const response = await api.post<Enrollment>(
+      `/courses/${courseId}/enroll`,
+      cohortId ? { cohort_id: cohortId } : {},
+    )
     return response.data
   },
 
@@ -155,7 +182,7 @@ export const coursesService = {
     courseId: string,
     moduleId: string,
     chapterId: string,
-    data: { title?: string; content?: string; video_url?: string; order_index?: number; chapter_type?: string; requires_completion?: boolean },
+    data: { title?: string; content?: string; video_url?: string; order_index?: number; chapter_type?: string; requires_completion?: boolean; is_locked?: boolean },
   ): Promise<Chapter> {
     const response = await api.put<Chapter>(
       `/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}`,

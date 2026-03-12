@@ -11,6 +11,7 @@ class Enrollment(Base):
     id = Column(String, primary_key=True, index=True)
     user_id = Column(PgUUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
     course_id = Column(String, ForeignKey("courses.id"), nullable=False)
+    cohort_id = Column(PgUUID(as_uuid=True), ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True)
     enrolled_at = Column(DateTime(timezone=True), server_default=func.now())
     progress = Column(Integer, default=0, nullable=False)
 

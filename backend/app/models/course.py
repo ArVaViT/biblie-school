@@ -53,6 +53,7 @@ class Chapter(Base):
     order_index = Column(Integer, default=0, nullable=False)
     chapter_type = Column(String, default="reading", nullable=False)
     requires_completion = Column(Boolean, default=False, nullable=False)
+    is_locked = Column(Boolean, default=False, nullable=False)
 
     module = relationship("Module", back_populates="chapters")
 

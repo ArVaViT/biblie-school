@@ -1,10 +1,14 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import func as sa_func
 from typing import Optional
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher
 from app.models.user import User
+from app.models.cohort import Cohort
+from app.models.enrollment import Enrollment
 from app.schemas.course import (
     CourseCreate, CourseUpdate, CourseResponse,
     ModuleCreate, ModuleUpdate, ModuleResponse,
@@ -18,6 +22,10 @@ from app.services.course_service import (
     get_chapter, create_chapter, update_chapter, delete_chapter,
     enroll_user_in_course, update_enrollment_progress,
 )
+
+
+class EnrollRequest(BaseModel):
+    cohort_id: Optional[str] = None
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -318,6 +326,7 @@ async def remove_chapter(
 @router.post("/{course_id}/enroll", response_model=EnrollmentResponse)
 async def enroll_course(
     course_id: str,
+    body: EnrollRequest = EnrollRequest(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> EnrollmentResponse:
@@ -328,17 +337,41 @@ async def enroll_course(
             detail=f"Course '{course_id}' not found",
         )
     now = datetime.now(timezone.utc)
-    if course.enrollment_start and now < course.enrollment_start:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Enrollment has not started yet",
-        )
-    if course.enrollment_end and now > course.enrollment_end:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Enrollment period has ended",
-        )
-    return enroll_user_in_course(db, current_user.id, course_id)
+
+    cohort_id: str | None = None
+    if body.cohort_id:
+        cohort = db.query(Cohort).filter(
+            Cohort.id == body.cohort_id,
+            Cohort.course_id == course_id,
+        ).first()
+        if not cohort:
+            raise HTTPException(status_code=404, detail="Cohort not found for this course")
+        if cohort.status != "active":
+            raise HTTPException(status_code=403, detail="Cohort is not active")
+        if cohort.enrollment_start and now < cohort.enrollment_start:
+            raise HTTPException(status_code=403, detail="Cohort enrollment has not started yet")
+        if cohort.enrollment_end and now > cohort.enrollment_end:
+            raise HTTPException(status_code=403, detail="Cohort enrollment period has ended")
+        if cohort.max_students:
+            current_count = db.query(sa_func.count(Enrollment.id)).filter(
+                Enrollment.cohort_id == cohort.id
+            ).scalar() or 0
+            if current_count >= cohort.max_students:
+                raise HTTPException(status_code=403, detail="Cohort has reached maximum capacity")
+        cohort_id = body.cohort_id
+    else:
+        if course.enrollment_start and now < course.enrollment_start:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Enrollment has not started yet",
+            )
+        if course.enrollment_end and now > course.enrollment_end:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Enrollment period has ended",
+            )
+
+    return enroll_user_in_course(db, current_user.id, course_id, cohort_id=cohort_id)
 
 
 @router.put("/{course_id}/progress", response_model=EnrollmentResponse)

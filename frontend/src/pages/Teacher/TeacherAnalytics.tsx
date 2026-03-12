@@ -9,7 +9,19 @@ interface AnalyticsEnrollment {
   user_id: string
   progress: number
   enrolled_at: string
+  full_name?: string | null
+  email?: string
   student?: { id: string; full_name: string | null; email: string }
+}
+
+interface AnalyticsRaw {
+  total_students?: number
+  totalStudents?: number
+  enrollments: AnalyticsEnrollment[]
+  avg_progress?: number
+  avgProgress?: number
+  completion_count?: number
+  completedCount?: number
 }
 
 interface Analytics {
@@ -29,11 +41,16 @@ export default function TeacherAnalytics() {
     if (!courseId) return
     const load = async () => {
       try {
-        const [analyticsData, course] = await Promise.all([
-          coursesService.getCourseAnalyticsAPI(courseId),
+        const [raw, course] = await Promise.all([
+          coursesService.getCourseAnalyticsAPI(courseId) as Promise<AnalyticsRaw>,
           coursesService.getCourse(courseId),
         ])
-        setAnalytics(analyticsData)
+        setAnalytics({
+          totalStudents: raw.total_students ?? raw.totalStudents ?? 0,
+          enrollments: raw.enrollments ?? [],
+          avgProgress: raw.avg_progress ?? raw.avgProgress ?? 0,
+          completedCount: raw.completion_count ?? raw.completedCount ?? 0,
+        })
         setCourseTitle(course.title)
       } catch {
         // analytics remains null — fallback UI handles this
@@ -45,7 +62,9 @@ export default function TeacherAnalytics() {
   }, [courseId])
 
   const enrolledThisMonth = analytics?.enrollments.filter((e) => {
+    if (!e.enrolled_at) return false
     const d = new Date(e.enrolled_at)
+    if (isNaN(d.getTime())) return false
     const now = new Date()
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   }).length ?? 0
@@ -153,10 +172,10 @@ export default function TeacherAnalytics() {
                   {analytics.enrollments.map((e) => (
                     <tr key={e.user_id} className="border-b last:border-0">
                       <td className="py-3 font-medium">
-                        {e.student?.full_name || "Unknown"}
+                        {e.full_name ?? e.student?.full_name ?? "Unknown"}
                       </td>
                       <td className="py-3 text-muted-foreground">
-                        {e.student?.email || "—"}
+                        {e.email ?? e.student?.email ?? "—"}
                       </td>
                       <td className="py-3">
                         <div className="flex items-center gap-3">
@@ -172,7 +191,7 @@ export default function TeacherAnalytics() {
                         </div>
                       </td>
                       <td className="py-3 text-muted-foreground">
-                        {new Date(e.enrolled_at).toLocaleDateString()}
+                        {e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString() : "—"}
                       </td>
                     </tr>
                   ))}

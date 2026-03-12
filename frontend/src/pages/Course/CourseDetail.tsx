@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
 import { useAuth } from "@/context/AuthContext"
-import type { Course, Enrollment, Certificate } from "@/types"
+import type { Course, Enrollment, Certificate, Cohort } from "@/types"
 import { toast } from "@/hooks/use-toast"
-import { BookOpen, ArrowRight, CheckCircle, Users, Layers, ArrowLeft, CalendarDays, Clock, Lock, Download, Paperclip } from "lucide-react"
+import {
+  BookOpen, ArrowRight, CheckCircle, Users, Layers, ArrowLeft,
+  CalendarDays, Clock, Lock, Download, Paperclip, Star, X,
+} from "lucide-react"
 import CourseAnnouncements from "@/components/announcements/CourseAnnouncements"
 import CourseReviews from "@/components/course/CourseReviews"
 import CertificateCard from "@/components/course/CertificateCard"
@@ -23,26 +26,39 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
 }
 
-function getEnrollmentStatus(course: Course) {
-  const now = new Date()
-  const start = course.enrollment_start ? new Date(course.enrollment_start) : null
-  const end = course.enrollment_end ? new Date(course.enrollment_end) : null
+function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+  useEffect(() => {
+    if (!open) return
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    document.addEventListener("keydown", handleEsc)
+    return () => document.removeEventListener("keydown", handleEsc)
+  }, [open, onClose])
 
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-background border rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="font-serif text-lg font-semibold">{title}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="p-4">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+function getCohortEnrollmentStatus(cohort: Cohort) {
+  const now = new Date()
+  const start = cohort.enrollment_start ? new Date(cohort.enrollment_start) : null
+  const end = cohort.enrollment_end ? new Date(cohort.enrollment_end) : null
   if (start && now < start) return "not_started" as const
   if (end && now > end) return "closed" as const
   if (start || end) return "open" as const
   return "no_window" as const
-}
-
-function getCountdown(target: Date) {
-  const now = new Date()
-  const diff = target.getTime() - now.getTime()
-  if (diff <= 0) return null
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24)
-  if (days > 0) return `${days}d ${hours}h`
-  const minutes = Math.floor((diff / (1000 * 60)) % 60)
-  return `${hours}h ${minutes}m`
 }
 
 export default function CourseDetail() {
@@ -52,35 +68,40 @@ export default function CourseDetail() {
   const [certificate, setCertificate] = useState<Certificate | null>(null)
   const [completedChapterIds, setCompletedChapterIds] = useState<Set<string>>(new Set())
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
+  const [cohorts, setCohorts] = useState<Cohort[]>([])
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [enrolling, setEnrolling] = useState(false)
+  const [materialsModal, setMaterialsModal] = useState(false)
+  const [reviewsModal, setReviewsModal] = useState(false)
+  const [cohortSelectModal, setCohortSelectModal] = useState(false)
+  const [selectedCohortId, setSelectedCohortId] = useState<string | null>(null)
   const { user } = useAuth()
 
   useEffect(() => {
     const load = async () => {
       if (!id) return
       try {
-        const [courseData, enrollments] = await Promise.all([
+        const [courseData, enrollments, cohortsData] = await Promise.all([
           coursesService.getCourse(id),
           user ? coursesService.getMyCourses().catch(() => []) : Promise.resolve([]),
+          coursesService.getCourseCohorts(id).catch(() => [] as Cohort[]),
         ])
         setCourse(courseData)
+        setCohorts(cohortsData)
         const match = enrollments.find((e) => e.course_id === id)
         if (match) {
           setEnrollment(match)
-          const [cert, progress] = await Promise.all([
+          const [cert, progress, mats] = await Promise.all([
             coursesService.getCourseCertificate(id),
             coursesService.getMyChapterProgress(id).catch(() => [] as string[]),
+            storageService.listCourseMaterials(id).catch(() => [] as CourseMaterial[]),
           ])
           setCertificate(cert)
           setCompletedChapterIds(new Set(progress))
+          setMaterials(mats)
         }
-        try {
-          const files = await storageService.listCourseMaterials(id)
-          setMaterials(files)
-        } catch { /* non-critical */ }
       } catch {
         setError("Failed to load course. Please try again.")
       } finally {
@@ -90,12 +111,30 @@ export default function CourseDetail() {
     load()
   }, [id, user?.id])
 
-  const handleEnroll = async () => {
+  const handleEnrollClick = () => {
+    if (!id || !user) return
+    const enrollableCohorts = cohorts.filter(
+      (c) => (c.status === "active" || c.status === "upcoming") && getCohortEnrollmentStatus(c) === "open"
+    )
+    if (enrollableCohorts.length === 0) {
+      doEnroll(undefined)
+    } else if (enrollableCohorts.length === 1) {
+      doEnroll(enrollableCohorts[0].id)
+    } else {
+      setSelectedCohortId(enrollableCohorts[0].id)
+      setCohortSelectModal(true)
+    }
+  }
+
+  const doEnroll = async (cohortId?: string) => {
     if (!id || !user) return
     setEnrolling(true)
+    setCohortSelectModal(false)
     try {
-      const enrolled = await coursesService.enrollInCourse(id)
+      const enrolled = await coursesService.enrollInCourse(id, cohortId)
       setEnrollment(enrolled)
+      const mats = await storageService.listCourseMaterials(id).catch(() => [] as CourseMaterial[])
+      setMaterials(mats)
       toast({ title: "Enrolled successfully", variant: "success" })
     } catch {
       setError("Failed to enroll. Please try again.")
@@ -137,13 +176,156 @@ export default function CourseDetail() {
     )
   }
 
-  const sortedModules = [...(course.modules ?? [])].sort(
-    (a, b) => a.order_index - b.order_index,
-  )
-  const totalChapters = sortedModules.reduce(
-    (sum, m) => sum + (m.chapters?.length ?? 0), 0,
-  )
   const isEnrolled = !!enrollment
+  const sortedModules = [...(course.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
+  const totalChapters = sortedModules.reduce((sum, m) => sum + (m.chapters?.length ?? 0), 0)
+
+  const activeCohort = cohorts.find((c) => c.status === "active")
+  const enrollableCohorts = cohorts.filter(
+    (c) => (c.status === "active" || c.status === "upcoming") && getCohortEnrollmentStatus(c) === "open"
+  )
+  const canEnroll = enrollableCohorts.length > 0 || (!cohorts.length)
+
+  // ========== VIEW A: Not enrolled ==========
+  if (!isEnrolled) {
+    return (
+      <div className="container mx-auto px-4 py-6 max-w-3xl">
+        <Link to="/">
+          <Button variant="ghost" size="sm" className="mb-4 h-8 text-xs">
+            <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+            All Courses
+          </Button>
+        </Link>
+
+        {course.image_url && (
+          <div className="w-full h-48 sm:h-56 overflow-hidden rounded-xl bg-muted mb-6">
+            <img
+              src={course.image_url}
+              alt={course.title}
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none" }}
+            />
+          </div>
+        )}
+
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+          {course.title}
+        </h1>
+
+        {course.description && (
+          <p className="text-muted-foreground leading-relaxed mb-6">
+            {course.description}
+          </p>
+        )}
+
+        {activeCohort && (
+          <Card className="mb-6">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2 mb-1">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                <span className="font-medium">{activeCohort.name}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  activeCohort.status === "active"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
+                }`}>
+                  {activeCohort.status}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {formatDate(activeCohort.start_date)} &mdash; {formatDate(activeCohort.end_date)}
+              </p>
+              {activeCohort.enrollment_start && activeCohort.enrollment_end && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Enrollment: {formatDate(activeCohort.enrollment_start)} &mdash; {formatDate(activeCohort.enrollment_end)}
+                </p>
+              )}
+              {activeCohort.max_students && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {activeCohort.student_count}/{activeCohort.max_students} students enrolled
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {!activeCohort && cohorts.length === 0 && (course.enrollment_start || course.enrollment_end) && (
+          <div className="flex flex-wrap items-center gap-2 text-sm mb-6">
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+            {course.enrollment_start && course.enrollment_end && (
+              <span className="text-muted-foreground text-xs">
+                Enrollment: {formatDate(course.enrollment_start)} &mdash; {formatDate(course.enrollment_end)}
+              </span>
+            )}
+          </div>
+        )}
+
+        <div>
+          {user ? (
+            <Button onClick={handleEnrollClick} disabled={enrolling || !canEnroll} size="lg">
+              <Users className="h-4 w-4 mr-2" />
+              {!canEnroll
+                ? "Enrollment not available"
+                : enrolling
+                  ? "Enrolling..."
+                  : "Enroll in Course"}
+            </Button>
+          ) : (
+            <Link to="/login">
+              <Button size="lg">Sign in to Enroll</Button>
+            </Link>
+          )}
+        </div>
+
+        {/* Cohort selection modal */}
+        <Modal open={cohortSelectModal} onClose={() => setCohortSelectModal(false)} title="Select a Cohort">
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Multiple cohorts are available. Choose one to enroll in:</p>
+            {enrollableCohorts.map((cohort) => (
+              <label
+                key={cohort.id}
+                className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                  selectedCohortId === cohort.id
+                    ? "border-primary bg-primary/5"
+                    : "hover:bg-muted/50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="cohort"
+                  checked={selectedCohortId === cohort.id}
+                  onChange={() => setSelectedCohortId(cohort.id)}
+                  className="accent-primary"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{cohort.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(cohort.start_date)} &mdash; {formatDate(cohort.end_date)}
+                  </p>
+                  {cohort.max_students && (
+                    <p className="text-xs text-muted-foreground">
+                      {cohort.student_count}/{cohort.max_students} spots filled
+                    </p>
+                  )}
+                </div>
+              </label>
+            ))}
+            <Button
+              onClick={() => selectedCohortId && doEnroll(selectedCohortId)}
+              disabled={!selectedCohortId || enrolling}
+              className="w-full"
+            >
+              {enrolling ? "Enrolling..." : "Enroll"}
+            </Button>
+          </div>
+        </Modal>
+      </div>
+    )
+  }
+
+  // ========== VIEW B: Enrolled ==========
+  const enrolledCohort = cohorts.find((c) => c.id === enrollment.cohort_id)
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -154,10 +336,10 @@ export default function CourseDetail() {
         </Button>
       </Link>
 
-      {/* Course header: image + info side by side */}
-      <div className="flex flex-col sm:flex-row gap-5 mb-5">
+      {/* Compact course header */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-5">
         {course.image_url && (
-          <div className="w-full sm:w-48 h-40 sm:h-32 overflow-hidden rounded-lg bg-muted shrink-0">
+          <div className="w-full sm:w-36 h-24 overflow-hidden rounded-lg bg-muted shrink-0">
             <img
               src={course.image_url}
               alt={course.title}
@@ -167,15 +349,16 @@ export default function CourseDetail() {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1">
             {course.title}
           </h1>
-          {course.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
-              {course.description}
-            </p>
-          )}
-          <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            {enrolledCohort && (
+              <span className="flex items-center gap-1 font-medium text-primary">
+                <CalendarDays className="h-3.5 w-3.5" />
+                {enrolledCohort.name}
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <Layers className="h-3.5 w-3.5" />
               {sortedModules.length} modules
@@ -184,76 +367,13 @@ export default function CourseDetail() {
               <BookOpen className="h-3.5 w-3.5" />
               {totalChapters} chapters
             </span>
-            {isEnrolled && (
-              <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
-                <CheckCircle className="h-3.5 w-3.5" />
-                Enrolled &middot; {enrollment.progress}%
-              </span>
-            )}
+            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+              <CheckCircle className="h-3.5 w-3.5" />
+              {enrollment.progress}% complete
+            </span>
           </div>
         </div>
       </div>
-
-      {/* Enrollment window badge */}
-      {(() => {
-        const enrollStatus = getEnrollmentStatus(course)
-        const hasWindow = course.enrollment_start || course.enrollment_end
-        return hasWindow ? (
-          <div className="flex flex-wrap items-center gap-2 text-sm mb-4">
-            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-            {enrollStatus === "open" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2.5 py-0.5 text-xs font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                Enrollment open
-              </span>
-            )}
-            {enrollStatus === "not_started" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2.5 py-0.5 text-xs font-medium">
-                <Clock className="h-3 w-3" />
-                Opens in {getCountdown(new Date(course.enrollment_start!)) ?? "soon"}
-              </span>
-            )}
-            {enrollStatus === "closed" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2.5 py-0.5 text-xs font-medium">
-                Enrollment closed
-              </span>
-            )}
-            {course.enrollment_start && course.enrollment_end && (
-              <span className="text-muted-foreground text-xs">
-                {formatDate(course.enrollment_start)} &mdash; {formatDate(course.enrollment_end)}
-              </span>
-            )}
-          </div>
-        ) : null
-      })()}
-
-      {/* Enroll / Sign in (only when not enrolled) */}
-      {!isEnrolled && (
-        <div className="mb-5">
-          {user ? (
-            (() => {
-              const enrollStatus = getEnrollmentStatus(course)
-              const canEnroll = enrollStatus === "open" || enrollStatus === "no_window"
-              return (
-                <Button onClick={handleEnroll} disabled={enrolling || !canEnroll}>
-                  <Users className="h-4 w-4 mr-2" />
-                  {!canEnroll
-                    ? enrollStatus === "not_started"
-                      ? "Enrollment not yet open"
-                      : "Enrollment closed"
-                    : enrolling
-                      ? "Enrolling..."
-                      : "Enroll in Course"}
-                </Button>
-              )
-            })()
-          ) : (
-            <Link to="/login">
-              <Button>Sign in to Enroll</Button>
-            </Link>
-          )}
-        </div>
-      )}
 
       {id && <CourseAnnouncements courseId={id} />}
 
@@ -276,15 +396,15 @@ export default function CourseDetail() {
               const chapterCount = chapters.length
 
               const isLocked = (() => {
-                if (!isEnrolled || idx === 0) return false
+                if (idx === 0) return false
                 const prevModule = sortedModules[idx - 1]
                 const prevChapters = prevModule.chapters ?? []
                 if (prevChapters.length === 0) return false
                 return !prevChapters.every((ch) => completedChapterIds.has(ch.id))
               })()
 
-              const allComplete = isEnrolled && chapterCount > 0 && chapters.every((ch) => completedChapterIds.has(ch.id))
-              const completedInModule = isEnrolled ? chapters.filter((ch) => completedChapterIds.has(ch.id)).length : 0
+              const allComplete = chapterCount > 0 && chapters.every((ch) => completedChapterIds.has(ch.id))
+              const completedInModule = chapters.filter((ch) => completedChapterIds.has(ch.id)).length
 
               return (
                 <Card
@@ -305,12 +425,10 @@ export default function CourseDetail() {
                         </span>
                         <span className="truncate">{module.title}</span>
                         <span className="text-xs font-normal text-muted-foreground whitespace-nowrap">
-                          {isEnrolled && chapterCount > 0
-                            ? `${completedInModule}/${chapterCount}`
-                            : `${chapterCount} ch.`}
+                          {chapterCount > 0 ? `${completedInModule}/${chapterCount}` : `${chapterCount} ch.`}
                         </span>
                       </CardTitle>
-                      {isEnrolled && !isLocked && (
+                      {!isLocked && (
                         <Link to={`/courses/${id}/modules/${module.id}`}>
                           <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0">
                             Open
@@ -318,7 +436,7 @@ export default function CourseDetail() {
                           </Button>
                         </Link>
                       )}
-                      {isEnrolled && isLocked && (
+                      {isLocked && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Lock className="h-3 w-3" />
                           Locked
@@ -345,7 +463,7 @@ export default function CourseDetail() {
       </div>
 
       {/* Certificate card (compact) */}
-      {isEnrolled && id && (
+      {id && (
         <div className="mt-6">
           <CertificateCard
             courseId={id}
@@ -356,13 +474,27 @@ export default function CourseDetail() {
         </div>
       )}
 
-      {/* Course Materials — small section, only if materials exist */}
-      {isEnrolled && materials.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5 text-muted-foreground">
-            <Paperclip className="h-3.5 w-3.5" />
-            Course Materials ({materials.length})
-          </h3>
+      {/* Bottom action buttons */}
+      <div className="flex items-center gap-2 mt-6">
+        {materials.length > 0 && (
+          <Button variant="outline" size="sm" onClick={() => setMaterialsModal(true)}>
+            <Paperclip className="h-3.5 w-3.5 mr-1.5" />
+            Materials ({materials.length})
+          </Button>
+        )}
+        {id && (
+          <Button variant="outline" size="sm" onClick={() => setReviewsModal(true)}>
+            <Star className="h-3.5 w-3.5 mr-1.5" />
+            Reviews
+          </Button>
+        )}
+      </div>
+
+      {/* Materials Modal */}
+      <Modal open={materialsModal} onClose={() => setMaterialsModal(false)} title="Course Materials">
+        {materials.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">No materials available.</p>
+        ) : (
           <div className="divide-y rounded-md border text-sm">
             {materials.map((file) => (
               <div
@@ -386,15 +518,13 @@ export default function CourseDetail() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
-      {/* Reviews */}
-      {id && (
-        <div className="mt-6">
-          <CourseReviews courseId={id} />
-        </div>
-      )}
+      {/* Reviews Modal */}
+      <Modal open={reviewsModal} onClose={() => setReviewsModal(false)} title="Course Reviews">
+        {id && <CourseReviews courseId={id} />}
+      </Modal>
     </div>
   )
 }

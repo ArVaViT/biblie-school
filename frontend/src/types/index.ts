@@ -33,7 +33,7 @@ export interface Module {
   chapters?: Chapter[]
 }
 
-export type ChapterType = 'reading' | 'video' | 'audio' | 'quiz' | 'assignment' | 'discussion' | 'mixed'
+export type ChapterType = 'reading' | 'content' | 'video' | 'audio' | 'quiz' | 'assignment' | 'discussion' | 'mixed'
 
 export interface Chapter {
   id: string
@@ -44,6 +44,7 @@ export interface Chapter {
   order_index: number
   chapter_type: ChapterType
   requires_completion: boolean
+  is_locked: boolean
 }
 
 export interface ChapterProgress {
@@ -57,6 +58,7 @@ export interface Enrollment {
   id: string
   user_id: string
   course_id: string
+  cohort_id: string | null
   enrolled_at: string
   progress: number
   course?: Course
@@ -195,6 +197,21 @@ export interface CourseReview {
   comment: string | null
   created_at: string
   reviewer_name?: string | null
+}
+
+export interface Cohort {
+  id: string
+  course_id: string
+  name: string
+  start_date: string
+  end_date: string
+  enrollment_start: string | null
+  enrollment_end: string | null
+  status: 'upcoming' | 'active' | 'completed' | 'archived'
+  max_students: number | null
+  student_count: number
+  created_at: string
+  updated_at: string
 }
 
 export interface AuthResponse {

@@ -103,20 +103,32 @@ export default function CertificatesPage() {
                 </h3>
 
                 <dl className="space-y-2 text-xs">
+                  {cert.certificate_number && (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">Certificate No.</dt>
+                      <dd className="font-mono font-medium text-amber-700 dark:text-amber-400">
+                        {cert.certificate_number}
+                      </dd>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
-                    <dt className="text-muted-foreground">Certificate No.</dt>
-                    <dd className="font-mono font-medium text-amber-700 dark:text-amber-400">
-                      {cert.certificate_number}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <dt className="text-muted-foreground">Issued</dt>
+                    <dt className="text-muted-foreground">
+                      {cert.status === "approved" ? "Issued" : "Status"}
+                    </dt>
                     <dd className="font-medium">
-                      {new Date(cert.issued_at).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {cert.status === "approved" && cert.issued_at
+                        ? new Date(cert.issued_at).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : cert.status === "pending"
+                          ? "Pending approval"
+                          : cert.status === "teacher_approved"
+                            ? "Awaiting admin"
+                            : cert.status === "rejected"
+                              ? "Rejected"
+                              : "Pending"}
                     </dd>
                   </div>
                 </dl>

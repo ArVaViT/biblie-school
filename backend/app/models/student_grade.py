@@ -11,6 +11,7 @@ class StudentGrade(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     student_id = Column(UUID(as_uuid=True), nullable=False)
     course_id = Column(String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    cohort_id = Column(UUID(as_uuid=True), ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True)
     grade = Column(String(10), nullable=True)
     comment = Column(Text, nullable=True)
     graded_by = Column(UUID(as_uuid=True), nullable=False)

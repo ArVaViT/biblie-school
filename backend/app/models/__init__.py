@@ -12,6 +12,7 @@ from app.models.review import CourseReview
 from app.models.prerequisite import CoursePrerequisite
 from app.models.chapter_block import ChapterBlock
 from app.models.chapter_progress import ChapterProgress
+from app.models.cohort import Cohort
 
 __all__ = [
     "User", "UserRole", "Course", "Module", "Chapter",
@@ -23,4 +24,5 @@ __all__ = [
     "CoursePrerequisite",
     "ChapterBlock",
     "ChapterProgress",
+    "Cohort",
 ]

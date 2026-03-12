@@ -46,12 +46,12 @@ export default function TeacherGradebook() {
       ])
       setCourseTitle(course.title)
 
-      const enrolled: EnrolledStudent[] = analytics.enrollments.map((e: { user_id: string; progress: number; enrolled_at: string; student?: { full_name: string | null; email: string } }) => ({
+      const enrolled: EnrolledStudent[] = (analytics.enrollments ?? []).map((e: { user_id: string; progress: number; enrolled_at: string; full_name?: string | null; email?: string; student?: { full_name: string | null; email: string } }) => ({
         user_id: e.user_id,
-        progress: e.progress,
+        progress: e.progress ?? 0,
         enrolled_at: e.enrolled_at,
-        full_name: e.student?.full_name ?? null,
-        email: e.student?.email ?? "",
+        full_name: e.full_name ?? e.student?.full_name ?? null,
+        email: e.email ?? e.student?.email ?? "",
       }))
       setStudents(enrolled)
 
@@ -277,7 +277,7 @@ export default function TeacherGradebook() {
                             <span className="text-muted-foreground">Progress:</span>{" "}
                             <span className="font-medium">{student.progress}%</span>
                           </div>
-                          {existingGrade && (
+                          {existingGrade?.updated_at && (
                             <div>
                               <span className="text-muted-foreground">Last graded:</span>{" "}
                               <span className="font-medium">

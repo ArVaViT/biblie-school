@@ -165,7 +165,9 @@ def delete_chapter(db: Session, chapter: Chapter) -> None:
 # Enrollments
 # ---------------------------------------------------------------------------
 
-def enroll_user_in_course(db: Session, user_id: str, course_id: str) -> Enrollment:
+def enroll_user_in_course(
+    db: Session, user_id: str, course_id: str, cohort_id: str | None = None
+) -> Enrollment:
     existing = db.query(Enrollment).filter(
         Enrollment.user_id == user_id, Enrollment.course_id == course_id
     ).first()
@@ -176,6 +178,7 @@ def enroll_user_in_course(db: Session, user_id: str, course_id: str) -> Enrollme
         id=str(uuid.uuid4()),
         user_id=user_id,
         course_id=course_id,
+        cohort_id=cohort_id,
         progress=0,
     )
     db.add(enrollment)

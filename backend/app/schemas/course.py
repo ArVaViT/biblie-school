@@ -11,6 +11,7 @@ class ChapterBase(BaseModel):
     order_index: int = 0
     chapter_type: Literal["reading", "video", "audio", "quiz", "assignment", "discussion", "mixed"] = "reading"
     requires_completion: bool = False
+    is_locked: bool = False
 
 
 class ChapterCreate(ChapterBase):
@@ -24,6 +25,7 @@ class ChapterUpdate(BaseModel):
     order_index: Optional[int] = None
     chapter_type: Optional[Literal["reading", "video", "audio", "quiz", "assignment", "discussion", "mixed"]] = None
     requires_completion: Optional[bool] = None
+    is_locked: Optional[bool] = None
 
 
 class ChapterResponse(ChapterBase):
@@ -31,6 +33,7 @@ class ChapterResponse(ChapterBase):
     module_id: str
     chapter_type: str = "reading"
     requires_completion: bool = False
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
@@ -98,6 +101,7 @@ class EnrollmentResponse(BaseModel):
     id: str
     user_id: UUID
     course_id: str
+    cohort_id: Optional[UUID] = None
     enrolled_at: datetime
     progress: int
     course: Optional[CourseResponse] = None
