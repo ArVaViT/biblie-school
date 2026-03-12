@@ -119,8 +119,8 @@ function AppRoutes() {
               <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-              <Route path="/courses/:id" element={<CourseDetail />} />
-              <Route path="/courses/:courseId/modules/:moduleId" element={<ModuleView />} />
+              <Route path="/courses/:id" element={<PrivateRoute><CourseDetail /></PrivateRoute>} />
+              <Route path="/courses/:courseId/modules/:moduleId" element={<PrivateRoute><ModuleView /></PrivateRoute>} />
               <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
