@@ -185,8 +185,23 @@ export default function StudentProgress() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="h-8 w-48 bg-muted rounded animate-pulse mb-6" />
+        <div className="rounded-lg border">
+          <div className="p-4 border-b">
+            <div className="h-9 w-64 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="divide-y">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="p-4 flex items-center gap-4">
+                <div className="h-4 w-4 bg-muted rounded animate-pulse" />
+                <div className="h-4 flex-1 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -235,12 +250,14 @@ export default function StudentProgress() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+        <Link to="/teacher" className="hover:text-foreground transition-colors">My Courses</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link to={`/teacher/courses/${courseId}`} className="hover:text-foreground transition-colors">{data.course_title || "Course"}</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground font-medium">Student Progress</span>
+      </div>
       <div className="flex items-center gap-3 mb-8">
-        <Link to="/teacher">
-          <Button variant="ghost" size="icon" className="shrink-0">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
         <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight">Student Progress</h1>
           <p className="text-muted-foreground mt-1">{data.course_title}</p>

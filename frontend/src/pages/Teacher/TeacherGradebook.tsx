@@ -153,19 +153,17 @@ export default function TeacherGradebook() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="flex items-center gap-3 mb-8">
-        <Link to="/teacher">
-          <Button variant="ghost" size="icon" className="shrink-0">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Award className="h-7 w-7 text-primary" />
-            Gradebook
-          </h1>
-          {courseTitle && <p className="text-muted-foreground mt-1">{courseTitle}</p>}
-        </div>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+        <Link to="/teacher" className="hover:text-foreground transition-colors">My Courses</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground font-medium">Gradebook</span>
+      </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <Award className="h-7 w-7 text-primary" />
+          Gradebook
+        </h1>
+        {courseTitle && <p className="text-muted-foreground mt-1">{courseTitle}</p>}
       </div>
 
       {/* Stats */}

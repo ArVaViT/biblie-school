@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,8 +9,8 @@ import { storageService } from "@/services/storage"
 import type { Course, Announcement } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
-  Pencil, Calendar, Megaphone, Plus, Trash2, ArrowLeft,
-  Layers, Save, Upload, Image, Loader2, X, Eye, EyeOff, BookOpen,
+  Pencil, Calendar, Megaphone, Plus, Trash2,
+  Layers, Save, Upload, Image, Loader2, X, Eye, EyeOff, BookOpen, ChevronRight,
   Download, Paperclip,
 } from "lucide-react"
 
@@ -85,6 +85,18 @@ export default function CourseEditor() {
   }, [courseId, navigate])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault()
+        if (modal === "details") saveDetails()
+        else if (modal === "enroll") saveEnrollment()
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [modal, title, description, imageUrl, enrollStart, enrollEnd])
 
   const saveDetails = async () => {
     if (!courseId || !title.trim()) return
@@ -178,16 +190,41 @@ export default function CourseEditor() {
     catch { toast({ title: "Failed", variant: "destructive" }) }
   }
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="h-8 w-32 bg-muted rounded animate-pulse mb-6" />
+        <div className="rounded-lg border overflow-hidden mb-8">
+          <div className="h-48 bg-muted animate-pulse" />
+          <div className="p-6 space-y-3">
+            <div className="h-6 w-2/3 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-1/2 bg-muted rounded animate-pulse" />
+            <div className="flex gap-2 mt-4">
+              <div className="h-8 w-24 bg-muted rounded animate-pulse" />
+              <div className="h-8 w-24 bg-muted rounded animate-pulse" />
+              <div className="h-8 w-24 bg-muted rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-16 rounded-lg border bg-muted/30 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    )
+  }
   if (!course) return null
   const modules = [...(course.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
   const pub = course.status === "published"
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
-      <Button variant="ghost" size="sm" className="mb-6" onClick={() => navigate("/teacher")}>
-        <ArrowLeft className="h-4 w-4 mr-1.5" />Back to Courses
-      </Button>
+      <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+        <Link to="/teacher" className="hover:text-foreground transition-colors">My Courses</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground font-medium truncate max-w-[200px]">{course?.title || "Course"}</span>
+      </div>
 
       {/* Course Header */}
       <div className="rounded-xl overflow-hidden border mb-8">

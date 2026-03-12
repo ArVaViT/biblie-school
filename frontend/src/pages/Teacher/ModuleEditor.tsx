@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, Link } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,7 @@ import { coursesService } from "@/services/courses"
 import type { Module, Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
-  ArrowLeft, ArrowUp, ArrowDown, Plus, Trash2, Save, FileText, HelpCircle,
+  ArrowUp, ArrowDown, Plus, Trash2, Save, FileText, HelpCircle,
   ClipboardList, Puzzle, ChevronDown, ChevronRight,
   Shield, Video, Loader2, Pencil,
 } from "lucide-react"
@@ -70,6 +70,22 @@ export default function ModuleEditor() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault()
+        if (expandedChapter && mod) {
+          const ch = mod.chapters?.find((c) => c.id === expandedChapter)
+          if (ch && (ch.chapter_type === "content" || !ch.chapter_type)) {
+            saveChapterContent(ch)
+          }
+        }
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [expandedChapter, mod, chapterContent, chapterVideoUrl])
 
   const saveModuleDetails = async (field: "title" | "description", value: string) => {
     if (!courseId || !moduleId) return
@@ -228,8 +244,23 @@ export default function ModuleEditor() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="container mx-auto px-4 py-8 max-w-3xl">
+        <div className="h-8 w-32 bg-muted rounded animate-pulse mb-6" />
+        <div className="space-y-3 mb-6">
+          <div className="h-8 w-3/4 bg-muted rounded animate-pulse" />
+          <div className="h-4 w-1/2 bg-muted rounded animate-pulse" />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="rounded-lg border p-4 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="h-5 w-5 bg-muted rounded animate-pulse" />
+                <div className="h-5 flex-1 bg-muted rounded animate-pulse" />
+                <div className="h-5 w-16 bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -244,15 +275,13 @@ export default function ModuleEditor() {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       {/* Module Header */}
       <div className="mb-8">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mb-4"
-          onClick={() => navigate(`/teacher/courses/${courseId}`)}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1.5" />
-          Back to Course
-        </Button>
+        <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+          <Link to="/teacher" className="hover:text-foreground transition-colors">My Courses</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link to={`/teacher/courses/${courseId}`} className="hover:text-foreground transition-colors">{mod?.course_id ? "Course" : "Course"}</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground font-medium truncate max-w-[200px]">{mod?.title || "Module"}</span>
+        </div>
 
         <div className="space-y-3">
           <div className="flex items-center gap-3">
