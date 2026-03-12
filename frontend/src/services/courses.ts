@@ -357,6 +357,11 @@ export const coursesService = {
     await api.delete(`/reviews/${id}`)
   },
 
+  async getMyChapterProgress(courseId: string): Promise<string[]> {
+    const response = await api.get<string[]>(`/progress/course/${courseId}/my-progress`)
+    return response.data
+  },
+
   // Student progress (teacher)
   async getStudentProgress(courseId: string) {
     const response = await api.get(`/progress/course/${courseId}/students`)

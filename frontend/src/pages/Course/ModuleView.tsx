@@ -4,7 +4,6 @@ import DOMPurify from "dompurify"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
-import { storageService } from "@/services/storage"
 import type { Module, Chapter, ChapterProgress, ChapterBlock } from "@/types"
 import {
   ArrowLeft,
@@ -12,8 +11,6 @@ import {
   CheckCircle,
   Circle,
   Download,
-  Paperclip,
-
   ChevronDown,
   ChevronRight,
   Lock,
@@ -26,13 +23,6 @@ import { toast } from "@/hooks/use-toast"
 import StudentNotes from "@/components/course/StudentNotes"
 import QuizTaker from "@/components/quiz/QuizTaker"
 import AssignmentPanel from "@/components/assignment/AssignmentPanel"
-
-interface CourseMaterial {
-  name: string
-  path: string
-  size?: number
-  created: string
-}
 
 function extractYouTubeId(url: string): string | null {
   const patterns = [
@@ -122,8 +112,6 @@ export default function ModuleView() {
   const [error, setError] = useState<string | null>(null)
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
-  const [materials, setMaterials] = useState<CourseMaterial[]>([])
-  const [downloadingPath, setDownloadingPath] = useState<string | null>(null)
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set())
   const [chapterBlocks, setChapterBlocks] = useState<Record<string, ChapterBlock[]>>({})
   const [loadingBlocks, setLoadingBlocks] = useState<Set<string>>(new Set())
@@ -146,12 +134,6 @@ export default function ModuleView() {
           }
         }
 
-        try {
-          const files = await storageService.listCourseMaterials(courseId)
-          setMaterials(files)
-        } catch {
-          // non-critical
-        }
       } catch {
         setError("Failed to load module. Please try again.")
       } finally {
@@ -242,18 +224,6 @@ export default function ModuleView() {
     [courseId, completedIds, togglingIds, sortedChapters],
   )
 
-  const handleDownload = useCallback(async (path: string) => {
-    setDownloadingPath(path)
-    try {
-      const url = await storageService.getSignedMaterialUrl(path)
-      window.open(url, "_blank")
-    } catch {
-      toast({ title: "Failed to download file", variant: "destructive" })
-    } finally {
-      setDownloadingPath(null)
-    }
-  }, [])
-
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -269,7 +239,7 @@ export default function ModuleView() {
         <h2 className="text-lg font-medium mb-2">
           {error ?? "Module not found"}
         </h2>
-        <Link to={courseId ? `/courses/${courseId}` : "/dashboard"}>
+        <Link to={courseId ? `/courses/${courseId}` : "/"}>
           <Button variant="outline" size="sm">Back to Course</Button>
         </Link>
       </div>
@@ -280,38 +250,37 @@ export default function ModuleView() {
   const progressPercent = sortedChapters.length > 0 ? Math.round((completedCount / sortedChapters.length) * 100) : 0
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
+    <div className="container mx-auto px-4 py-6 max-w-3xl">
       <Link to={`/courses/${courseId}`}>
-        <Button variant="ghost" size="sm" className="mb-6 h-8 text-xs">
+        <Button variant="ghost" size="sm" className="mb-4 h-8 text-xs">
           <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
           Back to Course
         </Button>
       </Link>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">{module.title}</h1>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold tracking-tight mb-1">{module.title}</h1>
         {module.description && (
-          <p className="text-muted-foreground leading-relaxed">{module.description}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{module.description}</p>
         )}
       </div>
 
       {allComplete && (
-        <div className="mt-4 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-center mb-8">
-          <CheckCircle className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
-          <h3 className="font-serif text-lg font-semibold text-emerald-800 dark:text-emerald-300">Module Complete</h3>
-          <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">Well done. You have completed all chapters in this module.</p>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 mb-4">
+          <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+          <span className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Module complete — well done!</span>
         </div>
       )}
 
       {sortedChapters.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between text-sm mb-2">
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-xs mb-1">
             <span className="font-medium">
-              {completedCount} of {sortedChapters.length} chapters completed
+              {completedCount}/{sortedChapters.length} chapters
             </span>
             <span className="text-muted-foreground">{progressPercent}%</span>
           </div>
-          <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
               style={{ width: `${progressPercent}%` }}
@@ -321,8 +290,8 @@ export default function ModuleView() {
       )}
 
       <div>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Book className="h-5 w-5" />
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <Book className="h-4 w-4" />
           Chapters
           <span className="text-sm font-normal text-muted-foreground">
             ({sortedChapters.length})
@@ -476,49 +445,6 @@ export default function ModuleView() {
         )}
       </div>
 
-      {materials.length > 0 && (
-        <div className="mt-10">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Paperclip className="h-5 w-5" />
-            Course Materials
-            <span className="text-sm font-normal text-muted-foreground">
-              ({materials.length})
-            </span>
-          </h2>
-
-          <Card>
-            <CardContent className="p-0 divide-y">
-              {materials.map((file) => (
-                <div
-                  key={file.path}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Download className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-sm truncate">{file.name}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 h-8 text-xs"
-                    disabled={downloadingPath === file.path}
-                    onClick={() => handleDownload(file.path)}
-                  >
-                    {downloadingPath === file.path ? (
-                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    ) : (
-                      <>
-                        <Download className="h-3.5 w-3.5 mr-1.5" />
-                        Download
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }

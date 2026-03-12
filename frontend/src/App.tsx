@@ -12,7 +12,7 @@ import ForgotPassword from "./pages/Auth/ForgotPassword"
 import ResetPassword from "./pages/Auth/ResetPassword"
 import AuthCallback from "./pages/Auth/AuthCallback"
 import HomePage from "./pages/Home/HomePage"
-import Dashboard from "./pages/Dashboard/Dashboard"
+// Dashboard merged into HomePage
 import ProfilePage from "./pages/Profile/ProfilePage"
 import CourseDetail from "./pages/Course/CourseDetail"
 import ModuleView from "./pages/Course/ModuleView"
@@ -26,6 +26,7 @@ const ModuleEditor = lazy(() => import("./pages/Teacher/ModuleEditor"))
 const TeacherGradebook = lazy(() => import("./pages/Teacher/TeacherGradebook"))
 const TeacherAnalytics = lazy(() => import("./pages/Teacher/TeacherAnalytics"))
 const StudentProgress = lazy(() => import("./pages/Teacher/StudentProgress"))
+const ChapterEditor = lazy(() => import("./pages/Teacher/ChapterEditor"))
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"))
 
 function RouteSpinner() {
@@ -46,7 +47,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return <RouteSpinner />
-  if (user) return <Navigate to="/dashboard" replace />
+  if (user) return <Navigate to="/" replace />
   return <>{children}</>
 }
 
@@ -55,7 +56,7 @@ function TeacherRoute({ children }: { children: React.ReactNode }) {
   if (loading) return <RouteSpinner />
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== "teacher" && user.role !== "admin") {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/" replace />
   }
   return <>{children}</>
 }
@@ -65,7 +66,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   if (loading) return <RouteSpinner />
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== "admin") {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/" replace />
   }
   return <>{children}</>
 }
@@ -124,7 +125,7 @@ function AppRoutes() {
           <Suspense fallback={<RouteSpinner />}>
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
               <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
               <Route path="/certificates" element={<PrivateRoute><CertificatesPage /></PrivateRoute>} />
               <Route path="/courses/:id" element={<PrivateRoute><CourseDetail /></PrivateRoute>} />
@@ -132,6 +133,7 @@ function AppRoutes() {
               <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/modules/:moduleId/edit" element={<TeacherRoute><ModuleEditor /></TeacherRoute>} />
+              <Route path="/teacher/courses/:courseId/modules/:moduleId/chapters/:chapterId/edit" element={<TeacherRoute><ChapterEditor /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/gradebook" element={<TeacherRoute><TeacherGradebook /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/progress" element={<TeacherRoute><StudentProgress /></TeacherRoute>} />

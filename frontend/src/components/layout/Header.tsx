@@ -1,245 +1,85 @@
 import { useState } from "react"
-import { Link, useNavigate, useLocation } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
-import { useTheme } from "@/context/ThemeContext"
-import {
-  LogOut, LayoutDashboard, GraduationCap, BookOpenCheck,
-  Moon, Sun, User as UserIcon, PenTool, ShieldCheck,
-  Menu, X, Award,
-} from "lucide-react"
+import { PenTool, ShieldCheck, User as UserIcon, Menu, X } from "lucide-react"
 
 export default function Header() {
-  const { user, logout } = useAuth()
-  const { theme, toggleTheme } = useTheme()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const handleLogout = () => {
-    logout()
-    setMobileOpen(false)
-    navigate("/login", { replace: true })
-  }
-
-  const closeMobile = () => setMobileOpen(false)
-
   const isTeacher = user?.role === "teacher" || user?.role === "admin"
-  const isPendingTeacher = user?.role === "pending_teacher"
-
-  const navLinkClass = (path: string) =>
-    `flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-      location.pathname === path
-        ? "bg-primary/10 text-primary font-medium"
-        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-    }`
+  const isActive = (path: string) => location.pathname === path
 
   return (
-    <header className="border-b border-border/60 bg-background/90 backdrop-blur-sm sticky top-0 z-50">
+    <header className="border-b border-border/60 bg-background/95 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-        <Link to="/" className="group flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <span className="font-serif text-lg font-bold tracking-tight text-foreground">Bible School</span>
-          <span className="hidden sm:block h-4 w-px bg-accent/60" />
-          <span className="hidden sm:block text-[11px] uppercase tracking-widest text-muted-foreground font-sans">Seminary</span>
+        <Link to="/" className="font-serif text-lg font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity">
+          Bible School
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-1.5">
-          <Button variant="ghost" size="sm" onClick={toggleTheme} className="h-8 w-8 p-0">
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-
+        <nav className="hidden md:flex items-center gap-1">
           {user ? (
             <>
-              <div className={`flex items-center gap-1.5 text-xs border rounded-md px-2.5 py-1 font-sans ${
-                isPendingTeacher
-                  ? "text-amber-600 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-950/30"
-                  : "text-muted-foreground border-border/50"
-              }`}>
-                {isTeacher || isPendingTeacher ? (
-                  <BookOpenCheck className="h-3.5 w-3.5" />
-                ) : (
-                  <GraduationCap className="h-3.5 w-3.5" />
-                )}
-                <span className="capitalize tracking-wide">
-                  {isPendingTeacher ? "Pending Teacher" : user.role}
-                </span>
-              </div>
-
-              {user.role === "admin" && (
-                <Link to="/admin">
-                  <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
-                    <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                    Admin
-                  </Button>
-                </Link>
-              )}
-
+              <Link to="/">
+                <Button variant={isActive("/") ? "secondary" : "ghost"} size="sm" className="h-8 text-xs">
+                  Courses
+                </Button>
+              </Link>
               {isTeacher && (
                 <Link to="/teacher">
-                  <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
+                  <Button variant={isActive("/teacher") ? "secondary" : "ghost"} size="sm" className="h-8 text-xs">
                     <PenTool className="h-3.5 w-3.5 mr-1" />
                     Manage
                   </Button>
                 </Link>
               )}
-
-              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Courses
-              </Link>
-
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
-                  <LayoutDashboard className="h-3.5 w-3.5 mr-1" />
-                  Dashboard
-                </Button>
-              </Link>
-
-              <Link to="/certificates">
-                <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
-                  <Award className="h-3.5 w-3.5 mr-1" />
-                  Certificates
-                </Button>
-              </Link>
-
+              {user.role === "admin" && (
+                <Link to="/admin">
+                  <Button variant={isActive("/admin") ? "secondary" : "ghost"} size="sm" className="h-8 text-xs">
+                    <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                    Admin
+                  </Button>
+                </Link>
+              )}
               <Link to="/profile">
-                <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
+                <Button variant={isActive("/profile") ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0 rounded-full">
                   {user.avatar_url ? (
-                    <img
-                      src={user.avatar_url}
-                      alt=""
-                      className="h-5 w-5 rounded-full object-cover mr-1"
-                      onError={(e) => { e.currentTarget.style.display = "none" }}
-                    />
+                    <img src={user.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = "none" }} />
                   ) : (
-                    <UserIcon className="h-3.5 w-3.5 mr-1" />
+                    <UserIcon className="h-4 w-4" />
                   )}
-                  Profile
                 </Button>
               </Link>
-
-              <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md" onClick={handleLogout}>
-                <LogOut className="h-3.5 w-3.5 mr-1" />
-                Sign Out
-              </Button>
             </>
           ) : (
             <>
-              <Link to="/login">
-                <Button variant="ghost" size="sm" className="h-8 text-xs">
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/register">
-                <Button size="sm" className="h-8 text-xs">
-                  Register
-                </Button>
-              </Link>
+              <Link to="/login"><Button variant="ghost" size="sm" className="h-8 text-xs">Sign In</Button></Link>
+              <Link to="/register"><Button size="sm" className="h-8 text-xs">Register</Button></Link>
             </>
           )}
         </nav>
 
-        {/* Mobile controls */}
-        <div className="flex items-center gap-1.5 md:hidden">
-          <Button variant="ghost" size="sm" onClick={toggleTheme} className="h-8 w-8 p-0">
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 md:hidden" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t bg-background animate-in slide-in-from-top-2 duration-200">
+        <div className="md:hidden border-t bg-background">
           <nav className="container mx-auto px-4 py-3 flex flex-col gap-1">
             {user ? (
               <>
-                <div className={`flex items-center gap-1.5 text-xs border rounded-md px-2.5 py-1 w-fit mb-2 ${
-                  isPendingTeacher
-                    ? "text-amber-600 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-950/30"
-                    : "text-muted-foreground border-border/50"
-                }`}>
-                  {isTeacher || isPendingTeacher ? (
-                    <BookOpenCheck className="h-3.5 w-3.5" />
-                  ) : (
-                    <GraduationCap className="h-3.5 w-3.5" />
-                  )}
-                  <span className="capitalize">
-                    {isPendingTeacher ? "Pending Teacher" : user.role}
-                  </span>
-                </div>
-
-                {user.role === "admin" && (
-                  <Link to="/admin" className={navLinkClass("/admin")} onClick={closeMobile}>
-                    <ShieldCheck className="h-4 w-4" />
-                    Admin
-                  </Link>
-                )}
-
-                {isTeacher && (
-                  <Link to="/teacher" className={navLinkClass("/teacher")} onClick={closeMobile}>
-                    <PenTool className="h-4 w-4" />
-                    Manage Courses
-                  </Link>
-                )}
-
-                <Link to="/dashboard" className={navLinkClass("/dashboard")} onClick={closeMobile}>
-                  <LayoutDashboard className="h-4 w-4" />
-                  Dashboard
-                </Link>
-
-                <Link to="/" className={navLinkClass("/")} onClick={closeMobile}>
-                  <BookOpenCheck className="h-4 w-4" />
-                  Browse Courses
-                </Link>
-
-                <Link to="/certificates" className={navLinkClass("/certificates")} onClick={closeMobile}>
-                  <Award className="h-4 w-4" />
-                  Certificates
-                </Link>
-
-                <Link to="/profile" className={navLinkClass("/profile")} onClick={closeMobile}>
-                  {user.avatar_url ? (
-                    <img
-                      src={user.avatar_url}
-                      alt=""
-                      className="h-5 w-5 rounded-full object-cover"
-                      onError={(e) => { e.currentTarget.style.display = "none" }}
-                    />
-                  ) : (
-                    <UserIcon className="h-4 w-4" />
-                  )}
-                  Profile
-                </Link>
-
-                <div className="border-t my-1" />
-
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors w-full text-left"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </button>
+                <Link to="/" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Courses</Link>
+                {isTeacher && <Link to="/teacher" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Manage Courses</Link>}
+                {user.role === "admin" && <Link to="/admin" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Admin Panel</Link>}
+                <Link to="/profile" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Profile & Settings</Link>
               </>
             ) : (
               <>
-                <Link to="/login" className={navLinkClass("/login")} onClick={closeMobile}>
-                  Sign In
-                </Link>
-                <Link to="/register" onClick={closeMobile}>
-                  <Button size="sm" className="w-full mt-1">
-                    Register
-                  </Button>
-                </Link>
+                <Link to="/login" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Sign In</Link>
+                <Link to="/register" className="px-3 py-2 rounded-md text-sm hover:bg-muted font-medium" onClick={() => setMobileOpen(false)}>Register</Link>
               </>
             )}
           </nav>

@@ -10,7 +10,7 @@ const TITLES: Record<string, string> = {
   "/auth/reset-password": "Reset Password",
   "/auth/callback": "Authenticating…",
   "/auth/confirm": "Confirming Email…",
-  "/dashboard": "Dashboard",
+  "/dashboard": "Courses",
   "/profile": "My Profile",
   "/certificates": "My Certificates",
   "/teacher": "Teacher Dashboard",
@@ -20,6 +20,7 @@ const TITLES: Record<string, string> = {
 function matchTitle(pathname: string): string {
   if (TITLES[pathname]) return TITLES[pathname]
 
+  if (/^\/teacher\/courses\/[^/]+\/modules\/[^/]+\/chapters\/[^/]+\/edit$/.test(pathname)) return "Edit Chapter"
   if (/^\/teacher\/courses\/[^/]+\/modules\/[^/]+\/edit$/.test(pathname)) return "Edit Module"
   if (/^\/teacher\/courses\/[^/]+\/gradebook$/.test(pathname)) return "Gradebook"
   if (/^\/teacher\/courses\/[^/]+\/progress$/.test(pathname)) return "Student Progress"

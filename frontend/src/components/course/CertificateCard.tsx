@@ -2,20 +2,49 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
+import { useAuth } from "@/context/AuthContext"
 import { toast } from "@/hooks/use-toast"
 import type { Certificate } from "@/types"
-import { Award, Copy, CheckCircle, Sparkles, Clock, XCircle, RefreshCw } from "lucide-react"
+import { Award, Copy, CheckCircle, Sparkles, Clock, XCircle, RefreshCw, Star } from "lucide-react"
 
 interface Props {
   courseId: string
   progress: number
   certificate: Certificate | null
   onCertificateUpdate: (cert: Certificate | null) => void
+  onReviewSubmitted?: () => void
 }
 
-export default function CertificateCard({ courseId, progress, certificate, onCertificateUpdate }: Props) {
+export default function CertificateCard({ courseId, progress, certificate, onCertificateUpdate, onReviewSubmitted }: Props) {
+  const { user } = useAuth()
   const [requesting, setRequesting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewHover, setReviewHover] = useState(0)
+  const [reviewComment, setReviewComment] = useState("")
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewDone, setReviewDone] = useState(false)
+
+  const handleReviewSubmit = async () => {
+    if (reviewRating === 0) {
+      toast({ title: "Please select a rating", variant: "destructive" })
+      return
+    }
+    setReviewSubmitting(true)
+    try {
+      await coursesService.submitReview(courseId, {
+        rating: reviewRating,
+        comment: reviewComment || undefined,
+      })
+      toast({ title: "Review submitted!", variant: "success" })
+      setReviewDone(true)
+      onReviewSubmitted?.()
+    } catch {
+      toast({ title: "Failed to submit review", variant: "destructive" })
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
 
   const handleRequest = async () => {
     setRequesting(true)
@@ -120,7 +149,7 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
   if (certificate.status === "approved") {
     return (
       <Card className="border-2 border-amber-400/60 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-orange-50/30 dark:from-amber-950/30 dark:via-yellow-950/20 dark:to-orange-950/10 dark:border-amber-600/40 shadow-lg shadow-amber-100/50 dark:shadow-amber-900/20">
-        <CardContent className="py-6">
+        <CardContent className="py-6 space-y-5">
           <div className="flex items-start gap-4">
             <div className="h-14 w-14 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shrink-0 shadow-md">
               <Award className="h-7 w-7 text-white" />
@@ -178,6 +207,61 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
               </div>
             </div>
           </div>
+
+          {user && !reviewDone && (
+            <div className="border-t border-amber-300/40 dark:border-amber-700/30 pt-5 space-y-3">
+              <h4 className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                How was this course? Leave a review
+              </h4>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setReviewRating(value)}
+                    onMouseEnter={() => setReviewHover(value)}
+                    onMouseLeave={() => setReviewHover(0)}
+                    className="focus:outline-none transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`h-6 w-6 transition-colors ${
+                        value <= (reviewHover || reviewRating)
+                          ? "fill-amber-400 text-amber-400"
+                          : "text-amber-300/40 dark:text-amber-700/40"
+                      }`}
+                    />
+                  </button>
+                ))}
+                {reviewRating > 0 && (
+                  <span className="text-sm text-amber-700/70 dark:text-amber-400/60 ml-2">
+                    {reviewRating}/5
+                  </span>
+                )}
+              </div>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Share your thoughts about this course... (optional)"
+                rows={3}
+                className="flex min-h-[80px] w-full rounded-md border border-amber-200/60 dark:border-amber-700/40 bg-white/60 dark:bg-black/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
+              />
+              <Button
+                onClick={handleReviewSubmit}
+                disabled={reviewSubmitting}
+                size="sm"
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white"
+              >
+                {reviewSubmitting ? "Submitting..." : "Submit Review"}
+              </Button>
+            </div>
+          )}
+
+          {reviewDone && (
+            <div className="border-t border-amber-300/40 dark:border-amber-700/30 pt-4 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
+              <CheckCircle className="h-4 w-4" />
+              Thank you for your review!
+            </div>
+          )}
         </CardContent>
       </Card>
     )

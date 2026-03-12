@@ -33,6 +33,8 @@ export interface Module {
   chapters?: Chapter[]
 }
 
+export type ChapterType = 'reading' | 'video' | 'audio' | 'quiz' | 'assignment' | 'discussion' | 'mixed'
+
 export interface Chapter {
   id: string
   module_id: string
@@ -40,7 +42,7 @@ export interface Chapter {
   content: string | null
   video_url: string | null
   order_index: number
-  chapter_type: string
+  chapter_type: ChapterType
   requires_completion: boolean
 }
 

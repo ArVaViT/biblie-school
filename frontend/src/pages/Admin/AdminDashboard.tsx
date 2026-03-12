@@ -76,7 +76,7 @@ export default function AdminDashboard() {
   }, [users, search])
 
   if (user?.role !== "admin") {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/" replace />
   }
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {

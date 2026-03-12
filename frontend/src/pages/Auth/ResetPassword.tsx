@@ -45,7 +45,7 @@ export default function ResetPassword() {
     try {
       await authService.updatePassword(result.data.password)
       setSuccess(true)
-      setTimeout(() => navigate("/dashboard", { replace: true }), 2500)
+      setTimeout(() => navigate("/", { replace: true }), 2500)
     } catch (err: unknown) {
       const supaErr = err as { message?: string }
       setServerError(supaErr.message || "Failed to reset password.")

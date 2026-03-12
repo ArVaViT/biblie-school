@@ -45,7 +45,7 @@ export default function CertificatesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <Link to="/dashboard">
+      <Link to="/">
         <Button variant="ghost" size="sm" className="mb-6 h-8 text-xs">
           <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
           Dashboard

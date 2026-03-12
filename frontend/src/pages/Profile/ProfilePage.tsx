@@ -1,18 +1,21 @@
 import { useState, useRef, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/AuthContext"
+import { useTheme } from "@/context/ThemeContext"
 import { usersService } from "@/services/users"
 import { storageService } from "@/services/storage"
 import { coursesService } from "@/services/courses"
 import { profileSchema } from "@/lib/validations/course"
-import { User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera, Loader2, Award, BookOpen, ArrowRight } from "lucide-react"
+import { User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera, Loader2, Award, BookOpen, ArrowRight, LogOut, Moon, Sun } from "lucide-react"
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
+  const navigate = useNavigate()
   const [name, setName] = useState(user?.full_name ?? "")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -77,6 +80,11 @@ export default function ProfilePage() {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ""
     }
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login", { replace: true })
   }
 
   if (!user) return null
@@ -238,6 +246,32 @@ export default function ProfilePage() {
             </dl>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Preferences</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {theme === "dark" ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
+                <div>
+                  <p className="text-sm font-medium">Theme</p>
+                  <p className="text-xs text-muted-foreground">{theme === "dark" ? "Dark mode" : "Light mode"}</p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={toggleTheme}>
+                {theme === "dark" ? <Sun className="h-3.5 w-3.5 mr-1.5" /> : <Moon className="h-3.5 w-3.5 mr-1.5" />}
+                {theme === "dark" ? "Light" : "Dark"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Button variant="destructive" className="w-full" onClick={handleLogout}>
+          <LogOut className="h-4 w-4 mr-2" />
+          Sign Out
+        </Button>
       </div>
     </div>
   )

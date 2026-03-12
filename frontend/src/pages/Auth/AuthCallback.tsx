@@ -22,7 +22,7 @@ export default function AuthCallback() {
           go("/auth/reset-password")
         } else if (session) {
           clearTimeout(timeout)
-          go("/dashboard")
+          go("/")
         }
       },
     )

@@ -10,7 +10,7 @@ export default function NotFound() {
       <p className="text-sm text-muted-foreground mb-6 max-w-md">
         The page you're looking for doesn't exist or has been moved.
       </p>
-      <Link to="/dashboard">
+      <Link to="/">
         <Button>
           <Home className="h-4 w-4 mr-2" />
           Go to Dashboard

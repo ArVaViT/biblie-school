@@ -16,6 +16,27 @@ from app.models.chapter_progress import ChapterProgress
 router = APIRouter(prefix="/progress", tags=["progress"])
 
 
+@router.get("/course/{course_id}/my-progress")
+async def get_my_chapter_progress(
+    course_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return list of completed chapter IDs for current user in this course."""
+    completed = (
+        db.query(ChapterProgress.chapter_id)
+        .join(Chapter, Chapter.id == ChapterProgress.chapter_id)
+        .join(Module, Module.id == Chapter.module_id)
+        .filter(
+            Module.course_id == course_id,
+            ChapterProgress.user_id == current_user.id,
+            ChapterProgress.completed == True,
+        )
+        .all()
+    )
+    return [str(c[0]) for c in completed]
+
+
 @router.get("/course/{course_id}/students")
 async def get_course_student_progress(
     course_id: str,

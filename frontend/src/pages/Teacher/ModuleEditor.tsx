@@ -3,37 +3,27 @@ import { useParams, useNavigate, Link } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import RichTextEditor from "@/components/editor/RichTextEditor"
-import ChapterBlockEditor from "@/components/editor/ChapterBlockEditor"
-import QuizEditor from "@/components/quiz/QuizEditor"
-import AssignmentEditor from "@/components/assignment/AssignmentEditor"
 import { coursesService } from "@/services/courses"
 import type { Module, Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
-  ArrowUp, ArrowDown, Plus, Trash2, Save, FileText, HelpCircle,
-  ClipboardList, Puzzle, ChevronDown, ChevronRight,
-  Shield, Video, Loader2, Pencil,
+  ArrowUp, ArrowDown, Plus, Trash2, ChevronRight,
+  Shield, Loader2, Pencil,
 } from "lucide-react"
 
-const CHAPTER_TYPES = [
-  { value: "content", label: "Content", icon: FileText, desc: "Text and video lessons" },
-  { value: "quiz", label: "Quiz", icon: HelpCircle, desc: "Test knowledge" },
-  { value: "assignment", label: "Assignment", icon: ClipboardList, desc: "Submit work" },
-  { value: "mixed", label: "Mixed", icon: Puzzle, desc: "Combine multiple block types" },
-] as const
-
-type ChapterType = (typeof CHAPTER_TYPES)[number]["value"]
+const CHAPTER_TYPE_BADGES: Record<string, string> = {
+  reading: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  content: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  video: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400",
+  audio: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400",
+  quiz: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+  assignment: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
+  discussion: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
+  mixed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+}
 
 function chapterTypeBadge(type: string) {
-  const map: Record<string, string> = {
-    content: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-    quiz: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-    assignment: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
-    mixed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
-  }
-  return map[type] ?? map.content
+  return CHAPTER_TYPE_BADGES[type] ?? CHAPTER_TYPE_BADGES.reading
 }
 
 export default function ModuleEditor() {
@@ -46,11 +36,6 @@ export default function ModuleEditor() {
 
   const [modTitle, setModTitle] = useState("")
   const [modDescription, setModDescription] = useState("")
-
-  const [expandedChapter, setExpandedChapter] = useState<string | null>(null)
-  const [chapterContent, setChapterContent] = useState("")
-  const [chapterVideoUrl, setChapterVideoUrl] = useState("")
-  const [savingChapter, setSavingChapter] = useState(false)
 
   const load = useCallback(async () => {
     if (!courseId || !moduleId) return
@@ -70,22 +55,6 @@ export default function ModuleEditor() {
   useEffect(() => {
     load()
   }, [load])
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault()
-        if (expandedChapter && mod) {
-          const ch = mod.chapters?.find((c) => c.id === expandedChapter)
-          if (ch && (ch.chapter_type === "content" || !ch.chapter_type)) {
-            saveChapterContent(ch)
-          }
-        }
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [expandedChapter, mod, chapterContent, chapterVideoUrl])
 
   const saveModuleDetails = async (field: "title" | "description", value: string) => {
     if (!courseId || !moduleId) return
@@ -113,10 +82,8 @@ export default function ModuleEditor() {
       setMod((prev) =>
         prev ? { ...prev, chapters: [...(prev.chapters ?? []), ch] } : prev,
       )
-      setExpandedChapter(ch.id)
-      setChapterContent(ch.content ?? "")
-      setChapterVideoUrl(ch.video_url ?? "")
       toast({ title: "Chapter added", variant: "success" })
+      navigate(`/teacher/courses/${courseId}/modules/${moduleId}/chapters/${ch.id}/edit`)
     } catch {
       toast({ title: "Failed to add chapter", variant: "destructive" })
     }
@@ -147,51 +114,6 @@ export default function ModuleEditor() {
     }
   }
 
-  const changeChapterType = async (ch: Chapter, newType: string) => {
-    if (!courseId || !moduleId) return
-    updateChapterLocal(ch.id, { chapter_type: newType })
-    try {
-      await coursesService.updateChapter(courseId, moduleId, ch.id, {
-        chapter_type: newType,
-      })
-    } catch {
-      toast({ title: "Failed to update chapter type", variant: "destructive" })
-    }
-  }
-
-  const toggleRequiresCompletion = async (ch: Chapter) => {
-    if (!courseId || !moduleId) return
-    const next = !ch.requires_completion
-    updateChapterLocal(ch.id, { requires_completion: next })
-    try {
-      await coursesService.updateChapter(courseId, moduleId, ch.id, {
-        requires_completion: next,
-      })
-    } catch {
-      toast({ title: "Failed to update", variant: "destructive" })
-    }
-  }
-
-  const saveChapterContent = async (ch: Chapter) => {
-    if (!courseId || !moduleId) return
-    setSavingChapter(true)
-    try {
-      await coursesService.updateChapter(courseId, moduleId, ch.id, {
-        content: chapterContent,
-        video_url: chapterVideoUrl.trim() || undefined,
-      })
-      updateChapterLocal(ch.id, {
-        content: chapterContent,
-        video_url: chapterVideoUrl.trim() || undefined,
-      })
-      toast({ title: "Chapter saved", variant: "success" })
-    } catch {
-      toast({ title: "Failed to save chapter", variant: "destructive" })
-    } finally {
-      setSavingChapter(false)
-    }
-  }
-
   const deleteChapter = async (chId: string) => {
     if (!courseId || !moduleId || !confirm("Delete this chapter?")) return
     try {
@@ -201,7 +123,6 @@ export default function ModuleEditor() {
           ? { ...prev, chapters: prev.chapters?.filter((c) => c.id !== chId) }
           : prev,
       )
-      if (expandedChapter === chId) setExpandedChapter(null)
       toast({ title: "Chapter deleted", variant: "success" })
     } catch {
       toast({ title: "Failed to delete chapter", variant: "destructive" })
@@ -219,7 +140,7 @@ export default function ModuleEditor() {
       return c
     })
 
-    setMod(prev => prev ? { ...prev, chapters: updates } : prev)
+    setMod((prev) => (prev ? { ...prev, chapters: updates } : prev))
 
     try {
       await Promise.all([
@@ -232,16 +153,6 @@ export default function ModuleEditor() {
     }
   }
 
-  const expandChapter = (ch: Chapter) => {
-    if (expandedChapter === ch.id) {
-      setExpandedChapter(null)
-    } else {
-      setExpandedChapter(ch.id)
-      setChapterContent(ch.content ?? "")
-      setChapterVideoUrl(ch.video_url ?? "")
-    }
-  }
-
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-3xl">
@@ -251,7 +162,7 @@ export default function ModuleEditor() {
           <div className="h-4 w-1/2 bg-muted rounded animate-pulse" />
         </div>
         <div className="space-y-3">
-          {[1, 2, 3, 4].map(i => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="rounded-lg border p-4 space-y-2">
               <div className="flex items-center gap-3">
                 <div className="h-5 w-5 bg-muted rounded animate-pulse" />
@@ -273,16 +184,17 @@ export default function ModuleEditor() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Module Header */}
+      {/* Breadcrumb */}
       <div className="mb-8">
         <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
           <Link to="/teacher" className="hover:text-foreground transition-colors">My Courses</Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <Link to={`/teacher/courses/${courseId}`} className="hover:text-foreground transition-colors">{mod?.course_id ? "Course" : "Course"}</Link>
+          <Link to={`/teacher/courses/${courseId}`} className="hover:text-foreground transition-colors">Course</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-foreground font-medium truncate max-w-[200px]">{mod?.title || "Module"}</span>
         </div>
 
+        {/* Module title / description */}
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <Input
@@ -319,33 +231,13 @@ export default function ModuleEditor() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4 mb-6">
+        <div className="space-y-3 mb-6">
           {chapters.map((ch, idx) => {
-            const isExpanded = expandedChapter === ch.id
-            const type = (ch.chapter_type || "content") as ChapterType
+            const type = ch.chapter_type || "reading"
 
             return (
-              <Card
-                key={ch.id}
-                className={
-                  isExpanded
-                    ? "border-primary/60 shadow-sm"
-                    : "border-border/60"
-                }
-              >
-                {/* Collapsed chapter row */}
+              <Card key={ch.id} className="border-border/60">
                 <div className="flex items-center gap-3 p-4">
-                  <button
-                    onClick={() => expandChapter(ch)}
-                    className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-
                   <Input
                     value={ch.title}
                     onChange={(e) => updateChapterLocal(ch.id, { title: e.target.value })}
@@ -359,22 +251,29 @@ export default function ModuleEditor() {
                     {type}
                   </span>
 
-                  <label className="flex items-center gap-1.5 shrink-0 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={ch.requires_completion ?? false}
-                      onChange={() => toggleRequiresCompletion(ch)}
-                      className="h-3.5 w-3.5 rounded border-input"
-                    />
-                    <Shield className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Teacher-marked</span>
-                  </label>
+                  {ch.requires_completion && (
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0" title="Requires teacher approval">
+                      <Shield className="h-3 w-3" />
+                    </span>
+                  )}
 
                   <div className="flex flex-col shrink-0">
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" disabled={idx === 0} onClick={(e) => { e.stopPropagation(); moveChapter(ch, idx, -1) }}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      disabled={idx === 0}
+                      onClick={() => moveChapter(ch, idx, -1)}
+                    >
                       <ArrowUp className="h-3 w-3" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" disabled={idx === chapters.length - 1} onClick={(e) => { e.stopPropagation(); moveChapter(ch, idx, 1) }}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      disabled={idx === chapters.length - 1}
+                      onClick={() => moveChapter(ch, idx, 1)}
+                    >
                       <ArrowDown className="h-3 w-3" />
                     </Button>
                   </div>
@@ -383,7 +282,11 @@ export default function ModuleEditor() {
                     variant="ghost"
                     size="sm"
                     className="shrink-0 h-8 w-8 p-0"
-                    onClick={() => expandChapter(ch)}
+                    onClick={() =>
+                      navigate(
+                        `/teacher/courses/${courseId}/modules/${moduleId}/chapters/${ch.id}/edit`,
+                      )
+                    }
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
@@ -397,103 +300,6 @@ export default function ModuleEditor() {
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-
-                {/* Expanded chapter editor */}
-                {isExpanded && (
-                  <div className="border-t px-6 py-6 space-y-6">
-                    {/* Type selector — 2×2 grid */}
-                    <div>
-                      <Label className="text-sm font-semibold mb-3 block">
-                        Chapter Type
-                      </Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {CHAPTER_TYPES.map((ct) => {
-                          const Icon = ct.icon
-                          const selected = type === ct.value
-                          return (
-                            <button
-                              key={ct.value}
-                              onClick={() => changeChapterType(ch, ct.value)}
-                              className={`flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
-                                selected
-                                  ? "border-primary bg-primary/5 shadow-sm"
-                                  : "border-border hover:border-primary/30 hover:bg-muted/40"
-                              }`}
-                            >
-                              <Icon
-                                className={`h-5 w-5 mt-0.5 shrink-0 ${
-                                  selected ? "text-primary" : "text-muted-foreground"
-                                }`}
-                              />
-                              <div>
-                                <div
-                                  className={`text-sm font-medium ${
-                                    selected ? "text-primary" : ""
-                                  }`}
-                                >
-                                  {ct.label}
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-0.5">
-                                  {ct.desc}
-                                </div>
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Conditional editor based on chapter type */}
-                    {type === "content" && (
-                      <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs flex items-center gap-1.5">
-                            <Video className="h-3.5 w-3.5" />
-                            YouTube Video URL (optional)
-                          </Label>
-                          <Input
-                            value={chapterVideoUrl}
-                            onChange={(e) => setChapterVideoUrl(e.target.value)}
-                            placeholder="https://www.youtube.com/watch?v=..."
-                            className="h-9 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Content</Label>
-                          <RichTextEditor
-                            content={chapterContent}
-                            onChange={setChapterContent}
-                            placeholder="Write chapter content here..."
-                          />
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => saveChapterContent(ch)}
-                          disabled={savingChapter}
-                        >
-                          {savingChapter ? (
-                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                          ) : (
-                            <Save className="h-3.5 w-3.5 mr-1.5" />
-                          )}
-                          {savingChapter ? "Saving..." : "Save Content"}
-                        </Button>
-                      </div>
-                    )}
-
-                    {type === "quiz" && (
-                      <QuizEditor chapterId={ch.id} />
-                    )}
-
-                    {type === "assignment" && (
-                      <AssignmentEditor chapterId={ch.id} />
-                    )}
-
-                    {type === "mixed" && (
-                      <ChapterBlockEditor chapterId={ch.id} />
-                    )}
-                  </div>
-                )}
               </Card>
             )
           })}
