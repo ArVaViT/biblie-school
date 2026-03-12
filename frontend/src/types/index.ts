@@ -77,6 +77,25 @@ export interface FileMetadata {
   uploaded_at: string
 }
 
+export interface Announcement {
+  id: string
+  title: string
+  content: string
+  course_id: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface StudentNote {
+  id: string
+  user_id: string
+  chapter_id: string
+  content: string
+  created_at: string
+  updated_at: string
+}
+
 export interface AuthResponse {
   access_token: string
   token_type: string

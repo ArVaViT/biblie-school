@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
 import type { Course } from "@/types"
+import { toast } from "@/hooks/use-toast"
 import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList } from "lucide-react"
 
 export default function TeacherDashboard() {
@@ -28,8 +29,10 @@ export default function TeacherDashboard() {
       setCourses((prev) =>
         prev.map((c) => (c.id === course.id ? { ...c, status: newStatus } : c)),
       )
+      toast({ title: `Course ${newStatus === "published" ? "published" : "unpublished"}`, variant: "success" })
     } catch (err) {
       console.error("Failed to update course status:", err)
+      toast({ title: "Failed to update status", variant: "destructive" })
     } finally {
       setTogglingId(null)
     }
@@ -75,9 +78,11 @@ export default function TeacherDashboard() {
       setForm({ title: "", description: "", image_url: "" })
       setShowCreate(false)
       setErrors({})
+      toast({ title: "Course created", variant: "success" })
       navigate(`/teacher/courses/${newCourse.id}`)
     } catch {
       setErrors({ title: "Failed to create course" })
+      toast({ title: "Failed to create course", variant: "destructive" })
     } finally {
       setSaving(false)
     }
@@ -88,8 +93,10 @@ export default function TeacherDashboard() {
     try {
       await coursesService.deleteCourse(id)
       setCourses((prev) => prev.filter((c) => c.id !== id))
+      toast({ title: "Course deleted", variant: "success" })
     } catch (err) {
       console.error("Failed to delete course:", err)
+      toast({ title: "Failed to delete course", variant: "destructive" })
     }
   }
 

@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
-import { supabase } from "@/lib/supabase"
 import type { StudentGrade } from "@/types"
 import {
   ArrowLeft, Save, Users, Award, MessageSquare,
@@ -55,13 +54,8 @@ export default function TeacherGradebook() {
       }))
       setStudents(enrolled)
 
-      const studentIds = enrolled.map((s) => s.user_id)
-      if (studentIds.length > 0) {
-        const { data } = await supabase
-          .from("student_grades")
-          .select("*")
-          .eq("course_id", courseId)
-          .in("student_id", studentIds)
+      if (enrolled.length > 0) {
+        const data: StudentGrade[] = await coursesService.getCourseGrades(courseId)
 
         const gradeMap = new Map<string, StudentGrade>()
         const formMap = new Map<string, GradeForm>()
@@ -106,27 +100,11 @@ export default function TeacherGradebook() {
     if (!courseId) return
     setSaving(userId)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
       const form = forms.get(userId) ?? { grade: "", comment: "" }
-      const { data, error } = await supabase
-        .from("student_grades")
-        .upsert(
-          {
-            student_id: userId,
-            course_id: courseId,
-            grade: form.grade.trim() || null,
-            comment: form.comment.trim() || null,
-            graded_by: session.user.id,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "student_id,course_id" },
-        )
-        .select()
-        .single()
-
-      if (error) throw error
+      const data = await coursesService.upsertGrade(courseId, userId, {
+        grade: form.grade.trim() || undefined,
+        comment: form.comment.trim() || undefined,
+      })
       setGrades((prev) => new Map(prev).set(userId, data))
     } catch (err) {
       console.error("Failed to save grade:", err)

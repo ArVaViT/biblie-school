@@ -1,6 +1,6 @@
 import api from "./api"
 import { supabase } from "@/lib/supabase"
-import type { Course, Module, Chapter, Enrollment, ChapterProgress } from "../types"
+import type { Course, Module, Chapter, Enrollment, ChapterProgress, Announcement, StudentNote, StudentGrade } from "../types"
 
 export const coursesService = {
   async getCourses(search?: string): Promise<Course[]> {
@@ -199,5 +199,62 @@ export const coursesService = {
     chapterId: string,
   ): Promise<void> {
     await api.delete(`/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}`)
+  },
+
+  // Announcements
+  async getAnnouncements(courseId?: string): Promise<Announcement[]> {
+    const params = courseId ? { course_id: courseId } : undefined
+    const response = await api.get<Announcement[]>("/announcements", { params })
+    return response.data
+  },
+
+  async createAnnouncement(data: { title: string; content: string; course_id?: string }): Promise<Announcement> {
+    const response = await api.post<Announcement>("/announcements", data)
+    return response.data
+  },
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    await api.delete(`/announcements/${id}`)
+  },
+
+  // Student notes
+  async getNote(chapterId: string): Promise<StudentNote | null> {
+    try {
+      const response = await api.get<StudentNote>(`/notes/chapter/${chapterId}`)
+      return response.data
+    } catch {
+      return null
+    }
+  },
+
+  async saveNote(chapterId: string, content: string): Promise<StudentNote> {
+    const response = await api.put<StudentNote>(`/notes/chapter/${chapterId}`, { content })
+    return response.data
+  },
+
+  async deleteNote(chapterId: string): Promise<void> {
+    await api.delete(`/notes/chapter/${chapterId}`)
+  },
+
+  // Grades (via API instead of Supabase direct)
+  async getCourseGrades(courseId: string) {
+    const response = await api.get(`/grades/course/${courseId}`)
+    return response.data
+  },
+
+  async upsertGrade(courseId: string, studentId: string, data: { grade?: string; comment?: string }) {
+    const response = await api.put(`/grades/course/${courseId}/student/${studentId}`, data)
+    return response.data
+  },
+
+  async getMyGrades(): Promise<StudentGrade[]> {
+    const response = await api.get<StudentGrade[]>("/grades/my")
+    return response.data
+  },
+
+  // Analytics (via API instead of Supabase direct)
+  async getCourseAnalyticsAPI(courseId: string) {
+    const response = await api.get(`/analytics/course/${courseId}`)
+    return response.data
   },
 }

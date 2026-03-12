@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { useAuth } from "@/context/AuthContext"
 import type { Enrollment } from "@/types"
+import DashboardSkeleton from "@/components/skeletons/DashboardSkeleton"
 import { BookOpen, GraduationCap, BookOpenCheck, ArrowRight } from "lucide-react"
 
 export default function Dashboard() {
@@ -77,9 +78,7 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-10">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
+            <DashboardSkeleton />
           ) : error ? (
             <div className="text-center py-12">
               <BookOpen className="h-10 w-10 text-destructive/40 mx-auto mb-3" />

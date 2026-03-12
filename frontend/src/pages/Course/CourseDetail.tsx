@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { useAuth } from "@/context/AuthContext"
 import type { Course, Enrollment } from "@/types"
+import { toast } from "@/hooks/use-toast"
 import { BookOpen, Play, ArrowRight, CheckCircle, Users, Layers, ArrowLeft } from "lucide-react"
+import CourseAnnouncements from "@/components/announcements/CourseAnnouncements"
 
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>()
@@ -43,9 +45,11 @@ export default function CourseDetail() {
     try {
       const enrolled = await coursesService.enrollInCourse(id)
       setEnrollment(enrolled)
+      toast({ title: "Enrolled successfully", variant: "success" })
     } catch (err) {
       console.error("Failed to enroll:", err)
       setError("Failed to enroll. Please try again.")
+      toast({ title: "Failed to enroll", variant: "destructive" })
     } finally {
       setEnrolling(false)
     }
@@ -149,6 +153,8 @@ export default function CourseDetail() {
           </div>
         )}
       </div>
+
+      {id && <CourseAnnouncements courseId={id} />}
 
       <div>
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">

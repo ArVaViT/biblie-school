@@ -15,6 +15,7 @@ import {
   Paperclip,
   Trophy,
 } from "lucide-react"
+import StudentNotes from "@/components/course/StudentNotes"
 
 interface CourseMaterial {
   name: string
@@ -289,6 +290,8 @@ export default function ModuleView() {
                         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content ?? "") }}
                       />
                     )}
+
+                    <StudentNotes chapterId={chapter.id} />
                   </CardContent>
                 </Card>
               )

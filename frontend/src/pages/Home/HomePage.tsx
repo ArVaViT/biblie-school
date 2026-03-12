@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
 import type { Course } from "@/types"
 import CourseCard from "@/components/course/CourseCard"
+import CourseCardSkeleton from "@/components/skeletons/CourseCardSkeleton"
 import { Search, BookOpen } from "lucide-react"
 
 export default function HomePage() {
@@ -54,8 +55,8 @@ export default function HomePage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => <CourseCardSkeleton key={i} />)}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

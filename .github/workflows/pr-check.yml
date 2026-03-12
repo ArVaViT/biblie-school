@@ -1,0 +1,23 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  size-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR size
+        run: |
+          CHANGED=$(git diff --stat origin/main...HEAD | tail -1)
+          echo "Changes: $CHANGED"
+          FILES=$(git diff --name-only origin/main...HEAD | wc -l)
+          echo "Files changed: $FILES"
+          if [ "$FILES" -gt 50 ]; then
+            echo "::warning::Large PR with $FILES files changed. Consider splitting."
+          fi

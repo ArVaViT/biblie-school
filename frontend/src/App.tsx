@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import { usePageTitle } from "./hooks/usePageTitle"
 import ErrorBoundary from "./components/ErrorBoundary"
+import { Toaster } from "./components/ui/toaster"
 import Header from "./components/layout/Header"
 import Login from "./pages/Auth/Login"
 import Register from "./pages/Auth/Register"
@@ -16,6 +17,7 @@ import ProfilePage from "./pages/Profile/ProfilePage"
 import CourseDetail from "./pages/Course/CourseDetail"
 import ModuleView from "./pages/Course/ModuleView"
 import TeacherDashboard from "./pages/Teacher/TeacherDashboard"
+import AnnouncementBanner from "./components/announcements/AnnouncementBanner"
 
 const CourseEditor = lazy(() => import("./pages/Teacher/CourseEditor"))
 const TeacherGradebook = lazy(() => import("./pages/Teacher/TeacherGradebook"))
@@ -112,6 +114,7 @@ function AppRoutes() {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
       {user?.role === "pending_teacher" && <PendingTeacherBanner />}
+      <AnnouncementBanner />
       <main className="flex-1">
         <ErrorBoundary>
           <Suspense fallback={<RouteSpinner />}>
@@ -134,6 +137,7 @@ function AppRoutes() {
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">
         Bible School &copy; {new Date().getFullYear()}
       </footer>
+      <Toaster />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { coursesService } from "@/services/courses"
 import { supabase } from "@/lib/supabase"
 import type { UserRole } from "@/types"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/use-toast"
 import { Users, BookOpen, GraduationCap, Shield, Search, Clock, CheckCircle, XCircle } from "lucide-react"
 
 interface ProfileRow {
@@ -82,8 +83,10 @@ export default function AdminDashboard() {
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
       )
+      toast({ title: "Role updated", variant: "success" })
     } catch (err) {
       console.error("Failed to update role:", err)
+      toast({ title: "Failed to update role", variant: "destructive" })
     } finally {
       setUpdatingId(null)
     }
@@ -104,8 +107,10 @@ export default function AdminDashboard() {
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, role: "teacher" as UserRole } : u)),
       )
+      toast({ title: "Teacher approved", variant: "success" })
     } catch (err) {
       console.error("Failed to approve teacher:", err)
+      toast({ title: "Failed to approve teacher", variant: "destructive" })
     } finally {
       setUpdatingId(null)
     }
@@ -118,8 +123,10 @@ export default function AdminDashboard() {
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, role: "student" as UserRole } : u)),
       )
+      toast({ title: "Teacher denied", variant: "success" })
     } catch (err) {
       console.error("Failed to deny teacher:", err)
+      toast({ title: "Failed to deny teacher", variant: "destructive" })
     } finally {
       setUpdatingId(null)
     }

@@ -1,0 +1,111 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.orm import Session
+from typing import Optional
+import uuid
+
+from app.core.database import get_db
+from app.api.dependencies import get_current_user, require_teacher
+from app.models.user import User, UserRole
+from app.models.announcement import Announcement
+from app.models.course import Course
+from app.schemas.announcement import (
+    AnnouncementCreate,
+    AnnouncementUpdate,
+    AnnouncementResponse,
+)
+
+router = APIRouter(prefix="/announcements", tags=["announcements"])
+
+
+@router.get("", response_model=list[AnnouncementResponse])
+async def list_announcements(
+    course_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+) -> list[AnnouncementResponse]:
+    query = db.query(Announcement)
+    if course_id is not None:
+        query = query.filter(Announcement.course_id == course_id)
+    return query.order_by(Announcement.created_at.desc()).all()
+
+
+@router.post("", response_model=AnnouncementResponse, status_code=status.HTTP_201_CREATED)
+async def create_announcement(
+    data: AnnouncementCreate,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> AnnouncementResponse:
+    if data.course_id:
+        course = db.query(Course).filter(Course.id == data.course_id).first()
+        if not course:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Course '{data.course_id}' not found",
+            )
+        if str(course.created_by) != str(teacher.id) and teacher.role != UserRole.ADMIN.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only create announcements for your own courses",
+            )
+
+    announcement = Announcement(
+        id=uuid.uuid4(),
+        title=data.title,
+        content=data.content,
+        course_id=data.course_id,
+        created_by=teacher.id,
+    )
+    db.add(announcement)
+    db.commit()
+    db.refresh(announcement)
+    return announcement
+
+
+@router.put("/{announcement_id}", response_model=AnnouncementResponse)
+async def update_announcement(
+    announcement_id: str,
+    data: AnnouncementUpdate,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> AnnouncementResponse:
+    announcement = db.query(Announcement).filter(Announcement.id == announcement_id).first()
+    if not announcement:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Announcement not found",
+        )
+    if str(announcement.created_by) != str(teacher.id) and teacher.role != UserRole.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own announcements",
+        )
+
+    if data.title is not None:
+        announcement.title = data.title
+    if data.content is not None:
+        announcement.content = data.content
+
+    db.commit()
+    db.refresh(announcement)
+    return announcement
+
+
+@router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_announcement(
+    announcement_id: str,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> None:
+    announcement = db.query(Announcement).filter(Announcement.id == announcement_id).first()
+    if not announcement:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Announcement not found",
+        )
+    if str(announcement.created_by) != str(teacher.id) and teacher.role != UserRole.ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete your own announcements",
+        )
+
+    db.delete(announcement)
+    db.commit()

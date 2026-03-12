@@ -14,6 +14,9 @@ from app.schemas.course import (
     ChapterResponse,
     EnrollmentResponse,
 )
+from app.schemas.announcement import AnnouncementCreate, AnnouncementUpdate, AnnouncementResponse
+from app.schemas.note import NoteUpsert, NoteResponse
+from app.schemas.grade import GradeUpsert, GradeResponse
 
 __all__ = [
     "UserBase",
@@ -32,4 +35,11 @@ __all__ = [
     "ChapterUpdate",
     "ChapterResponse",
     "EnrollmentResponse",
+    "AnnouncementCreate",
+    "AnnouncementUpdate",
+    "AnnouncementResponse",
+    "NoteUpsert",
+    "NoteResponse",
+    "GradeUpsert",
+    "GradeResponse",
 ]

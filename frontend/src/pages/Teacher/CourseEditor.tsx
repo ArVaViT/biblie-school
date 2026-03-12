@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label"
 import RichTextEditor from "@/components/editor/RichTextEditor"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
-import type { Course, Module, Chapter } from "@/types"
+import type { Course, Module, Chapter, Announcement } from "@/types"
+import { toast } from "@/hooks/use-toast"
 import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
   GripVertical, FileText, Save, Upload, Image, Paperclip,
-  Download, Loader2, X, Video,
+  Download, Loader2, X, Video, Megaphone,
 } from "lucide-react"
 
 interface MaterialFile {
@@ -42,6 +43,11 @@ export default function CourseEditor() {
   const [materials, setMaterials] = useState<MaterialFile[]>([])
   const [uploadingMaterial, setUploadingMaterial] = useState(false)
 
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [annTitle, setAnnTitle] = useState("")
+  const [annContent, setAnnContent] = useState("")
+  const [postingAnn, setPostingAnn] = useState(false)
+
   const coverRef = useRef<HTMLInputElement>(null)
   const materialRef = useRef<HTMLInputElement>(null)
 
@@ -56,6 +62,9 @@ export default function CourseEditor() {
 
       const files = await storageService.listCourseMaterials(courseId).catch(() => [])
       setMaterials(files)
+
+      const anns = await coursesService.getAnnouncements(courseId).catch(() => [])
+      setAnnouncements(anns)
     } catch {
       navigate("/teacher")
     } finally {
@@ -76,6 +85,9 @@ export default function CourseEditor() {
         description: description.trim() || undefined,
         image_url: imageUrl.trim() || undefined,
       })
+      toast({ title: "Changes saved", variant: "success" })
+    } catch {
+      toast({ title: "Failed to save", variant: "destructive" })
     } finally {
       setSaving(false)
     }
@@ -143,14 +155,19 @@ export default function CourseEditor() {
   const addModule = async () => {
     if (!courseId) return
     const order = (course?.modules?.length ?? 0)
-    const mod = await coursesService.createModule(courseId, {
-      title: `Module ${order + 1}`,
-      order_index: order,
-    })
-    setCourse((prev) =>
-      prev ? { ...prev, modules: [...(prev.modules ?? []), { ...mod, chapters: [] }] } : prev,
-    )
-    setExpandedModules((prev) => new Set(prev).add(mod.id))
+    try {
+      const mod = await coursesService.createModule(courseId, {
+        title: `Module ${order + 1}`,
+        order_index: order,
+      })
+      setCourse((prev) =>
+        prev ? { ...prev, modules: [...(prev.modules ?? []), { ...mod, chapters: [] }] } : prev,
+      )
+      setExpandedModules((prev) => new Set(prev).add(mod.id))
+      toast({ title: "Module added", variant: "success" })
+    } catch {
+      toast({ title: "Failed to add module", variant: "destructive" })
+    }
   }
 
   const renameModule = async (mod: Module, newTitle: string) => {
@@ -169,46 +186,56 @@ export default function CourseEditor() {
   const addChapter = async (mod: Module) => {
     if (!courseId) return
     const order = (mod.chapters?.length ?? 0)
-    const ch = await coursesService.createChapter(courseId, mod.id, {
-      title: `Chapter ${order + 1}`,
-      order_index: order,
-    })
-    setCourse((prev) =>
-      prev
-        ? {
-            ...prev,
-            modules: prev.modules?.map((m) =>
-              m.id === mod.id ? { ...m, chapters: [...(m.chapters ?? []), ch] } : m,
-            ),
-          }
-        : prev,
-    )
+    try {
+      const ch = await coursesService.createChapter(courseId, mod.id, {
+        title: `Chapter ${order + 1}`,
+        order_index: order,
+      })
+      setCourse((prev) =>
+        prev
+          ? {
+              ...prev,
+              modules: prev.modules?.map((m) =>
+                m.id === mod.id ? { ...m, chapters: [...(m.chapters ?? []), ch] } : m,
+              ),
+            }
+          : prev,
+      )
+      toast({ title: "Chapter added", variant: "success" })
+    } catch {
+      toast({ title: "Failed to add chapter", variant: "destructive" })
+    }
   }
 
   const saveChapter = async (mod: Module, ch: Chapter) => {
     if (!courseId) return
-    await coursesService.updateChapter(courseId, mod.id, ch.id, {
-      content: chapterContent,
-      video_url: chapterVideoUrl.trim() || undefined,
-    })
-    setCourse((prev) =>
-      prev
-        ? {
-            ...prev,
-            modules: prev.modules?.map((m) =>
-              m.id === mod.id
-                ? {
-                    ...m,
-                    chapters: m.chapters?.map((c) =>
-                      c.id === ch.id ? { ...c, content: chapterContent, video_url: chapterVideoUrl.trim() || null } : c,
-                    ),
-                  }
-                : m,
-            ),
-          }
-        : prev,
-    )
-    setEditingChapter(null)
+    try {
+      await coursesService.updateChapter(courseId, mod.id, ch.id, {
+        content: chapterContent,
+        video_url: chapterVideoUrl.trim() || undefined,
+      })
+      setCourse((prev) =>
+        prev
+          ? {
+              ...prev,
+              modules: prev.modules?.map((m) =>
+                m.id === mod.id
+                  ? {
+                      ...m,
+                      chapters: m.chapters?.map((c) =>
+                        c.id === ch.id ? { ...c, content: chapterContent, video_url: chapterVideoUrl.trim() || null } : c,
+                      ),
+                    }
+                  : m,
+              ),
+            }
+          : prev,
+      )
+      setEditingChapter(null)
+      toast({ title: "Chapter saved", variant: "success" })
+    } catch {
+      toast({ title: "Failed to save chapter", variant: "destructive" })
+    }
   }
 
   const renameChapter = async (mod: Module, ch: Chapter, newTitle: string) => {
@@ -248,6 +275,35 @@ export default function CourseEditor() {
           }
         : prev,
     )
+  }
+
+  const postAnnouncement = async () => {
+    if (!courseId || !annTitle.trim()) return
+    setPostingAnn(true)
+    try {
+      const ann = await coursesService.createAnnouncement({
+        title: annTitle.trim(),
+        content: annContent.trim(),
+        course_id: courseId,
+      })
+      setAnnouncements((prev) => [ann, ...prev])
+      setAnnTitle("")
+      setAnnContent("")
+    } catch (err) {
+      console.error("Failed to post announcement:", err)
+    } finally {
+      setPostingAnn(false)
+    }
+  }
+
+  const deleteAnnouncement = async (id: string) => {
+    if (!confirm("Delete this announcement?")) return
+    try {
+      await coursesService.deleteAnnouncement(id)
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id))
+    } catch (err) {
+      console.error("Failed to delete announcement:", err)
+    }
   }
 
   if (loading) {
@@ -614,6 +670,75 @@ export default function CourseEditor() {
           })}
         </div>
       )}
+
+      {/* Course Announcements */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Megaphone className="h-5 w-5 text-blue-500" />
+            Course Announcements
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input
+                value={annTitle}
+                onChange={(e) => setAnnTitle(e.target.value)}
+                placeholder="Announcement title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Content</Label>
+              <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={annContent}
+                onChange={(e) => setAnnContent(e.target.value)}
+                placeholder="Write announcement content..."
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={postAnnouncement}
+              disabled={postingAnn || !annTitle.trim()}
+            >
+              <Megaphone className="h-3.5 w-3.5 mr-1.5" />
+              {postingAnn ? "Posting..." : "Post Announcement"}
+            </Button>
+          </div>
+
+          {announcements.length > 0 && (
+            <div className="border-t pt-4 space-y-2">
+              {announcements.map((ann) => (
+                <div
+                  key={ann.id}
+                  className="flex items-start gap-3 p-3 border rounded-lg bg-muted/30"
+                >
+                  <Megaphone className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-medium">{ann.title}</h4>
+                    {ann.content && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{ann.content}</p>
+                    )}
+                    <time className="text-[10px] text-muted-foreground/60 mt-1 block">
+                      {new Date(ann.created_at).toLocaleDateString()}
+                    </time>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
+                    onClick={() => deleteAnnouncement(ann.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

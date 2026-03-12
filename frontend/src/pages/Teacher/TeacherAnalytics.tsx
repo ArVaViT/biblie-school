@@ -30,7 +30,7 @@ export default function TeacherAnalytics() {
     const load = async () => {
       try {
         const [analyticsData, course] = await Promise.all([
-          coursesService.getCourseAnalytics(courseId),
+          coursesService.getCourseAnalyticsAPI(courseId),
           coursesService.getCourse(courseId),
         ])
         setAnalytics(analyticsData)
