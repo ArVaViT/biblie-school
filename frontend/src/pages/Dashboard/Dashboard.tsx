@@ -42,6 +42,9 @@ export default function Dashboard() {
 
   const isTeacher = user?.role === "teacher" || user?.role === "admin"
   const RoleIcon = isTeacher ? BookOpenCheck : GraduationCap
+  const filteredEnrollments = enrollments.filter(
+    (e) => e.course?.created_by !== user?.id
+  )
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-5xl">
@@ -95,7 +98,7 @@ export default function Dashboard() {
                 Try again
               </Button>
             </div>
-          ) : enrollments.length === 0 ? (
+          ) : filteredEnrollments.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground mb-4">
@@ -107,7 +110,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {enrollments.map((enrollment) => {
+              {filteredEnrollments.map((enrollment) => {
                 const grade = grades.find((g) => g.course_id === enrollment.course_id)
                 const progressColor =
                   enrollment.progress >= 100

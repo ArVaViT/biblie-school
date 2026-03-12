@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound"
 
 const CertificatesPage = lazy(() => import("./pages/Certificates/CertificatesPage"))
 const CourseEditor = lazy(() => import("./pages/Teacher/CourseEditor"))
+const ModuleEditor = lazy(() => import("./pages/Teacher/ModuleEditor"))
 const TeacherGradebook = lazy(() => import("./pages/Teacher/TeacherGradebook"))
 const TeacherAnalytics = lazy(() => import("./pages/Teacher/TeacherAnalytics"))
 const StudentProgress = lazy(() => import("./pages/Teacher/StudentProgress"))
@@ -130,6 +131,7 @@ function AppRoutes() {
               <Route path="/courses/:courseId/modules/:moduleId" element={<PrivateRoute><ModuleView /></PrivateRoute>} />
               <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
+              <Route path="/teacher/courses/:courseId/modules/:moduleId/edit" element={<TeacherRoute><ModuleEditor /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/gradebook" element={<TeacherRoute><TeacherGradebook /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/progress" element={<TeacherRoute><StudentProgress /></TeacherRoute>} />

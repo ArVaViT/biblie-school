@@ -20,6 +20,7 @@ const TITLES: Record<string, string> = {
 function matchTitle(pathname: string): string {
   if (TITLES[pathname]) return TITLES[pathname]
 
+  if (/^\/teacher\/courses\/[^/]+\/modules\/[^/]+\/edit$/.test(pathname)) return "Edit Module"
   if (/^\/teacher\/courses\/[^/]+\/gradebook$/.test(pathname)) return "Gradebook"
   if (/^\/teacher\/courses\/[^/]+\/progress$/.test(pathname)) return "Student Progress"
   if (/^\/teacher\/courses\/[^/]+\/analytics$/.test(pathname)) return "Course Analytics"
