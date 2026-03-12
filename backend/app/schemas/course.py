@@ -9,6 +9,8 @@ class ChapterBase(BaseModel):
     content: Optional[str] = None
     video_url: Optional[str] = None
     order_index: int = 0
+    chapter_type: str = "content"
+    requires_completion: bool = False
 
 
 class ChapterCreate(ChapterBase):
@@ -20,11 +22,15 @@ class ChapterUpdate(BaseModel):
     content: Optional[str] = None
     video_url: Optional[str] = None
     order_index: Optional[int] = None
+    chapter_type: Optional[str] = None
+    requires_completion: Optional[bool] = None
 
 
 class ChapterResponse(ChapterBase):
     id: str
     module_id: str
+    chapter_type: str = "content"
+    requires_completion: bool = False
 
     class Config:
         from_attributes = True
@@ -70,6 +76,8 @@ class CourseUpdate(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = None
     status: Optional[str] = None
+    enrollment_start: Optional[datetime] = None
+    enrollment_end: Optional[datetime] = None
 
 
 class CourseResponse(CourseBase):
@@ -78,6 +86,8 @@ class CourseResponse(CourseBase):
     created_by: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
+    enrollment_start: Optional[datetime] = None
+    enrollment_end: Optional[datetime] = None
     modules: list[ModuleResponse] = []
 
     class Config:

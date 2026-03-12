@@ -107,7 +107,7 @@ export default function Register() {
       <AuthLayout heading="Account may exist" subheading="This email might already be registered">
         <div className="space-y-6 animate-fade-in">
           <div className="flex flex-col items-center text-center gap-4 py-4">
-            <div className="h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+            <div className="h-16 w-16 rounded-md bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
               <Mail className="h-8 w-8 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="space-y-2">
@@ -150,7 +150,7 @@ export default function Register() {
       >
         <div className="space-y-6 animate-fade-in">
           <div className="flex flex-col items-center text-center gap-4 py-4">
-            <div className={`h-16 w-16 rounded-full flex items-center justify-center ${
+            <div className={`h-16 w-16 rounded-md flex items-center justify-center ${
               isTeacher
                 ? "bg-amber-100 dark:bg-amber-900/30"
                 : "bg-primary/10"
@@ -199,7 +199,7 @@ export default function Register() {
         <Button
           type="button"
           variant="outline"
-          className="w-full h-11 font-medium"
+          className="w-full h-11 font-medium rounded-md"
           onClick={handleGoogleSignUp}
         >
           <GoogleIcon className="h-4 w-4 mr-2.5" />
@@ -230,9 +230,9 @@ export default function Register() {
                     role="radio"
                     aria-checked={selected}
                     onClick={() => handleChange("role", r.value)}
-                    className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                    className={`relative flex flex-col items-center gap-1.5 rounded-md border-2 p-4 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                       selected
-                        ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+                        ? "border-primary bg-primary/5 shadow-sm"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"
                     }`}
                   >
@@ -314,7 +314,7 @@ export default function Register() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+          <Button type="submit" className="w-full h-11 font-medium rounded-md" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

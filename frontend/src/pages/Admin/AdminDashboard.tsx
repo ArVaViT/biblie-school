@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context/AuthContext"
 import { coursesService } from "@/services/courses"
 import { supabase } from "@/lib/supabase"
-import type { UserRole } from "@/types"
+import type { UserRole, Certificate } from "@/types"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
-import { Users, BookOpen, GraduationCap, Shield, Search, Clock, CheckCircle, XCircle } from "lucide-react"
+import { Users, BookOpen, GraduationCap, Shield, Search, Clock, CheckCircle, XCircle, Award } from "lucide-react"
 
 interface ProfileRow {
   id: string
@@ -33,6 +33,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [adminCerts, setAdminCerts] = useState<(Certificate & { student_name?: string; course_title?: string; approved_by_name?: string; approved_at?: string })[]>([])
+  const [certActionId, setCertActionId] = useState<string | null>(null)
 
   if (user?.role !== "admin") {
     return <Navigate to="/dashboard" replace />
@@ -42,10 +44,11 @@ export default function AdminDashboard() {
     setLoading(true)
     setError(null)
     try {
-        const [allUsers, coursesCount, enrollmentsCount] = await Promise.all([
+        const [allUsers, coursesCount, enrollmentsCount, certs] = await Promise.all([
           coursesService.getAllUsers(),
           supabase.from("courses").select("id", { count: "exact", head: true }),
           supabase.from("enrollments").select("id", { count: "exact", head: true }),
+          coursesService.getAdminPendingCerts().catch(() => []),
         ])
 
         setUsers(allUsers as ProfileRow[])
@@ -54,6 +57,7 @@ export default function AdminDashboard() {
           courses: coursesCount.count ?? 0,
           enrollments: enrollmentsCount.count ?? 0,
         })
+        setAdminCerts(certs)
       } catch (err) {
         console.error("Failed to load admin data:", err)
         setError("Failed to load admin data. Please try again.")
@@ -129,6 +133,32 @@ export default function AdminDashboard() {
       toast({ title: "Failed to deny teacher", variant: "destructive" })
     } finally {
       setUpdatingId(null)
+    }
+  }
+
+  const handleFinalApproveCert = async (certId: string) => {
+    setCertActionId(certId)
+    try {
+      await coursesService.adminApproveCert(certId)
+      setAdminCerts((prev) => prev.filter((c) => c.id !== certId))
+      toast({ title: "Certificate approved", variant: "success" })
+    } catch {
+      toast({ title: "Failed to approve certificate", variant: "destructive" })
+    } finally {
+      setCertActionId(null)
+    }
+  }
+
+  const handleRejectCert = async (certId: string) => {
+    setCertActionId(certId)
+    try {
+      await coursesService.rejectCert(certId)
+      setAdminCerts((prev) => prev.filter((c) => c.id !== certId))
+      toast({ title: "Certificate rejected", variant: "success" })
+    } catch {
+      toast({ title: "Failed to reject certificate", variant: "destructive" })
+    } finally {
+      setCertActionId(null)
     }
   }
 
@@ -238,6 +268,71 @@ export default function AdminDashboard() {
                     >
                       <XCircle className="h-4 w-4 mr-1.5" />
                       Deny
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Certificate Approvals */}
+      {adminCerts.length > 0 && (
+        <Card className="mb-8 border-purple-200 dark:border-purple-800">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Award className="h-5 w-5 text-purple-600" />
+              Certificate Approvals
+              <span className="text-sm font-normal bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 rounded-full px-2.5 py-0.5">
+                {adminCerts.length}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {adminCerts.map((cert) => (
+                <div
+                  key={cert.id}
+                  className="flex items-center justify-between p-4 rounded-lg border bg-purple-50/50 dark:bg-purple-950/20"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{cert.student_name || "Student"}</p>
+                    <p className="text-sm text-muted-foreground truncate">{cert.course_title || "Course"}</p>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      {cert.approved_by_name && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3 text-emerald-500" />
+                          Approved by {cert.approved_by_name}
+                        </span>
+                      )}
+                      {cert.approved_at && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(cert.approved_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                    <Button
+                      size="sm"
+                      onClick={() => handleFinalApproveCert(cert.id)}
+                      disabled={certActionId === cert.id}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1.5" />
+                      Final Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRejectCert(cert.id)}
+                      disabled={certActionId === cert.id}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <XCircle className="h-4 w-4 mr-1.5" />
+                      Reject
                     </Button>
                   </div>
                 </div>

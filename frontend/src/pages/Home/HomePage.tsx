@@ -37,11 +37,12 @@ export default function HomePage() {
   }, [load])
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto text-center mb-10">
-        <h1 className="text-4xl font-bold tracking-tight mb-3">Available Courses</h1>
-        <p className="text-muted-foreground mb-6">
-          Browse our catalog and start learning today
+    <div className="container mx-auto px-4 py-10">
+      <div className="max-w-2xl mx-auto text-center mb-12">
+        <p className="text-xs uppercase tracking-[0.2em] text-accent font-medium mb-3">Academic Programs</p>
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight mb-3">Course Catalog</h1>
+        <p className="text-muted-foreground text-sm mb-8">
+          Browse our seminary courses and deepen your biblical knowledge
         </p>
         <div className="relative max-w-md mx-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -49,19 +50,19 @@ export default function HomePage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search courses..."
-            className="pl-9"
+            className="pl-9 rounded-md"
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
           {Array.from({ length: 6 }).map((_, i) => <CourseCardSkeleton key={i} />)}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <BookOpen className="h-12 w-12 text-destructive/40 mb-4" />
-          <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
+          <h3 className="font-serif text-lg font-medium mb-1">Something went wrong</h3>
           <p className="text-sm text-muted-foreground mb-4">{error}</p>
           <button
             onClick={load}
@@ -72,8 +73,8 @@ export default function HomePage() {
         </div>
       ) : courses.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <BookOpen className="h-12 w-12 text-muted-foreground/40 mb-4" />
-          <h3 className="text-lg font-medium mb-1">
+          <BookOpen className="h-12 w-12 text-muted-foreground/30 mb-4" />
+          <h3 className="font-serif text-lg font-medium mb-1">
             {debouncedSearch ? "No courses found" : "No courses yet"}
           </h3>
           <p className="text-sm text-muted-foreground">
@@ -83,7 +84,7 @@ export default function HomePage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
           {courses.map((course) => (
             <CourseCard key={course.id} course={course} />
           ))}

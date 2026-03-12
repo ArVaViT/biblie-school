@@ -10,6 +10,8 @@ from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.certificate import Certificate
 from app.models.review import CourseReview
 from app.models.prerequisite import CoursePrerequisite
+from app.models.chapter_block import ChapterBlock
+from app.models.chapter_progress import ChapterProgress
 
 __all__ = [
     "User", "UserRole", "Course", "Module", "Chapter",
@@ -19,4 +21,6 @@ __all__ = [
     "Certificate",
     "CourseReview",
     "CoursePrerequisite",
+    "ChapterBlock",
+    "ChapterProgress",
 ]

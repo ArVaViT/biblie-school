@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -325,6 +326,17 @@ async def enroll_course(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
+        )
+    now = datetime.now(timezone.utc)
+    if course.enrollment_start and now < course.enrollment_start:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Enrollment has not started yet",
+        )
+    if course.enrollment_end and now > course.enrollment_end:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Enrollment period has ended",
         )
     return enroll_user_in_course(db, current_user.id, course_id)
 

@@ -8,8 +8,14 @@ class CertificateResponse(BaseModel):
     id: UUID
     user_id: UUID
     course_id: str
-    issued_at: datetime
-    certificate_number: str
+    issued_at: Optional[datetime] = None
+    certificate_number: Optional[str] = None
+    status: str = "pending"
+    requested_at: Optional[datetime] = None
+    teacher_approved_at: Optional[datetime] = None
+    teacher_approved_by: Optional[UUID] = None
+    admin_approved_at: Optional[datetime] = None
+    admin_approved_by: Optional[UUID] = None
 
     class Config:
         from_attributes = True

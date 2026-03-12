@@ -78,7 +78,7 @@ export default function Login() {
         <Button
           type="button"
           variant="outline"
-          className="w-full h-11 font-medium"
+          className="w-full h-11 font-medium rounded-md"
           onClick={handleGoogleLogin}
         >
           <GoogleIcon className="h-4 w-4 mr-2.5" />
@@ -131,7 +131,7 @@ export default function Login() {
             {errors.password && <p id="password-error" role="alert" className="text-xs text-destructive mt-1">{errors.password}</p>}
           </div>
 
-          <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+          <Button type="submit" className="w-full h-11 font-medium rounded-md" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

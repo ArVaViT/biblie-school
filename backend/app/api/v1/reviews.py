@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.api.dependencies import get_current_user
 from app.models.user import User
 from app.models.enrollment import Enrollment
+from app.models.certificate import Certificate
 from app.models.review import CourseReview
 from app.schemas.review import ReviewCreate, ReviewResponse
 
@@ -32,15 +33,19 @@ async def create_or_update_review(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    enrollment = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
+    cert = (
+        db.query(Certificate)
+        .filter(
+            Certificate.user_id == current_user.id,
+            Certificate.course_id == course_id,
+            Certificate.status == "approved",
+        )
         .first()
     )
-    if not enrollment:
+    if not cert:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You must be enrolled in this course to leave a review",
+            detail="You must complete the course and receive a certificate before reviewing",
         )
 
     existing = (

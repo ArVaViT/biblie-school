@@ -139,8 +139,15 @@ function AppRoutes() {
           </Suspense>
         </ErrorBoundary>
       </main>
-      <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-        Bible School &copy; {new Date().getFullYear()}
+      <footer className="border-t border-border/60 bg-card/50 py-8">
+        <div className="container mx-auto px-4 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2 text-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-accent"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
+            <span className="font-serif text-sm font-semibold tracking-tight">Bible School</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground italic font-serif">Training servants for the work of ministry</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">&copy; {new Date().getFullYear()} Bible School Seminary. All rights reserved.</p>
+        </div>
       </footer>
       <Toaster />
     </div>

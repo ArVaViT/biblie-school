@@ -44,17 +44,17 @@ export default function Dashboard() {
   const RoleIcon = isTeacher ? BookOpenCheck : GraduationCap
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+    <div className="container mx-auto px-4 py-10 max-w-5xl">
+      <div className="mb-10">
+        <div className="flex items-center gap-4 mb-1">
+          <div className="h-11 w-11 rounded-md bg-primary/10 flex items-center justify-center">
             <RoleIcon className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="font-serif text-2xl font-bold tracking-tight">
               Welcome back, {user?.full_name?.split(" ")[0] || "there"}
             </h1>
-            <p className="text-sm text-muted-foreground capitalize">{user?.role} dashboard</p>
+            <p className="text-sm text-muted-foreground capitalize tracking-wide">{user?.role} portal</p>
           </div>
         </div>
       </div>
@@ -79,8 +79,8 @@ export default function Dashboard() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            <CardTitle className="text-lg">My Courses</CardTitle>
+            <BookOpen className="h-5 w-5 text-accent" />
+            <CardTitle className="font-serif text-lg">My Courses</CardTitle>
           </div>
           <CardDescription>Courses you are enrolled in</CardDescription>
         </CardHeader>
@@ -145,7 +145,7 @@ export default function Dashboard() {
                           </span>
                         </div>
                         {grade?.grade && (
-                          <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 rounded-full font-medium">
+                          <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary rounded-md font-medium">
                             Grade: {grade.grade}
                           </span>
                         )}
@@ -172,8 +172,8 @@ export default function Dashboard() {
         <Card className="mt-6">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              <CardTitle className="text-lg">My Grades</CardTitle>
+              <TrendingUp className="h-5 w-5 text-accent" />
+              <CardTitle className="font-serif text-lg">My Grades</CardTitle>
             </div>
             <CardDescription>Your grades across all courses</CardDescription>
           </CardHeader>
@@ -200,11 +200,11 @@ export default function Dashboard() {
 
       {/* Certificates */}
       {!loading && certificates.length > 0 && (
-        <Card className="mt-6 border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-br from-amber-50/30 to-yellow-50/20 dark:from-amber-950/10 dark:to-yellow-950/5">
+        <Card className="mt-6 border-accent/20 dark:border-accent/10 bg-accent/[0.03]">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-amber-600" />
-              <CardTitle className="text-lg">My Certificates</CardTitle>
+              <Award className="h-5 w-5 text-accent" />
+              <CardTitle className="font-serif text-lg">My Certificates</CardTitle>
             </div>
             <CardDescription>Certificates you have earned</CardDescription>
           </CardHeader>
@@ -242,9 +242,9 @@ function CertificateItem({
   }
 
   return (
-    <div className="flex items-center gap-4 p-4 border border-amber-200/50 dark:border-amber-700/30 rounded-lg bg-white/50 dark:bg-black/10">
-      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shrink-0">
-        <Award className="h-5 w-5 text-white" />
+    <div className="flex items-center gap-4 p-4 border border-border/60 rounded-md bg-card">
+      <div className="h-10 w-10 rounded-md bg-accent/15 flex items-center justify-center shrink-0">
+        <Award className="h-5 w-5 text-accent" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{courseTitle || "Course"}</p>

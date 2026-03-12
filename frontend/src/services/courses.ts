@@ -2,7 +2,7 @@ import api from "./api"
 import { supabase } from "@/lib/supabase"
 import type {
   Course, Module, Chapter, Enrollment, ChapterProgress, Announcement, StudentNote, StudentGrade,
-  Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview,
+  Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock,
 } from "../types"
 
 export const coursesService = {
@@ -106,7 +106,7 @@ export const coursesService = {
 
   async updateCourse(
     id: string,
-    data: { title?: string; description?: string; image_url?: string; status?: string },
+    data: { title?: string; description?: string; image_url?: string; status?: string; enrollment_start?: string | null; enrollment_end?: string | null },
   ): Promise<Course> {
     const response = await api.put<Course>(`/courses/${id}`, data)
     return response.data
@@ -155,7 +155,7 @@ export const coursesService = {
     courseId: string,
     moduleId: string,
     chapterId: string,
-    data: { title?: string; content?: string; video_url?: string; order_index?: number },
+    data: { title?: string; content?: string; video_url?: string; order_index?: number; chapter_type?: string; requires_completion?: boolean },
   ): Promise<Chapter> {
     const response = await api.put<Chapter>(
       `/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}`,
@@ -277,6 +277,26 @@ export const coursesService = {
     return response.data
   },
 
+  // Chapter blocks
+  async getChapterBlocks(chapterId: string): Promise<ChapterBlock[]> {
+    const response = await api.get<ChapterBlock[]>(`/blocks/chapter/${chapterId}`)
+    return response.data
+  },
+  async createBlock(chapterId: string, data: any) {
+    const response = await api.post(`/blocks/chapter/${chapterId}`, data)
+    return response.data
+  },
+  async updateBlock(blockId: string, data: any) {
+    const response = await api.put(`/blocks/${blockId}`, data)
+    return response.data
+  },
+  async deleteBlock(blockId: string) {
+    await api.delete(`/blocks/${blockId}`)
+  },
+  async reorderBlocks(chapterId: string, blocks: { id: string; order_index: number }[]) {
+    await api.put(`/blocks/chapter/${chapterId}/reorder`, blocks)
+  },
+
   // Certificates
   async getCourseCertificate(courseId: string): Promise<Certificate | null> {
     try {
@@ -286,13 +306,38 @@ export const coursesService = {
       return null
     }
   },
-  async issueCertificate(courseId: string): Promise<Certificate> {
+  async requestCertificate(courseId: string): Promise<Certificate> {
     const response = await api.post<Certificate>(`/certificates/course/${courseId}`)
     return response.data
   },
   async getMyCertificates(): Promise<Certificate[]> {
     const response = await api.get<Certificate[]>("/certificates/my")
     return response.data
+  },
+  async getPendingCertificates(): Promise<Certificate[]> {
+    const response = await api.get<Certificate[]>("/certificates/pending")
+    return response.data
+  },
+  async teacherApproveCert(certId: string) {
+    await api.put(`/certificates/${certId}/teacher-approve`)
+  },
+  async adminApproveCert(certId: string) {
+    await api.put(`/certificates/${certId}/admin-approve`)
+  },
+  async rejectCert(certId: string) {
+    await api.put(`/certificates/${certId}/reject`)
+  },
+  async getAdminPendingCerts(): Promise<Certificate[]> {
+    const response = await api.get<Certificate[]>("/certificates/admin/pending")
+    return response.data
+  },
+
+  // Teacher completion
+  async teacherMarkComplete(chapterId: string, studentId: string) {
+    await api.put(`/progress/chapter/${chapterId}/student/${studentId}/complete`)
+  },
+  async teacherMarkIncomplete(chapterId: string, studentId: string) {
+    await api.put(`/progress/chapter/${chapterId}/student/${studentId}/incomplete`)
   },
 
   // Reviews

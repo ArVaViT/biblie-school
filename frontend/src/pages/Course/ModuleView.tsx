@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
-import type { Module, Chapter, ChapterProgress } from "@/types"
+import type { Module, Chapter, ChapterProgress, ChapterBlock } from "@/types"
 import {
   ArrowLeft,
   Book,
@@ -14,6 +14,13 @@ import {
   Download,
   Paperclip,
   Trophy,
+  ChevronDown,
+  ChevronRight,
+  Lock,
+  FileText,
+  HelpCircle,
+  ClipboardList,
+  File,
 } from "lucide-react"
 import StudentNotes from "@/components/course/StudentNotes"
 import QuizTaker from "@/components/quiz/QuizTaker"
@@ -39,6 +46,74 @@ function extractYouTubeId(url: string): string | null {
   return null
 }
 
+const CHAPTER_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText; color: string }> = {
+  content: { label: "Content", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  quiz: { label: "Quiz", icon: HelpCircle, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+  assignment: { label: "Assignment", icon: ClipboardList, color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+  mixed: { label: "Mixed", icon: Book, color: "bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400" },
+}
+
+function ChapterTypeBadge({ type }: { type: string }) {
+  const config = CHAPTER_TYPE_CONFIG[type] ?? CHAPTER_TYPE_CONFIG.content
+  const Icon = config.icon
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${config.color}`}>
+      <Icon className="h-3 w-3" />
+      {config.label}
+    </span>
+  )
+}
+
+function BlockRenderer({ block }: { block: ChapterBlock }) {
+  switch (block.block_type) {
+    case "text":
+      return block.content ? (
+        <div
+          className="prose prose-sm dark:prose-invert max-w-none"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(block.content) }}
+        />
+      ) : null
+
+    case "video": {
+      const videoId = block.video_url ? extractYouTubeId(block.video_url) : null
+      return videoId ? (
+        <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "56.25%" }}>
+          <iframe
+            className="absolute inset-0 h-full w-full"
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title="Video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      ) : null
+    }
+
+    case "quiz":
+      return block.quiz_id ? <QuizTaker chapterId={block.chapter_id} /> : null
+
+    case "assignment":
+      return block.assignment_id ? <AssignmentPanel chapterId={block.chapter_id} /> : null
+
+    case "file":
+      return block.file_url ? (
+        <a
+          href={block.file_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
+        >
+          <File className="h-4 w-4 text-muted-foreground" />
+          <span>{block.content || "Download file"}</span>
+          <Download className="h-3.5 w-3.5 text-muted-foreground" />
+        </a>
+      ) : null
+
+    default:
+      return null
+  }
+}
+
 export default function ModuleView() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>()
   const [module, setModule] = useState<Module | null>(null)
@@ -48,6 +123,9 @@ export default function ModuleView() {
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null)
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set())
+  const [chapterBlocks, setChapterBlocks] = useState<Record<string, ChapterBlock[]>>({})
+  const [loadingBlocks, setLoadingBlocks] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const load = async () => {
@@ -63,7 +141,7 @@ export default function ModuleView() {
             const progress = await coursesService.getChapterProgress(chapterIds)
             setCompletedIds(new Set(progress.map((p: ChapterProgress) => p.chapter_id)))
           } catch {
-            // Progress may fail if not logged in — non-critical
+            // non-critical
           }
         }
 
@@ -71,7 +149,7 @@ export default function ModuleView() {
           const files = await storageService.listCourseMaterials(courseId)
           setMaterials(files)
         } catch {
-          // Materials may fail if not enrolled — non-critical
+          // non-critical
         }
       } catch (err) {
         console.error("Failed to load module:", err)
@@ -90,9 +168,41 @@ export default function ModuleView() {
 
   const allComplete = sortedChapters.length > 0 && sortedChapters.every((c) => completedIds.has(c.id))
 
+  const loadBlocks = useCallback(async (chapterId: string) => {
+    if (chapterBlocks[chapterId] || loadingBlocks.has(chapterId)) return
+    setLoadingBlocks((prev) => new Set(prev).add(chapterId))
+    try {
+      const blocks = await coursesService.getChapterBlocks(chapterId)
+      setChapterBlocks((prev) => ({ ...prev, [chapterId]: blocks.sort((a: ChapterBlock, b: ChapterBlock) => a.order_index - b.order_index) }))
+    } catch {
+      setChapterBlocks((prev) => ({ ...prev, [chapterId]: [] }))
+    } finally {
+      setLoadingBlocks((prev) => {
+        const next = new Set(prev)
+        next.delete(chapterId)
+        return next
+      })
+    }
+  }, [chapterBlocks, loadingBlocks])
+
+  const toggleExpanded = useCallback((chapterId: string) => {
+    setExpandedChapters((prev) => {
+      const next = new Set(prev)
+      if (next.has(chapterId)) {
+        next.delete(chapterId)
+      } else {
+        next.add(chapterId)
+        loadBlocks(chapterId)
+      }
+      return next
+    })
+  }, [loadBlocks])
+
   const toggleChapter = useCallback(
     async (chapter: Chapter) => {
       if (!courseId || togglingIds.has(chapter.id)) return
+      if (chapter.requires_completion) return
+
       setTogglingIds((prev) => new Set(prev).add(chapter.id))
 
       const wasCompleted = completedIds.has(chapter.id)
@@ -109,7 +219,6 @@ export default function ModuleView() {
           setCompletedIds((prev) => new Set(prev).add(chapter.id))
         }
 
-        // After toggling, check if all chapters are now complete
         const updatedCompleted = wasCompleted
           ? new Set([...completedIds].filter((id) => id !== chapter.id))
           : new Set([...completedIds, chapter.id])
@@ -184,7 +293,6 @@ export default function ModuleView() {
         )}
       </div>
 
-      {/* Completion celebration */}
       {allComplete && (
         <div className="mb-8 rounded-xl border-2 border-green-500/30 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-6 text-center animate-fade-in">
           <div className="flex items-center justify-center gap-3 mb-2">
@@ -211,7 +319,6 @@ export default function ModuleView() {
         </div>
       )}
 
-      {/* Progress bar */}
       {sortedChapters.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between text-sm mb-2">
@@ -229,7 +336,6 @@ export default function ModuleView() {
         </div>
       )}
 
-      {/* Chapters */}
       <div>
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Book className="h-5 w-5" />
@@ -240,11 +346,15 @@ export default function ModuleView() {
         </h2>
 
         {sortedChapters.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {sortedChapters.map((chapter, idx) => {
               const isCompleted = completedIds.has(chapter.id)
               const isToggling = togglingIds.has(chapter.id)
-              const videoId = chapter.video_url ? extractYouTubeId(chapter.video_url) : null
+              const isExpanded = expandedChapters.has(chapter.id)
+              const blocks = chapterBlocks[chapter.id]
+              const isLoadingBlocks = loadingBlocks.has(chapter.id)
+              const hasBlocks = blocks && blocks.length > 0
+              const requiresTeacher = chapter.requires_completion
 
               return (
                 <Card
@@ -252,51 +362,123 @@ export default function ModuleView() {
                   className={`animate-fade-in transition-colors ${isCompleted ? "border-green-500/30 bg-green-50/30 dark:bg-green-950/10" : ""}`}
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
-                  <CardHeader className="pb-2">
+                  <CardHeader
+                    className="pb-2 cursor-pointer select-none"
+                    onClick={() => toggleExpanded(chapter.id)}
+                  >
                     <CardTitle className="text-base flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleChapter(chapter)}
-                        disabled={isToggling}
-                        className="shrink-0 transition-transform hover:scale-110 disabled:opacity-50"
-                        aria-label={isCompleted ? "Mark as incomplete" : "Mark as complete"}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                      <span className="shrink-0 text-muted-foreground">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
                         ) : (
-                          <Circle className="h-6 w-6 text-muted-foreground/40" />
+                          <ChevronRight className="h-4 w-4" />
                         )}
-                      </button>
+                      </span>
+                      {isCompleted ? (
+                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
+                      ) : requiresTeacher ? (
+                        <Lock className="h-5 w-5 text-amber-500 shrink-0" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground/40 shrink-0" />
+                      )}
                       <span className={isCompleted ? "line-through text-muted-foreground" : ""}>
                         {chapter.title}
                       </span>
+                      {chapter.chapter_type && (
+                        <ChapterTypeBadge type={chapter.chapter_type} />
+                      )}
                     </CardTitle>
                   </CardHeader>
 
-                  <CardContent className="pt-0 ml-8 space-y-4">
-                    {videoId && (
-                      <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "56.25%" }}>
-                        <iframe
-                          className="absolute inset-0 h-full w-full"
-                          src={`https://www.youtube.com/embed/${videoId}`}
-                          title={chapter.title}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
+                  {isExpanded && (
+                    <CardContent className="pt-0 ml-8 space-y-4">
+                      {isLoadingBlocks && (
+                        <div className="flex justify-center py-4">
+                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        </div>
+                      )}
+
+                      {hasBlocks ? (
+                        <div className="space-y-4">
+                          {blocks.map((block) => (
+                            <BlockRenderer key={block.id} block={block} />
+                          ))}
+                        </div>
+                      ) : !isLoadingBlocks && (
+                        <>
+                          {chapter.video_url && (() => {
+                            const videoId = extractYouTubeId(chapter.video_url!)
+                            return videoId ? (
+                              <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "56.25%" }}>
+                                <iframe
+                                  className="absolute inset-0 h-full w-full"
+                                  src={`https://www.youtube.com/embed/${videoId}`}
+                                  title={chapter.title}
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                />
+                              </div>
+                            ) : null
+                          })()}
+
+                          {chapter.content && (
+                            <div
+                              className="prose prose-sm dark:prose-invert max-w-none"
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content ?? "") }}
+                            />
+                          )}
+                        </>
+                      )}
+
+                      <StudentNotes chapterId={chapter.id} />
+
+                      {!hasBlocks && (
+                        <>
+                          <QuizTaker chapterId={chapter.id} />
+                          <AssignmentPanel chapterId={chapter.id} />
+                        </>
+                      )}
+
+                      {/* Completion toggle */}
+                      <div className="pt-2 border-t">
+                        {requiresTeacher ? (
+                          isCompleted ? (
+                            <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              Marked complete by your instructor
+                            </p>
+                          ) : (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                              <Lock className="h-3.5 w-3.5" />
+                              This chapter will be marked complete by your instructor.
+                            </p>
+                          )
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleChapter(chapter)
+                            }}
+                            disabled={isToggling}
+                            className="flex items-center gap-2 text-xs transition-colors hover:text-primary disabled:opacity-50"
+                          >
+                            {isCompleted ? (
+                              <>
+                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <span className="text-green-600 dark:text-green-400">Completed — click to undo</span>
+                              </>
+                            ) : (
+                              <>
+                                <Circle className="h-4 w-4 text-muted-foreground/40" />
+                                <span>Mark as complete</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
-                    )}
-
-                    {chapter.content && (
-                      <div
-                        className="prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content ?? "") }}
-                      />
-                    )}
-
-                    <StudentNotes chapterId={chapter.id} />
-                    <QuizTaker chapterId={chapter.id} />
-                    <AssignmentPanel chapterId={chapter.id} />
-                  </CardContent>
+                    </CardContent>
+                  )}
                 </Card>
               )
             })}
@@ -310,7 +492,6 @@ export default function ModuleView() {
         )}
       </div>
 
-      {/* Course Materials */}
       {materials.length > 0 && (
         <div className="mt-10">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">

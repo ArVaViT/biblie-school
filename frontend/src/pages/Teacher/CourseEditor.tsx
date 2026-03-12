@@ -12,10 +12,11 @@ import { toast } from "@/hooks/use-toast"
 import {
   ArrowLeft, Plus, Trash2, ChevronDown, ChevronRight,
   GripVertical, FileText, Save, Upload, Image, Paperclip,
-  Download, Loader2, X, Video, Megaphone,
+  Download, Loader2, X, Video, Megaphone, Shield,
 } from "lucide-react"
 import QuizEditor from "@/components/quiz/QuizEditor"
 import AssignmentEditor from "@/components/assignment/AssignmentEditor"
+import ChapterBlockEditor from "@/components/editor/ChapterBlockEditor"
 
 interface MaterialFile {
   name: string
@@ -34,6 +35,8 @@ export default function CourseEditor() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [imageUrl, setImageUrl] = useState("")
+  const [enrollmentStart, setEnrollmentStart] = useState("")
+  const [enrollmentEnd, setEnrollmentEnd] = useState("")
 
   const [showDetails, setShowDetails] = useState(false)
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
@@ -61,6 +64,8 @@ export default function CourseEditor() {
       setTitle(data.title)
       setDescription(data.description ?? "")
       setImageUrl(data.image_url ?? "")
+      setEnrollmentStart(data.enrollment_start ? data.enrollment_start.slice(0, 16) : "")
+      setEnrollmentEnd(data.enrollment_end ? data.enrollment_end.slice(0, 16) : "")
 
       const files = await storageService.listCourseMaterials(courseId).catch(() => [])
       setMaterials(files)
@@ -86,6 +91,8 @@ export default function CourseEditor() {
         title: title.trim(),
         description: description.trim() || undefined,
         image_url: imageUrl.trim() || undefined,
+        enrollment_start: enrollmentStart ? new Date(enrollmentStart).toISOString() : null,
+        enrollment_end: enrollmentEnd ? new Date(enrollmentEnd).toISOString() : null,
       })
       toast({ title: "Changes saved", variant: "success" })
     } catch {
@@ -408,6 +415,50 @@ export default function CourseEditor() {
             />
           </div>
 
+          {/* Enrollment Period */}
+          <div className="space-y-3 rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">Enrollment Period</Label>
+              {(() => {
+                if (!enrollmentStart && !enrollmentEnd) return (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Not set</span>
+                )
+                const now = new Date()
+                const start = enrollmentStart ? new Date(enrollmentStart) : null
+                const end = enrollmentEnd ? new Date(enrollmentEnd) : null
+                if (start && now < start) return (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">Upcoming</span>
+                )
+                if (end && now > end) return (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">Closed</span>
+                )
+                return (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">Open</span>
+                )
+              })()}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Start Date</Label>
+                <Input
+                  type="datetime-local"
+                  value={enrollmentStart}
+                  onChange={(e) => setEnrollmentStart(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">End Date</Label>
+                <Input
+                  type="datetime-local"
+                  value={enrollmentEnd}
+                  onChange={(e) => setEnrollmentEnd(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
           <Button onClick={saveCourse} disabled={saving} size="sm">
             <Save className="h-4 w-4 mr-1.5" />
             {saving ? "Saving..." : "Save Changes"}
@@ -622,7 +673,73 @@ export default function CourseEditor() {
                               </Button>
                             </div>
                             {editingChapter === ch.id && (
-                              <div className="mt-3 space-y-3">
+                              <div className="mt-3 space-y-4">
+                                {/* Chapter metadata */}
+                                <div className="flex flex-wrap items-center gap-4 p-3 rounded-md border bg-muted/20">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Chapter Type</Label>
+                                    <select
+                                      value={ch.chapter_type || "content"}
+                                      onChange={async (e) => {
+                                        const val = e.target.value
+                                        setCourse((prev) =>
+                                          prev ? {
+                                            ...prev,
+                                            modules: prev.modules?.map((m) =>
+                                              m.id === mod.id ? {
+                                                ...m,
+                                                chapters: m.chapters?.map((c) =>
+                                                  c.id === ch.id ? { ...c, chapter_type: val } : c,
+                                                ),
+                                              } : m,
+                                            ),
+                                          } : prev,
+                                        )
+                                        try {
+                                          await coursesService.updateChapter(courseId!, mod.id, ch.id, { chapter_type: val })
+                                        } catch { /* ignore */ }
+                                      }}
+                                      className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                                    >
+                                      <option value="content">Content</option>
+                                      <option value="quiz">Quiz</option>
+                                      <option value="assignment">Assignment</option>
+                                      <option value="mixed">Mixed</option>
+                                    </select>
+                                  </div>
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={ch.requires_completion ?? false}
+                                      onChange={async (e) => {
+                                        const val = e.target.checked
+                                        setCourse((prev) =>
+                                          prev ? {
+                                            ...prev,
+                                            modules: prev.modules?.map((m) =>
+                                              m.id === mod.id ? {
+                                                ...m,
+                                                chapters: m.chapters?.map((c) =>
+                                                  c.id === ch.id ? { ...c, requires_completion: val } : c,
+                                                ),
+                                              } : m,
+                                            ),
+                                          } : prev,
+                                        )
+                                        try {
+                                          await coursesService.updateChapter(courseId!, mod.id, ch.id, { requires_completion: val })
+                                        } catch { /* ignore */ }
+                                      }}
+                                      className="h-4 w-4 rounded border-input"
+                                    />
+                                    <span className="text-xs flex items-center gap-1">
+                                      <Shield className="h-3 w-3" />
+                                      Requires Completion
+                                    </span>
+                                  </label>
+                                </div>
+
+                                {/* Legacy content fields */}
                                 <div className="space-y-1.5">
                                   <Label className="text-xs flex items-center gap-1.5">
                                     <Video className="h-3.5 w-3.5" />
@@ -650,6 +767,11 @@ export default function CourseEditor() {
                                   <Save className="h-3.5 w-3.5 mr-1.5" />
                                   Save Content
                                 </Button>
+
+                                {/* Block-based editor */}
+                                <div className="border-t pt-4 mt-4">
+                                  <ChapterBlockEditor chapterId={ch.id} />
+                                </div>
 
                                 <div className="border-t pt-4 mt-4">
                                   <QuizEditor chapterId={ch.id} />

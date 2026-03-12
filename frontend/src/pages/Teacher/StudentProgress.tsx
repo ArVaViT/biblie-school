@@ -24,6 +24,7 @@ import {
 
 interface QuizResult {
   chapter_title: string
+  chapter_id: string
   score: number
   max_score: number
   passed: boolean
@@ -31,10 +32,19 @@ interface QuizResult {
 
 interface AssignmentResult {
   chapter_title: string
+  chapter_id: string
   title: string
   status: string
   grade: number | null
   max_score: number
+}
+
+interface ChapterInfo {
+  id: string
+  title: string
+  requires_completion: boolean
+  completed: boolean
+  completed_by: "teacher" | "self" | null
 }
 
 interface StudentData {
@@ -48,12 +58,14 @@ interface StudentData {
   quiz_results: QuizResult[]
   assignment_results: AssignmentResult[]
   last_activity: string | null
+  chapters?: ChapterInfo[]
 }
 
 interface ProgressData {
   course_title: string
   total_chapters: number
   students: StudentData[]
+  chapters?: { id: string; title: string; requires_completion: boolean }[]
 }
 
 export default function StudentProgress() {
@@ -192,6 +204,28 @@ export default function StudentProgress() {
         </Link>
       </div>
     )
+  }
+
+  const handleStudentChapterUpdate = (studentId: string, chapterId: string, completed: boolean, completedBy: "teacher" | "self" | null) => {
+    setData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        students: prev.students.map((s) => {
+          if (s.id !== studentId) return s
+          const updatedChapters = s.chapters?.map((ch) =>
+            ch.id === chapterId ? { ...ch, completed, completed_by: completedBy } : ch,
+          )
+          const completedCount = updatedChapters?.filter((ch) => ch.completed).length ?? s.chapters_completed
+          return {
+            ...s,
+            chapters: updatedChapters,
+            chapters_completed: completed ? s.chapters_completed + 1 : Math.max(0, s.chapters_completed - 1),
+            progress: prev.total_chapters > 0 ? Math.round((completedCount / prev.total_chapters) * 100) : s.progress,
+          }
+        }),
+      }
+    })
   }
 
   const SortIndicator = ({ col }: { col: typeof sortBy }) => {
@@ -345,6 +379,7 @@ export default function StudentProgress() {
                         relativeTime={relativeTime}
                         formatDate={formatDate}
                         courseId={courseId!}
+                        onStudentUpdate={handleStudentChapterUpdate}
                       />
                     )
                   })}
@@ -410,6 +445,7 @@ interface StudentRowProps {
   relativeTime: (d: string | null) => string
   formatDate: (d: string | null) => string
   courseId: string
+  onStudentUpdate: (studentId: string, chapterId: string, completed: boolean, completedBy: "teacher" | "self" | null) => void
 }
 
 function StudentRow({
@@ -422,8 +458,16 @@ function StudentRow({
   relativeTime,
   formatDate,
   courseId,
+  onStudentUpdate,
 }: StudentRowProps) {
-  const allChapters = new Map<string, { quiz?: QuizResult; assignment?: AssignmentResult }>()
+  const [togglingChapter, setTogglingChapter] = useState<string | null>(null)
+
+  const allChapters = new Map<string, { quiz?: QuizResult; assignment?: AssignmentResult; chapterInfo?: ChapterInfo }>()
+
+  student.chapters?.forEach((ch) => {
+    const existing = allChapters.get(ch.title) || {}
+    allChapters.set(ch.title, { ...existing, chapterInfo: ch })
+  })
   student.quiz_results.forEach((q) => {
     const existing = allChapters.get(q.chapter_title) || {}
     allChapters.set(q.chapter_title, { ...existing, quiz: q })
@@ -432,6 +476,25 @@ function StudentRow({
     const existing = allChapters.get(a.chapter_title) || {}
     allChapters.set(a.chapter_title, { ...existing, assignment: a })
   })
+
+  const handleToggleComplete = async (chapterInfo: ChapterInfo) => {
+    setTogglingChapter(chapterInfo.id)
+    try {
+      if (chapterInfo.completed) {
+        await coursesService.teacherMarkIncomplete(chapterInfo.id, student.id)
+        onStudentUpdate(student.id, chapterInfo.id, false, null)
+        toast({ title: "Marked as incomplete", variant: "success" })
+      } else {
+        await coursesService.teacherMarkComplete(chapterInfo.id, student.id)
+        onStudentUpdate(student.id, chapterInfo.id, true, "teacher")
+        toast({ title: "Marked as complete", variant: "success" })
+      }
+    } catch {
+      toast({ title: "Failed to update completion", variant: "destructive" })
+    } finally {
+      setTogglingChapter(null)
+    }
+  }
 
   return (
     <>
@@ -500,13 +563,34 @@ function StudentRow({
                     Chapter Breakdown
                   </h4>
                   <div className="space-y-2">
-                    {Array.from(allChapters.entries()).map(([title, { quiz, assignment }]) => (
+                    {Array.from(allChapters.entries()).map(([title, { quiz, assignment, chapterInfo }]) => (
                       <div
                         key={title}
                         className="flex items-center gap-4 bg-background rounded-lg px-4 py-3 border text-sm"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{title}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate">{title}</p>
+                            {chapterInfo?.requires_completion && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400 shrink-0">
+                                Required
+                              </span>
+                            )}
+                          </div>
+                          {chapterInfo && (
+                            <p className="text-xs mt-0.5">
+                              {chapterInfo.completed ? (
+                                <span className={chapterInfo.completed_by === "teacher"
+                                  ? "text-blue-600 dark:text-blue-400"
+                                  : "text-emerald-600 dark:text-emerald-400"
+                                }>
+                                  {chapterInfo.completed_by === "teacher" ? "Completed by teacher" : "Self-completed"}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">Not completed</span>
+                              )}
+                            </p>
+                          )}
                         </div>
                         {quiz && (
                           <div className="flex items-center gap-1.5 text-xs">
@@ -534,6 +618,27 @@ function StudentRow({
                                 : assignment.status}
                             </span>
                           </div>
+                        )}
+                        {chapterInfo && (
+                          <Button
+                            variant={chapterInfo.completed ? "outline" : "default"}
+                            size="sm"
+                            className="shrink-0 text-xs h-7"
+                            disabled={togglingChapter === chapterInfo.id}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleToggleComplete(chapterInfo)
+                            }}
+                          >
+                            {togglingChapter === chapterInfo.id ? (
+                              <Clock className="h-3 w-3 mr-1 animate-spin" />
+                            ) : chapterInfo.completed ? (
+                              <XCircle className="h-3 w-3 mr-1" />
+                            ) : (
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                            )}
+                            {chapterInfo.completed ? "Undo" : "Complete"}
+                          </Button>
                         )}
                       </div>
                     ))}

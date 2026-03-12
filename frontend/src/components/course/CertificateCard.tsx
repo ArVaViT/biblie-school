@@ -1,46 +1,33 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/hooks/use-toast"
 import type { Certificate } from "@/types"
-import { Award, Copy, CheckCircle, Sparkles } from "lucide-react"
+import { Award, Copy, CheckCircle, Sparkles, Clock, XCircle, RefreshCw } from "lucide-react"
 
 interface Props {
   courseId: string
+  progress: number
+  certificate: Certificate | null
+  onCertificateUpdate: (cert: Certificate | null) => void
 }
 
-export default function CertificateCard({ courseId }: Props) {
-  const [certificate, setCertificate] = useState<Certificate | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [claiming, setClaiming] = useState(false)
+export default function CertificateCard({ courseId, progress, certificate, onCertificateUpdate }: Props) {
+  const [requesting, setRequesting] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const cert = await coursesService.getCourseCertificate(courseId)
-        setCertificate(cert)
-      } catch {
-        // no certificate yet
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [courseId])
-
-  const handleClaim = async () => {
-    setClaiming(true)
+  const handleRequest = async () => {
+    setRequesting(true)
     try {
-      const cert = await coursesService.issueCertificate(courseId)
-      setCertificate(cert)
-      toast({ title: "Certificate claimed!", variant: "success" })
+      const cert = await coursesService.requestCertificate(courseId)
+      onCertificateUpdate(cert)
+      toast({ title: "Certificate requested!", variant: "success" })
     } catch (err) {
-      console.error("Failed to claim certificate:", err)
-      toast({ title: "Failed to claim certificate", variant: "destructive" })
+      console.error("Failed to request certificate:", err)
+      toast({ title: "Failed to request certificate", variant: "destructive" })
     } finally {
-      setClaiming(false)
+      setRequesting(false)
     }
   }
 
@@ -55,17 +42,83 @@ export default function CertificateCard({ courseId }: Props) {
     }
   }
 
-  if (loading) {
+  if (progress < 100) return null
+
+  if (!certificate) {
     return (
-      <Card className="border-amber-300/50 bg-gradient-to-br from-amber-50/50 to-yellow-50/30 dark:from-amber-950/20 dark:to-yellow-950/10 dark:border-amber-700/30">
-        <CardContent className="flex justify-center py-8">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+      <Card className="border-2 border-dashed border-amber-300/50 bg-gradient-to-br from-amber-50/50 to-yellow-50/30 dark:from-amber-950/20 dark:to-yellow-950/10 dark:border-amber-700/30">
+        <CardContent className="py-6">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+              <Award className="h-7 w-7 text-amber-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-200">
+                You completed this course!
+              </h3>
+              <p className="text-sm text-amber-700/80 dark:text-amber-400/70 mt-0.5">
+                Request your certificate of completion for review.
+              </p>
+            </div>
+            <Button
+              onClick={handleRequest}
+              disabled={requesting}
+              className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white shadow-md"
+            >
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              {requesting ? "Requesting..." : "Request Certificate"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     )
   }
 
-  if (certificate) {
+  if (certificate.status === "pending") {
+    return (
+      <Card className="border-amber-300/50 bg-gradient-to-br from-amber-50/50 to-yellow-50/30 dark:from-amber-950/20 dark:to-yellow-950/10 dark:border-amber-700/30">
+        <CardContent className="py-6">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+              <Clock className="h-7 w-7 text-amber-500 animate-pulse" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-200">
+                Awaiting teacher approval
+              </h3>
+              <p className="text-sm text-amber-700/80 dark:text-amber-400/70 mt-0.5">
+                Your certificate request has been submitted. Your instructor will review it shortly.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (certificate.status === "teacher_approved") {
+    return (
+      <Card className="border-blue-300/50 bg-gradient-to-br from-blue-50/50 to-sky-50/30 dark:from-blue-950/20 dark:to-sky-950/10 dark:border-blue-700/30">
+        <CardContent className="py-6">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+              <Clock className="h-7 w-7 text-blue-500 animate-pulse" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900 dark:text-blue-200">
+                Awaiting admin approval
+              </h3>
+              <p className="text-sm text-blue-700/80 dark:text-blue-400/70 mt-0.5">
+                Your teacher has approved your certificate. It is now pending final admin approval.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (certificate.status === "approved") {
     return (
       <Card className="border-2 border-amber-400/60 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-orange-50/30 dark:from-amber-950/30 dark:via-yellow-950/20 dark:to-orange-950/10 dark:border-amber-600/40 shadow-lg shadow-amber-100/50 dark:shadow-amber-900/20">
         <CardContent className="py-6">
@@ -77,12 +130,12 @@ export default function CertificateCard({ courseId }: Props) {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-semibold text-lg text-amber-900 dark:text-amber-200">
-                    Course Completed!
+                    Certificate Approved!
                   </h3>
                   <Sparkles className="h-4 w-4 text-amber-500" />
                 </div>
                 <p className="text-sm text-amber-700/80 dark:text-amber-400/70">
-                  Congratulations! You have earned a certificate for completing this course.
+                  Congratulations! Your certificate has been approved.
                 </p>
               </div>
 
@@ -129,31 +182,36 @@ export default function CertificateCard({ courseId }: Props) {
     )
   }
 
-  return (
-    <Card className="border-2 border-dashed border-amber-300/50 bg-gradient-to-br from-amber-50/50 to-yellow-50/30 dark:from-amber-950/20 dark:to-yellow-950/10 dark:border-amber-700/30">
-      <CardContent className="py-6">
-        <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-            <Award className="h-7 w-7 text-amber-500" />
+  if (certificate.status === "rejected") {
+    return (
+      <Card className="border-red-300/50 bg-gradient-to-br from-red-50/50 to-rose-50/30 dark:from-red-950/20 dark:to-rose-950/10 dark:border-red-700/30">
+        <CardContent className="py-6">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+              <XCircle className="h-7 w-7 text-red-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-900 dark:text-red-200">
+                Certificate request was not approved
+              </h3>
+              <p className="text-sm text-red-700/80 dark:text-red-400/70 mt-0.5">
+                Unfortunately, your certificate request was rejected. You may re-request after addressing any outstanding requirements.
+              </p>
+            </div>
+            <Button
+              onClick={handleRequest}
+              disabled={requesting}
+              variant="outline"
+              className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/30"
+            >
+              <RefreshCw className="h-4 w-4 mr-1.5" />
+              {requesting ? "Requesting..." : "Re-request"}
+            </Button>
           </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-amber-900 dark:text-amber-200">
-              You completed this course!
-            </h3>
-            <p className="text-sm text-amber-700/80 dark:text-amber-400/70 mt-0.5">
-              Claim your certificate of completion.
-            </p>
-          </div>
-          <Button
-            onClick={handleClaim}
-            disabled={claiming}
-            className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white shadow-md"
-          >
-            <Sparkles className="h-4 w-4 mr-1.5" />
-            {claiming ? "Claiming..." : "Claim Certificate"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  )
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return null
 }

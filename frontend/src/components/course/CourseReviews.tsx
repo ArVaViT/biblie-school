@@ -4,15 +4,16 @@ import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { useAuth } from "@/context/AuthContext"
 import { toast } from "@/hooks/use-toast"
-import type { CourseReview } from "@/types"
-import { Star, Pencil, Trash2, MessageSquare } from "lucide-react"
+import type { CourseReview, Certificate } from "@/types"
+import { Star, Pencil, Trash2, MessageSquare, Lock } from "lucide-react"
 
 interface Props {
   courseId: string
   isEnrolled: boolean
+  certificate?: Certificate | null
 }
 
-export default function CourseReviews({ courseId, isEnrolled }: Props) {
+export default function CourseReviews({ courseId, isEnrolled, certificate }: Props) {
   const { user } = useAuth()
   const [reviews, setReviews] = useState<CourseReview[]>([])
   const [loading, setLoading] = useState(true)
@@ -100,7 +101,8 @@ export default function CourseReviews({ courseId, isEnrolled }: Props) {
     }
   }
 
-  const showForm = isEnrolled && user && (!myReview || editingId)
+  const hasApprovedCert = certificate?.status === "approved"
+  const showForm = isEnrolled && user && hasApprovedCert && (!myReview || editingId)
 
   return (
     <Card>
@@ -125,6 +127,13 @@ export default function CourseReviews({ courseId, isEnrolled }: Props) {
         )}
       </CardHeader>
       <CardContent className="space-y-6">
+        {isEnrolled && user && !hasApprovedCert && !myReview && (
+          <div className="border rounded-lg p-4 bg-muted/30 flex items-center gap-3 text-sm text-muted-foreground">
+            <Lock className="h-4 w-4 shrink-0" />
+            Complete the course and receive your certificate to leave a review.
+          </div>
+        )}
+
         {/* Review Form */}
         {showForm && (
           <div className="border rounded-lg p-4 bg-muted/30 space-y-4">

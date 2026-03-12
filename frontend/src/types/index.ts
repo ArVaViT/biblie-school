@@ -19,6 +19,8 @@ export interface Course {
   created_by: string
   created_at: string
   updated_at: string
+  enrollment_start: string | null
+  enrollment_end: string | null
   modules?: Module[]
 }
 
@@ -38,6 +40,8 @@ export interface Chapter {
   content: string | null
   video_url: string | null
   order_index: number
+  chapter_type: string
+  requires_completion: boolean
 }
 
 export interface ChapterProgress {
@@ -165,6 +169,20 @@ export interface Certificate {
   course_id: string
   issued_at: string
   certificate_number: string
+  status: 'pending' | 'teacher_approved' | 'approved' | 'rejected'
+  requested_at: string
+}
+
+export interface ChapterBlock {
+  id: string
+  chapter_id: string
+  block_type: string
+  order_index: number
+  content: string | null
+  video_url: string | null
+  quiz_id: string | null
+  assignment_id: string | null
+  file_url: string | null
 }
 
 export interface CourseReview {

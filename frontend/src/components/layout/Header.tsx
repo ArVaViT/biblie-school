@@ -35,10 +35,12 @@ export default function Header() {
     }`
 
   return (
-    <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+    <header className="border-b border-border/60 bg-background/90 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-        <Link to="/" className="text-lg font-bold tracking-tight hover:opacity-80 transition-opacity">
-          Bible School
+        <Link to="/" className="group flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <span className="font-serif text-lg font-bold tracking-tight text-foreground">Bible School</span>
+          <span className="hidden sm:block h-4 w-px bg-accent/60" />
+          <span className="hidden sm:block text-[11px] uppercase tracking-widest text-muted-foreground font-sans">Seminary</span>
         </Link>
 
         {/* Desktop nav */}
@@ -49,24 +51,24 @@ export default function Header() {
 
           {user ? (
             <>
-              <div className={`flex items-center gap-1.5 text-xs border rounded-full px-2.5 py-1 ${
+              <div className={`flex items-center gap-1.5 text-xs border rounded-md px-2.5 py-1 font-sans ${
                 isPendingTeacher
                   ? "text-amber-600 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-950/30"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground border-border/50"
               }`}>
                 {isTeacher || isPendingTeacher ? (
                   <BookOpenCheck className="h-3.5 w-3.5" />
                 ) : (
                   <GraduationCap className="h-3.5 w-3.5" />
                 )}
-                <span className="capitalize">
+                <span className="capitalize tracking-wide">
                   {isPendingTeacher ? "Pending Teacher" : user.role}
                 </span>
               </div>
 
               {user.role === "admin" && (
                 <Link to="/admin">
-                  <Button variant="ghost" size="sm" className="h-8 text-xs">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
                     <ShieldCheck className="h-3.5 w-3.5 mr-1" />
                     Admin
                   </Button>
@@ -75,7 +77,7 @@ export default function Header() {
 
               {isTeacher && (
                 <Link to="/teacher">
-                  <Button variant="ghost" size="sm" className="h-8 text-xs">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
                     <PenTool className="h-3.5 w-3.5 mr-1" />
                     Manage
                   </Button>
@@ -83,21 +85,21 @@ export default function Header() {
               )}
 
               <Link to="/dashboard">
-                <Button variant="ghost" size="sm" className="h-8 text-xs">
+                <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
                   <LayoutDashboard className="h-3.5 w-3.5 mr-1" />
                   Dashboard
                 </Button>
               </Link>
 
               <Link to="/certificates">
-                <Button variant="ghost" size="sm" className="h-8 text-xs">
+                <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
                   <Award className="h-3.5 w-3.5 mr-1" />
                   Certificates
                 </Button>
               </Link>
 
               <Link to="/profile">
-                <Button variant="ghost" size="sm" className="h-8 text-xs">
+                <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md">
                   {user.avatar_url ? (
                     <img
                       src={user.avatar_url}
@@ -112,7 +114,7 @@ export default function Header() {
                 </Button>
               </Link>
 
-              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={handleLogout}>
+              <Button variant="ghost" size="sm" className="h-8 text-xs rounded-md" onClick={handleLogout}>
                 <LogOut className="h-3.5 w-3.5 mr-1" />
                 Sign Out
               </Button>
@@ -156,10 +158,10 @@ export default function Header() {
           <nav className="container mx-auto px-4 py-3 flex flex-col gap-1">
             {user ? (
               <>
-                <div className={`flex items-center gap-1.5 text-xs border rounded-full px-2.5 py-1 w-fit mb-2 ${
+                <div className={`flex items-center gap-1.5 text-xs border rounded-md px-2.5 py-1 w-fit mb-2 ${
                   isPendingTeacher
                     ? "text-amber-600 border-amber-300 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-950/30"
-                    : "text-muted-foreground"
+                    : "text-muted-foreground border-border/50"
                 }`}>
                   {isTeacher || isPendingTeacher ? (
                     <BookOpenCheck className="h-3.5 w-3.5" />

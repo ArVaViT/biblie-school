@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -6,7 +7,7 @@ import hashlib
 import time
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, require_teacher, require_admin
 from app.models.user import User
 from app.models.course import Course
 from app.models.enrollment import Enrollment
@@ -22,11 +23,12 @@ def _generate_certificate_number() -> str:
 
 
 @router.post("/course/{course_id}", response_model=CertificateResponse, status_code=status.HTTP_201_CREATED)
-async def issue_certificate(
+async def request_certificate(
     course_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Request a certificate (creates a pending request)."""
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
@@ -55,7 +57,8 @@ async def issue_certificate(
     cert = Certificate(
         user_id=current_user.id,
         course_id=course_id,
-        certificate_number=_generate_certificate_number(),
+        status="pending",
+        requested_at=datetime.now(timezone.utc),
     )
     db.add(cert)
     db.commit()
@@ -71,9 +74,118 @@ async def list_my_certificates(
     return (
         db.query(Certificate)
         .filter(Certificate.user_id == current_user.id)
-        .order_by(Certificate.issued_at.desc())
+        .order_by(Certificate.requested_at.desc())
         .all()
     )
+
+
+@router.get("/pending", response_model=list[CertificateResponse])
+async def list_pending_certificates(
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    """Teacher: list pending certificates for courses they teach."""
+    teacher_course_ids = [
+        c.id for c in db.query(Course).filter(Course.created_by == teacher.id).all()
+    ]
+    if not teacher_course_ids:
+        return []
+    return (
+        db.query(Certificate)
+        .filter(
+            Certificate.course_id.in_(teacher_course_ids),
+            Certificate.status == "pending",
+        )
+        .order_by(Certificate.requested_at.asc())
+        .all()
+    )
+
+
+@router.get("/admin/pending", response_model=list[CertificateResponse])
+async def list_admin_pending_certificates(
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin: list all teacher-approved certificates awaiting admin approval."""
+    return (
+        db.query(Certificate)
+        .filter(Certificate.status == "teacher_approved")
+        .order_by(Certificate.teacher_approved_at.asc())
+        .all()
+    )
+
+
+@router.put("/{cert_id}/teacher-approve", response_model=CertificateResponse)
+async def teacher_approve_certificate(
+    cert_id: UUID,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    cert = db.query(Certificate).filter(Certificate.id == cert_id).first()
+    if not cert:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found")
+    if cert.status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Certificate is not pending (current status: {cert.status})",
+        )
+    course = db.query(Course).filter(Course.id == cert.course_id).first()
+    if not course or course.created_by != teacher.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only approve certificates for your own courses",
+        )
+    cert.status = "teacher_approved"
+    cert.teacher_approved_at = datetime.now(timezone.utc)
+    cert.teacher_approved_by = teacher.id
+    db.commit()
+    db.refresh(cert)
+    return cert
+
+
+@router.put("/{cert_id}/admin-approve", response_model=CertificateResponse)
+async def admin_approve_certificate(
+    cert_id: UUID,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    cert = db.query(Certificate).filter(Certificate.id == cert_id).first()
+    if not cert:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found")
+    if cert.status != "teacher_approved":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Certificate must be teacher-approved first (current status: {cert.status})",
+        )
+    cert.status = "approved"
+    cert.certificate_number = _generate_certificate_number()
+    cert.admin_approved_at = datetime.now(timezone.utc)
+    cert.admin_approved_by = admin.id
+    cert.issued_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(cert)
+    return cert
+
+
+@router.put("/{cert_id}/reject", response_model=CertificateResponse)
+async def reject_certificate(
+    cert_id: UUID,
+    current_user: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    """Teacher or admin can reject a certificate."""
+    cert = db.query(Certificate).filter(Certificate.id == cert_id).first()
+    if not cert:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found")
+    if cert.status in ("approved", "rejected"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Certificate cannot be rejected (current status: {cert.status})",
+        )
+    cert.status = "rejected"
+    db.commit()
+    db.refresh(cert)
+    return cert
 
 
 @router.get("/verify/{certificate_number}", response_model=CertificateVerifyResponse)

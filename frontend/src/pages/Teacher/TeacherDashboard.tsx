@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
-import type { Course } from "@/types"
+import type { Course, Certificate } from "@/types"
 import { toast } from "@/hooks/use-toast"
-import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users } from "lucide-react"
+import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users, Clock, CheckCircle, XCircle, Award } from "lucide-react"
 
 export default function TeacherDashboard() {
   const navigate = useNavigate()
@@ -20,6 +20,34 @@ export default function TeacherDashboard() {
   const [saving, setSaving] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [pendingCerts, setPendingCerts] = useState<(Certificate & { student_name?: string; course_title?: string })[]>([])
+  const [certActionId, setCertActionId] = useState<string | null>(null)
+
+  const handleApproveCert = async (certId: string) => {
+    setCertActionId(certId)
+    try {
+      await coursesService.teacherApproveCert(certId)
+      setPendingCerts((prev) => prev.filter((c) => c.id !== certId))
+      toast({ title: "Certificate approved", variant: "success" })
+    } catch {
+      toast({ title: "Failed to approve certificate", variant: "destructive" })
+    } finally {
+      setCertActionId(null)
+    }
+  }
+
+  const handleRejectCert = async (certId: string) => {
+    setCertActionId(certId)
+    try {
+      await coursesService.rejectCert(certId)
+      setPendingCerts((prev) => prev.filter((c) => c.id !== certId))
+      toast({ title: "Certificate rejected", variant: "success" })
+    } catch {
+      toast({ title: "Failed to reject certificate", variant: "destructive" })
+    } finally {
+      setCertActionId(null)
+    }
+  }
 
   const handleToggleStatus = async (course: Course) => {
     const newStatus = course.status === "published" ? "draft" : "published"
@@ -42,8 +70,12 @@ export default function TeacherDashboard() {
     setLoading(true)
     setError(null)
     try {
-      const data = await coursesService.getTeacherCourses()
+      const [data, certs] = await Promise.all([
+        coursesService.getTeacherCourses(),
+        coursesService.getPendingCertificates().catch(() => []),
+      ])
       setCourses(data)
+      setPendingCerts(certs)
     } catch (err) {
       console.error("Failed to load courses:", err)
       setError("Failed to load your courses. Please try again.")
@@ -163,6 +195,60 @@ export default function TeacherDashboard() {
               </div>
             </CardContent>
           </form>
+        </Card>
+      )}
+
+      {pendingCerts.length > 0 && (
+        <Card className="mb-8 border-amber-200 dark:border-amber-800">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Award className="h-5 w-5 text-amber-600" />
+              Pending Certificates
+              <span className="text-sm font-normal bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5">
+                {pendingCerts.length}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {pendingCerts.map((cert) => (
+                <div
+                  key={cert.id}
+                  className="flex items-center justify-between p-4 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{cert.student_name || "Student"}</p>
+                    <p className="text-sm text-muted-foreground truncate">{cert.course_title || "Course"}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Clock className="h-3 w-3" />
+                      Requested {new Date(cert.requested_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                    <Button
+                      size="sm"
+                      onClick={() => handleApproveCert(cert.id)}
+                      disabled={certActionId === cert.id}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1.5" />
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRejectCert(cert.id)}
+                      disabled={certActionId === cert.id}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <XCircle className="h-4 w-4 mr-1.5" />
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
         </Card>
       )}
 

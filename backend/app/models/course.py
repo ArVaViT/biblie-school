@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Integer
+from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, Boolean
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -14,6 +14,8 @@ class Course(Base):
     image_url = Column(String, nullable=True)
     status = Column(String, default="draft", nullable=False)
     created_by = Column(PgUUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
+    enrollment_start = Column(DateTime(timezone=True), nullable=True)
+    enrollment_end = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -49,6 +51,8 @@ class Chapter(Base):
     content = Column(String, nullable=True)
     video_url = Column(String, nullable=True)
     order_index = Column(Integer, default=0, nullable=False)
+    chapter_type = Column(String, default="content", nullable=False)
+    requires_completion = Column(Boolean, default=False, nullable=False)
 
     module = relationship("Module", back_populates="chapters")
 

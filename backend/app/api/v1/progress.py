@@ -1,14 +1,17 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sqla_func
+from uuid import UUID
 
 from app.core.database import get_db
-from app.api.dependencies import require_teacher
+from app.api.dependencies import get_current_user, require_teacher
 from app.models.user import User
 from app.models.course import Course, Module, Chapter
 from app.models.enrollment import Enrollment
 from app.models.quiz import Quiz, QuizAttempt
 from app.models.assignment import Assignment, AssignmentSubmission
+from app.models.chapter_progress import ChapterProgress
 
 router = APIRouter(prefix="/progress", tags=["progress"])
 
@@ -128,3 +131,100 @@ async def get_course_student_progress(
         "total_students": len(enrollments),
         "students": student_progress,
     }
+
+
+@router.put("/chapter/{chapter_id}/complete")
+async def self_complete_chapter(
+    chapter_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Student self-completes a chapter (only if requires_completion is False)."""
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+    if chapter.requires_completion:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This chapter requires teacher completion",
+        )
+
+    progress = (
+        db.query(ChapterProgress)
+        .filter(ChapterProgress.user_id == current_user.id, ChapterProgress.chapter_id == chapter_id)
+        .first()
+    )
+    if progress and progress.completed:
+        return {"message": "Already completed", "chapter_id": chapter_id}
+
+    if not progress:
+        progress = ChapterProgress(
+            user_id=current_user.id,
+            chapter_id=chapter_id,
+        )
+        db.add(progress)
+    progress.completed = True
+    progress.completed_at = datetime.now(timezone.utc)
+    progress.completion_type = "self"
+    db.commit()
+    return {"message": "Chapter marked as complete", "chapter_id": chapter_id}
+
+
+@router.put("/chapter/{chapter_id}/student/{student_id}/complete")
+async def teacher_complete_chapter(
+    chapter_id: str,
+    student_id: UUID,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    """Teacher marks a student's chapter as complete."""
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+
+    progress = (
+        db.query(ChapterProgress)
+        .filter(ChapterProgress.user_id == student_id, ChapterProgress.chapter_id == chapter_id)
+        .first()
+    )
+    if progress and progress.completed:
+        return {"message": "Already completed", "chapter_id": chapter_id, "student_id": str(student_id)}
+
+    if not progress:
+        progress = ChapterProgress(
+            user_id=student_id,
+            chapter_id=chapter_id,
+        )
+        db.add(progress)
+    progress.completed = True
+    progress.completed_at = datetime.now(timezone.utc)
+    progress.completed_by = teacher.id
+    progress.completion_type = "teacher"
+    db.commit()
+    return {"message": "Chapter marked as complete by teacher", "chapter_id": chapter_id, "student_id": str(student_id)}
+
+
+@router.put("/chapter/{chapter_id}/student/{student_id}/incomplete")
+async def teacher_uncomplete_chapter(
+    chapter_id: str,
+    student_id: UUID,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    """Teacher removes a student's chapter completion."""
+    progress = (
+        db.query(ChapterProgress)
+        .filter(ChapterProgress.user_id == student_id, ChapterProgress.chapter_id == chapter_id)
+        .first()
+    )
+    if not progress or not progress.completed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chapter is not completed",
+        )
+    progress.completed = False
+    progress.completed_at = None
+    progress.completed_by = None
+    progress.completion_type = "self"
+    db.commit()
+    return {"message": "Chapter completion removed", "chapter_id": chapter_id, "student_id": str(student_id)}

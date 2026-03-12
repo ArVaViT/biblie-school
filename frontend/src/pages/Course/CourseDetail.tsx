@@ -4,17 +4,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { useAuth } from "@/context/AuthContext"
-import type { Course, Enrollment } from "@/types"
+import type { Course, Enrollment, Certificate } from "@/types"
 import { toast } from "@/hooks/use-toast"
-import { BookOpen, Play, ArrowRight, CheckCircle, Users, Layers, ArrowLeft } from "lucide-react"
+import { BookOpen, Play, ArrowRight, CheckCircle, Users, Layers, ArrowLeft, CalendarDays, Clock } from "lucide-react"
 import CourseAnnouncements from "@/components/announcements/CourseAnnouncements"
 import CourseReviews from "@/components/course/CourseReviews"
 import CertificateCard from "@/components/course/CertificateCard"
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+}
+
+function getEnrollmentStatus(course: Course) {
+  const now = new Date()
+  const start = course.enrollment_start ? new Date(course.enrollment_start) : null
+  const end = course.enrollment_end ? new Date(course.enrollment_end) : null
+
+  if (start && now < start) return "not_started" as const
+  if (end && now > end) return "closed" as const
+  if (start || end) return "open" as const
+  return "no_window" as const
+}
+
+function getCountdown(target: Date) {
+  const now = new Date()
+  const diff = target.getTime() - now.getTime()
+  if (diff <= 0) return null
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24)
+  if (days > 0) return `${days}d ${hours}h`
+  const minutes = Math.floor((diff / (1000 * 60)) % 60)
+  return `${hours}h ${minutes}m`
+}
 
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>()
   const [course, setCourse] = useState<Course | null>(null)
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null)
+  const [certificate, setCertificate] = useState<Certificate | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [enrolling, setEnrolling] = useState(false)
@@ -30,7 +57,11 @@ export default function CourseDetail() {
         ])
         setCourse(courseData)
         const match = enrollments.find((e) => e.course_id === id)
-        if (match) setEnrollment(match)
+        if (match) {
+          setEnrollment(match)
+          const cert = await coursesService.getCourseCertificate(id)
+          setCertificate(cert)
+        }
       } catch (err) {
         console.error("Failed to load course:", err)
         setError("Failed to load course. Please try again.")
@@ -126,6 +157,40 @@ export default function CourseDetail() {
           </span>
         </div>
 
+        {(() => {
+          const enrollStatus = getEnrollmentStatus(course)
+          const hasWindow = course.enrollment_start || course.enrollment_end
+          return hasWindow ? (
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              {enrollStatus === "open" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 text-xs font-medium">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Enrollment open
+                </span>
+              )}
+              {enrollStatus === "not_started" && (
+                <>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-3 py-1 text-xs font-medium">
+                    <Clock className="h-3 w-3" />
+                    Enrollment opens in {getCountdown(new Date(course.enrollment_start!)) ?? "soon"}
+                  </span>
+                </>
+              )}
+              {enrollStatus === "closed" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-3 py-1 text-xs font-medium">
+                  Enrollment closed
+                </span>
+              )}
+              {course.enrollment_start && course.enrollment_end && (
+                <span className="text-muted-foreground text-xs">
+                  {formatDate(course.enrollment_start)} &mdash; {formatDate(course.enrollment_end)}
+                </span>
+              )}
+            </div>
+          ) : null
+        })()}
+
         {user && (
           <div className="mt-6">
             {isEnrolled ? (
@@ -139,10 +204,22 @@ export default function CourseDetail() {
                 </span>
               </div>
             ) : (
-              <Button onClick={handleEnroll} disabled={enrolling}>
-                <Users className="h-4 w-4 mr-2" />
-                {enrolling ? "Enrolling..." : "Enroll in Course"}
-              </Button>
+              (() => {
+                const enrollStatus = getEnrollmentStatus(course)
+                const canEnroll = enrollStatus === "open" || enrollStatus === "no_window"
+                return (
+                  <Button onClick={handleEnroll} disabled={enrolling || !canEnroll}>
+                    <Users className="h-4 w-4 mr-2" />
+                    {!canEnroll
+                      ? enrollStatus === "not_started"
+                        ? "Enrollment not yet open"
+                        : "Enrollment closed"
+                      : enrolling
+                        ? "Enrolling..."
+                        : "Enroll in Course"}
+                  </Button>
+                )
+              })()
             )}
           </div>
         )}
@@ -221,15 +298,20 @@ export default function CourseDetail() {
         )}
       </div>
 
-      {isEnrolled && enrollment.progress >= 100 && id && (
+      {isEnrolled && id && (
         <div className="mt-10">
-          <CertificateCard courseId={id} />
+          <CertificateCard
+            courseId={id}
+            progress={enrollment.progress}
+            certificate={certificate}
+            onCertificateUpdate={setCertificate}
+          />
         </div>
       )}
 
       {id && (
         <div className="mt-10">
-          <CourseReviews courseId={id} isEnrolled={isEnrolled} />
+          <CourseReviews courseId={id} isEnrolled={isEnrolled} certificate={certificate} />
         </div>
       )}
     </div>
