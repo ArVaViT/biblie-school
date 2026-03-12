@@ -230,7 +230,7 @@ export default function Register() {
                     role="radio"
                     aria-checked={selected}
                     onClick={() => handleChange("role", r.value)}
-                    className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer ${
+                    className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                       selected
                         ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
                         : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"

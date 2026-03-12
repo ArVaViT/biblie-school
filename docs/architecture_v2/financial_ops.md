@@ -1,7 +1,22 @@
 # Financial & Operations — Bible School LMS
 
 **Date:** 2026-02-26  
+**Last Updated:** 2026-03-12  
 **Scope:** Infrastructure costs, scaling thresholds, optimization strategies
+
+---
+
+## Current Status (2026-03-12)
+
+All services remain within their **free tiers**. Monthly cost is **$0/month**. Despite significant feature additions (announcements, student notes, structured logging, CI/CD pipelines, rate limiting, accessibility improvements, and code splitting), usage remains well below free tier limits. No paid upgrades have been necessary during development.
+
+Key optimizations that help extend free tier headroom:
+- **Code splitting** reduces frontend bundle size (less bandwidth per page load)
+- **N+1 query fixes** reduce database query volume
+- **Rate limiting** prevents runaway API usage
+- **File upload validation** (50MB cap, MIME allowlist) prevents storage abuse
+
+**Next cost trigger:** Upgrading to Vercel Pro ($20/mo) + Supabase Pro ($25/mo) will be required before any production/commercial launch.
 
 ---
 

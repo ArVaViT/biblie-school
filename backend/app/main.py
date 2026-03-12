@@ -1,8 +1,18 @@
+import logging
+import time
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+
 from app.core.config import settings
+from app.core.logging import setup_logging
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.api.v1 import api_router
+
+setup_logging()
+
+logger = logging.getLogger("api")
 
 app = FastAPI(
     title="Bible School API",
@@ -52,6 +62,8 @@ class OptionsMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+app.add_middleware(RateLimitMiddleware, calls=100, window=60)
+
 app.add_middleware(OptionsMiddleware)
 
 app.add_middleware(
@@ -65,6 +77,21 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = round((time.time() - start) * 1000, 1)
+    logger.info(
+        "%s %s %s %sms",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration,
+    )
+    return response
 
 
 @app.get("/")

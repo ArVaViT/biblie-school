@@ -1,7 +1,7 @@
 # Data Schema — Bible School LMS
 
 **Date:** 2026-02-26  
-**Version:** 2.0 (Target State)
+**Version:** 2.1 (Updated 2026-03-12 — reflects implemented schema)
 
 ---
 
@@ -20,14 +20,22 @@ The current schema has drifted significantly from the migration file. Tables wer
 │              │                             │              │
 │              │──1:N──┐                    │              │
 └─────────────┘       │                    └──────┬───────┘
-       │              ▼                           │
-       │    ┌──────────────┐              ┌───────┴───────┐
-       │    │student_grades │              │    modules     │
-       │    └──────────────┘              └───────┬───────┘
-       │                                          │
-       │    ┌──────────────┐              ┌───────┴───────┐
-       └─1:N│chapter_progress│──N:1───────│   chapters     │
-            └──────────────┘              └───────────────┘
+       │  │           ▼                           │  │
+       │  │ ┌──────────────┐              ┌───────┴──┴──────┐
+       │  │ │student_grades │              │    modules      │
+       │  │ └──────────────┘              └───────┬─────────┘
+       │  │                                       │
+       │  │ ┌──────────────┐              ┌───────┴─────────┐
+       │  └─│ student_notes │──N:1────────│   chapters      │
+       │    └──────────────┘              └─────────────────┘
+       │                                          ▲
+       │    ┌──────────────┐                      │
+       └─1:N│chapter_progress│──N:1───────────────┘
+            └──────────────┘
+
+       ┌─────────────┐
+       │announcements │──N:1── courses (nullable — NULL = system-wide)
+       └─────────────┘
 ```
 
 ---
@@ -148,7 +156,41 @@ Managed by Supabase Auth trigger. Mirrors `auth.users`.
 
 ---
 
-### 3.8 files (to be reviewed)
+### 3.8 announcements *(added 2026-03-12)*
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | `uuid` | PK, DEFAULT gen_random_uuid() | |
+| `title` | `text` | NOT NULL | Announcement headline |
+| `content` | `text` | NOT NULL | Announcement body |
+| `course_id` | `uuid` | FK courses(id) ON DELETE CASCADE, NULLABLE | NULL = system-wide (admin); non-NULL = course-specific (teacher) |
+| `created_by` | `uuid` | NOT NULL, FK auth.users(id) ON DELETE CASCADE | Teacher or admin who posted |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT now() | |
+| `updated_at` | `timestamptz` | | Auto-updated by trigger |
+
+**Indexes:** `idx_announcements_course_id`, `idx_announcements_created_by`  
+**RLS:** Enabled. Students see announcements for their enrolled courses and system-wide announcements. Teachers can manage announcements for their own courses. Admins can manage all.
+
+---
+
+### 3.9 student_notes *(added 2026-03-12)*
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | `uuid` | PK, DEFAULT gen_random_uuid() | |
+| `user_id` | `uuid` | NOT NULL, FK auth.users(id) ON DELETE CASCADE | Student who owns the note |
+| `chapter_id` | `uuid` | NOT NULL, FK chapters(id) ON DELETE CASCADE | Chapter the note is for |
+| `content` | `text` | | Personal note content |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT now() | |
+| `updated_at` | `timestamptz` | | Auto-updated by trigger |
+| UNIQUE | | (user_id, chapter_id) | One note per student per chapter |
+
+**Indexes:** `idx_student_notes_user_id`, `idx_student_notes_chapter_id`  
+**RLS:** Enabled. Users can only read/write their own notes (`auth.uid() = user_id`).
+
+---
+
+### 3.10 files (to be reviewed)
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
@@ -176,24 +218,37 @@ Managed by Supabase Auth trigger. Mirrors `auth.users`.
 
 ## 5. Triggers & Functions
 
-### handle_new_user
-Fires on `auth.users` INSERT. Creates a `profiles` row with sanitized role.
+### handle_new_user *(hardened 2026-03-12)*
+Fires on `auth.users` INSERT. Creates a `profiles` row with sanitized role. Now explicitly blocks admin self-assignment — only `'teacher'` → `'pending_teacher'` is allowed; all other values default to `'student'`.
 
 ### custom_access_token_hook
 Reads role from `profiles` and injects it into the JWT claims.
 
-### updated_at_trigger (TO ADD)
-Auto-sets `updated_at = now()` on any UPDATE to `profiles`, `courses`, `student_grades`.
+### updated_at_trigger ✅ IMPLEMENTED
+Auto-sets `updated_at = now()` on any UPDATE to `profiles`, `courses`, `student_grades`, `announcements`, `student_notes`.
+
+### CHECK Constraints *(added 2026-03-12)*
+- `profiles.role` CHECK: value must be IN `('admin', 'teacher', 'pending_teacher', 'student')`
+- `courses.status` CHECK: value must be IN `('draft', 'published')`
+- `enrollments.progress` CHECK: `progress >= 0 AND progress <= 100`
+
+### Additional Indexes *(added 2026-03-12)*
+- `idx_profiles_role` on `profiles(role)`
+- `idx_courses_status` on `courses(status)`
+- `idx_announcements_course_id` on `announcements(course_id)`
+- `idx_announcements_created_by` on `announcements(created_by)`
+- `idx_student_notes_user_id` on `student_notes(user_id)`
+- `idx_student_notes_chapter_id` on `student_notes(chapter_id)`
 
 ---
 
 ## 6. Migration Strategy
 
-**Current state:** 1 stale migration file that doesn't match production.
+**Previous state:** 1 stale migration file that didn't match production.
 
-**Target:**
-1. Generate a "ground truth" migration from live Supabase schema using `pg_dump --schema-only`
-2. Store as `migrations/000_baseline.sql`
-3. All future changes go through numbered migration files
-4. Use Supabase MCP `apply_migration` for deployment
-5. Never modify schema via Supabase dashboard without a corresponding migration file
+**Current state (2026-03-12):** Baseline migration generated. Stale `001_initial_schema.sql` deleted. Schema changes for `announcements`, `student_notes`, RLS policies, CHECK constraints, and indexes have been applied via migrations.
+
+**Process going forward:**
+1. All schema changes go through numbered migration files
+2. Use Supabase MCP `apply_migration` for deployment
+3. Never modify schema via Supabase dashboard without a corresponding migration file

@@ -18,6 +18,7 @@ import CourseDetail from "./pages/Course/CourseDetail"
 import ModuleView from "./pages/Course/ModuleView"
 import TeacherDashboard from "./pages/Teacher/TeacherDashboard"
 import AnnouncementBanner from "./components/announcements/AnnouncementBanner"
+import NotFound from "./pages/NotFound"
 
 const CourseEditor = lazy(() => import("./pages/Teacher/CourseEditor"))
 const TeacherGradebook = lazy(() => import("./pages/Teacher/TeacherGradebook"))
@@ -129,7 +130,7 @@ function AppRoutes() {
               <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/gradebook" element={<TeacherRoute><TeacherGradebook /></TeacherRoute>} />
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>

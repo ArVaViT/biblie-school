@@ -4,13 +4,37 @@
 **Auditor:** CTO Agent Swarm (Architect, Security, DevOps, PM)  
 **Verdict:** The MVP works. The architecture does not.
 
+> **Last Updated:** 2026-03-12  
+> **Current Status:** All CRITICAL and HIGH issues resolved. Architecture stabilized. See Resolution Status below.
+
+---
+
+## Resolution Status (as of 2026-03-12)
+
+| # | Issue | Original Severity | Status |
+|---|-------|:-----------------:|:------:|
+| 2.1 | Split-Brain Data Access | CRITICAL | **RESOLVED** — Admin ops, gradebook, and analytics moved to backend API |
+| 2.2 | Migration Drift | HIGH | **RESOLVED** — Baseline migration generated; stale `001_initial_schema.sql` deleted |
+| 2.3 | N+1 Query Problem | MEDIUM | **RESOLVED** — `joinedload` added to course queries |
+| 2.4 | No Error Boundaries | MEDIUM | **RESOLVED** — React ErrorBoundary added at route level |
+| 2.5 | No Code Splitting | LOW | **RESOLVED** — Lazy loading added for heavy routes |
+| 3 | Dead Code & Stale Artifacts | — | **RESOLVED** — All stale test scripts and unused schemas deleted |
+| 4 | Dependency Issues | — | **RESOLVED** — `supabase` added to requirements.txt; bundle reduced via code splitting |
+| 5.1 | "We'll add RLS later" | CRITICAL | **RESOLVED** — RLS enabled on ALL tables with strict policies |
+| 5.2 | "Direct Supabase is faster" | HIGH | **RESOLVED** — Business logic centralized in backend API |
+| 5.3 | "The backend handles auth" | HIGH | **RESOLVED** — All privileged operations now routed through backend |
+
+**Remaining items:** N+1 optimizations can be further improved with pagination. Sentry integration and uptime monitoring are planned but not yet implemented.
+
 ---
 
 ## Executive Summary
 
 The platform is functional for demo purposes. However, it has **critical security vulnerabilities**, a **split-brain data access pattern**, **stale migration files**, and **zero observability**. Before any feature work, the foundation must be hardened.
 
-**Risk Level: HIGH** — A moderately skilled attacker could escalate to admin using browser DevTools within minutes.
+> **Update (2026-03-12):** The security vulnerabilities, split-brain data access, and stale artifacts described below have all been remediated. RLS is enabled on all tables, admin/gradebook/analytics operations are routed through the backend API, and structured logging has been added. The original audit text is preserved below for historical reference.
+
+**Risk Level: ~~HIGH~~ LOW** — All critical attack vectors have been closed. Role escalation via DevTools is no longer possible.
 
 ---
 
