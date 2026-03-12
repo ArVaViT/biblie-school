@@ -8,7 +8,7 @@ import { coursesService } from "@/services/courses"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
 import type { Course, Certificate } from "@/types"
 import { toast } from "@/hooks/use-toast"
-import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users, Clock, CheckCircle, XCircle, Award } from "lucide-react"
+import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users, Clock, CheckCircle, XCircle, Award, Search } from "lucide-react"
 
 export default function TeacherDashboard() {
   const navigate = useNavigate()
@@ -20,6 +20,7 @@ export default function TeacherDashboard() {
   const [saving, setSaving] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
   const [pendingCerts, setPendingCerts] = useState<(Certificate & { student_name?: string; course_title?: string })[]>([])
   const [certActionId, setCertActionId] = useState<string | null>(null)
 
@@ -279,8 +280,22 @@ export default function TeacherDashboard() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {courses.map((course) => (
+        <>
+          {courses.length > 3 && (
+            <div className="mb-4 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search courses..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="max-w-sm pl-9"
+              />
+            </div>
+          )}
+          <div className="space-y-4">
+          {courses
+            .filter(c => !search.trim() || c.title.toLowerCase().includes(search.toLowerCase()))
+            .map((course) => (
             <Card key={course.id} className="group hover:shadow-md transition-shadow">
               <div className="flex items-start gap-4 p-6">
                 {course.image_url ? (
@@ -370,6 +385,7 @@ export default function TeacherDashboard() {
             </Card>
           ))}
         </div>
+        </>
       )}
     </div>
   )

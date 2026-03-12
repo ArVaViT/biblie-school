@@ -12,7 +12,7 @@ import { coursesService } from "@/services/courses"
 import type { Module, Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
-  ArrowLeft, Plus, Trash2, Save, FileText, HelpCircle,
+  ArrowLeft, ArrowUp, ArrowDown, Plus, Trash2, Save, FileText, HelpCircle,
   ClipboardList, Puzzle, ChevronDown, ChevronRight,
   Shield, Video, Loader2, Pencil,
 } from "lucide-react"
@@ -192,6 +192,30 @@ export default function ModuleEditor() {
     }
   }
 
+  const moveChapter = async (ch: Chapter, currentIdx: number, direction: number) => {
+    const newIdx = currentIdx + direction
+    if (newIdx < 0 || newIdx >= chapters.length) return
+    const other = chapters[newIdx]
+
+    const updates = chapters.map((c) => {
+      if (c.id === ch.id) return { ...c, order_index: other.order_index }
+      if (c.id === other.id) return { ...c, order_index: ch.order_index }
+      return c
+    })
+
+    setMod(prev => prev ? { ...prev, chapters: updates } : prev)
+
+    try {
+      await Promise.all([
+        coursesService.updateChapter(courseId!, moduleId!, ch.id, { order_index: other.order_index }),
+        coursesService.updateChapter(courseId!, moduleId!, other.id, { order_index: ch.order_index }),
+      ])
+    } catch {
+      toast({ title: "Failed to reorder", variant: "destructive" })
+      load()
+    }
+  }
+
   const expandChapter = (ch: Chapter) => {
     if (expandedChapter === ch.id) {
       setExpandedChapter(null)
@@ -236,7 +260,7 @@ export default function ModuleEditor() {
               value={modTitle}
               onChange={(e) => setModTitle(e.target.value)}
               onBlur={() => saveModuleDetails("title", modTitle)}
-              className="font-serif text-2xl font-bold border-none shadow-none focus-visible:ring-1 h-auto py-1 px-2"
+              className="font-serif text-2xl font-bold border-none shadow-none hover:border-border/50 hover:shadow-sm focus-visible:ring-1 h-auto py-1 px-2"
               placeholder="Module title"
             />
             {savingModule && (
@@ -248,7 +272,7 @@ export default function ModuleEditor() {
             value={modDescription}
             onChange={(e) => setModDescription(e.target.value)}
             onBlur={() => saveModuleDetails("description", modDescription)}
-            className="text-sm text-muted-foreground border-none shadow-none focus-visible:ring-1 h-auto py-1 px-2"
+            className="text-sm text-muted-foreground border-none shadow-none hover:border-border/50 hover:shadow-sm focus-visible:ring-1 h-auto py-1 px-2"
             placeholder="Module description (optional)"
           />
 
@@ -267,7 +291,7 @@ export default function ModuleEditor() {
         </Card>
       ) : (
         <div className="space-y-4 mb-6">
-          {chapters.map((ch) => {
+          {chapters.map((ch, idx) => {
             const isExpanded = expandedChapter === ch.id
             const type = (ch.chapter_type || "content") as ChapterType
 
@@ -316,6 +340,15 @@ export default function ModuleEditor() {
                     <Shield className="h-3 w-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">Teacher-marked</span>
                   </label>
+
+                  <div className="flex flex-col shrink-0">
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" disabled={idx === 0} onClick={(e) => { e.stopPropagation(); moveChapter(ch, idx, -1) }}>
+                      <ArrowUp className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" disabled={idx === chapters.length - 1} onClick={(e) => { e.stopPropagation(); moveChapter(ch, idx, 1) }}>
+                      <ArrowDown className="h-3 w-3" />
+                    </Button>
+                  </div>
 
                   <Button
                     variant="ghost"

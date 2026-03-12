@@ -107,6 +107,7 @@ export default function Login() {
               onChange={(e) => handleChange("email", e.target.value)}
               aria-invalid={!!errors.email}
               aria-describedby={errors.email ? "email-error" : undefined}
+              autoFocus
             />
             {errors.email && <p id="email-error" role="alert" className="text-xs text-destructive mt-1">{errors.email}</p>}
           </div>

@@ -1,7 +1,7 @@
+from collections import defaultdict
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func as sqla_func
 from uuid import UUID
 
 from app.core.database import get_db
@@ -52,20 +52,57 @@ async def get_course_student_progress(
         .all()
     )
 
+    all_quiz_ids = [q.id for qs in quiz_map.values() for q in qs]
+    all_attempts = (
+        db.query(QuizAttempt)
+        .filter(QuizAttempt.quiz_id.in_(all_quiz_ids), QuizAttempt.completed_at.isnot(None))
+        .all()
+    ) if all_quiz_ids else []
+
+    quiz_to_chapter = {}
+    for ch_id, qs in quiz_map.items():
+        for q in qs:
+            quiz_to_chapter[q.id] = ch_id
+
+    attempts_by_user_chapter: dict[tuple, list] = defaultdict(list)
+    latest_quiz_by_user: dict[str, datetime] = {}
+    for a in all_attempts:
+        uid = str(a.user_id)
+        ch_id = quiz_to_chapter.get(a.quiz_id)
+        if ch_id:
+            attempts_by_user_chapter[(uid, ch_id)].append(a)
+        if a.completed_at and (uid not in latest_quiz_by_user or a.completed_at > latest_quiz_by_user[uid]):
+            latest_quiz_by_user[uid] = a.completed_at
+
+    all_assignment_ids = [a.id for al in assignment_map.values() for a in al]
+    all_submissions = (
+        db.query(AssignmentSubmission)
+        .filter(AssignmentSubmission.assignment_id.in_(all_assignment_ids))
+        .all()
+    ) if all_assignment_ids else []
+
+    assignment_to_chapter = {}
+    for ch_id, als in assignment_map.items():
+        for a in als:
+            assignment_to_chapter[a.id] = ch_id
+
+    subs_by_user_chapter: dict[tuple, list] = defaultdict(list)
+    latest_sub_by_user: dict[str, datetime] = {}
+    for s in all_submissions:
+        uid = str(s.student_id)
+        ch_id = assignment_to_chapter.get(s.assignment_id)
+        if ch_id:
+            subs_by_user_chapter[(uid, ch_id)].append(s)
+        if s.submitted_at and (uid not in latest_sub_by_user or s.submitted_at > latest_sub_by_user[uid]):
+            latest_sub_by_user[uid] = s.submitted_at
+
     student_progress = []
     for enrollment, user in enrollments:
+        uid = str(user.id)
+
         quiz_scores_by_chapter = {}
-        for ch_id, quizzes_list in quiz_map.items():
-            quiz_ids = [q.id for q in quizzes_list]
-            best_attempts = (
-                db.query(QuizAttempt)
-                .filter(
-                    QuizAttempt.quiz_id.in_(quiz_ids),
-                    QuizAttempt.user_id == user.id,
-                    QuizAttempt.completed_at.isnot(None),
-                )
-                .all()
-            )
+        for ch_id in quiz_map:
+            best_attempts = attempts_by_user_chapter.get((uid, ch_id), [])
             if best_attempts:
                 best = max(best_attempts, key=lambda a: (a.score or 0))
                 quiz_scores_by_chapter[ch_id] = {
@@ -77,16 +114,8 @@ async def get_course_student_progress(
                 }
 
         assignment_grades_by_chapter = {}
-        for ch_id, assignments_list in assignment_map.items():
-            a_ids = [a.id for a in assignments_list]
-            submissions = (
-                db.query(AssignmentSubmission)
-                .filter(
-                    AssignmentSubmission.assignment_id.in_(a_ids),
-                    AssignmentSubmission.student_id == user.id,
-                )
-                .all()
-            )
+        for ch_id in assignment_map:
+            submissions = subs_by_user_chapter.get((uid, ch_id), [])
             if submissions:
                 graded = [s for s in submissions if s.grade is not None]
                 assignment_grades_by_chapter[ch_id] = {
@@ -97,22 +126,12 @@ async def get_course_student_progress(
                 }
 
         latest_activity = enrollment.enrolled_at
-        quiz_attempts_all = (
-            db.query(sqla_func.max(QuizAttempt.completed_at))
-            .filter(QuizAttempt.user_id == user.id)
-            .scalar()
-        )
-        sub_latest = (
-            db.query(sqla_func.max(AssignmentSubmission.submitted_at))
-            .filter(AssignmentSubmission.student_id == user.id)
-            .scalar()
-        )
-        for ts in [quiz_attempts_all, sub_latest]:
+        for ts in [latest_quiz_by_user.get(uid), latest_sub_by_user.get(uid)]:
             if ts and (latest_activity is None or ts > latest_activity):
                 latest_activity = ts
 
         student_progress.append({
-            "user_id": str(user.id),
+            "user_id": uid,
             "full_name": user.full_name or user.email,
             "email": user.email,
             "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,

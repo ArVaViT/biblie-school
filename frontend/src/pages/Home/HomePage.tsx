@@ -1,12 +1,15 @@
 import { useEffect, useState, useCallback } from "react"
+import { Link } from "react-router-dom"
 import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
 import type { Course } from "@/types"
+import { useAuth } from "@/context/AuthContext"
 import CourseCard from "@/components/course/CourseCard"
 import CourseCardSkeleton from "@/components/skeletons/CourseCardSkeleton"
-import { Search, BookOpen } from "lucide-react"
+import { Search, BookOpen, LogIn } from "lucide-react"
 
 export default function HomePage() {
+  const { user } = useAuth()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +56,15 @@ export default function HomePage() {
           />
         </div>
       </div>
+
+      {!user && (
+        <div className="mb-8 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 flex items-center justify-center gap-2">
+          <LogIn className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <p className="text-sm text-blue-800 dark:text-blue-300">
+            <Link to="/login" className="font-medium underline underline-offset-2 hover:text-blue-900 dark:hover:text-blue-200">Sign in</Link> to enroll in courses
+          </p>
+        </div>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">

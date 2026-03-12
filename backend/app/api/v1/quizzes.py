@@ -149,6 +149,14 @@ async def submit_quiz(
 
     questions_map: dict[UUID, QuizQuestion] = {q.id: q for q in quiz.questions}
 
+    all_options = (
+        db.query(QuizOption)
+        .join(QuizQuestion)
+        .filter(QuizQuestion.quiz_id == quiz_id)
+        .all()
+    )
+    options_by_id = {str(o.id): o for o in all_options}
+
     for ans in data.answers:
         question = questions_map.get(ans.question_id)
         if not question:
@@ -159,11 +167,8 @@ async def submit_quiz(
         points_earned = 0
 
         if question.question_type in ("multiple_choice", "true_false") and ans.selected_option_id:
-            option = db.query(QuizOption).filter(
-                QuizOption.id == ans.selected_option_id,
-                QuizOption.question_id == question.id,
-            ).first()
-            if option and option.is_correct:
+            option = options_by_id.get(str(ans.selected_option_id))
+            if option and option.question_id == question.id and option.is_correct:
                 is_correct = True
                 points_earned = question.points
 

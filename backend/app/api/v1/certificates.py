@@ -201,13 +201,17 @@ async def verify_certificate(
     certificate_number: str,
     db: Session = Depends(get_db),
 ):
-    cert = db.query(Certificate).filter(Certificate.certificate_number == certificate_number).first()
-    if not cert:
+    row = (
+        db.query(Certificate, User, Course)
+        .outerjoin(User, Certificate.user_id == User.id)
+        .outerjoin(Course, Certificate.course_id == Course.id)
+        .filter(Certificate.certificate_number == certificate_number)
+        .first()
+    )
+    if not row:
         return CertificateVerifyResponse(valid=False, certificate_number=certificate_number)
 
-    user = db.query(User).filter(User.id == cert.user_id).first()
-    course = db.query(Course).filter(Course.id == cert.course_id).first()
-
+    cert, user, course = row
     return CertificateVerifyResponse(
         valid=True,
         certificate_number=cert.certificate_number,

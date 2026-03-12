@@ -17,14 +17,23 @@ import {
 interface MaterialFile { name: string; path: string; size?: number }
 
 function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+  useEffect(() => {
+    if (!open) return
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    document.addEventListener("keydown", handleEsc)
+    return () => document.removeEventListener("keydown", handleEsc)
+  }, [open, onClose])
+
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-background border rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="font-serif text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+          <h2 id="modal-title" className="font-serif text-lg font-semibold">{title}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
         </div>
         <div className="p-4">{children}</div>
       </div>
@@ -257,6 +266,7 @@ export default function CourseEditor() {
               </button>
             )}
             <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+            <p className="text-xs text-muted-foreground mt-2">Recommended: 1200×630px, JPG or PNG, max 5MB</p>
           </div>
           <Button onClick={saveDetails} disabled={saving || !title.trim()} className="w-full">
             <Save className="h-4 w-4 mr-1.5" />{saving ? "Saving…" : "Save Details"}
@@ -294,7 +304,7 @@ export default function CourseEditor() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{a.title}</p>
                     {a.content && <p className="text-xs text-muted-foreground mt-0.5">{a.content}</p>}
-                    <time className="text-[10px] text-muted-foreground/60 mt-1 block">{new Date(a.created_at).toLocaleDateString()}</time>
+                    <time className="text-[10px] text-muted-foreground/60 mt-1 block">{new Date(a.created_at).toLocaleString()}</time>
                   </div>
                   <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0" onClick={() => deleteAnn(a.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>

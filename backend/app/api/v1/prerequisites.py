@@ -32,15 +32,18 @@ async def get_prerequisites(
         .all()
     )
 
-    results = []
-    for p in prereqs:
-        course = db.query(Course).filter(Course.id == p.prerequisite_course_id).first()
-        results.append(PrerequisiteResponse(
+    prereq_ids = [p.prerequisite_course_id for p in prereqs]
+    courses = db.query(Course).filter(Course.id.in_(prereq_ids)).all() if prereq_ids else []
+    title_map = {str(c.id): c.title for c in courses}
+
+    return [
+        PrerequisiteResponse(
             course_id=p.course_id,
             prerequisite_course_id=p.prerequisite_course_id,
-            prerequisite_course_title=course.title if course else None,
-        ))
-    return results
+            prerequisite_course_title=title_map.get(p.prerequisite_course_id),
+        )
+        for p in prereqs
+    ]
 
 
 @router.put("/course/{course_id}", response_model=list[PrerequisiteResponse])
@@ -59,12 +62,15 @@ async def set_prerequisites(
             detail="A course cannot be its own prerequisite",
         )
 
-    for pid in data.prerequisite_course_ids:
-        if not db.query(Course).filter(Course.id == pid).first():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Prerequisite course '{pid}' not found",
-            )
+    if data.prerequisite_course_ids:
+        existing_courses = db.query(Course).filter(Course.id.in_(data.prerequisite_course_ids)).all()
+        existing_ids = {str(c.id) for c in existing_courses}
+        for pid in data.prerequisite_course_ids:
+            if pid not in existing_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Prerequisite course '{pid}' not found",
+                )
 
     db.query(CoursePrerequisite).filter(CoursePrerequisite.course_id == course_id).delete()
 
@@ -76,12 +82,15 @@ async def set_prerequisites(
 
     db.commit()
 
-    results = []
-    for p in new_prereqs:
-        prereq_course = db.query(Course).filter(Course.id == p.prerequisite_course_id).first()
-        results.append(PrerequisiteResponse(
+    prereq_ids = [p.prerequisite_course_id for p in new_prereqs]
+    prereq_courses = db.query(Course).filter(Course.id.in_(prereq_ids)).all() if prereq_ids else []
+    title_map = {str(c.id): c.title for c in prereq_courses}
+
+    return [
+        PrerequisiteResponse(
             course_id=p.course_id,
             prerequisite_course_id=p.prerequisite_course_id,
-            prerequisite_course_title=prereq_course.title if prereq_course else None,
-        ))
-    return results
+            prerequisite_course_title=title_map.get(p.prerequisite_course_id),
+        )
+        for p in new_prereqs
+    ]

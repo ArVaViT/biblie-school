@@ -261,6 +261,7 @@ export default function Register() {
               onChange={(e) => handleChange("full_name", e.target.value)}
               aria-invalid={!!errors.full_name}
               aria-describedby={errors.full_name ? "fullName-error" : undefined}
+              autoFocus
             />
             {errors.full_name && <p id="fullName-error" role="alert" className="text-xs text-destructive mt-1">{errors.full_name}</p>}
           </div>
