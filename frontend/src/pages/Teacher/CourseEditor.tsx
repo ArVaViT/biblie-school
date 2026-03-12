@@ -14,6 +14,8 @@ import {
   GripVertical, FileText, Save, Upload, Image, Paperclip,
   Download, Loader2, X, Video, Megaphone,
 } from "lucide-react"
+import QuizEditor from "@/components/quiz/QuizEditor"
+import AssignmentEditor from "@/components/assignment/AssignmentEditor"
 
 interface MaterialFile {
   name: string
@@ -648,6 +650,13 @@ export default function CourseEditor() {
                                   <Save className="h-3.5 w-3.5 mr-1.5" />
                                   Save Content
                                 </Button>
+
+                                <div className="border-t pt-4 mt-4">
+                                  <QuizEditor chapterId={ch.id} />
+                                </div>
+                                <div className="border-t pt-4 mt-4">
+                                  <AssignmentEditor chapterId={ch.id} />
+                                </div>
                               </div>
                             )}
                           </div>

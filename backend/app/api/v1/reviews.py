@@ -1,0 +1,83 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from uuid import UUID
+
+from app.core.database import get_db
+from app.api.dependencies import get_current_user
+from app.models.user import User
+from app.models.enrollment import Enrollment
+from app.models.review import CourseReview
+from app.schemas.review import ReviewCreate, ReviewResponse
+
+router = APIRouter(prefix="/reviews", tags=["reviews"])
+
+
+@router.get("/course/{course_id}", response_model=list[ReviewResponse])
+async def list_course_reviews(
+    course_id: str,
+    db: Session = Depends(get_db),
+):
+    return (
+        db.query(CourseReview)
+        .filter(CourseReview.course_id == course_id)
+        .order_by(CourseReview.created_at.desc())
+        .all()
+    )
+
+
+@router.post("/course/{course_id}", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
+async def create_or_update_review(
+    course_id: str,
+    data: ReviewCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    enrollment = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
+        .first()
+    )
+    if not enrollment:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must be enrolled in this course to leave a review",
+        )
+
+    existing = (
+        db.query(CourseReview)
+        .filter(CourseReview.user_id == current_user.id, CourseReview.course_id == course_id)
+        .first()
+    )
+
+    if existing:
+        existing.rating = data.rating
+        existing.comment = data.comment
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    review = CourseReview(
+        user_id=current_user.id,
+        course_id=course_id,
+        rating=data.rating,
+        comment=data.comment,
+    )
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return review
+
+
+@router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_review(
+    review_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    review = db.query(CourseReview).filter(CourseReview.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+    if review.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own reviews")
+    db.delete(review)
+    db.commit()

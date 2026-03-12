@@ -41,11 +41,11 @@ export default function TeacherGradebook() {
     try {
       const [course, analytics] = await Promise.all([
         coursesService.getCourse(courseId),
-        coursesService.getCourseAnalytics(courseId),
+        coursesService.getCourseAnalyticsAPI(courseId),
       ])
       setCourseTitle(course.title)
 
-      const enrolled: EnrolledStudent[] = analytics.enrollments.map((e) => ({
+      const enrolled: EnrolledStudent[] = analytics.enrollments.map((e: { user_id: string; progress: number; enrolled_at: string; student?: { full_name: string | null; email: string } }) => ({
         user_id: e.user_id,
         progress: e.progress,
         enrolled_at: e.enrolled_at,

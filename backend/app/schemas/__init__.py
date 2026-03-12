@@ -17,6 +17,18 @@ from app.schemas.course import (
 from app.schemas.announcement import AnnouncementCreate, AnnouncementUpdate, AnnouncementResponse
 from app.schemas.note import NoteUpsert, NoteResponse
 from app.schemas.grade import GradeUpsert, GradeResponse
+from app.schemas.quiz import (
+    QuizOptionCreate, QuizOptionResponse,
+    QuizQuestionCreate, QuizQuestionResponse,
+    QuizCreate, QuizUpdate, QuizResponse, QuizStudentResponse,
+    QuizSubmitAnswer, QuizSubmitRequest, QuizAttemptResponse,
+)
+from app.schemas.assignment import (
+    AssignmentCreate, AssignmentUpdate, AssignmentResponse,
+    SubmissionCreate, SubmissionResponse, GradeSubmissionRequest,
+)
+from app.schemas.certificate import CertificateResponse, CertificateVerifyResponse
+from app.schemas.review import ReviewCreate, ReviewResponse
 
 __all__ = [
     "UserBase",
@@ -42,4 +54,25 @@ __all__ = [
     "NoteResponse",
     "GradeUpsert",
     "GradeResponse",
+    "QuizOptionCreate",
+    "QuizOptionResponse",
+    "QuizQuestionCreate",
+    "QuizQuestionResponse",
+    "QuizCreate",
+    "QuizUpdate",
+    "QuizResponse",
+    "QuizStudentResponse",
+    "QuizSubmitAnswer",
+    "QuizSubmitRequest",
+    "QuizAttemptResponse",
+    "AssignmentCreate",
+    "AssignmentUpdate",
+    "AssignmentResponse",
+    "SubmissionCreate",
+    "SubmissionResponse",
+    "GradeSubmissionRequest",
+    "CertificateResponse",
+    "CertificateVerifyResponse",
+    "ReviewCreate",
+    "ReviewResponse",
 ]

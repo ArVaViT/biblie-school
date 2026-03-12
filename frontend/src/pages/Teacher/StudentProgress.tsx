@@ -1,0 +1,565 @@
+import { useEffect, useState, useMemo } from "react"
+import { useParams, Link } from "react-router-dom"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { coursesService } from "@/services/courses"
+import { toast } from "@/hooks/use-toast"
+import {
+  ArrowLeft,
+  Users,
+  TrendingUp,
+  Award,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  BookOpen,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ClipboardList,
+  BarChart3,
+  FileText,
+} from "lucide-react"
+
+interface QuizResult {
+  chapter_title: string
+  score: number
+  max_score: number
+  passed: boolean
+}
+
+interface AssignmentResult {
+  chapter_title: string
+  title: string
+  status: string
+  grade: number | null
+  max_score: number
+}
+
+interface StudentData {
+  id: string
+  full_name: string
+  email: string
+  enrolled_at: string
+  progress: number
+  chapters_completed: number
+  total_chapters: number
+  quiz_results: QuizResult[]
+  assignment_results: AssignmentResult[]
+  last_activity: string | null
+}
+
+interface ProgressData {
+  course_title: string
+  total_chapters: number
+  students: StudentData[]
+}
+
+export default function StudentProgress() {
+  const { courseId } = useParams<{ courseId: string }>()
+  const [data, setData] = useState<ProgressData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<"name" | "progress" | "last_activity">("name")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+
+  useEffect(() => {
+    if (!courseId) return
+    const load = async () => {
+      try {
+        const result = await coursesService.getStudentProgress(courseId)
+        setData(result)
+      } catch (err) {
+        console.error("Failed to load student progress:", err)
+        toast({ title: "Failed to load student progress", variant: "destructive" })
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [courseId])
+
+  const toggleSort = (col: typeof sortBy) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortBy(col)
+      setSortDir("asc")
+    }
+  }
+
+  const filtered = useMemo(() => {
+    if (!data) return []
+    let list = data.students
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(
+        (s) =>
+          s.full_name.toLowerCase().includes(q) ||
+          s.email.toLowerCase().includes(q),
+      )
+    }
+    list = [...list].sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1
+      if (sortBy === "name") return a.full_name.localeCompare(b.full_name) * dir
+      if (sortBy === "progress") return (a.progress - b.progress) * dir
+      if (sortBy === "last_activity") {
+        const da = a.last_activity ? new Date(a.last_activity).getTime() : 0
+        const db = b.last_activity ? new Date(b.last_activity).getTime() : 0
+        return (da - db) * dir
+      }
+      return 0
+    })
+    return list
+  }, [data, search, sortBy, sortDir])
+
+  const avgProgress = useMemo(() => {
+    if (!data || data.students.length === 0) return 0
+    return Math.round(
+      data.students.reduce((sum, s) => sum + s.progress, 0) / data.students.length,
+    )
+  }, [data])
+
+  const completionRate = useMemo(() => {
+    if (!data || data.students.length === 0) return 0
+    const completed = data.students.filter((s) => s.progress >= 100).length
+    return Math.round((completed / data.students.length) * 100)
+  }, [data])
+
+  const quizAvg = (student: StudentData) => {
+    if (student.quiz_results.length === 0) return null
+    const total = student.quiz_results.reduce((s, q) => s + (q.score / q.max_score) * 100, 0)
+    return Math.round(total / student.quiz_results.length)
+  }
+
+  const assignmentAvg = (student: StudentData) => {
+    const graded = student.assignment_results.filter((a) => a.grade !== null)
+    if (graded.length === 0) return null
+    const total = graded.reduce((s, a) => s + ((a.grade! / a.max_score) * 100), 0)
+    return Math.round(total / graded.length)
+  }
+
+  const overallGrade = (student: StudentData) => {
+    const scores: number[] = []
+    const qAvg = quizAvg(student)
+    const aAvg = assignmentAvg(student)
+    if (qAvg !== null) scores.push(qAvg)
+    if (aAvg !== null) scores.push(aAvg)
+    if (scores.length === 0) return null
+    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+  }
+
+  const formatDate = (d: string | null) => {
+    if (!d) return "—"
+    return new Date(d).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
+  }
+
+  const relativeTime = (d: string | null) => {
+    if (!d) return "Never"
+    const diff = Date.now() - new Date(d).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    if (days < 7) return `${days}d ago`
+    return formatDate(d)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <p className="text-muted-foreground">Failed to load student progress.</p>
+        <Link to="/teacher">
+          <Button variant="ghost" className="mt-4">
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            Back to courses
+          </Button>
+        </Link>
+      </div>
+    )
+  }
+
+  const SortIndicator = ({ col }: { col: typeof sortBy }) => {
+    if (sortBy !== col) return null
+    return <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-8">
+        <Link to="/teacher">
+          <Button variant="ghost" size="icon" className="shrink-0">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold tracking-tight">Student Progress</h1>
+          <p className="text-muted-foreground mt-1">{data.course_title}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link to={`/teacher/courses/${courseId}/analytics`}>
+            <Button size="sm" variant="outline">
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              Analytics
+            </Button>
+          </Link>
+          <Link to={`/teacher/courses/${courseId}/gradebook`}>
+            <Button size="sm" variant="outline">
+              <ClipboardList className="h-4 w-4 mr-1.5" />
+              Gradebook
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Students</p>
+                <p className="text-2xl font-bold mt-1">{data.students.length}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-600 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Average Progress</p>
+                <p className="text-2xl font-bold mt-1">{avgProgress}%</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-emerald-600 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Completion Rate</p>
+                <p className="text-2xl font-bold mt-1">{completionRate}%</p>
+              </div>
+              <Award className="h-8 w-8 text-amber-600 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search students by name or email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Student Table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Students
+            <span className="text-sm font-normal text-muted-foreground">
+              ({filtered.length})
+            </span>
+          </CardTitle>
+          <CardDescription>Click a row to view detailed breakdown</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {filtered.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">
+                {search ? "No students match your search" : "No students enrolled yet"}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="pb-3 pr-2 w-8" />
+                    <th
+                      className="pb-3 font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+                      onClick={() => toggleSort("name")}
+                    >
+                      Name <SortIndicator col="name" />
+                    </th>
+                    <th className="pb-3 font-medium text-muted-foreground">Email</th>
+                    <th
+                      className="pb-3 font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+                      onClick={() => toggleSort("progress")}
+                    >
+                      Progress <SortIndicator col="progress" />
+                    </th>
+                    <th className="pb-3 font-medium text-muted-foreground">Chapters</th>
+                    <th className="pb-3 font-medium text-muted-foreground">Quiz Avg</th>
+                    <th className="pb-3 font-medium text-muted-foreground">Assign. Avg</th>
+                    <th
+                      className="pb-3 font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+                      onClick={() => toggleSort("last_activity")}
+                    >
+                      Last Active <SortIndicator col="last_activity" />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((student) => {
+                    const isExpanded = expandedId === student.id
+                    const qA = quizAvg(student)
+                    const aA = assignmentAvg(student)
+                    const grade = overallGrade(student)
+
+                    return (
+                      <StudentRow
+                        key={student.id}
+                        student={student}
+                        isExpanded={isExpanded}
+                        onToggle={() => setExpandedId(isExpanded ? null : student.id)}
+                        quizAvg={qA}
+                        assignmentAvg={aA}
+                        overallGrade={grade}
+                        relativeTime={relativeTime}
+                        formatDate={formatDate}
+                        courseId={courseId!}
+                      />
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ProgressBar({ value, className = "" }: { value: number; className?: string }) {
+  const color =
+    value >= 100
+      ? "bg-emerald-500"
+      : value >= 60
+        ? "bg-primary"
+        : value >= 30
+          ? "bg-amber-500"
+          : "bg-red-400"
+
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <div className="flex-1 h-2 rounded-full bg-muted max-w-[120px]">
+        <div
+          className={`h-full rounded-full transition-all ${color}`}
+          style={{ width: `${Math.min(value, 100)}%` }}
+        />
+      </div>
+      <span className="text-xs font-medium tabular-nums w-10 text-right">
+        {value}%
+      </span>
+    </div>
+  )
+}
+
+function ScoreBadge({ value }: { value: number | null }) {
+  if (value === null) return <span className="text-xs text-muted-foreground">—</span>
+  const color =
+    value >= 90
+      ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400"
+      : value >= 70
+        ? "text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400"
+        : value >= 50
+          ? "text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400"
+          : "text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400"
+  return (
+    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
+      {value}%
+    </span>
+  )
+}
+
+interface StudentRowProps {
+  student: StudentData
+  isExpanded: boolean
+  onToggle: () => void
+  quizAvg: number | null
+  assignmentAvg: number | null
+  overallGrade: number | null
+  relativeTime: (d: string | null) => string
+  formatDate: (d: string | null) => string
+  courseId: string
+}
+
+function StudentRow({
+  student,
+  isExpanded,
+  onToggle,
+  quizAvg: qA,
+  assignmentAvg: aA,
+  overallGrade: grade,
+  relativeTime,
+  formatDate,
+  courseId,
+}: StudentRowProps) {
+  const allChapters = new Map<string, { quiz?: QuizResult; assignment?: AssignmentResult }>()
+  student.quiz_results.forEach((q) => {
+    const existing = allChapters.get(q.chapter_title) || {}
+    allChapters.set(q.chapter_title, { ...existing, quiz: q })
+  })
+  student.assignment_results.forEach((a) => {
+    const existing = allChapters.get(a.chapter_title) || {}
+    allChapters.set(a.chapter_title, { ...existing, assignment: a })
+  })
+
+  return (
+    <>
+      <tr
+        className="border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={onToggle}
+      >
+        <td className="py-3 pr-2">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </td>
+        <td className="py-3 font-medium">{student.full_name}</td>
+        <td className="py-3 text-muted-foreground">{student.email}</td>
+        <td className="py-3">
+          <ProgressBar value={student.progress} />
+        </td>
+        <td className="py-3 text-center tabular-nums">
+          {student.chapters_completed}/{student.total_chapters}
+        </td>
+        <td className="py-3">
+          <ScoreBadge value={qA} />
+        </td>
+        <td className="py-3">
+          <ScoreBadge value={aA} />
+        </td>
+        <td className="py-3 text-muted-foreground text-xs">
+          {relativeTime(student.last_activity)}
+        </td>
+      </tr>
+      {isExpanded && (
+        <tr>
+          <td colSpan={8} className="p-0">
+            <div className="bg-muted/30 border-y px-6 py-5 space-y-5">
+              {/* Summary row */}
+              <div className="flex flex-wrap gap-6">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Overall Grade</p>
+                  <p className="text-xl font-bold">
+                    {grade !== null ? `${grade}%` : "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Enrolled</p>
+                  <p className="text-sm font-medium">{formatDate(student.enrolled_at)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Chapters Completed</p>
+                  <p className="text-sm font-medium">
+                    {student.chapters_completed} of {student.total_chapters}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Progress</p>
+                  <ProgressBar value={student.progress} />
+                </div>
+              </div>
+
+              {/* Chapter breakdown */}
+              {allChapters.size > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                    <BookOpen className="h-4 w-4" />
+                    Chapter Breakdown
+                  </h4>
+                  <div className="space-y-2">
+                    {Array.from(allChapters.entries()).map(([title, { quiz, assignment }]) => (
+                      <div
+                        key={title}
+                        className="flex items-center gap-4 bg-background rounded-lg px-4 py-3 border text-sm"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{title}</p>
+                        </div>
+                        {quiz && (
+                          <div className="flex items-center gap-1.5 text-xs">
+                            {quiz.passed ? (
+                              <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5 text-red-500" />
+                            )}
+                            <span>
+                              Quiz: {quiz.score}/{quiz.max_score}
+                            </span>
+                          </div>
+                        )}
+                        {assignment && (
+                          <div className="flex items-center gap-1.5 text-xs">
+                            {assignment.status === "graded" ? (
+                              <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                            ) : (
+                              <Clock className="h-3.5 w-3.5 text-amber-500" />
+                            )}
+                            <span>
+                              {assignment.title}:{" "}
+                              {assignment.grade !== null
+                                ? `${assignment.grade}/${assignment.max_score}`
+                                : assignment.status}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 pt-1">
+                <Link to={`/teacher/courses/${courseId}/gradebook`}>
+                  <Button size="sm" variant="outline">
+                    <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+                    Gradebook
+                  </Button>
+                </Link>
+                <Link to={`/teacher/courses/${courseId}/analytics`}>
+                  <Button size="sm" variant="ghost">
+                    <FileText className="h-3.5 w-3.5 mr-1.5" />
+                    View Analytics
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}

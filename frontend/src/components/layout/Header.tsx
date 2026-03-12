@@ -6,7 +6,7 @@ import { useTheme } from "@/context/ThemeContext"
 import {
   LogOut, LayoutDashboard, GraduationCap, BookOpenCheck,
   Moon, Sun, User as UserIcon, PenTool, ShieldCheck,
-  Menu, X,
+  Menu, X, Award,
 } from "lucide-react"
 
 export default function Header() {
@@ -86,6 +86,13 @@ export default function Header() {
                 <Button variant="ghost" size="sm" className="h-8 text-xs">
                   <LayoutDashboard className="h-3.5 w-3.5 mr-1" />
                   Dashboard
+                </Button>
+              </Link>
+
+              <Link to="/certificates">
+                <Button variant="ghost" size="sm" className="h-8 text-xs">
+                  <Award className="h-3.5 w-3.5 mr-1" />
+                  Certificates
                 </Button>
               </Link>
 
@@ -186,6 +193,11 @@ export default function Header() {
                 <Link to="/" className={navLinkClass("/")} onClick={closeMobile}>
                   <BookOpenCheck className="h-4 w-4" />
                   Browse Courses
+                </Link>
+
+                <Link to="/certificates" className={navLinkClass("/certificates")} onClick={closeMobile}>
+                  <Award className="h-4 w-4" />
+                  Certificates
                 </Link>
 
                 <Link to="/profile" className={navLinkClass("/profile")} onClick={closeMobile}>

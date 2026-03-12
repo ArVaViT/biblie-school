@@ -8,7 +8,7 @@ import { coursesService } from "@/services/courses"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
 import type { Course } from "@/types"
 import { toast } from "@/hooks/use-toast"
-import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList } from "lucide-react"
+import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users } from "lucide-react"
 
 export default function TeacherDashboard() {
   const navigate = useNavigate()
@@ -248,6 +248,11 @@ export default function TeacherDashboard() {
                   <Link to={`/teacher/courses/${course.id}/gradebook`}>
                     <Button variant="ghost" size="sm" title="Gradebook">
                       <ClipboardList className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link to={`/teacher/courses/${course.id}/progress`}>
+                    <Button variant="ghost" size="sm" title="Student Progress">
+                      <Users className="h-4 w-4" />
                     </Button>
                   </Link>
                   <Button

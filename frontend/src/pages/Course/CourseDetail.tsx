@@ -8,6 +8,8 @@ import type { Course, Enrollment } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import { BookOpen, Play, ArrowRight, CheckCircle, Users, Layers, ArrowLeft } from "lucide-react"
 import CourseAnnouncements from "@/components/announcements/CourseAnnouncements"
+import CourseReviews from "@/components/course/CourseReviews"
+import CertificateCard from "@/components/course/CertificateCard"
 
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>()
@@ -218,6 +220,18 @@ export default function CourseDetail() {
           </Card>
         )}
       </div>
+
+      {isEnrolled && enrollment.progress >= 100 && id && (
+        <div className="mt-10">
+          <CertificateCard courseId={id} />
+        </div>
+      )}
+
+      {id && (
+        <div className="mt-10">
+          <CourseReviews courseId={id} isEnrolled={isEnrolled} />
+        </div>
+      )}
     </div>
   )
 }

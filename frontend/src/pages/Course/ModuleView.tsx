@@ -16,6 +16,8 @@ import {
   Trophy,
 } from "lucide-react"
 import StudentNotes from "@/components/course/StudentNotes"
+import QuizTaker from "@/components/quiz/QuizTaker"
+import AssignmentPanel from "@/components/assignment/AssignmentPanel"
 
 interface CourseMaterial {
   name: string
@@ -292,6 +294,8 @@ export default function ModuleView() {
                     )}
 
                     <StudentNotes chapterId={chapter.id} />
+                    <QuizTaker chapterId={chapter.id} />
+                    <AssignmentPanel chapterId={chapter.id} />
                   </CardContent>
                 </Card>
               )

@@ -1,4 +1,5 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -6,8 +7,9 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/AuthContext"
 import { usersService } from "@/services/users"
 import { storageService } from "@/services/storage"
+import { coursesService } from "@/services/courses"
 import { profileSchema } from "@/lib/validations/course"
-import { User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera, Loader2 } from "lucide-react"
+import { User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera, Loader2, Award, BookOpen, ArrowRight } from "lucide-react"
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth()
@@ -16,7 +18,23 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
   const [uploading, setUploading] = useState(false)
+  const [certificateCount, setCertificateCount] = useState(0)
+  const [completedCount, setCompletedCount] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [certs, enrollments] = await Promise.all([
+          coursesService.getMyCertificates().catch(() => []),
+          coursesService.getMyCourses().catch(() => []),
+        ])
+        setCertificateCount(certs.length)
+        setCompletedCount(enrollments.filter((e) => e.progress >= 100).length)
+      } catch { /* non-critical */ }
+    }
+    loadStats()
+  }, [])
 
   const handleSave = async () => {
     setError("")
@@ -144,6 +162,41 @@ export default function ProfilePage() {
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Learning Progress</CardTitle>
+            <CardDescription>Your achievements at a glance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
+                  <BookOpen className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold leading-none">{completedCount}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Courses Completed</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border p-3">
+                <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+                  <Award className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold leading-none">{certificateCount}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Certificates Earned</p>
+                </div>
+              </div>
+            </div>
+            {certificateCount > 0 && (
+              <Link to="/certificates" className="mt-4 inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                View all certificates
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </CardContent>
         </Card>
 

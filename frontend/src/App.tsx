@@ -20,9 +20,11 @@ import TeacherDashboard from "./pages/Teacher/TeacherDashboard"
 import AnnouncementBanner from "./components/announcements/AnnouncementBanner"
 import NotFound from "./pages/NotFound"
 
+const CertificatesPage = lazy(() => import("./pages/Certificates/CertificatesPage"))
 const CourseEditor = lazy(() => import("./pages/Teacher/CourseEditor"))
 const TeacherGradebook = lazy(() => import("./pages/Teacher/TeacherGradebook"))
 const TeacherAnalytics = lazy(() => import("./pages/Teacher/TeacherAnalytics"))
+const StudentProgress = lazy(() => import("./pages/Teacher/StudentProgress"))
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"))
 
 function RouteSpinner() {
@@ -123,12 +125,14 @@ function AppRoutes() {
               <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+              <Route path="/certificates" element={<PrivateRoute><CertificatesPage /></PrivateRoute>} />
               <Route path="/courses/:id" element={<PrivateRoute><CourseDetail /></PrivateRoute>} />
               <Route path="/courses/:courseId/modules/:moduleId" element={<PrivateRoute><ModuleView /></PrivateRoute>} />
               <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
               <Route path="/teacher/courses/:courseId/gradebook" element={<TeacherRoute><TeacherGradebook /></TeacherRoute>} />
+              <Route path="/teacher/courses/:courseId/progress" element={<TeacherRoute><StudentProgress /></TeacherRoute>} />
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

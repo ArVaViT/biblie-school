@@ -1,6 +1,9 @@
 import api from "./api"
 import { supabase } from "@/lib/supabase"
-import type { Course, Module, Chapter, Enrollment, ChapterProgress, Announcement, StudentNote, StudentGrade } from "../types"
+import type {
+  Course, Module, Chapter, Enrollment, ChapterProgress, Announcement, StudentNote, StudentGrade,
+  Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview,
+} from "../types"
 
 export const coursesService = {
   async getCourses(search?: string): Promise<Course[]> {
@@ -78,38 +81,6 @@ export const coursesService = {
       .eq("user_id", session.user.id)
 
     if (error) throw error
-  },
-
-  // Teacher analytics (via Supabase direct)
-  async getCourseAnalytics(courseId: string) {
-    const { data: enrollments, error: eErr } = await supabase
-      .from("enrollments")
-      .select("id, user_id, progress, enrolled_at")
-      .eq("course_id", courseId)
-
-    if (eErr) throw eErr
-
-    const userIds = (enrollments ?? []).map((e) => e.user_id)
-    let students: { id: string; full_name: string | null; email: string }[] = []
-    if (userIds.length > 0) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .in("id", userIds)
-      students = data ?? []
-    }
-
-    return {
-      totalStudents: enrollments?.length ?? 0,
-      enrollments: (enrollments ?? []).map((e) => ({
-        ...e,
-        student: students.find((s) => s.id === e.user_id),
-      })),
-      avgProgress: enrollments && enrollments.length > 0
-        ? Math.round(enrollments.reduce((sum, e) => sum + e.progress, 0) / enrollments.length)
-        : 0,
-      completedCount: enrollments?.filter((e) => e.progress >= 100).length ?? 0,
-    }
   },
 
   // Admin: all users
@@ -255,6 +226,95 @@ export const coursesService = {
   // Analytics (via API instead of Supabase direct)
   async getCourseAnalyticsAPI(courseId: string) {
     const response = await api.get(`/analytics/course/${courseId}`)
+    return response.data
+  },
+
+  // Quizzes
+  async getChapterQuiz(chapterId: string): Promise<Quiz | null> {
+    try {
+      const response = await api.get<Quiz[]>(`/quizzes/chapter/${chapterId}`)
+      return response.data.length > 0 ? response.data[0] : null
+    } catch { return null }
+  },
+  async createQuiz(data: any): Promise<Quiz> {
+    const response = await api.post<Quiz>("/quizzes", data)
+    return response.data
+  },
+  async deleteQuiz(quizId: string): Promise<void> {
+    await api.delete(`/quizzes/${quizId}`)
+  },
+  async submitQuiz(quizId: string, answers: { question_id: string; selected_option_id?: string; text_answer?: string }[]): Promise<QuizAttempt> {
+    const response = await api.post<QuizAttempt>(`/quizzes/${quizId}/submit`, { answers })
+    return response.data
+  },
+  async getMyQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
+    const response = await api.get<QuizAttempt[]>(`/quizzes/${quizId}/my-attempts`)
+    return response.data
+  },
+
+  // Assignments
+  async getChapterAssignments(chapterId: string): Promise<Assignment[]> {
+    const response = await api.get<Assignment[]>(`/assignments/chapter/${chapterId}`)
+    return response.data
+  },
+  async createAssignment(data: any): Promise<Assignment> {
+    const response = await api.post<Assignment>("/assignments", data)
+    return response.data
+  },
+  async deleteAssignment(id: string): Promise<void> {
+    await api.delete(`/assignments/${id}`)
+  },
+  async submitAssignment(id: string, data: { content?: string; file_url?: string }): Promise<AssignmentSubmission> {
+    const response = await api.post<AssignmentSubmission>(`/assignments/${id}/submit`, data)
+    return response.data
+  },
+  async getSubmissions(assignmentId: string): Promise<AssignmentSubmission[]> {
+    const response = await api.get<AssignmentSubmission[]>(`/assignments/${assignmentId}/submissions`)
+    return response.data
+  },
+  async gradeSubmission(submissionId: string, data: { grade: number; feedback?: string; status: string }): Promise<AssignmentSubmission> {
+    const response = await api.put<AssignmentSubmission>(`/assignments/submissions/${submissionId}/grade`, data)
+    return response.data
+  },
+
+  // Certificates
+  async getCourseCertificate(courseId: string): Promise<Certificate | null> {
+    try {
+      const response = await api.get<Certificate>(`/certificates/course/${courseId}`)
+      return response.data
+    } catch {
+      return null
+    }
+  },
+  async issueCertificate(courseId: string): Promise<Certificate> {
+    const response = await api.post<Certificate>(`/certificates/course/${courseId}`)
+    return response.data
+  },
+  async getMyCertificates(): Promise<Certificate[]> {
+    const response = await api.get<Certificate[]>("/certificates/my")
+    return response.data
+  },
+
+  // Reviews
+  async getCourseReviews(courseId: string): Promise<CourseReview[]> {
+    const response = await api.get<CourseReview[]>(`/reviews/course/${courseId}`)
+    return response.data
+  },
+  async submitReview(courseId: string, data: { rating: number; comment?: string }): Promise<CourseReview> {
+    const response = await api.post<CourseReview>(`/reviews/course/${courseId}`, data)
+    return response.data
+  },
+  async updateReview(reviewId: string, data: { rating: number; comment?: string }): Promise<CourseReview> {
+    const response = await api.put<CourseReview>(`/reviews/${reviewId}`, data)
+    return response.data
+  },
+  async deleteReview(id: string): Promise<void> {
+    await api.delete(`/reviews/${id}`)
+  },
+
+  // Student progress (teacher)
+  async getStudentProgress(courseId: string) {
+    const response = await api.get(`/progress/course/${courseId}/students`)
     return response.data
   },
 }

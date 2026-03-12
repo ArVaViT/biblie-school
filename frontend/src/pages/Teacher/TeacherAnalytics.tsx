@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
-import { ArrowLeft, Users, TrendingUp, Award, Calendar, BarChart3, ClipboardList } from "lucide-react"
+import { ArrowLeft, Users, TrendingUp, Award, Calendar, BarChart3, ClipboardList, UserCheck } from "lucide-react"
 
 interface AnalyticsEnrollment {
   user_id: string
@@ -96,6 +96,12 @@ export default function TeacherAnalytics() {
             <p className="text-muted-foreground mt-1">{courseTitle}</p>
           )}
         </div>
+        <Link to={`/teacher/courses/${courseId}/progress`}>
+          <Button size="sm" variant="outline">
+            <UserCheck className="h-4 w-4 mr-1.5" />
+            Student Progress
+          </Button>
+        </Link>
         <Link to={`/teacher/courses/${courseId}/gradebook`}>
           <Button size="sm" variant="outline">
             <ClipboardList className="h-4 w-4 mr-1.5" />
