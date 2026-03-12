@@ -1,6 +1,7 @@
 # Environment variables
 .env
 .env.*
+!.env.example
 .env.local
 .env.*.local
 
@@ -11,6 +12,7 @@ __pycache__/
 *.so
 .Python
 venv/
+.venv/
 env/
 ENV/
 *.egg-info/
