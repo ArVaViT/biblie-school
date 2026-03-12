@@ -191,7 +191,7 @@ export default function Register() {
     <AuthLayout heading="Create an account" subheading="Choose your role and start learning today">
       <div className="space-y-6 animate-fade-in">
         {serverError && (
-          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
+          <div role="alert" className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
             {serverError}
           </div>
         )}
@@ -219,7 +219,7 @@ export default function Register() {
           {/* Role selector */}
           <div className="space-y-2">
             <Label>I am a</Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div role="radiogroup" aria-label="Account type" className="grid grid-cols-2 gap-3">
               {roles.map((r) => {
                 const Icon = r.icon
                 const selected = form.role === r.value
@@ -227,6 +227,8 @@ export default function Register() {
                   <button
                     key={r.value}
                     type="button"
+                    role="radio"
+                    aria-checked={selected}
                     onClick={() => handleChange("role", r.value)}
                     className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 transition-all duration-200 cursor-pointer ${
                       selected
@@ -258,8 +260,9 @@ export default function Register() {
               value={form.full_name}
               onChange={(e) => handleChange("full_name", e.target.value)}
               aria-invalid={!!errors.full_name}
+              aria-describedby={errors.full_name ? "fullName-error" : undefined}
             />
-            {errors.full_name && <p className="text-xs text-destructive mt-1">{errors.full_name}</p>}
+            {errors.full_name && <p id="fullName-error" role="alert" className="text-xs text-destructive mt-1">{errors.full_name}</p>}
           </div>
 
           <div className="space-y-2">
@@ -273,8 +276,9 @@ export default function Register() {
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
               aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "reg-email-error" : undefined}
             />
-            {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
+            {errors.email && <p id="reg-email-error" role="alert" className="text-xs text-destructive mt-1">{errors.email}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -288,8 +292,9 @@ export default function Register() {
                 value={form.password}
                 onChange={(e) => handleChange("password", e.target.value)}
                 aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? "reg-password-error" : undefined}
               />
-              {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
+              {errors.password && <p id="reg-password-error" role="alert" className="text-xs text-destructive mt-1">{errors.password}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm</Label>
@@ -301,9 +306,10 @@ export default function Register() {
                 value={form.confirmPassword}
                 onChange={(e) => handleChange("confirmPassword", e.target.value)}
                 aria-invalid={!!errors.confirmPassword}
+                aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
               />
               {errors.confirmPassword && (
-                <p className="text-xs text-destructive mt-1">{errors.confirmPassword}</p>
+                <p id="confirmPassword-error" role="alert" className="text-xs text-destructive mt-1">{errors.confirmPassword}</p>
               )}
             </div>
           </div>

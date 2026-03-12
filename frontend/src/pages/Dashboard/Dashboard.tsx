@@ -11,18 +11,23 @@ export default function Dashboard() {
   const { user } = useAuth()
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await coursesService.getMyCourses()
+      setEnrollments(data)
+    } catch (err) {
+      console.error("Failed to load courses:", err)
+      setError("Failed to load your courses. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await coursesService.getMyCourses()
-        setEnrollments(data)
-      } catch (error) {
-        console.error("Failed to load courses:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
     load()
   }, [])
 
@@ -74,6 +79,14 @@ export default function Dashboard() {
           {loading ? (
             <div className="flex justify-center py-10">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <BookOpen className="h-10 w-10 text-destructive/40 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
+              <Button size="sm" variant="outline" onClick={load}>
+                Try again
+              </Button>
             </div>
           ) : enrollments.length === 0 ? (
             <div className="text-center py-12">

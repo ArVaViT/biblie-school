@@ -16,3 +16,6 @@ class Enrollment(Base):
 
     user = relationship("User", back_populates="enrollments")
     course = relationship("Course", back_populates="enrollments")
+
+    def __repr__(self) -> str:
+        return f"<Enrollment id={self.id!r} user_id={self.user_id} course_id={self.course_id!r}>"

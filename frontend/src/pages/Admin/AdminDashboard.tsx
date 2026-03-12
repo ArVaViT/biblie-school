@@ -29,6 +29,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<ProfileRow[]>([])
   const [stats, setStats] = useState<Stats>({ users: 0, courses: 0, enrollments: 0 })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
@@ -36,9 +37,10 @@ export default function AdminDashboard() {
     return <Navigate to="/dashboard" replace />
   }
 
-  useEffect(() => {
-    async function load() {
-      try {
+  const load = async () => {
+    setLoading(true)
+    setError(null)
+    try {
         const [allUsers, coursesCount, enrollmentsCount] = await Promise.all([
           coursesService.getAllUsers(),
           supabase.from("courses").select("id", { count: "exact", head: true }),
@@ -53,10 +55,13 @@ export default function AdminDashboard() {
         })
       } catch (err) {
         console.error("Failed to load admin data:", err)
+        setError("Failed to load admin data. Please try again.")
       } finally {
         setLoading(false)
       }
     }
+
+  useEffect(() => {
     load()
   }, [])
 
@@ -139,6 +144,20 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {error && (
+        <Card className="mb-8 border-destructive/30">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <Shield className="h-12 w-12 text-destructive/40 mb-4" />
+            <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
+            <p className="text-sm text-muted-foreground mb-4">{error}</p>
+            <Button onClick={load} size="sm" variant="outline">
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!error && <>
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {statCards.map((s) => (
@@ -312,6 +331,7 @@ export default function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+      </>}
     </div>
   )
 }

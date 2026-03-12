@@ -1,174 +1,316 @@
-# Bible School - Course Platform
+# Bible School LMS
 
-Full-stack application for managing courses with a React frontend, FastAPI backend, and Supabase.
+A modern Learning Management System for Bible study courses. Built with React and FastAPI, featuring role-based access control, course authoring tools, student progress tracking, and a full admin dashboard.
+
+**Live Demo:** [biblie-school-frontend.vercel.app](https://biblie-school-frontend.vercel.app)
+
+---
+
+## Table of Contents
+
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Environment Variables](#environment-variables)
+- [Running Locally](#running-locally)
+- [API Reference](#api-reference)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
 
 ## Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Vite + shadcn/ui + Tailwind CSS + Zod
-- **Backend**: FastAPI + SQLAlchemy + Pydantic + bcrypt
-- **Database**: Supabase PostgreSQL
-- **Storage**: Supabase Storage
-- **Hosting**: Vercel
+| Layer      | Technologies                                            |
+|------------|---------------------------------------------------------|
+| Frontend   | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui    |
+| Editor     | TipTap (rich text), DOMPurify (sanitization)            |
+| Validation | Zod (forms), Pydantic (API)                             |
+| Backend    | Python, FastAPI, SQLAlchemy, Pydantic                   |
+| Database   | PostgreSQL (Supabase)                                   |
+| Auth       | Supabase Auth (Google OAuth + email/password)           |
+| Storage    | Supabase Storage                                        |
+| Deployment | Vercel (static frontend + Python serverless backend)    |
 
-## Live URLs
+---
 
-- **Frontend**: https://biblie-school-frontend.vercel.app
-- **Backend API**: https://biblie-school-backend.vercel.app
+## Architecture
+
+Monorepo with two independently deployable services:
+
+```
+┌─────────────────┐      ┌──────────────────┐      ┌──────────────┐
+│    Frontend      │─────▶│   FastAPI (API)   │─────▶│   Supabase   │
+│    React SPA     │      │  /api/v1/*        │      │  PostgreSQL  │
+│    Vercel CDN    │      │  Vercel Python    │      │  Auth/Storage│
+└─────────────────┘      └──────────────────┘      └──────────────┘
+```
+
+- `/frontend` -- React single-page application served as static files
+- `/backend` -- FastAPI application running as Vercel serverless functions
+- Supabase provides PostgreSQL, authentication, and file storage
+
+---
+
+## Features
+
+### Role-Based Access
+
+Three user roles with distinct capabilities:
+
+- **Admin** -- User management, role approvals, platform-wide settings
+- **Teacher** -- Course creation, module/chapter authoring, gradebook, analytics
+- **Student** -- Course enrollment, progress tracking, content consumption
+
+### Course Management
+
+- Hierarchical content: Courses > Modules > Chapters
+- Rich text editor (TipTap) for chapter content with image support
+- YouTube video embeds per chapter
+- File attachments via Supabase Storage
+
+### Student Experience
+
+- Course catalog with search and filtering
+- Enrollment and progress tracking with visual progress bars
+- Chapter-by-chapter navigation
+
+### Teacher Tools
+
+- Full CRUD for courses, modules, and chapters
+- Inline course editor with real-time saves
+- Gradebook for managing student grades
+- Analytics dashboard with enrollment and progress metrics
+
+### Admin Dashboard
+
+- User management and role assignment
+- Teacher approval workflow (pending teacher accounts)
+- Platform oversight
+
+### Authentication
+
+- Google OAuth via Supabase Auth
+- Email and password registration/login
+- Password reset flow with email verification
+
+### UI/UX
+
+- Dark and light theme with system preference detection
+- Responsive design for mobile, tablet, and desktop
+- Lazy-loaded routes for performance (code splitting)
+- Error boundaries for graceful failure handling
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 18+
+- [Python](https://www.python.org/) 3.12+
+- A [Supabase](https://supabase.com/) project (free tier works)
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/your-username/biblie-school.git
+cd biblie-school
+```
+
+### Install Dependencies
+
+**Frontend:**
+
+```bash
+cd frontend
+npm install
+```
+
+**Backend:**
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+### Database Setup
+
+1. Create a new project in [Supabase](https://supabase.com/)
+2. Run the SQL migrations from `backend/migrations/` in the Supabase SQL Editor
+3. Create a Storage bucket named `files` in the Supabase dashboard
+
+---
 
 ## Project Structure
 
 ```
 biblie-school/
-├── frontend/                  # React SPA
+├── frontend/
 │   ├── src/
-│   │   ├── components/        # UI components (shadcn/ui + custom)
-│   │   │   ├── course/        # CourseCard
-│   │   │   ├── layout/        # Header
-│   │   │   └── ui/            # shadcn primitives (button, card, input, label)
-│   │   ├── context/           # AuthContext, ThemeContext
-│   │   ├── lib/               # Utilities + Zod validation schemas
-│   │   │   └── validations/   # auth.ts, course.ts
+│   │   ├── components/
+│   │   │   ├── course/          # Course cards, content display
+│   │   │   ├── layout/          # Header, navigation
+│   │   │   └── ui/              # shadcn/ui primitives
+│   │   ├── context/             # AuthContext, ThemeContext
+│   │   ├── hooks/               # Custom React hooks
+│   │   ├── lib/
+│   │   │   └── validations/     # Zod schemas (auth, course)
 │   │   ├── pages/
-│   │   │   ├── Auth/          # Login, Register
-│   │   │   ├── Course/        # CourseDetail, ModuleView
-│   │   │   ├── Dashboard/     # Student dashboard
-│   │   │   ├── Home/          # Course catalog with search
-│   │   │   ├── Profile/       # Profile editing
-│   │   │   └── Teacher/       # TeacherDashboard, CourseEditor
-│   │   ├── services/          # API service layer (auth, courses, users)
-│   │   └── types/             # TypeScript type definitions
-│   └── vercel.json            # SPA rewrites
-├── backend/                   # FastAPI application
+│   │   │   ├── Admin/           # Admin dashboard
+│   │   │   ├── Auth/            # Login, Register, Password reset
+│   │   │   ├── Course/          # CourseDetail, ModuleView
+│   │   │   ├── Dashboard/       # Student dashboard
+│   │   │   ├── Home/            # Course catalog with search
+│   │   │   ├── Profile/         # Profile management
+│   │   │   └── Teacher/         # Dashboard, CourseEditor, Gradebook, Analytics
+│   │   ├── services/            # API service layer (auth, courses, users)
+│   │   └── types/               # TypeScript type definitions
+│   └── vercel.json              # SPA routing config
+├── backend/
 │   ├── app/
 │   │   ├── api/
 │   │   │   ├── dependencies.py  # Auth guards (get_current_user, require_teacher)
-│   │   │   └── v1/             # Route handlers (auth, courses, users, files, health)
-│   │   ├── core/              # Config, database, security (JWT + bcrypt)
-│   │   ├── models/            # SQLAlchemy models (User, Course, Module, Chapter, Enrollment, File)
-│   │   ├── schemas/           # Pydantic schemas (auth, course, user)
-│   │   └── services/          # Business logic (auth_service, course_service, file_service)
-│   ├── migrations/            # SQL migration files
-│   └── vercel.json            # Python serverless config
+│   │   │   └── v1/              # Versioned route handlers
+│   │   ├── core/                # Config, database, security
+│   │   ├── models/              # SQLAlchemy ORM models
+│   │   ├── schemas/             # Pydantic request/response schemas
+│   │   └── services/            # Business logic layer
+│   ├── migrations/              # SQL migration files
+│   └── vercel.json              # Python serverless config
+├── docs/                        # Architecture docs and audits
 └── README.md
 ```
 
-## Setup & Running
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend runs at `http://localhost:3000`
-
-### Backend
-
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-Backend runs at `http://localhost:8000`
-
-### Database
-
-1. Create a project in Supabase
-2. Run the SQL migration from `backend/migrations/001_initial_schema.sql` in the Supabase SQL Editor
-3. Create a Storage bucket named `files`
+---
 
 ## Environment Variables
 
-### Frontend (.env)
+### Frontend (`frontend/.env`)
 
 ```env
 VITE_API_URL=http://localhost:8000
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_URL=<your-supabase-project-url>
+VITE_SUPABASE_ANON_KEY=<your-supabase-anon-key>
 ```
 
-### Backend (backend/.env)
+### Backend (`backend/.env`)
 
 ```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-service-role-key
+SUPABASE_URL=<your-supabase-project-url>
+SUPABASE_KEY=<your-supabase-service-role-key>
 SUPABASE_STORAGE_BUCKET=files
-DATABASE_URL=postgresql://user:password@host:6543/database?sslmode=require
-JWT_SECRET_KEY=your-secret-key
+DATABASE_URL=<your-supabase-connection-pooler-url>
+JWT_SECRET_KEY=<your-jwt-secret>
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=43200
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
-## Deploy to Vercel
+> Use the Supabase **Connection Pooler** URL (port 6543) for `DATABASE_URL`, not the direct connection (port 5432).
 
-1. Connect the repository to Vercel
-2. Configure environment variables in Vercel Dashboard
-3. Backend: uses `@vercel/python` runtime (Python 3.12)
-4. Frontend: build command `cd frontend && npm run build`, output `frontend/dist`
+---
 
-> **Important**: Use the Supabase **Connection Pooler** URL (port 6543) for `DATABASE_URL`, not the direct connection (port 5432).
+## Running Locally
 
-## API Endpoints
+Start the backend and frontend in separate terminals:
+
+**Backend** (runs on `http://localhost:8000`):
+
+```bash
+cd backend
+uvicorn app.main:app --reload
+```
+
+**Frontend** (runs on `http://localhost:5173`):
+
+```bash
+cd frontend
+npm run dev
+```
+
+---
+
+## API Reference
+
+All endpoints are prefixed with `/api/v1`.
 
 ### Authentication
-- `POST /api/v1/auth/register` — Register (role: `"teacher"` | `"student"`)
-- `POST /api/v1/auth/login` — Login
-- `GET /api/v1/auth/me` — Current user (JWT required)
 
-### Courses (public)
-- `GET /api/v1/courses?search=term` — List courses with optional search
-- `GET /api/v1/courses/{id}` — Course detail with modules
-- `GET /api/v1/courses/{course_id}/modules/{module_id}` — Module with chapters
+| Method | Endpoint                  | Description                    | Auth     |
+|--------|---------------------------|--------------------------------|----------|
+| POST   | `/auth/register`          | Register a new account         | Public   |
+| POST   | `/auth/login`             | Login with credentials         | Public   |
+| GET    | `/auth/me`                | Get current user profile       | Required |
 
-### Courses (teacher only)
-- `GET /api/v1/courses/my` — Teacher's own courses
-- `POST /api/v1/courses` — Create course
-- `PUT /api/v1/courses/{id}` — Update course
-- `DELETE /api/v1/courses/{id}` — Delete course
-- `POST /api/v1/courses/{id}/modules` — Create module
-- `PUT /api/v1/courses/{id}/modules/{mid}` — Update module
-- `DELETE /api/v1/courses/{id}/modules/{mid}` — Delete module
-- `POST /api/v1/courses/{id}/modules/{mid}/chapters` — Create chapter
-- `PUT /api/v1/courses/{id}/modules/{mid}/chapters/{cid}` — Update chapter
-- `DELETE /api/v1/courses/{id}/modules/{mid}/chapters/{cid}` — Delete chapter
+### Courses
+
+| Method | Endpoint                                          | Description              | Auth       |
+|--------|---------------------------------------------------|--------------------------|------------|
+| GET    | `/courses?search=term`                            | List courses (searchable)| Public     |
+| GET    | `/courses/{id}`                                   | Course detail            | Public     |
+| GET    | `/courses/{id}/modules/{mid}`                     | Module with chapters     | Public     |
+| GET    | `/courses/my`                                     | Teacher's own courses    | Teacher    |
+| POST   | `/courses`                                        | Create course            | Teacher    |
+| PUT    | `/courses/{id}`                                   | Update course            | Teacher    |
+| DELETE | `/courses/{id}`                                   | Delete course            | Teacher    |
+
+### Modules and Chapters
+
+| Method | Endpoint                                          | Description              | Auth       |
+|--------|---------------------------------------------------|--------------------------|------------|
+| POST   | `/courses/{id}/modules`                           | Create module            | Teacher    |
+| PUT    | `/courses/{id}/modules/{mid}`                     | Update module            | Teacher    |
+| DELETE | `/courses/{id}/modules/{mid}`                     | Delete module            | Teacher    |
+| POST   | `/courses/{id}/modules/{mid}/chapters`            | Create chapter           | Teacher    |
+| PUT    | `/courses/{id}/modules/{mid}/chapters/{cid}`      | Update chapter           | Teacher    |
+| DELETE | `/courses/{id}/modules/{mid}/chapters/{cid}`      | Delete chapter           | Teacher    |
 
 ### Enrollment
-- `POST /api/v1/courses/{id}/enroll` — Enroll in course (JWT required)
-- `PUT /api/v1/courses/{id}/progress?progress=50` — Update progress
 
-### Users
-- `GET /api/v1/users/me/courses` — Enrolled courses
-- `PUT /api/v1/users/me` — Update profile
+| Method | Endpoint                             | Description              | Auth       |
+|--------|--------------------------------------|--------------------------|------------|
+| POST   | `/courses/{id}/enroll`               | Enroll in a course       | Required   |
+| PUT    | `/courses/{id}/progress?progress=50` | Update progress          | Required   |
 
-### Files
-- `POST /api/v1/files/upload` — Upload to Supabase Storage
+### Users and Files
 
-## Features
+| Method | Endpoint           | Description                | Auth       |
+|--------|--------------------|----------------------------|------------|
+| GET    | `/users/me/courses`| Enrolled courses           | Required   |
+| PUT    | `/users/me`        | Update profile             | Required   |
+| POST   | `/files/upload`    | Upload to Supabase Storage | Required   |
 
-- JWT authentication with role-based access (teacher / student)
-- **Teacher dashboard** — full CRUD for courses, modules, and chapters
-- **Course editor** — inline module/chapter management with real-time saves
-- **Course search** — filter courses by title or description
-- **Profile management** — edit display name
-- **Dark mode** — system-aware with manual toggle, persisted in localStorage
-- **Progress tracking** — enrollment progress bar per course
-- Zod form validation on all forms
-- React Context for auth and theme state (no page reloads)
-- Modern UI with shadcn/ui, Tailwind CSS, and smooth animations
-- Responsive design for mobile, tablet, and desktop
-- Serverless deployment on Vercel (frontend static, backend Python lambda)
+---
 
-## Planned Updates
+## Deployment
 
-- [ ] Rich text editor (Markdown or WYSIWYG) for chapter content
-- [ ] Password reset flow (forgot password / email verification)
-- [ ] File attachments per chapter (PDF, images)
-- [ ] Student quiz/assessment system
-- [ ] Course completion certificates
-- [ ] Admin panel for user management
-- [ ] Notifications (enrollment confirmation, new content)
-- [ ] Course categories and tags
+Both services deploy to [Vercel](https://vercel.com/):
+
+1. Connect the repository to Vercel
+2. Configure environment variables in the Vercel dashboard
+3. **Backend**: Uses the `@vercel/python` runtime (Python 3.12)
+4. **Frontend**: Build command `cd frontend && npm run build`, output directory `frontend/dist`
+
+Each service has its own `vercel.json` for routing and runtime configuration.
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m "Add your feature"`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
+
+Please keep commits focused and include a clear description of the changes.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

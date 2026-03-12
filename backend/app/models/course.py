@@ -20,6 +20,9 @@ class Course(Base):
     modules = relationship("Module", back_populates="course", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="course", cascade="all, delete-orphan")
 
+    def __repr__(self) -> str:
+        return f"<Course id={self.id!r} title={self.title!r}>"
+
 
 class Module(Base):
     __tablename__ = "modules"
@@ -33,6 +36,9 @@ class Module(Base):
     course = relationship("Course", back_populates="modules")
     chapters = relationship("Chapter", back_populates="module", cascade="all, delete-orphan")
 
+    def __repr__(self) -> str:
+        return f"<Module id={self.id!r} title={self.title!r} course_id={self.course_id!r}>"
+
 
 class Chapter(Base):
     __tablename__ = "chapters"
@@ -45,3 +51,6 @@ class Chapter(Base):
     order_index = Column(Integer, default=0, nullable=False)
 
     module = relationship("Module", back_populates="chapters")
+
+    def __repr__(self) -> str:
+        return f"<Chapter id={self.id!r} title={self.title!r} module_id={self.module_id!r}>"

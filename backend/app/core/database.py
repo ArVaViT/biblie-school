@@ -1,20 +1,23 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
-from app.core.config import settings
-import logging
+from collections.abc import Generator
 from typing import Optional
+
+from sqlalchemy import create_engine, Engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.exc import SQLAlchemyError
+import logging
+
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
-_engine: Optional[object] = None
+_engine: Optional[Engine] = None
 _SessionLocal: Optional[sessionmaker] = None
 
 
-def _get_engine():
+def _get_engine() -> Engine:
     """Lazy initialization of the database engine."""
     global _engine, _SessionLocal
 
@@ -68,7 +71,7 @@ def _get_engine():
     return _engine
 
 
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     """FastAPI dependency that yields a database session."""
     try:
         _get_engine()

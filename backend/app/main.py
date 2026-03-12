@@ -6,8 +6,14 @@ from app.api.v1 import api_router
 
 app = FastAPI(
     title="Bible School API",
-    description="API for Bible School courses platform",
-    version="1.0.0"
+    description=(
+        "RESTful API for the Bible School learning platform. "
+        "Provides endpoints for course management, user enrollment, "
+        "progress tracking, and file uploads."
+    ),
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 try:
@@ -22,7 +28,7 @@ allow_credentials = "*" not in cors_origins
 class OptionsMiddleware(BaseHTTPMiddleware):
     """Handle OPTIONS preflight requests before FastAPI validation."""
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next) -> Response:
         if request.method == "OPTIONS":
             origin = request.headers.get("origin", "*")
             allowed_origin = "*"
@@ -62,18 +68,18 @@ app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/")
-async def root():
+async def root() -> dict:
     return {"message": "Bible School API", "version": "1.0.0"}
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict:
     return {"status": "ok"}
 
 
 @app.get("/favicon.ico", include_in_schema=False)
 @app.options("/favicon.ico", include_in_schema=False)
-async def favicon():
+async def favicon() -> Response:
     return Response(status_code=204)
 
 
@@ -83,5 +89,5 @@ async def favicon():
 @app.options("/favicon.png", include_in_schema=False)
 @app.get("/favicon.svg", include_in_schema=False)
 @app.options("/favicon.svg", include_in_schema=False)
-async def static_icons():
+async def static_icons() -> Response:
     return Response(status_code=204)

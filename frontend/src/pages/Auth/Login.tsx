@@ -70,7 +70,7 @@ export default function Login() {
     <AuthLayout heading="Welcome back" subheading="Sign in to continue your learning journey">
       <div className="space-y-6 animate-fade-in">
         {serverError && (
-          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
+          <div role="alert" className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
             {serverError}
           </div>
         )}
@@ -106,8 +106,9 @@ export default function Login() {
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
               aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
             />
-            {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
+            {errors.email && <p id="email-error" role="alert" className="text-xs text-destructive mt-1">{errors.email}</p>}
           </div>
 
           <div className="space-y-2">
@@ -125,8 +126,9 @@ export default function Login() {
               value={form.password}
               onChange={(e) => handleChange("password", e.target.value)}
               aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
             />
-            {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
+            {errors.password && <p id="password-error" role="alert" className="text-xs text-destructive mt-1">{errors.password}</p>}
           </div>
 
           <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>

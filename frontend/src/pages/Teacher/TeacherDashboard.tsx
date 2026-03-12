@@ -18,6 +18,7 @@ export default function TeacherDashboard() {
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
   const [saving, setSaving] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleToggleStatus = async (course: Course) => {
     const newStatus = course.status === "published" ? "draft" : "published"
@@ -35,11 +36,14 @@ export default function TeacherDashboard() {
   }
 
   const load = async () => {
+    setLoading(true)
+    setError(null)
     try {
       const data = await coursesService.getTeacherCourses()
       setCourses(data)
     } catch (err) {
       console.error("Failed to load courses:", err)
+      setError("Failed to load your courses. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -159,6 +163,17 @@ export default function TeacherDashboard() {
         <div className="flex justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
+      ) : error ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <BookOpen className="h-12 w-12 text-destructive/40 mb-4" />
+            <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
+            <p className="text-sm text-muted-foreground mb-4">{error}</p>
+            <Button onClick={load} size="sm" variant="outline">
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       ) : courses.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">

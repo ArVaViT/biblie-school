@@ -33,9 +33,12 @@ export default function TeacherGradebook() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!courseId) return
+    setLoading(true)
+    setError(null)
     try {
       const [course, analytics] = await Promise.all([
         coursesService.getCourse(courseId),
@@ -71,6 +74,7 @@ export default function TeacherGradebook() {
       }
     } catch (err) {
       console.error("Failed to load gradebook:", err)
+      setError("Failed to load gradebook. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -141,6 +145,29 @@ export default function TeacherGradebook() {
     return (
       <div className="flex justify-center py-24">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Award className="h-12 w-12 text-destructive/40 mb-4" />
+          <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <div className="flex gap-3">
+            <Button onClick={load} size="sm" variant="outline">
+              Try again
+            </Button>
+            <Link to="/teacher">
+              <Button size="sm" variant="ghost">
+                <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+                Back to courses
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }

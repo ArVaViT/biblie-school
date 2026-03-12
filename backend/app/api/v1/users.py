@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_admin
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.schemas.course import EnrollmentResponse
 from app.services.course_service import get_user_courses
 
@@ -21,7 +21,7 @@ async def get_my_courses(
 async def list_all_users(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
-):
+) -> list[dict]:
     users = db.query(User).order_by(User.created_at.desc()).all()
     return [
         {
@@ -42,7 +42,7 @@ async def update_user_role(
     role: str = Query(...),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
-):
+) -> dict:
     if role not in ("admin", "teacher", "pending_teacher", "student"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid role")
     user = db.query(User).filter(User.id == user_id).first()

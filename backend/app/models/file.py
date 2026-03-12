@@ -14,3 +14,6 @@ class File(Base):
     course_id = Column(String, ForeignKey("courses.id"), nullable=True)
     user_id = Column(PgUUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self) -> str:
+        return f"<File id={self.id!r} name={self.name!r}>"

@@ -31,7 +31,7 @@ async def list_courses(
     limit: int = 100,
     search: Optional[str] = Query(None, min_length=1, max_length=200),
     db: Session = Depends(get_db),
-):
+) -> list[CourseResponse]:
     return get_courses(db, skip=skip, limit=limit, search=search)
 
 
@@ -39,15 +39,20 @@ async def list_courses(
 async def list_my_courses(
     current_user: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> list[CourseResponse]:
     return get_teacher_courses(db, current_user.id)
 
 
 @router.get("/{course_id}", response_model=CourseResponse)
-async def get_course_detail(course_id: str, db: Session = Depends(get_db)):
+async def get_course_detail(
+    course_id: str, db: Session = Depends(get_db)
+) -> CourseResponse:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     return course
 
 
@@ -56,10 +61,13 @@ async def get_module_detail(
     course_id: str,
     module_id: str,
     db: Session = Depends(get_db),
-):
+) -> ModuleResponse:
     module = get_module(db, course_id, module_id)
     if not module:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Module not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Module '{module_id}' not found in course '{course_id}'",
+        )
     return module
 
 
@@ -72,7 +80,7 @@ async def create_new_course(
     data: CourseCreate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> CourseResponse:
     return create_course(db, data, teacher.id)
 
 
@@ -82,12 +90,18 @@ async def update_existing_course(
     data: CourseUpdate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> CourseResponse:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     if course.created_by != teacher.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only edit your own courses")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own courses",
+        )
     return update_course(db, course, data)
 
 
@@ -96,12 +110,18 @@ async def remove_course(
     course_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> None:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     if course.created_by != teacher.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only delete your own courses")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete your own courses",
+        )
     delete_course(db, course)
 
 
@@ -119,12 +139,18 @@ async def create_new_module(
     data: ModuleCreate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> ModuleResponse:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     if course.created_by != teacher.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only edit your own courses")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own courses",
+        )
     return create_module(db, course_id, data)
 
 
@@ -135,15 +161,24 @@ async def update_existing_module(
     data: ModuleUpdate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> ModuleResponse:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     if course.created_by != teacher.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only edit your own courses")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own courses",
+        )
     module = get_module(db, course_id, module_id)
     if not module:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Module not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Module '{module_id}' not found in course '{course_id}'",
+        )
     return update_module(db, module, data)
 
 
@@ -155,15 +190,24 @@ async def remove_module(
     module_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> None:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     if course.created_by != teacher.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only edit your own courses")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own courses",
+        )
     module = get_module(db, course_id, module_id)
     if not module:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Module not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Module '{module_id}' not found in course '{course_id}'",
+        )
     delete_module(db, module)
 
 
@@ -182,15 +226,24 @@ async def create_new_chapter(
     data: ChapterCreate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> ChapterResponse:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     if course.created_by != teacher.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only edit your own courses")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own courses",
+        )
     module = get_module(db, course_id, module_id)
     if not module:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Module not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Module '{module_id}' not found in course '{course_id}'",
+        )
     return create_chapter(db, module_id, data)
 
 
@@ -205,15 +258,24 @@ async def update_existing_chapter(
     data: ChapterUpdate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> ChapterResponse:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     if course.created_by != teacher.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only edit your own courses")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own courses",
+        )
     chapter = get_chapter(db, course_id, module_id, chapter_id)
     if not chapter:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Chapter not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Chapter '{chapter_id}' not found in module '{module_id}'",
+        )
     return update_chapter(db, chapter, data)
 
 
@@ -227,15 +289,24 @@ async def remove_chapter(
     chapter_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-):
+) -> None:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     if course.created_by != teacher.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only edit your own courses")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit your own courses",
+        )
     chapter = get_chapter(db, course_id, module_id, chapter_id)
     if not chapter:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Chapter not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Chapter '{chapter_id}' not found in module '{module_id}'",
+        )
     delete_chapter(db, chapter)
 
 
@@ -248,10 +319,13 @@ async def enroll_course(
     course_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
+) -> EnrollmentResponse:
     course = get_course(db, course_id)
     if not course:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     return enroll_user_in_course(db, current_user.id, course_id)
 
 
@@ -261,8 +335,11 @@ async def update_progress(
     progress: int = Query(..., ge=0, le=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
+) -> EnrollmentResponse:
     enrollment = update_enrollment_progress(db, current_user.id, course_id, progress)
     if not enrollment:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Enrollment not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Enrollment not found for course '{course_id}'",
+        )
     return enrollment

@@ -8,7 +8,7 @@ router = APIRouter(prefix="/health", tags=["health"])
 
 
 @router.get("/db")
-async def check_database(db: Session = Depends(get_db)):
+async def check_database(db: Session = Depends(get_db)) -> dict:
     """Verify database connectivity and table existence."""
     try:
         result = db.execute(text("SELECT 1"))

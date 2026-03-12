@@ -6,7 +6,6 @@ from app.core.database import get_db
 from app.api.dependencies import get_current_user
 from app.models.user import User
 from app.services.file_service import upload_file_to_storage
-from app.models.file import File as FileModel
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -31,7 +30,7 @@ async def upload_file(
     course_id: str | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
+) -> dict:
     content_type = file.content_type or "application/octet-stream"
     if not _mime_allowed(content_type):
         raise HTTPException(
