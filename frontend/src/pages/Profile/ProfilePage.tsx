@@ -4,13 +4,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useAuth } from "@/context/AuthContext"
 import { useTheme } from "@/context/ThemeContext"
 import { usersService } from "@/services/users"
 import { storageService } from "@/services/storage"
 import { coursesService } from "@/services/courses"
 import { profileSchema } from "@/lib/validations/course"
-import { User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera, Loader2, Award, BookOpen, ArrowRight, LogOut, Moon, Sun } from "lucide-react"
+import {
+  User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera,
+  Loader2, Award, BookOpen, ArrowRight, LogOut, Moon, Sun,
+  Download, AlertTriangle, Trash2,
+} from "lucide-react"
 
 export default function ProfilePage() {
   const { user, refreshUser, logout } = useAuth()
@@ -24,6 +36,12 @@ export default function ProfilePage() {
   const [certificateCount, setCertificateCount] = useState(0)
   const [completedCount, setCompletedCount] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const [exporting, setExporting] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState("")
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
 
   useEffect(() => {
     const loadStats = async () => {
@@ -79,6 +97,42 @@ export default function ProfilePage() {
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ""
+    }
+  }
+
+  const handleExportData = async () => {
+    setExporting(true)
+    try {
+      const data = await usersService.exportMyData()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `my-data-export-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch {
+      setError("Failed to export data. Please try again.")
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== "DELETE") return
+    setDeleting(true)
+    setDeleteError("")
+    try {
+      await usersService.deleteMyAccount()
+      setDeleteOpen(false)
+      logout()
+      navigate("/login", { replace: true })
+    } catch {
+      setDeleteError("Failed to delete account. Please try again or contact support.")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -268,11 +322,111 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Your Data</CardTitle>
+            <CardDescription>Download a copy of all your data stored on this platform</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" onClick={handleExportData} disabled={exporting}>
+              {exporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {exporting ? "Preparing export..." : "Export My Data"}
+            </Button>
+          </CardContent>
+        </Card>
+
         <Button variant="destructive" className="w-full" onClick={handleLogout}>
           <LogOut className="h-4 w-4 mr-2" />
           Sign Out
         </Button>
+
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <CardTitle className="text-base text-destructive">Danger Zone</CardTitle>
+            </div>
+            <CardDescription>
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Deleting your account will remove your profile, enrollments, quiz attempts,
+              assignment submissions, grades, certificates, notes, reviews, and notifications.
+              Courses you created will be preserved but disassociated from your account.
+            </p>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setDeleteConfirm("")
+                setDeleteError("")
+                setDeleteOpen(true)
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete My Account
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Account
+            </DialogTitle>
+            <DialogDescription>
+              This will permanently delete your account and all your data.
+              This action is irreversible.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <p className="text-sm">
+              To confirm, type <span className="font-mono font-bold">DELETE</span> in the box below:
+            </p>
+            <Input
+              value={deleteConfirm}
+              onChange={(e) => {
+                setDeleteConfirm(e.target.value)
+                setDeleteError("")
+              }}
+              placeholder="Type DELETE to confirm"
+              autoComplete="off"
+            />
+            {deleteError && (
+              <p className="text-sm text-destructive">{deleteError}</p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirm !== "DELETE" || deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Permanently Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

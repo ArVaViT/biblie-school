@@ -35,3 +35,6 @@ jobs:
           VITE_API_URL: https://biblie-school-backend.vercel.app
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-for-ci
+
+      - name: Run tests
+        run: npm run test:run

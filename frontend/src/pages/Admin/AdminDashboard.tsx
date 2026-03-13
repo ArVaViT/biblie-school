@@ -1,14 +1,17 @@
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { Navigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context/AuthContext"
 import { coursesService } from "@/services/courses"
 import { supabase } from "@/lib/supabase"
-import type { UserRole, Certificate } from "@/types"
+import type { UserRole, Certificate, AuditLogEntry } from "@/types"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
-import { Users, BookOpen, GraduationCap, Shield, Search, Clock, CheckCircle, XCircle, Award } from "lucide-react"
+import {
+  Users, BookOpen, GraduationCap, Shield, Search, Clock,
+  CheckCircle, XCircle, Award, FileText, ChevronLeft, ChevronRight,
+} from "lucide-react"
 
 interface ProfileRow {
   id: string
@@ -25,8 +28,25 @@ interface Stats {
   enrollments: number
 }
 
+type Tab = "overview" | "audit"
+
+const ACTION_OPTIONS = ["create", "update", "delete", "publish", "enroll", "approve", "reject", "grade"]
+const RESOURCE_OPTIONS = ["course", "module", "chapter", "enrollment", "certificate", "assignment_submission", "user"]
+
+const actionBadgeClass: Record<string, string> = {
+  create: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+  update: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  delete: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+  publish: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
+  enroll: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400",
+  approve: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
+  reject: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
+  grade: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth()
+  const [tab, setTab] = useState<Tab>("overview")
   const [users, setUsers] = useState<ProfileRow[]>([])
   const [stats, setStats] = useState<Stats>({ users: 0, courses: 0, enrollments: 0 })
   const [loading, setLoading] = useState(true)
@@ -36,34 +56,71 @@ export default function AdminDashboard() {
   const [adminCerts, setAdminCerts] = useState<(Certificate & { student_name?: string; course_title?: string; approved_by_name?: string; approved_at?: string })[]>([])
   const [certActionId, setCertActionId] = useState<string | null>(null)
 
+  // Audit log state
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([])
+  const [auditTotal, setAuditTotal] = useState(0)
+  const [auditPage, setAuditPage] = useState(1)
+  const [auditLoading, setAuditLoading] = useState(false)
+  const [auditAction, setAuditAction] = useState("")
+  const [auditResource, setAuditResource] = useState("")
+  const [auditDateFrom, setAuditDateFrom] = useState("")
+  const [auditDateTo, setAuditDateTo] = useState("")
+  const auditPageSize = 25
+
   const load = async () => {
     setLoading(true)
     setError(null)
     try {
-        const [allUsers, coursesCount, enrollmentsCount, certs] = await Promise.all([
-          coursesService.getAllUsers(),
-          supabase.from("courses").select("id", { count: "exact", head: true }),
-          supabase.from("enrollments").select("id", { count: "exact", head: true }),
-          coursesService.getAdminPendingCerts().catch(() => []),
-        ])
+      const [allUsers, coursesCount, enrollmentsCount, certs] = await Promise.all([
+        coursesService.getAllUsers(),
+        supabase.from("courses").select("id", { count: "exact", head: true }),
+        supabase.from("enrollments").select("id", { count: "exact", head: true }),
+        coursesService.getAdminPendingCerts().catch(() => []),
+      ])
 
-        setUsers(allUsers as ProfileRow[])
-        setStats({
-          users: allUsers.length,
-          courses: coursesCount.count ?? 0,
-          enrollments: enrollmentsCount.count ?? 0,
-        })
-        setAdminCerts(certs)
-      } catch {
-        setError("Failed to load admin data. Please try again.")
-      } finally {
-        setLoading(false)
-      }
+      setUsers(allUsers as ProfileRow[])
+      setStats({
+        users: allUsers.length,
+        courses: coursesCount.count ?? 0,
+        enrollments: enrollmentsCount.count ?? 0,
+      })
+      setAdminCerts(certs)
+    } catch {
+      setError("Failed to load admin data. Please try again.")
+    } finally {
+      setLoading(false)
     }
+  }
+
+  const loadAuditLogs = useCallback(async () => {
+    setAuditLoading(true)
+    try {
+      const params: Record<string, string | number> = {
+        page: auditPage,
+        page_size: auditPageSize,
+      }
+      if (auditAction) params.action = auditAction
+      if (auditResource) params.resource_type = auditResource
+      if (auditDateFrom) params.date_from = new Date(auditDateFrom).toISOString()
+      if (auditDateTo) params.date_to = new Date(auditDateTo + "T23:59:59").toISOString()
+
+      const data = await coursesService.getAuditLogs(params)
+      setAuditLogs(data.items)
+      setAuditTotal(data.total)
+    } catch {
+      toast({ title: "Failed to load audit logs", variant: "destructive" })
+    } finally {
+      setAuditLoading(false)
+    }
+  }, [auditPage, auditAction, auditResource, auditDateFrom, auditDateTo])
 
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    if (tab === "audit") loadAuditLogs()
+  }, [tab, loadAuditLogs])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return users
@@ -165,9 +222,25 @@ export default function AdminDashboard() {
     student: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400",
   }
 
+  const userMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const u of users) map[u.id] = u.full_name || u.email
+    return map
+  }, [users])
+
+  const totalAuditPages = Math.max(1, Math.ceil(auditTotal / auditPageSize))
+
+  const resetAuditFilters = () => {
+    setAuditAction("")
+    setAuditResource("")
+    setAuditDateFrom("")
+    setAuditDateTo("")
+    setAuditPage(1)
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-6">
         <div className="p-2 rounded-lg bg-primary/10">
           <Shield className="h-6 w-6 text-primary" />
         </div>
@@ -175,6 +248,42 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
           <p className="text-muted-foreground mt-0.5">Manage users, roles, and monitor platform activity</p>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 mb-8 border-b">
+        <button
+          onClick={() => setTab("overview")}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+            tab === "overview"
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Overview
+          </div>
+          {tab === "overview" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t" />
+          )}
+        </button>
+        <button
+          onClick={() => setTab("audit")}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+            tab === "audit"
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Audit Log
+          </div>
+          {tab === "audit" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t" />
+          )}
+        </button>
       </div>
 
       {error && (
@@ -190,7 +299,7 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {!error && <>
+      {!error && tab === "overview" && <>
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {statCards.map((s) => (
@@ -430,6 +539,157 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
       </>}
+
+      {/* Audit Log Tab */}
+      {!error && tab === "audit" && (
+        <div className="space-y-6">
+          {/* Filters */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Action</label>
+                  <select
+                    value={auditAction}
+                    onChange={(e) => { setAuditAction(e.target.value); setAuditPage(1) }}
+                    className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">All actions</option>
+                    {ACTION_OPTIONS.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Resource</label>
+                  <select
+                    value={auditResource}
+                    onChange={(e) => { setAuditResource(e.target.value); setAuditPage(1) }}
+                    className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">All resources</option>
+                    {RESOURCE_OPTIONS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">From</label>
+                  <Input
+                    type="date"
+                    value={auditDateFrom}
+                    onChange={(e) => { setAuditDateFrom(e.target.value); setAuditPage(1) }}
+                    className="h-9 w-40"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">To</label>
+                  <Input
+                    type="date"
+                    value={auditDateTo}
+                    onChange={(e) => { setAuditDateTo(e.target.value); setAuditPage(1) }}
+                    className="h-9 w-40"
+                  />
+                </div>
+                <Button variant="ghost" size="sm" onClick={resetAuditFilters} className="h-9">
+                  Clear filters
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Audit Log
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  {auditTotal.toLocaleString()} entries
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {auditLoading ? (
+                <div className="flex justify-center py-16">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                </div>
+              ) : auditLogs.length === 0 ? (
+                <div className="flex flex-col items-center py-16 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground/40 mb-3" />
+                  <p className="text-muted-foreground">No audit logs found</p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto -mx-6">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-left">
+                          <th className="px-6 py-3 font-medium text-muted-foreground">Date</th>
+                          <th className="px-6 py-3 font-medium text-muted-foreground">User</th>
+                          <th className="px-6 py-3 font-medium text-muted-foreground">Action</th>
+                          <th className="px-6 py-3 font-medium text-muted-foreground">Resource</th>
+                          <th className="px-6 py-3 font-medium text-muted-foreground">Resource ID</th>
+                          <th className="px-6 py-3 font-medium text-muted-foreground">IP</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {auditLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-muted/50 transition-colors">
+                            <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
+                              {new Date(log.created_at).toLocaleString()}
+                            </td>
+                            <td className="px-6 py-3 max-w-[160px] truncate" title={log.user_id ?? ""}>
+                              {log.user_id ? (userMap[log.user_id] || log.user_id.slice(0, 8) + "…") : "—"}
+                            </td>
+                            <td className="px-6 py-3">
+                              <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${actionBadgeClass[log.action] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}>
+                                {log.action}
+                              </span>
+                            </td>
+                            <td className="px-6 py-3 text-muted-foreground">{log.resource_type}</td>
+                            <td className="px-6 py-3 font-mono text-xs text-muted-foreground max-w-[120px] truncate" title={log.resource_id}>
+                              {log.resource_id.length > 12 ? log.resource_id.slice(0, 12) + "…" : log.resource_id}
+                            </td>
+                            <td className="px-6 py-3 text-muted-foreground text-xs">
+                              {log.ip_address || "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between pt-4 px-6">
+                    <p className="text-xs text-muted-foreground">
+                      Page {auditPage} of {totalAuditPages}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={auditPage <= 1}
+                        onClick={() => setAuditPage((p) => p - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={auditPage >= totalAuditPages}
+                        onClick={() => setAuditPage((p) => p + 1)}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

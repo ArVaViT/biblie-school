@@ -5,11 +5,134 @@ import uuid
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
 from app.models.user import User
+from app.models.course import Course
 from app.models.student_grade import StudentGrade
-from app.schemas.grade import GradeUpsert, GradeResponse
+from app.schemas.grade import (
+    GradeUpsert,
+    GradeResponse,
+    GradingConfigResponse,
+    GradingConfigUpdate,
+    StudentCalculatedGrade,
+    GradeSummaryResponse,
+)
+from app.services.grade_calculator import (
+    calculate_student_grade,
+    calculate_all_student_grades,
+    _get_course_chapter_ids,
+    _get_quiz_ids_for_chapters,
+    _get_assignment_ids_for_chapters,
+)
 
 router = APIRouter(prefix="/grades", tags=["grades"])
 
+
+# ── Grading Configuration ──────────────────────────────────────────
+
+@router.get("/course/{course_id}/config", response_model=GradingConfigResponse)
+async def get_grading_config(
+    course_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return GradingConfigResponse(
+        quiz_weight=course.quiz_weight,
+        assignment_weight=course.assignment_weight,
+        participation_weight=course.participation_weight,
+    )
+
+
+@router.put("/course/{course_id}/config", response_model=GradingConfigResponse)
+async def update_grading_config(
+    course_id: str,
+    data: GradingConfigUpdate,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    course = verify_course_owner(db, course_id, teacher.id)
+    course.quiz_weight = data.quiz_weight
+    course.assignment_weight = data.assignment_weight
+    course.participation_weight = data.participation_weight
+    db.commit()
+    db.refresh(course)
+    return GradingConfigResponse(
+        quiz_weight=course.quiz_weight,
+        assignment_weight=course.assignment_weight,
+        participation_weight=course.participation_weight,
+    )
+
+
+# ── Calculated Grades ──────────────────────────────────────────────
+
+@router.get(
+    "/course/{course_id}/student/{student_id}/calculated",
+    response_model=StudentCalculatedGrade,
+)
+async def get_calculated_grade(
+    course_id: str,
+    student_id: str,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    course = verify_course_owner(db, course_id, teacher.id)
+    chapter_ids = _get_course_chapter_ids(db, course_id)
+    quiz_ids = _get_quiz_ids_for_chapters(db, chapter_ids)
+    assignment_ids = _get_assignment_ids_for_chapters(db, chapter_ids)
+
+    user = db.query(User).filter(User.id == student_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    breakdown = calculate_student_grade(
+        db, course, uuid.UUID(student_id), chapter_ids, quiz_ids, assignment_ids
+    )
+
+    manual = (
+        db.query(StudentGrade.grade)
+        .filter(StudentGrade.course_id == course_id, StudentGrade.student_id == student_id)
+        .scalar()
+    )
+
+    return StudentCalculatedGrade(
+        student_id=student_id,
+        student_name=user.full_name,
+        student_email=user.email,
+        breakdown=breakdown,
+        manual_grade=manual,
+    )
+
+
+@router.get("/course/{course_id}/summary", response_model=GradeSummaryResponse)
+async def get_grade_summary(
+    course_id: str,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    course = verify_course_owner(db, course_id, teacher.id)
+    results = calculate_all_student_grades(db, course)
+
+    students = [StudentCalculatedGrade(**r) for r in results]
+    class_avg = (
+        round(sum(s.breakdown.final_score for s in students) / len(students), 2)
+        if students
+        else 0.0
+    )
+
+    return GradeSummaryResponse(
+        course_id=course_id,
+        config=GradingConfigResponse(
+            quiz_weight=course.quiz_weight,
+            assignment_weight=course.assignment_weight,
+            participation_weight=course.participation_weight,
+        ),
+        students=students,
+        class_average=class_avg,
+    )
+
+
+# ── Existing Manual Grade Endpoints ───────────────────────────────
 
 @router.get("/my", response_model=list[GradeResponse])
 async def list_my_grades(

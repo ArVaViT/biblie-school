@@ -8,11 +8,13 @@ from app.api.dependencies import get_current_user, require_teacher
 from app.models.user import User, UserRole
 from app.models.announcement import Announcement
 from app.models.course import Course
+from app.models.enrollment import Enrollment
 from app.schemas.announcement import (
     AnnouncementCreate,
     AnnouncementUpdate,
     AnnouncementResponse,
 )
+from app.services.notification_service import create_notification
 
 router = APIRouter(prefix="/announcements", tags=["announcements"])
 
@@ -55,6 +57,28 @@ async def create_announcement(
         created_by=teacher.id,
     )
     db.add(announcement)
+    db.flush()
+
+    if data.course_id:
+        enrolled_users = (
+            db.query(Enrollment.user_id)
+            .filter(Enrollment.course_id == data.course_id)
+            .all()
+        )
+        course = db.query(Course).filter(Course.id == data.course_id).first()
+        course_title = course.title if course else "a course"
+        for (user_id,) in enrolled_users:
+            if str(user_id) != str(teacher.id):
+                create_notification(
+                    db,
+                    user_id=user_id,
+                    type="new_announcement",
+                    title="New Announcement",
+                    message=f"{data.title} — in \"{course_title}\"",
+                    link=f"/courses/{data.course_id}",
+                    metadata={"course_id": data.course_id, "announcement_id": str(announcement.id)},
+                )
+
     db.commit()
     db.refresh(announcement)
     return announcement

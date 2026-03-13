@@ -21,6 +21,8 @@ export interface Course {
   updated_at: string
   enrollment_start: string | null
   enrollment_end: string | null
+  start_date: string | null
+  end_date: string | null
   modules?: Module[]
 }
 
@@ -30,6 +32,7 @@ export interface Module {
   title: string
   description: string | null
   order_index: number
+  due_date: string | null
   chapters?: Chapter[]
 }
 
@@ -73,6 +76,38 @@ export interface StudentGrade {
   graded_by: string
   graded_at: string
   updated_at: string
+}
+
+export interface GradingConfig {
+  quiz_weight: number
+  assignment_weight: number
+  participation_weight: number
+}
+
+export interface GradeBreakdown {
+  quiz_avg: number
+  quiz_weighted: number
+  assignment_avg: number
+  assignment_weighted: number
+  participation_pct: number
+  participation_weighted: number
+  final_score: number
+  letter_grade: string
+}
+
+export interface StudentCalculatedGrade {
+  student_id: string
+  student_name: string | null
+  student_email: string
+  breakdown: GradeBreakdown
+  manual_grade: string | null
+}
+
+export interface GradeSummaryResponse {
+  course_id: string
+  config: GradingConfig
+  students: StudentCalculatedGrade[]
+  class_average: number
 }
 
 export interface FileMetadata {
@@ -214,6 +249,52 @@ export interface Cohort {
   updated_at: string
 }
 
+export type NotificationType =
+  | 'certificate_approved'
+  | 'certificate_rejected'
+  | 'assignment_graded'
+  | 'new_announcement'
+  | 'course_update'
+  | 'enrollment_confirmed'
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  message: string
+  link: string | null
+  is_read: boolean
+  created_at: string
+  metadata: Record<string, any> | null
+}
+
+export interface NotificationListResponse {
+  items: Notification[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface AuditLogEntry {
+  id: string
+  user_id: string | null
+  action: string
+  resource_type: string
+  resource_id: string
+  details: Record<string, unknown> | null
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
+}
+
+export interface AuditLogPage {
+  items: AuditLogEntry[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface AuthResponse {
   access_token: string
   token_type: string
@@ -228,5 +309,30 @@ export interface Profile {
   role: UserRole
   created_at: string
   updated_at: string | null
+}
+
+export type CalendarEventType = 'deadline' | 'live_session' | 'exam' | 'other'
+export type CalendarEventSource = 'module_deadline' | 'assignment_deadline' | 'course_event'
+
+export interface CalendarEvent {
+  id: string
+  title: string
+  description: string | null
+  event_type: CalendarEventType
+  event_date: string
+  course_id: string
+  course_title: string | null
+  source: CalendarEventSource
+}
+
+export interface CourseEvent {
+  id: string
+  course_id: string
+  title: string
+  description: string | null
+  event_type: CalendarEventType
+  event_date: string
+  created_by: string
+  created_at: string
 }
 

@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
 import type { Module, Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
+import { Label } from "@/components/ui/label"
 import {
   ArrowUp, ArrowDown, Plus, Trash2, ChevronRight,
-  Shield, Loader2, Pencil,
+  Shield, Loader2, Pencil, CalendarDays,
 } from "lucide-react"
 
 const CHAPTER_TYPE_BADGES: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function ModuleEditor() {
 
   const [modTitle, setModTitle] = useState("")
   const [modDescription, setModDescription] = useState("")
+  const [modDueDate, setModDueDate] = useState("")
 
   const load = useCallback(async () => {
     if (!courseId || !moduleId) return
@@ -44,6 +46,7 @@ export default function ModuleEditor() {
       setMod(data)
       setModTitle(data.title)
       setModDescription(data.description ?? "")
+      setModDueDate(data.due_date ? data.due_date.slice(0, 16) : "")
     } catch {
       toast({ title: "Module not found", variant: "destructive" })
       navigate(`/teacher/courses/${courseId}`)
@@ -66,6 +69,20 @@ export default function ModuleEditor() {
       setMod((prev) => (prev ? { ...prev, [field]: trimmed } : prev))
     } catch {
       toast({ title: "Failed to save module", variant: "destructive" })
+    } finally {
+      setSavingModule(false)
+    }
+  }
+
+  const saveDueDate = async (value: string) => {
+    if (!courseId || !moduleId) return
+    setSavingModule(true)
+    try {
+      const due = value ? new Date(value).toISOString() : null
+      await coursesService.updateModule(courseId, moduleId, { due_date: due } as any)
+      setMod((prev) => (prev ? { ...prev, due_date: due } : prev))
+    } catch {
+      toast({ title: "Failed to save due date", variant: "destructive" })
     } finally {
       setSavingModule(false)
     }
@@ -217,9 +234,33 @@ export default function ModuleEditor() {
             placeholder="Module description (optional)"
           />
 
-          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-            {chapters.length} {chapters.length === 1 ? "chapter" : "chapters"}
-          </span>
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+              {chapters.length} {chapters.length === 1 ? "chapter" : "chapters"}
+            </span>
+
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+              <Label className="text-xs text-muted-foreground">Due date:</Label>
+              <Input
+                type="datetime-local"
+                value={modDueDate}
+                onChange={(e) => setModDueDate(e.target.value)}
+                onBlur={(e) => saveDueDate(e.target.value)}
+                className="text-xs h-7 w-auto border-border/50"
+              />
+              {modDueDate && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] text-muted-foreground"
+                  onClick={() => { setModDueDate(""); saveDueDate("") }}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

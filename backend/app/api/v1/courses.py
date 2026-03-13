@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sa_func
@@ -9,6 +9,8 @@ from app.api.dependencies import get_current_user, require_teacher
 from app.models.user import User
 from app.models.cohort import Cohort
 from app.models.enrollment import Enrollment
+from app.services.audit_service import log_action
+from app.core.sanitize import sanitize_string
 from app.schemas.course import (
     CourseCreate, CourseUpdate, CourseResponse,
     ModuleCreate, ModuleUpdate, ModuleResponse,
@@ -21,6 +23,7 @@ from app.services.course_service import (
     get_module, create_module, update_module, delete_module,
     get_chapter, create_chapter, update_chapter, delete_chapter,
     enroll_user_in_course, update_enrollment_progress,
+    clone_course,
 )
 
 
@@ -87,16 +90,22 @@ async def get_module_detail(
 @router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
 async def create_new_course(
     data: CourseCreate,
+    request: Request,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> CourseResponse:
-    return create_course(db, data, teacher.id)
+    if data.title:
+        data.title = sanitize_string(data.title)
+    course = create_course(db, data, teacher.id)
+    log_action(db, teacher.id, "create", "course", course.id, request=request)
+    return course
 
 
 @router.put("/{course_id}", response_model=CourseResponse)
 async def update_existing_course(
     course_id: str,
     data: CourseUpdate,
+    request: Request,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> CourseResponse:
@@ -111,12 +120,22 @@ async def update_existing_course(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own courses",
         )
-    return update_course(db, course, data)
+    if data.title:
+        data.title = sanitize_string(data.title)
+    old_status = course.status
+    result = update_course(db, course, data)
+    details = {}
+    if data.status and data.status != old_status:
+        details = {"old_status": old_status, "new_status": data.status}
+    action = "publish" if data.status == "published" and old_status != "published" else "update"
+    log_action(db, teacher.id, action, "course", course_id, details=details or None, request=request)
+    return result
 
 
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_course(
     course_id: str,
+    request: Request,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> None:
@@ -131,7 +150,43 @@ async def remove_course(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only delete your own courses",
         )
+    log_action(db, teacher.id, "delete", "course", course_id, details={"title": course.title}, request=request)
     delete_course(db, course)
+
+
+# ---------------------------------------------------------------------------
+# Course cloning
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/{course_id}/clone",
+    response_model=CourseResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def clone_existing_course(
+    course_id: str,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> CourseResponse:
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
+    is_owner = str(course.created_by) == str(teacher.id)
+    if course.status != "published" and not is_owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the owner can clone a draft course",
+        )
+    new_course = clone_course(db, course_id, str(teacher.id))
+    if not new_course:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to clone course",
+        )
+    return new_course
 
 
 # ---------------------------------------------------------------------------
@@ -253,6 +308,10 @@ async def create_new_chapter(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Module '{module_id}' not found in course '{course_id}'",
         )
+    if data.title:
+        data.title = sanitize_string(data.title)
+    if data.content:
+        data.content = sanitize_string(data.content)
     return create_chapter(db, module_id, data)
 
 
@@ -285,6 +344,10 @@ async def update_existing_chapter(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Chapter '{chapter_id}' not found in module '{module_id}'",
         )
+    if data.title:
+        data.title = sanitize_string(data.title)
+    if data.content:
+        data.content = sanitize_string(data.content)
     return update_chapter(db, chapter, data)
 
 
@@ -326,6 +389,7 @@ async def remove_chapter(
 @router.post("/{course_id}/enroll", response_model=EnrollmentResponse)
 async def enroll_course(
     course_id: str,
+    request: Request,
     body: EnrollRequest = EnrollRequest(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -371,7 +435,9 @@ async def enroll_course(
                 detail="Enrollment period has ended",
             )
 
-    return enroll_user_in_course(db, current_user.id, course_id, cohort_id=cohort_id)
+    enrollment = enroll_user_in_course(db, current_user.id, course_id, cohort_id=cohort_id)
+    log_action(db, current_user.id, "enroll", "enrollment", str(enrollment.id), details={"course_id": course_id}, request=request)
+    return enrollment
 
 
 @router.put("/{course_id}/progress", response_model=EnrollmentResponse)

@@ -2,6 +2,9 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from app.models.course import Course, Module, Chapter
 from app.models.enrollment import Enrollment
+from app.models.chapter_block import ChapterBlock
+from app.models.quiz import Quiz, QuizQuestion, QuizOption
+from app.models.assignment import Assignment
 from app.schemas.course import (
     CourseCreate, CourseUpdate,
     ModuleCreate, ModuleUpdate,
@@ -94,6 +97,7 @@ def create_module(db: Session, course_id: str, data: ModuleCreate) -> Module:
         title=data.title,
         description=data.description,
         order_index=data.order_index,
+        due_date=data.due_date,
     )
     db.add(module)
     db.commit()
@@ -209,3 +213,159 @@ def update_enrollment_progress(
     db.commit()
     db.refresh(enrollment)
     return enrollment
+
+
+# ---------------------------------------------------------------------------
+# Course cloning
+# ---------------------------------------------------------------------------
+
+def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Course:
+    """Deep-clone a course and all nested content. Returns the new Course.
+
+    Copies: Course → Modules → Chapters → ChapterBlocks, Quizzes
+    (with questions + options), Assignments.
+    ChapterBlock.quiz_id / assignment_id are remapped to the cloned entities.
+    Enrollments, progress, grades, submissions, and certificates are NOT copied.
+    """
+    original = (
+        db.query(Course)
+        .options(joinedload(Course.modules).joinedload(Module.chapters))
+        .filter(Course.id == course_id)
+        .first()
+    )
+    if original is None:
+        return None
+
+    new_course_id = str(uuid.uuid4())
+    new_course = Course(
+        id=new_course_id,
+        title=f"{original.title} (Копия)",
+        description=original.description,
+        image_url=original.image_url,
+        status="draft",
+        created_by=uuid.UUID(teacher_id) if isinstance(teacher_id, str) else teacher_id,
+        enrollment_start=None,
+        enrollment_end=None,
+    )
+    db.add(new_course)
+
+    for module in sorted(original.modules, key=lambda m: m.order_index):
+        new_module_id = str(uuid.uuid4())
+        new_module = Module(
+            id=new_module_id,
+            course_id=new_course_id,
+            title=module.title,
+            description=module.description,
+            order_index=module.order_index,
+        )
+        db.add(new_module)
+
+        for chapter in sorted(module.chapters, key=lambda c: c.order_index):
+            new_chapter_id = str(uuid.uuid4())
+            new_chapter = Chapter(
+                id=new_chapter_id,
+                module_id=new_module_id,
+                title=chapter.title,
+                content=chapter.content,
+                video_url=chapter.video_url,
+                order_index=chapter.order_index,
+                chapter_type=chapter.chapter_type,
+                requires_completion=chapter.requires_completion,
+                is_locked=chapter.is_locked,
+            )
+            db.add(new_chapter)
+
+            quiz_id_map: dict[str, uuid.UUID] = {}
+            assignment_id_map: dict[str, uuid.UUID] = {}
+
+            quizzes = db.query(Quiz).filter(Quiz.chapter_id == chapter.id).all()
+            for quiz in quizzes:
+                new_quiz_id = uuid.uuid4()
+                quiz_id_map[str(quiz.id)] = new_quiz_id
+                new_quiz = Quiz(
+                    id=new_quiz_id,
+                    chapter_id=new_chapter_id,
+                    title=quiz.title,
+                    description=quiz.description,
+                    passing_score=quiz.passing_score,
+                )
+                db.add(new_quiz)
+
+                questions = (
+                    db.query(QuizQuestion)
+                    .filter(QuizQuestion.quiz_id == quiz.id)
+                    .order_by(QuizQuestion.order_index)
+                    .all()
+                )
+                for question in questions:
+                    new_question_id = uuid.uuid4()
+                    new_question = QuizQuestion(
+                        id=new_question_id,
+                        quiz_id=new_quiz_id,
+                        question_text=question.question_text,
+                        question_type=question.question_type,
+                        order_index=question.order_index,
+                        points=question.points,
+                    )
+                    db.add(new_question)
+
+                    options = (
+                        db.query(QuizOption)
+                        .filter(QuizOption.question_id == question.id)
+                        .order_by(QuizOption.order_index)
+                        .all()
+                    )
+                    for option in options:
+                        new_option = QuizOption(
+                            id=uuid.uuid4(),
+                            question_id=new_question_id,
+                            option_text=option.option_text,
+                            is_correct=option.is_correct,
+                            order_index=option.order_index,
+                        )
+                        db.add(new_option)
+
+            assignments = (
+                db.query(Assignment).filter(Assignment.chapter_id == chapter.id).all()
+            )
+            for assignment in assignments:
+                new_assignment_id = uuid.uuid4()
+                assignment_id_map[str(assignment.id)] = new_assignment_id
+                new_assignment = Assignment(
+                    id=new_assignment_id,
+                    chapter_id=new_chapter_id,
+                    title=assignment.title,
+                    description=assignment.description,
+                    max_score=assignment.max_score,
+                    due_date=None,
+                )
+                db.add(new_assignment)
+
+            blocks = (
+                db.query(ChapterBlock)
+                .filter(ChapterBlock.chapter_id == chapter.id)
+                .order_by(ChapterBlock.order_index)
+                .all()
+            )
+            for block in blocks:
+                new_block = ChapterBlock(
+                    id=uuid.uuid4(),
+                    chapter_id=new_chapter_id,
+                    block_type=block.block_type,
+                    order_index=block.order_index,
+                    content=block.content,
+                    video_url=block.video_url,
+                    quiz_id=quiz_id_map.get(str(block.quiz_id)) if block.quiz_id else None,
+                    assignment_id=assignment_id_map.get(str(block.assignment_id)) if block.assignment_id else None,
+                    file_url=block.file_url,
+                )
+                db.add(new_block)
+
+    db.commit()
+
+    return (
+        db.query(Course)
+        .options(joinedload(Course.modules).joinedload(Module.chapters))
+        .filter(Course.id == new_course_id)
+        .first()
+    )

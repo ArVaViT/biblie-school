@@ -8,6 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.middleware.rate_limit import RateLimitMiddleware
+from app.middleware.security import SecurityHeadersMiddleware
 from app.api.v1 import api_router
 
 setup_logging()
@@ -58,6 +59,8 @@ class OptionsMiddleware(BaseHTTPMiddleware):
 
         return await call_next(request)
 
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(RateLimitMiddleware, calls=100, window=60)
 

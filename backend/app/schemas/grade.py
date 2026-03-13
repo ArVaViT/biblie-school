@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
 
 
@@ -19,3 +19,55 @@ class GradeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# --- Grading Configuration ---
+
+class GradingConfigResponse(BaseModel):
+    quiz_weight: int
+    assignment_weight: int
+    participation_weight: int
+
+    class Config:
+        from_attributes = True
+
+
+class GradingConfigUpdate(BaseModel):
+    quiz_weight: int = Field(..., ge=0, le=100)
+    assignment_weight: int = Field(..., ge=0, le=100)
+    participation_weight: int = Field(..., ge=0, le=100)
+
+    @model_validator(mode="after")
+    def weights_must_sum_to_100(self):
+        total = self.quiz_weight + self.assignment_weight + self.participation_weight
+        if total != 100:
+            raise ValueError(f"Weights must sum to 100, got {total}")
+        return self
+
+
+# --- Calculated Grade ---
+
+class GradeBreakdown(BaseModel):
+    quiz_avg: float
+    quiz_weighted: float
+    assignment_avg: float
+    assignment_weighted: float
+    participation_pct: float
+    participation_weighted: float
+    final_score: float
+    letter_grade: str
+
+
+class StudentCalculatedGrade(BaseModel):
+    student_id: str
+    student_name: str | None
+    student_email: str
+    breakdown: GradeBreakdown
+    manual_grade: str | None = None
+
+
+class GradeSummaryResponse(BaseModel):
+    course_id: str
+    config: GradingConfigResponse
+    students: list[StudentCalculatedGrade]
+    class_average: float

@@ -6,12 +6,12 @@ import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
-import type { Course, Announcement, Cohort } from "@/types"
+import type { Course, Announcement, Cohort, CourseEvent } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
   Pencil, Calendar, Megaphone, Plus, Trash2,
   Layers, Save, Upload, Image, Loader2, X, Eye, EyeOff, BookOpen, ChevronRight,
-  Download, Paperclip, Users, CheckCircle,
+  Download, Paperclip, Users, CheckCircle, CalendarDays,
 } from "lucide-react"
 
 interface MaterialFile { name: string; path: string; size?: number }
@@ -71,11 +71,15 @@ export default function CourseEditor() {
   const [mats, setMats] = useState<MaterialFile[]>([])
   const [uploadingMat, setUploadingMat] = useState(false)
   const matRef = useRef<HTMLInputElement>(null)
-  const [modal, setModal] = useState<"details" | "enroll" | "announce" | "materials" | "cohorts" | null>(null)
+  const [modal, setModal] = useState<"details" | "enroll" | "announce" | "materials" | "cohorts" | "events" | null>(null)
   const [cohorts, setCohorts] = useState<Cohort[]>([])
   const [cohortForm, setCohortForm] = useState<{ name: string; start_date: string; end_date: string; enrollment_start: string; enrollment_end: string; max_students: string }>({ name: "", start_date: "", end_date: "", enrollment_start: "", enrollment_end: "", max_students: "" })
   const [editingCohortId, setEditingCohortId] = useState<string | null>(null)
   const [savingCohort, setSavingCohort] = useState(false)
+  const [courseEvents, setCourseEvents] = useState<CourseEvent[]>([])
+  const [eventForm, setEventForm] = useState<{ title: string; description: string; event_type: string; event_date: string }>({ title: "", description: "", event_type: "other", event_date: "" })
+  const [editingEventId, setEditingEventId] = useState<string | null>(null)
+  const [savingEvent, setSavingEvent] = useState(false)
 
   const load = useCallback(async () => {
     if (!courseId) return
@@ -86,6 +90,7 @@ export default function CourseEditor() {
       setMats(await storageService.listCourseMaterials(courseId).catch(() => []))
       setAnns(await coursesService.getAnnouncements(courseId).catch(() => []))
       setCohorts(await coursesService.getCourseCohorts(courseId).catch(() => []))
+      setCourseEvents(await coursesService.getCourseEvents(courseId).catch(() => []))
     } catch { navigate("/teacher") } finally { setLoading(false) }
   }, [courseId, navigate])
 
@@ -256,6 +261,54 @@ export default function CourseEditor() {
     } catch { toast({ title: "Failed", variant: "destructive" }) }
   }
 
+  const resetEventForm = () => {
+    setEventForm({ title: "", description: "", event_type: "other", event_date: "" })
+    setEditingEventId(null)
+  }
+
+  const startEditEvent = (e: CourseEvent) => {
+    setEventForm({
+      title: e.title,
+      description: e.description ?? "",
+      event_type: e.event_type,
+      event_date: e.event_date.slice(0, 16),
+    })
+    setEditingEventId(e.id)
+  }
+
+  const saveEvent = async () => {
+    if (!courseId || !eventForm.title.trim() || !eventForm.event_date) return
+    setSavingEvent(true)
+    const payload = {
+      title: eventForm.title.trim(),
+      description: eventForm.description.trim() || undefined,
+      event_type: eventForm.event_type,
+      event_date: new Date(eventForm.event_date).toISOString(),
+    }
+    try {
+      if (editingEventId) {
+        const updated = await coursesService.updateCourseEvent(courseId, editingEventId, payload)
+        setCourseEvents(p => p.map(e => e.id === editingEventId ? updated : e))
+        toast({ title: "Event updated", variant: "success" })
+      } else {
+        const created = await coursesService.createCourseEvent(courseId, payload)
+        setCourseEvents(p => [...p, created])
+        toast({ title: "Event created", variant: "success" })
+      }
+      resetEventForm()
+    } catch { toast({ title: "Failed to save event", variant: "destructive" }) }
+    finally { setSavingEvent(false) }
+  }
+
+  const deleteEvent = async (id: string) => {
+    if (!courseId || !confirm("Delete this event?")) return
+    try {
+      await coursesService.deleteCourseEvent(courseId, id)
+      setCourseEvents(p => p.filter(e => e.id !== id))
+      toast({ title: "Event deleted", variant: "success" })
+    } catch { toast({ title: "Failed", variant: "destructive" }) }
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -314,6 +367,7 @@ export default function CourseEditor() {
             <Button variant="outline" size="sm" onClick={() => setModal("enroll")}><Calendar className="h-3.5 w-3.5 mr-1.5" />Enrollment</Button>
             <Button variant="outline" size="sm" onClick={() => setModal("announce")}><Megaphone className="h-3.5 w-3.5 mr-1.5" />Announcements</Button>
             <Button variant="outline" size="sm" onClick={() => setModal("materials")}><Paperclip className="h-3.5 w-3.5 mr-1.5" />Materials</Button>
+            <Button variant="outline" size="sm" onClick={() => { resetEventForm(); setModal("events") }}><CalendarDays className="h-3.5 w-3.5 mr-1.5" />Events</Button>
             <Button variant="outline" size="sm" onClick={() => { resetCohortForm(); setModal("cohorts") }}><Users className="h-3.5 w-3.5 mr-1.5" />Cohorts</Button>
             <div className="flex-1" />
             <Button variant="outline" size="sm" onClick={togglePublish}>
@@ -503,7 +557,93 @@ export default function CourseEditor() {
               ))}</div>}
         </div>
       </Modal>
+
+      {/* Events Modal */}
+      <Modal open={modal === "events"} onClose={() => { setModal(null); resetEventForm() }} title="Course Events">
+        <div className="space-y-4">
+          <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {editingEventId ? "Edit Event" : "Create Event"}
+            </p>
+            <Input value={eventForm.title} onChange={e => setEventForm(p => ({ ...p, title: e.target.value }))} placeholder="Event title" />
+            <textarea
+              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={eventForm.description}
+              onChange={e => setEventForm(p => ({ ...p, description: e.target.value }))}
+              placeholder="Description (optional)"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Type</Label>
+                <select
+                  value={eventForm.event_type}
+                  onChange={e => setEventForm(p => ({ ...p, event_type: e.target.value }))}
+                  className="w-full text-sm border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="deadline">Deadline</option>
+                  <option value="live_session">Live Session</option>
+                  <option value="exam">Exam</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Date & Time</Label>
+                <Input type="datetime-local" value={eventForm.event_date} onChange={e => setEventForm(p => ({ ...p, event_date: e.target.value }))} className="text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={saveEvent} disabled={savingEvent || !eventForm.title.trim() || !eventForm.event_date}>
+                <Save className="h-3.5 w-3.5 mr-1.5" />{savingEvent ? "Saving…" : editingEventId ? "Update Event" : "Create Event"}
+              </Button>
+              {editingEventId && (
+                <Button size="sm" variant="ghost" onClick={resetEventForm}>Cancel</Button>
+              )}
+            </div>
+          </div>
+
+          {courseEvents.length === 0
+            ? <p className="text-sm text-muted-foreground text-center py-4">No events yet.</p>
+            : <div className="space-y-2 max-h-72 overflow-y-auto">{courseEvents.map(e => (
+                <div key={e.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-medium truncate">{e.title}</p>
+                      <EventTypeBadge type={e.event_type} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(e.event_date).toLocaleString()}
+                    </p>
+                    {e.description && (
+                      <p className="text-xs text-muted-foreground/70 mt-0.5 line-clamp-1">{e.description}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => startEditEvent(e)}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteEvent(e.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}</div>}
+        </div>
+      </Modal>
     </div>
+  )
+}
+
+function EventTypeBadge({ type }: { type: string }) {
+  const styles: Record<string, string> = {
+    deadline: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+    live_session: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+    exam: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
+    other: "bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-400",
+  }
+  return (
+    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${styles[type] ?? styles.other}`}>
+      {type.replace("_", " ")}
+    </span>
   )
 }
 

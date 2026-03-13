@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -7,6 +7,10 @@ import uuid
 
 class StudentGrade(Base):
     __tablename__ = "student_grades"
+    __table_args__ = (
+        Index("ix_student_grades_student_course", "student_id", "course_id"),
+        Index("ix_student_grades_student_course_cohort", "student_id", "course_id", "cohort_id"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     student_id = Column(UUID(as_uuid=True), nullable=False)

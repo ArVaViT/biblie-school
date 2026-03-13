@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
+from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -7,6 +7,10 @@ import uuid
 
 class Cohort(Base):
     __tablename__ = "cohorts"
+    __table_args__ = (
+        Index("ix_cohorts_course_id", "course_id"),
+        Index("ix_cohorts_status", "status"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     course_id = Column(String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)

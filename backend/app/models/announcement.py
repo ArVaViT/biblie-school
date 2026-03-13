@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -7,6 +7,10 @@ import uuid
 
 class Announcement(Base):
     __tablename__ = "announcements"
+    __table_args__ = (
+        Index("ix_announcements_course_id", "course_id"),
+        Index("ix_announcements_created_by", "created_by"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String(255), nullable=False)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from uuid import UUID
@@ -15,6 +15,8 @@ from app.schemas.assignment import (
     SubmissionResponse,
     GradeSubmissionRequest,
 )
+from app.services.notification_service import create_notification
+from app.services.audit_service import log_action
 
 router = APIRouter(prefix="/assignments", tags=["assignments"])
 
@@ -126,6 +128,7 @@ async def list_submissions(
 async def grade_submission(
     submission_id: UUID,
     data: GradeSubmissionRequest,
+    request: Request,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
@@ -143,6 +146,17 @@ async def grade_submission(
     submission.graded_by = teacher.id
     submission.graded_at = datetime.now(timezone.utc)
 
+    create_notification(
+        db,
+        user_id=submission.student_id,
+        type="assignment_graded",
+        title="Assignment Graded",
+        message=f"Your submission for \"{assignment.title}\" has been graded: {data.grade}/{assignment.max_score}.",
+        link=None,
+        metadata={"assignment_id": str(assignment.id), "submission_id": str(submission.id)},
+    )
+
     db.commit()
     db.refresh(submission)
+    log_action(db, teacher.id, "grade", "assignment_submission", str(submission_id), details={"grade": data.grade, "status": data.status}, request=request)
     return submission

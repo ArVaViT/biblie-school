@@ -8,7 +8,7 @@ import { coursesService } from "@/services/courses"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
 import type { Course, Certificate } from "@/types"
 import { toast } from "@/hooks/use-toast"
-import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users, Clock, CheckCircle, XCircle, Award, Search } from "lucide-react"
+import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users, Clock, CheckCircle, XCircle, Award, Search, Copy } from "lucide-react"
 
 export default function TeacherDashboard() {
   const navigate = useNavigate()
@@ -19,6 +19,7 @@ export default function TeacherDashboard() {
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
   const [saving, setSaving] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [cloningId, setCloningId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [pendingCerts, setPendingCerts] = useState<(Certificate & { student_name?: string; course_title?: string })[]>([])
@@ -127,6 +128,19 @@ export default function TeacherDashboard() {
       toast({ title: "Course deleted", variant: "success" })
     } catch {
       toast({ title: "Failed to delete course", variant: "destructive" })
+    }
+  }
+
+  const handleClone = async (id: string) => {
+    setCloningId(id)
+    try {
+      const cloned = await coursesService.cloneCourse(id)
+      toast({ title: "Course cloned successfully", variant: "success" })
+      navigate(`/teacher/courses/${cloned.id}`)
+    } catch {
+      toast({ title: "Failed to clone course", variant: "destructive" })
+    } finally {
+      setCloningId(null)
     }
   }
 
@@ -364,6 +378,19 @@ export default function TeacherDashboard() {
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Clone course"
+                    disabled={cloningId === course.id}
+                    onClick={() => handleClone(course.id)}
+                  >
+                    {cloningId === course.id ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
                     )}
                   </Button>
                   <Link to={`/teacher/courses/${course.id}`}>

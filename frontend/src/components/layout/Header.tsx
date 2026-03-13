@@ -2,7 +2,8 @@ import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
-import { PenTool, ShieldCheck, User as UserIcon, Menu, X } from "lucide-react"
+import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays } from "lucide-react"
+import NotificationBell from "./NotificationBell"
 
 export default function Header() {
   const { user } = useAuth()
@@ -27,6 +28,12 @@ export default function Header() {
                   Courses
                 </Button>
               </Link>
+              <Link to="/calendar">
+                <Button variant={isActive("/calendar") ? "secondary" : "ghost"} size="sm" className="h-8 text-xs">
+                  <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                  Calendar
+                </Button>
+              </Link>
               {isTeacher && (
                 <Link to="/teacher">
                   <Button variant={isActive("/teacher") ? "secondary" : "ghost"} size="sm" className="h-8 text-xs">
@@ -43,6 +50,7 @@ export default function Header() {
                   </Button>
                 </Link>
               )}
+              <NotificationBell />
               <Link to="/profile">
                 <Button variant={isActive("/profile") ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0 rounded-full">
                   {user.avatar_url ? (
@@ -72,6 +80,7 @@ export default function Header() {
             {user ? (
               <>
                 <Link to="/" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Courses</Link>
+                <Link to="/calendar" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Calendar</Link>
                 {isTeacher && <Link to="/teacher" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Manage Courses</Link>}
                 {user.role === "admin" && <Link to="/admin" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Admin Panel</Link>}
                 <Link to="/profile" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Profile & Settings</Link>

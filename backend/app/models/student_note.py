@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -7,6 +7,11 @@ import uuid
 
 class StudentNote(Base):
     __tablename__ = "student_notes"
+    __table_args__ = (
+        UniqueConstraint("user_id", "chapter_id", name="uq_student_note_user_chapter"),
+        Index("ix_student_notes_user_id", "user_id"),
+        Index("ix_student_notes_chapter_id", "chapter_id"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), nullable=False)

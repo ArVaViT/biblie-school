@@ -29,6 +29,7 @@ const StudentProgress = lazy(() => import("./pages/Teacher/StudentProgress"))
 const ChapterView = lazy(() => import("./pages/Course/ChapterView"))
 const ChapterEditor = lazy(() => import("./pages/Teacher/ChapterEditor"))
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"))
+const CalendarPage = lazy(() => import("./pages/Calendar/CalendarPage"))
 
 function RouteSpinner() {
   return (
@@ -128,6 +129,7 @@ function AppRoutes() {
               <Route path="/" element={<HomePage />} />
               <Route path="/dashboard" element={<Navigate to="/" replace />} />
               <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+              <Route path="/calendar" element={<PrivateRoute><CalendarPage /></PrivateRoute>} />
               <Route path="/certificates" element={<PrivateRoute><CertificatesPage /></PrivateRoute>} />
               <Route path="/courses/:id" element={<PrivateRoute><CourseDetail /></PrivateRoute>} />
               <Route path="/courses/:courseId/modules/:moduleId" element={<PrivateRoute><ModuleView /></PrivateRoute>} />

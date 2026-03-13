@@ -13,6 +13,9 @@ from app.models.prerequisite import CoursePrerequisite
 from app.models.chapter_block import ChapterBlock
 from app.models.chapter_progress import ChapterProgress
 from app.models.cohort import Cohort
+from app.models.notification import Notification
+from app.models.audit_log import AuditLog
+from app.models.course_event import CourseEvent
 
 __all__ = [
     "User", "UserRole", "Course", "Module", "Chapter",
@@ -25,4 +28,7 @@ __all__ = [
     "ChapterBlock",
     "ChapterProgress",
     "Cohort",
+    "Notification",
+    "AuditLog",
+    "CourseEvent",
 ]

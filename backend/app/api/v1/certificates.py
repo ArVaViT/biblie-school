@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 import uuid
@@ -13,6 +13,8 @@ from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.certificate import Certificate
 from app.schemas.certificate import CertificateResponse, CertificateVerifyResponse
+from app.services.notification_service import create_notification
+from app.services.audit_service import log_action
 
 router = APIRouter(prefix="/certificates", tags=["certificates"])
 
@@ -118,6 +120,7 @@ async def list_admin_pending_certificates(
 @router.put("/{cert_id}/teacher-approve", response_model=CertificateResponse)
 async def teacher_approve_certificate(
     cert_id: UUID,
+    request: Request,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
@@ -140,12 +143,14 @@ async def teacher_approve_certificate(
     cert.teacher_approved_by = teacher.id
     db.commit()
     db.refresh(cert)
+    log_action(db, teacher.id, "approve", "certificate", str(cert_id), details={"level": "teacher"}, request=request)
     return cert
 
 
 @router.put("/{cert_id}/admin-approve", response_model=CertificateResponse)
 async def admin_approve_certificate(
     cert_id: UUID,
+    request: Request,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -162,14 +167,29 @@ async def admin_approve_certificate(
     cert.admin_approved_at = datetime.now(timezone.utc)
     cert.admin_approved_by = admin.id
     cert.issued_at = datetime.now(timezone.utc)
+
+    course = db.query(Course).filter(Course.id == cert.course_id).first()
+    course_title = course.title if course else "a course"
+    create_notification(
+        db,
+        user_id=cert.user_id,
+        type="certificate_approved",
+        title="Certificate Approved",
+        message=f"Your certificate for \"{course_title}\" has been approved!",
+        link=f"/certificates",
+        metadata={"course_id": cert.course_id, "certificate_id": str(cert.id)},
+    )
+
     db.commit()
     db.refresh(cert)
+    log_action(db, admin.id, "approve", "certificate", str(cert_id), details={"level": "admin"}, request=request)
     return cert
 
 
 @router.put("/{cert_id}/reject", response_model=CertificateResponse)
 async def reject_certificate(
     cert_id: UUID,
+    request: Request,
     current_user: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
@@ -191,8 +211,22 @@ async def reject_certificate(
                 detail="You can only reject certificates for your own courses",
             )
     cert.status = "rejected"
+
+    course = db.query(Course).filter(Course.id == cert.course_id).first()
+    course_title = course.title if course else "a course"
+    create_notification(
+        db,
+        user_id=cert.user_id,
+        type="certificate_rejected",
+        title="Certificate Rejected",
+        message=f"Your certificate request for \"{course_title}\" was rejected.",
+        link=f"/certificates",
+        metadata={"course_id": cert.course_id, "certificate_id": str(cert.id)},
+    )
+
     db.commit()
     db.refresh(cert)
+    log_action(db, current_user.id, "reject", "certificate", str(cert_id), request=request)
     return cert
 
 

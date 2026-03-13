@@ -43,6 +43,7 @@ class ModuleBase(BaseModel):
     title: str
     description: Optional[str] = None
     order_index: int = 0
+    due_date: Optional[datetime] = None
 
 
 class ModuleCreate(ModuleBase):
@@ -53,6 +54,7 @@ class ModuleUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     order_index: Optional[int] = None
+    due_date: Optional[datetime] = None
 
 
 class ModuleResponse(ModuleBase):
@@ -81,6 +83,8 @@ class CourseUpdate(BaseModel):
     status: Optional[Literal["draft", "published"]] = None
     enrollment_start: Optional[datetime] = None
     enrollment_end: Optional[datetime] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
 
 
 class CourseResponse(CourseBase):
@@ -91,6 +95,8 @@ class CourseResponse(CourseBase):
     updated_at: Optional[datetime] = None
     enrollment_start: Optional[datetime] = None
     enrollment_end: Optional[datetime] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     modules: list[ModuleResponse] = []
 
     class Config:

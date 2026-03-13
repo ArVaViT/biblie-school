@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import Column, String, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -6,6 +6,10 @@ from app.core.database import Base
 
 class File(Base):
     __tablename__ = "files"
+    __table_args__ = (
+        Index("ix_files_course_id", "course_id"),
+        Index("ix_files_user_id", "user_id"),
+    )
 
     id = Column(String, primary_key=True, index=True)
     name = Column(String, nullable=False)

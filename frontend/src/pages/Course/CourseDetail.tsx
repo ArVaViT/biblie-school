@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
 import { useAuth } from "@/context/AuthContext"
-import type { Course, Enrollment, Certificate, Cohort } from "@/types"
+import type { Course, Enrollment, Certificate, Cohort, CalendarEvent } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
   BookOpen, ArrowRight, CheckCircle, Users, Layers, ArrowLeft,
-  CalendarDays, Clock, Lock, Download, Paperclip, Star, X,
+  CalendarDays, Clock, Lock, Download, Paperclip, Star, X, AlertTriangle,
 } from "lucide-react"
 import CourseAnnouncements from "@/components/announcements/CourseAnnouncements"
 import CourseReviews from "@/components/course/CourseReviews"
@@ -69,6 +69,7 @@ export default function CourseDetail() {
   const [completedChapterIds, setCompletedChapterIds] = useState<Set<string>>(new Set())
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
   const [cohorts, setCohorts] = useState<Cohort[]>([])
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
   const [downloadingPath, setDownloadingPath] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -93,14 +94,16 @@ export default function CourseDetail() {
         const match = enrollments.find((e) => e.course_id === id)
         if (match) {
           setEnrollment(match)
-          const [cert, progress, mats] = await Promise.all([
+          const [cert, progress, mats, evts] = await Promise.all([
             coursesService.getCourseCertificate(id),
             coursesService.getMyChapterProgress(id).catch(() => [] as string[]),
             storageService.listCourseMaterials(id).catch(() => [] as CourseMaterial[]),
+            coursesService.getCalendarEvents(id).catch(() => [] as CalendarEvent[]),
           ])
           setCertificate(cert)
           setCompletedChapterIds(new Set(progress))
           setMaterials(mats)
+          setCalendarEvents(evts)
         }
       } catch {
         setError("Failed to load course. Please try again.")
@@ -377,6 +380,56 @@ export default function CourseDetail() {
 
       {id && <CourseAnnouncements courseId={id} />}
 
+      {/* Upcoming Deadlines */}
+      {calendarEvents.length > 0 && (() => {
+        const now = new Date()
+        const upcoming = calendarEvents
+          .filter((e) => new Date(e.event_date).getTime() > now.getTime() - 24 * 60 * 60 * 1000)
+          .slice(0, 5)
+        if (upcoming.length === 0) return null
+        return (
+          <div className="mb-5">
+            <h2 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground">
+              <CalendarDays className="h-3.5 w-3.5" />
+              Upcoming Deadlines & Events
+            </h2>
+            <div className="space-y-1.5">
+              {upcoming.map((evt) => {
+                const evtDate = new Date(evt.event_date)
+                const overdue = evtDate < now && evt.event_type === "deadline"
+                return (
+                  <div
+                    key={evt.id}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${
+                      overdue
+                        ? "border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800"
+                        : "border-border hover:bg-muted/50"
+                    }`}
+                  >
+                    {overdue ? (
+                      <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                    ) : (
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${
+                        evt.event_type === "deadline" ? "bg-red-500"
+                          : evt.event_type === "live_session" ? "bg-blue-500"
+                            : evt.event_type === "exam" ? "bg-orange-500"
+                              : "bg-gray-400"
+                      }`} />
+                    )}
+                    <span className={`flex-1 truncate ${overdue ? "text-red-600 dark:text-red-400" : ""}`}>
+                      {evt.title}
+                    </span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {evtDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Module list */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -448,6 +501,19 @@ export default function CourseDetail() {
                         {module.description}
                       </CardDescription>
                     )}
+                    {module.due_date && (() => {
+                      const dueDate = new Date(module.due_date)
+                      const now = new Date()
+                      const overdue = dueDate < now && !allComplete
+                      return (
+                        <div className={`ml-8 mt-1 flex items-center gap-1 text-[10px] ${
+                          overdue ? "text-red-500" : "text-muted-foreground"
+                        }`}>
+                          {overdue ? <AlertTriangle className="h-2.5 w-2.5" /> : <Clock className="h-2.5 w-2.5" />}
+                          <span>{overdue ? "Overdue" : "Due"}: {formatDate(module.due_date)}</span>
+                        </div>
+                      )
+                    })()}
                   </CardHeader>
                 </Card>
               )

@@ -3,6 +3,10 @@ import { supabase } from "@/lib/supabase"
 import type {
   Course, Module, Chapter, Enrollment, ChapterProgress, Announcement, StudentNote, StudentGrade,
   Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, Cohort,
+  Notification, NotificationListResponse,
+  AuditLogPage,
+  GradingConfig, GradeSummaryResponse,
+  CalendarEvent, CourseEvent,
 } from "../types"
 
 export const coursesService = {
@@ -143,6 +147,11 @@ export const coursesService = {
     await api.delete(`/courses/${id}`)
   },
 
+  async cloneCourse(id: string): Promise<Course> {
+    const response = await api.post<Course>(`/courses/${id}/clone`)
+    return response.data
+  },
+
   // Teacher CRUD — Modules
   async createModule(
     courseId: string,
@@ -155,7 +164,7 @@ export const coursesService = {
   async updateModule(
     courseId: string,
     moduleId: string,
-    data: { title?: string; description?: string; order_index?: number },
+    data: { title?: string; description?: string; order_index?: number; due_date?: string | null },
   ): Promise<Module> {
     const response = await api.put<Module>(`/courses/${courseId}/modules/${moduleId}`, data)
     return response.data
@@ -247,6 +256,21 @@ export const coursesService = {
 
   async getMyGrades(): Promise<StudentGrade[]> {
     const response = await api.get<StudentGrade[]>("/grades/my")
+    return response.data
+  },
+
+  async getGradingConfig(courseId: string): Promise<GradingConfig> {
+    const response = await api.get<GradingConfig>(`/grades/course/${courseId}/config`)
+    return response.data
+  },
+
+  async updateGradingConfig(courseId: string, data: GradingConfig): Promise<GradingConfig> {
+    const response = await api.put<GradingConfig>(`/grades/course/${courseId}/config`, data)
+    return response.data
+  },
+
+  async getGradeSummary(courseId: string): Promise<GradeSummaryResponse> {
+    const response = await api.get<GradeSummaryResponse>(`/grades/course/${courseId}/summary`)
     return response.data
   },
 
@@ -393,5 +417,75 @@ export const coursesService = {
   async getStudentProgress(courseId: string) {
     const response = await api.get(`/progress/course/${courseId}/students`)
     return response.data
+  },
+
+  // Notifications
+  async getNotifications(page: number = 1): Promise<NotificationListResponse> {
+    const response = await api.get<NotificationListResponse>("/notifications", { params: { page } })
+    return response.data
+  },
+  async getUnreadCount(): Promise<number> {
+    const response = await api.get<{ count: number }>("/notifications/unread-count")
+    return response.data.count
+  },
+  async markAsRead(id: string): Promise<Notification> {
+    const response = await api.patch<Notification>(`/notifications/${id}/read`)
+    return response.data
+  },
+  async markAllAsRead(): Promise<void> {
+    await api.post("/notifications/read-all")
+  },
+  async deleteNotification(id: string): Promise<void> {
+    await api.delete(`/notifications/${id}`)
+  },
+
+  // Audit logs (admin)
+  async getAuditLogs(params: {
+    page?: number
+    page_size?: number
+    user_id?: string
+    resource_type?: string
+    action?: string
+    date_from?: string
+    date_to?: string
+  } = {}): Promise<AuditLogPage> {
+    const response = await api.get<AuditLogPage>("/audit", { params })
+    return response.data
+  },
+
+  // Calendar
+  async getCalendarEvents(courseId?: string): Promise<CalendarEvent[]> {
+    const params = courseId ? { course_id: courseId } : undefined
+    const response = await api.get<CalendarEvent[]>("/calendar/events", { params })
+    return response.data
+  },
+
+  async getCourseEvents(courseId: string): Promise<CourseEvent[]> {
+    const response = await api.get<CourseEvent[]>(`/courses/${courseId}/events`)
+    return response.data
+  },
+
+  async createCourseEvent(courseId: string, data: {
+    title: string
+    description?: string
+    event_type?: string
+    event_date: string
+  }): Promise<CourseEvent> {
+    const response = await api.post<CourseEvent>(`/courses/${courseId}/events`, data)
+    return response.data
+  },
+
+  async updateCourseEvent(courseId: string, eventId: string, data: {
+    title?: string
+    description?: string
+    event_type?: string
+    event_date?: string
+  }): Promise<CourseEvent> {
+    const response = await api.put<CourseEvent>(`/courses/${courseId}/events/${eventId}`, data)
+    return response.data
+  },
+
+  async deleteCourseEvent(courseId: string, eventId: string): Promise<void> {
+    await api.delete(`/courses/${courseId}/events/${eventId}`)
   },
 }

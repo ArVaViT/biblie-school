@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Integer
+from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -7,6 +7,12 @@ from app.core.database import Base
 
 class Enrollment(Base):
     __tablename__ = "enrollments"
+    __table_args__ = (
+        UniqueConstraint("user_id", "course_id", name="uq_enrollment_user_course"),
+        Index("ix_enrollments_user_id", "user_id"),
+        Index("ix_enrollments_course_id", "course_id"),
+        Index("ix_enrollments_cohort_id", "cohort_id"),
+    )
 
     id = Column(String, primary_key=True, index=True)
     user_id = Column(PgUUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)

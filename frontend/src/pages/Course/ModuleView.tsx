@@ -18,6 +18,8 @@ import {
   Headphones,
   MessageSquare,
   Layers,
+  CalendarDays,
+  AlertTriangle,
 } from "lucide-react"
 
 const CHAPTER_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText; color: string }> = {
@@ -122,6 +124,34 @@ export default function ModuleView() {
           <p className="text-sm text-muted-foreground leading-relaxed">{module.description}</p>
         )}
       </div>
+
+      {module.due_date && (() => {
+        const dueDate = new Date(module.due_date)
+        const now = new Date()
+        const isOverdue = dueDate < now && !allComplete
+        const isUpcoming = !isOverdue && dueDate.getTime() - now.getTime() < 3 * 24 * 60 * 60 * 1000
+        return (
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-md border mb-4 ${
+            isOverdue
+              ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+              : isUpcoming
+                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+                : "bg-muted/50 border-border"
+          }`}>
+            {isOverdue ? (
+              <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+            ) : (
+              <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+            )}
+            <span className={`text-sm font-medium ${
+              isOverdue ? "text-red-700 dark:text-red-400" : isUpcoming ? "text-amber-700 dark:text-amber-400" : "text-foreground"
+            }`}>
+              {isOverdue ? "Overdue" : "Due"}: {dueDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+              {" at "}{dueDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+        )
+      })()}
 
       {allComplete && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 mb-4">

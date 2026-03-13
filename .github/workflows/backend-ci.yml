@@ -35,3 +35,11 @@ jobs:
           SUPABASE_KEY: placeholder
           DATABASE_URL: postgresql://user:pass@localhost/db
           JWT_SECRET_KEY: ci-test-secret-key-not-real
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+        env:
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_KEY: placeholder
+          DATABASE_URL: postgresql://user:pass@localhost/db
+          JWT_SECRET_KEY: ci-test-secret-key-not-real
