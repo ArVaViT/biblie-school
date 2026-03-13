@@ -11,6 +11,7 @@ class GradeResponse(BaseModel):
     id: str
     student_id: str
     course_id: str
+    cohort_id: str | None = None
     grade: str | None = None
     comment: str | None = None
     graded_by: str

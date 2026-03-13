@@ -61,7 +61,7 @@ async def upload_file(
             "url": file_metadata.url,
             "file_type": file_metadata.file_type,
         }
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="File upload failed",

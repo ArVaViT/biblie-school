@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from typing import Optional
 import uuid
 
 from app.core.database import get_db
@@ -110,26 +112,34 @@ async def get_grade_summary(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    course = verify_course_owner(db, course_id, teacher.id)
-    results = calculate_all_student_grades(db, course)
+    import traceback, logging
+    logger = logging.getLogger(__name__)
+    try:
+        course = verify_course_owner(db, course_id, teacher.id)
+        results = calculate_all_student_grades(db, course)
 
-    students = [StudentCalculatedGrade(**r) for r in results]
-    class_avg = (
-        round(sum(s.breakdown.final_score for s in students) / len(students), 2)
-        if students
-        else 0.0
-    )
+        students = [StudentCalculatedGrade(**r) for r in results]
+        class_avg = (
+            round(sum(s.breakdown.final_score for s in students) / len(students), 2)
+            if students
+            else 0.0
+        )
 
-    return GradeSummaryResponse(
-        course_id=course_id,
-        config=GradingConfigResponse(
-            quiz_weight=course.quiz_weight,
-            assignment_weight=course.assignment_weight,
-            participation_weight=course.participation_weight,
-        ),
-        students=students,
-        class_average=class_avg,
-    )
+        return GradeSummaryResponse(
+            course_id=course_id,
+            config=GradingConfigResponse(
+                quiz_weight=course.quiz_weight,
+                assignment_weight=course.assignment_weight,
+                participation_weight=course.participation_weight,
+            ),
+            students=students,
+            class_average=class_avg,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Grade summary error: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Grade calculation failed: {str(e)}")
 
 
 # ── Existing Manual Grade Endpoints ───────────────────────────────
@@ -172,34 +182,33 @@ async def get_my_grade_for_course(
 @router.get("/course/{course_id}", response_model=list[GradeResponse])
 async def list_course_grades(
     course_id: str,
+    cohort_id: Optional[str] = Query(None),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> list[GradeResponse]:
     verify_course_owner(db, course_id, teacher.id)
-    return (
-        db.query(StudentGrade)
-        .filter(StudentGrade.course_id == course_id)
-        .order_by(StudentGrade.graded_at.desc())
-        .all()
-    )
+    query = db.query(StudentGrade).filter(StudentGrade.course_id == course_id)
+    if cohort_id is not None:
+        query = query.filter(StudentGrade.cohort_id == cohort_id)
+    return query.order_by(StudentGrade.graded_at.desc()).all()
 
 
 @router.get("/course/{course_id}/student/{student_id}", response_model=GradeResponse)
 async def get_student_grade(
     course_id: str,
     student_id: str,
+    cohort_id: Optional[str] = Query(None),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> GradeResponse:
     verify_course_owner(db, course_id, teacher.id)
-    grade = (
-        db.query(StudentGrade)
-        .filter(
-            StudentGrade.student_id == student_id,
-            StudentGrade.course_id == course_id,
-        )
-        .first()
+    query = db.query(StudentGrade).filter(
+        StudentGrade.student_id == student_id,
+        StudentGrade.course_id == course_id,
     )
+    if cohort_id is not None:
+        query = query.filter(StudentGrade.cohort_id == cohort_id)
+    grade = query.first()
     if not grade:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -213,29 +222,32 @@ async def upsert_student_grade(
     course_id: str,
     student_id: str,
     data: GradeUpsert,
+    cohort_id: Optional[str] = Query(None),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> GradeResponse:
     verify_course_owner(db, course_id, teacher.id)
-    grade = (
-        db.query(StudentGrade)
-        .filter(
-            StudentGrade.student_id == student_id,
-            StudentGrade.course_id == course_id,
-        )
-        .first()
+    query = db.query(StudentGrade).filter(
+        StudentGrade.student_id == student_id,
+        StudentGrade.course_id == course_id,
     )
+    if cohort_id is not None:
+        query = query.filter(StudentGrade.cohort_id == cohort_id)
+    grade = query.first()
+
     if grade:
         if data.grade is not None:
             grade.grade = data.grade
         if data.comment is not None:
             grade.comment = data.comment
         grade.graded_by = teacher.id
+        grade.graded_at = datetime.now(timezone.utc)
     else:
         grade = StudentGrade(
             id=uuid.uuid4(),
             student_id=student_id,
             course_id=course_id,
+            cohort_id=cohort_id,
             grade=data.grade,
             comment=data.comment,
             graded_by=teacher.id,

@@ -211,19 +211,22 @@ export default function ChapterView() {
         setCompletedIds((prev) => new Set(prev).add(chapter.id))
       }
 
-      const updatedCompleted = wasCompleted
-        ? new Set([...completedIds].filter((id) => id !== chapter.id))
-        : new Set([...completedIds, chapter.id])
-      const total = sortedChapters.length
-      const completedCount = updatedCompleted.size
-      const progress = total > 0 ? Math.round((completedCount / total) * 100) : 0
+      const [allCompleted, courseData] = await Promise.all([
+        coursesService.getMyChapterProgress(courseId),
+        coursesService.getCourse(courseId),
+      ])
+      const totalChapters = (courseData.modules ?? []).reduce(
+        (sum, m) => sum + (m.chapters?.length ?? 0),
+        0,
+      )
+      const progress = totalChapters > 0 ? Math.round((allCompleted.length / totalChapters) * 100) : 0
       await coursesService.updateProgress(courseId, progress)
     } catch {
       toast({ title: "Failed to update chapter progress", variant: "destructive" })
     } finally {
       setToggling(false)
     }
-  }, [chapter, courseId, completedIds, toggling, sortedChapters])
+  }, [chapter, courseId, completedIds, toggling])
 
   if (loading) {
     return (

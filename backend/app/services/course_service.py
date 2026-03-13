@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_
 from app.models.course import Course, Module, Chapter
 from app.models.enrollment import Enrollment
@@ -21,7 +21,7 @@ def get_courses(
     db: Session, *, skip: int = 0, limit: int = 100, search: str | None = None
 ) -> list[Course]:
     query = db.query(Course).options(
-        joinedload(Course.modules).joinedload(Module.chapters)
+        selectinload(Course.modules).selectinload(Module.chapters)
     ).filter(Course.status == "published")
     if search:
         term = f"%{search}%"
@@ -145,6 +145,9 @@ def create_chapter(db: Session, module_id: str, data: ChapterCreate) -> Chapter:
         content=data.content,
         video_url=data.video_url,
         order_index=data.order_index,
+        chapter_type=data.chapter_type,
+        requires_completion=data.requires_completion,
+        is_locked=data.is_locked,
     )
     db.add(chapter)
     db.commit()
@@ -194,7 +197,11 @@ def enroll_user_in_course(
 def get_user_courses(db: Session, user_id: str) -> list[Enrollment]:
     return (
         db.query(Enrollment)
-        .options(joinedload(Enrollment.course).joinedload(Course.modules))
+        .options(
+            joinedload(Enrollment.course)
+            .selectinload(Course.modules)
+            .selectinload(Module.chapters)
+        )
         .filter(Enrollment.user_id == user_id)
         .order_by(Enrollment.enrolled_at.desc())
         .all()

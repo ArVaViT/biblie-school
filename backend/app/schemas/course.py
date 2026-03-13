@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Literal, Optional
 from uuid import UUID
@@ -88,9 +88,11 @@ class CourseUpdate(BaseModel):
 
 
 class CourseResponse(CourseBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     status: str = "draft"
-    created_by: UUID
+    created_by: Optional[UUID] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     enrollment_start: Optional[datetime] = None
@@ -98,9 +100,6 @@ class CourseResponse(CourseBase):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     modules: list[ModuleResponse] = []
-
-    class Config:
-        from_attributes = True
 
 
 class EnrollmentResponse(BaseModel):

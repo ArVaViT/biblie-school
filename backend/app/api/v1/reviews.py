@@ -5,7 +5,6 @@ from uuid import UUID
 from app.core.database import get_db
 from app.api.dependencies import get_current_user
 from app.models.user import User
-from app.models.enrollment import Enrollment
 from app.models.certificate import Certificate
 from app.models.review import CourseReview
 from app.schemas.review import ReviewCreate, ReviewResponse

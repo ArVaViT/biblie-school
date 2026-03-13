@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
+import { toast } from "@/hooks/use-toast"
 import type { Assignment, AssignmentSubmission } from "@/types"
 import {
   FileText,
@@ -91,7 +92,7 @@ function SingleAssignment({ assignment }: { assignment: Assignment }) {
       setContent("")
       setFileUrl("")
     } catch {
-      // error
+      toast({ title: "Failed to submit assignment", variant: "destructive" })
     } finally {
       setSubmitting(false)
     }

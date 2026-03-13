@@ -1,11 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.core.database import get_db
 from app.api.dependencies import require_teacher, verify_course_owner
 from app.models.user import User
-from app.models.course import Course
 from app.models.enrollment import Enrollment
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])

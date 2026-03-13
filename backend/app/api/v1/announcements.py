@@ -4,7 +4,7 @@ from typing import Optional
 import uuid
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher
+from app.api.dependencies import require_teacher
 from app.models.user import User, UserRole
 from app.models.announcement import Announcement
 from app.models.course import Course
@@ -48,6 +48,8 @@ async def create_announcement(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only create announcements for your own courses",
             )
+    else:
+        course = None
 
     announcement = Announcement(
         id=uuid.uuid4(),
@@ -65,7 +67,6 @@ async def create_announcement(
             .filter(Enrollment.course_id == data.course_id)
             .all()
         )
-        course = db.query(Course).filter(Course.id == data.course_id).first()
         course_title = course.title if course else "a course"
         for (user_id,) in enrolled_users:
             if str(user_id) != str(teacher.id):

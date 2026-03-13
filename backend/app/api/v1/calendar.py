@@ -1,8 +1,6 @@
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import Optional
-from uuid import UUID
 
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner

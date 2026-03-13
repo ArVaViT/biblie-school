@@ -176,7 +176,7 @@ async def admin_approve_certificate(
         type="certificate_approved",
         title="Certificate Approved",
         message=f"Your certificate for \"{course_title}\" has been approved!",
-        link=f"/certificates",
+        link="/certificates",
         metadata={"course_id": cert.course_id, "certificate_id": str(cert.id)},
     )
 
@@ -220,7 +220,7 @@ async def reject_certificate(
         type="certificate_rejected",
         title="Certificate Rejected",
         message=f"Your certificate request for \"{course_title}\" was rejected.",
-        link=f"/certificates",
+        link="/certificates",
         metadata={"course_id": cert.course_id, "certificate_id": str(cert.id)},
     )
 

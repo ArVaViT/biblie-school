@@ -1,13 +1,9 @@
-from datetime import datetime, timezone
-from typing import Optional
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
+from app.api.dependencies import require_teacher, verify_course_owner
 from app.models.user import User
 from app.models.cohort import Cohort
 from app.models.enrollment import Enrollment
@@ -132,14 +128,23 @@ async def list_cohort_students(
         .all()
     )
 
+    student_ids = [e.user_id for e in enrollments]
+    grades_map: dict[str, StudentGrade] = {}
+    if student_ids:
+        grades = (
+            db.query(StudentGrade)
+            .filter(
+                StudentGrade.student_id.in_(student_ids),
+                StudentGrade.course_id == cohort.course_id,
+                StudentGrade.cohort_id == cohort.id,
+            )
+            .all()
+        )
+        grades_map = {str(g.student_id): g for g in grades}
+
     results = []
     for enrollment in enrollments:
-        grade = db.query(StudentGrade).filter(
-            StudentGrade.student_id == enrollment.user_id,
-            StudentGrade.course_id == cohort.course_id,
-            StudentGrade.cohort_id == cohort.id,
-        ).first()
-
+        grade = grades_map.get(str(enrollment.user_id))
         results.append({
             "enrollment_id": str(enrollment.id),
             "user_id": str(enrollment.user_id),

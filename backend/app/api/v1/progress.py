@@ -7,7 +7,7 @@ from uuid import UUID
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner, verify_chapter_owner
 from app.models.user import User
-from app.models.course import Course, Module, Chapter
+from app.models.course import Module, Chapter
 from app.models.enrollment import Enrollment
 from app.models.quiz import Quiz, QuizAttempt
 from app.models.assignment import Assignment, AssignmentSubmission
@@ -251,7 +251,6 @@ async def teacher_complete_chapter(
 ):
     """Teacher marks a student's chapter as complete."""
     verify_chapter_owner(db, chapter_id, teacher.id)
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
 
     progress = (
         db.query(ChapterProgress)

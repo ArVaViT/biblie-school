@@ -74,7 +74,7 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
       setShowResults(true)
       setAttempts((prev) => [attempt, ...prev])
     } catch {
-      // error handled silently
+      toast({ title: "Failed to submit quiz", variant: "destructive" })
     } finally {
       setSubmitting(false)
     }
@@ -193,7 +193,7 @@ function QuestionCard({
   answer?: { selected_option_id?: string; text_answer?: string }
   onAnswer: (val: { selected_option_id?: string; text_answer?: string }) => void
 }) {
-  const sortedOptions = [...question.options].sort((a, b) => a.order_index - b.order_index)
+  const sortedOptions = [...(question.options ?? [])].sort((a, b) => a.order_index - b.order_index)
 
   return (
     <div className="space-y-3">
@@ -304,7 +304,7 @@ function ResultsView({
         <h4 className="text-sm font-semibold">Review Answers</h4>
         {questions.map((q, idx) => {
           const userAnswer = answers[q.id]
-          const correctOption = q.options.find((o) => o.is_correct)
+          const correctOption = (q.options ?? []).find((o) => o.is_correct)
           const isCorrect =
             q.question_type === "short_answer"
               ? null
@@ -338,7 +338,7 @@ function ResultsView({
               </div>
               {q.question_type !== "short_answer" && (
                 <div className="ml-7 space-y-1">
-                  {[...q.options].sort((a, b) => a.order_index - b.order_index).map((opt) => {
+                  {[...(q.options ?? [])].sort((a, b) => a.order_index - b.order_index).map((opt) => {
                     const isSelected = userAnswer?.selected_option_id === opt.id
                     const isRight = opt.is_correct
                     return (

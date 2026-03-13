@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
+from app.api.dependencies import require_teacher, verify_course_owner
 from app.models.user import User
 from app.models.course import Course
 from app.models.prerequisite import CoursePrerequisite

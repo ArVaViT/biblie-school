@@ -26,13 +26,17 @@ export default function StudentNotes({ chapterId }: StudentNotesProps) {
 
   const save = useCallback(async (text: string) => {
     if (!loaded) return
-    if (text.trim()) {
-      await coursesService.saveNote(chapterId, text)
-    } else {
-      await coursesService.deleteNote(chapterId)
+    try {
+      if (text.trim()) {
+        await coursesService.saveNote(chapterId, text)
+      } else {
+        await coursesService.deleteNote(chapterId)
+      }
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      // save failed silently — will retry on next autosave
     }
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
   }, [chapterId, loaded])
 
   const handleChange = (value: string) => {

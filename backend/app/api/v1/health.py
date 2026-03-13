@@ -18,15 +18,15 @@ async def check_database(db: Session = Depends(get_db)) -> dict:
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
                 WHERE table_schema = 'public' 
-                AND table_name = 'users'
+                AND table_name = 'profiles'
             )
         """))
-        users_table_exists = result.scalar()
+        profiles_table_exists = result.scalar()
 
         return {
             "status": "ok",
             "database": "connected",
-            "users_table_exists": users_table_exists,
+            "profiles_table_exists": profiles_table_exists,
         }
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=503, detail="Database connection failed")
