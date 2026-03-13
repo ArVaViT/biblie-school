@@ -8,7 +8,7 @@ from app.api.dependencies import get_current_user, require_teacher, verify_chapt
 from app.models.user import User
 from app.models.course import Module, Chapter
 from app.models.enrollment import Enrollment
-from app.models.quiz import Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer
+from app.models.quiz import Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, QuizExtraAttempt
 from app.schemas.quiz import (
     QuizCreate,
     QuizUpdate,
@@ -16,6 +16,8 @@ from app.schemas.quiz import (
     QuizStudentResponse,
     QuizSubmitRequest,
     QuizAttemptResponse,
+    GrantExtraAttemptsRequest,
+    ExtraAttemptsResponse,
 )
 
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
@@ -30,7 +32,17 @@ async def get_chapter_quiz(
     quiz = db.query(Quiz).filter(Quiz.chapter_id == chapter_id).first()
     if not quiz:
         return None
-    return quiz
+
+    resp = QuizStudentResponse.model_validate(quiz)
+    if resp.max_attempts is not None:
+        extra = (
+            db.query(QuizExtraAttempt)
+            .filter(QuizExtraAttempt.quiz_id == quiz.id, QuizExtraAttempt.user_id == current_user.id)
+            .first()
+        )
+        if extra:
+            resp.max_attempts = resp.max_attempts + extra.extra_attempts
+    return resp
 
 
 def _verify_quiz_owner(db: Session, quiz: Quiz, teacher_id) -> None:
@@ -172,7 +184,16 @@ async def submit_quiz(
             )
             .count()
         )
-        if used_attempts >= quiz.max_attempts:
+        extra = (
+            db.query(QuizExtraAttempt)
+            .filter(
+                QuizExtraAttempt.quiz_id == quiz_id,
+                QuizExtraAttempt.user_id == current_user.id,
+            )
+            .first()
+        )
+        total_allowed = quiz.max_attempts + (extra.extra_attempts if extra else 0)
+        if used_attempts >= total_allowed:
             detail = "Maximum attempts reached"
             if quiz.quiz_type == "exam":
                 detail = "Exam attempts limit reached"
@@ -267,5 +288,57 @@ async def get_my_quiz_attempts(
             QuizAttempt.user_id == current_user.id,
         )
         .order_by(QuizAttempt.started_at.desc())
+        .all()
+    )
+
+
+@router.post("/{quiz_id}/extra-attempts", response_model=ExtraAttemptsResponse)
+async def grant_extra_attempts(
+    quiz_id: UUID,
+    data: GrantExtraAttemptsRequest,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    if not quiz:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    _verify_quiz_owner(db, quiz, teacher.id)
+
+    existing = (
+        db.query(QuizExtraAttempt)
+        .filter(QuizExtraAttempt.quiz_id == quiz_id, QuizExtraAttempt.user_id == data.user_id)
+        .first()
+    )
+    if existing:
+        existing.extra_attempts = data.extra_attempts
+        existing.granted_by = teacher.id
+    else:
+        existing = QuizExtraAttempt(
+            quiz_id=quiz_id,
+            user_id=data.user_id,
+            extra_attempts=data.extra_attempts,
+            granted_by=teacher.id,
+        )
+        db.add(existing)
+
+    db.commit()
+    db.refresh(existing)
+    return existing
+
+
+@router.get("/{quiz_id}/extra-attempts", response_model=list[ExtraAttemptsResponse])
+async def list_extra_attempts(
+    quiz_id: UUID,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    if not quiz:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    _verify_quiz_owner(db, quiz, teacher.id)
+
+    return (
+        db.query(QuizExtraAttempt)
+        .filter(QuizExtraAttempt.quiz_id == quiz_id)
         .all()
     )

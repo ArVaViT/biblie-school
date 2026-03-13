@@ -50,6 +50,7 @@ export default function ChapterEditor() {
   const [requiresCompletion, setRequiresCompletion] = useState(false)
 
   const [moduleName, setModuleName] = useState("Module")
+  const [isDirty, setIsDirty] = useState(false)
 
   const load = useCallback(async () => {
     if (!courseId || !moduleId || !chapterId) return
@@ -81,6 +82,20 @@ export default function ChapterEditor() {
     load()
   }, [load])
 
+  useEffect(() => {
+    if (!chapter) return
+    setIsDirty(true)
+  }, [title, chapterType, content, videoUrl, requiresCompletion])
+
+  useEffect(() => {
+    if (!isDirty) return
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [isDirty])
+
   const save = useCallback(async () => {
     if (!courseId || !moduleId || !chapterId || !title.trim()) return
     setSaving(true)
@@ -102,13 +117,16 @@ export default function ChapterEditor() {
       }
 
       await coursesService.updateChapter(courseId, moduleId, chapterId, payload as any)
+      setIsDirty(false)
       toast({ title: "Chapter saved", variant: "success" })
-    } catch {
-      toast({ title: "Failed to save chapter", variant: "destructive" })
+      navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || "Unknown error"
+      toast({ title: `Failed to save: ${detail}`, variant: "destructive" })
     } finally {
       setSaving(false)
     }
-  }, [courseId, moduleId, chapterId, title, chapterType, requiresCompletion, content, videoUrl])
+  }, [courseId, moduleId, chapterId, title, chapterType, requiresCompletion, content, videoUrl, navigate])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -171,9 +189,10 @@ export default function ChapterEditor() {
           variant="ghost"
           size="sm"
           className="shrink-0"
-          onClick={() =>
+          onClick={() => {
+            if (isDirty && !confirm("You have unsaved changes. Leave anyway?")) return
             navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)
-          }
+          }}
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back

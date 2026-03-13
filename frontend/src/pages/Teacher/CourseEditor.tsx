@@ -334,7 +334,12 @@ export default function CourseEditor() {
     )
   }
   if (!course) return null
-  const modules = [...(course.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
+  const modules = [...(course.modules ?? [])].sort((a, b) => {
+    const da = a.due_date ? new Date(a.due_date).getTime() : Infinity
+    const db = b.due_date ? new Date(b.due_date).getTime() : Infinity
+    if (da !== db) return da - db
+    return a.order_index - b.order_index
+  })
   const pub = course.status === "published"
 
   return (

@@ -9,6 +9,7 @@ import { courseSchema, type CourseFormData } from "@/lib/validations/course"
 import type { Course, Certificate } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users, Clock, CheckCircle, XCircle, Award, Search, Copy } from "lucide-react"
+import { getErrorDetail } from "@/lib/errorDetail"
 
 export default function TeacherDashboard() {
   const navigate = useNavigate()
@@ -31,8 +32,8 @@ export default function TeacherDashboard() {
       await coursesService.teacherApproveCert(certId)
       setPendingCerts((prev) => prev.filter((c) => c.id !== certId))
       toast({ title: "Certificate approved", variant: "success" })
-    } catch {
-      toast({ title: "Failed to approve certificate", variant: "destructive" })
+    } catch (err) {
+      toast({ title: getErrorDetail(err, "Failed to approve certificate"), variant: "destructive" })
     } finally {
       setCertActionId(null)
     }
@@ -44,8 +45,8 @@ export default function TeacherDashboard() {
       await coursesService.rejectCert(certId)
       setPendingCerts((prev) => prev.filter((c) => c.id !== certId))
       toast({ title: "Certificate rejected", variant: "success" })
-    } catch {
-      toast({ title: "Failed to reject certificate", variant: "destructive" })
+    } catch (err) {
+      toast({ title: getErrorDetail(err, "Failed to reject certificate"), variant: "destructive" })
     } finally {
       setCertActionId(null)
     }
@@ -60,8 +61,8 @@ export default function TeacherDashboard() {
         prev.map((c) => (c.id === course.id ? { ...c, status: newStatus } : c)),
       )
       toast({ title: `Course ${newStatus === "published" ? "published" : "unpublished"}`, variant: "success" })
-    } catch {
-      toast({ title: "Failed to update status", variant: "destructive" })
+    } catch (err) {
+      toast({ title: getErrorDetail(err, "Failed to update status"), variant: "destructive" })
     } finally {
       setTogglingId(null)
     }
@@ -126,8 +127,8 @@ export default function TeacherDashboard() {
       await coursesService.deleteCourse(id)
       setCourses((prev) => prev.filter((c) => c.id !== id))
       toast({ title: "Course deleted", variant: "success" })
-    } catch {
-      toast({ title: "Failed to delete course", variant: "destructive" })
+    } catch (err) {
+      toast({ title: getErrorDetail(err, "Failed to delete course"), variant: "destructive" })
     }
   }
 
@@ -137,8 +138,8 @@ export default function TeacherDashboard() {
       const cloned = await coursesService.cloneCourse(id)
       toast({ title: "Course cloned successfully", variant: "success" })
       navigate(`/teacher/courses/${cloned.id}`)
-    } catch {
-      toast({ title: "Failed to clone course", variant: "destructive" })
+    } catch (err) {
+      toast({ title: getErrorDetail(err, "Failed to clone course"), variant: "destructive" })
     } finally {
       setCloningId(null)
     }

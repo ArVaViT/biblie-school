@@ -46,8 +46,11 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
     try {
       const data = await coursesService.getChapterBlocks(chapterId)
       setBlocks(data.sort((a, b) => a.order_index - b.order_index))
-    } catch {
-      // blocks endpoint may not exist yet; fail silently
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail
+      if (detail) {
+        toast({ title: `Failed to load blocks: ${detail}`, variant: "destructive" })
+      }
     } finally {
       setLoading(false)
     }
@@ -69,8 +72,9 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
       setExpandedBlock(newBlock.id)
       initEditState(newBlock)
       toast({ title: `${type} block added`, variant: "success" })
-    } catch {
-      toast({ title: "Failed to add block", variant: "destructive" })
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || "Unknown error"
+      toast({ title: `Failed to add block: ${detail}`, variant: "destructive" })
     } finally {
       setAddingBlock(false)
     }

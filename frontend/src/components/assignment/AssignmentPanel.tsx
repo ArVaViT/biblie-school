@@ -20,9 +20,10 @@ import {
 
 interface AssignmentPanelProps {
   chapterId: string
+  onSubmitted?: () => void
 }
 
-export default function AssignmentPanel({ chapterId }: AssignmentPanelProps) {
+export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPanelProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -49,13 +50,13 @@ export default function AssignmentPanel({ chapterId }: AssignmentPanelProps) {
   return (
     <div className="space-y-4 mt-6">
       {assignments.map((assignment) => (
-        <SingleAssignment key={assignment.id} assignment={assignment} />
+        <SingleAssignment key={assignment.id} assignment={assignment} onSubmitted={onSubmitted} />
       ))}
     </div>
   )
 }
 
-function SingleAssignment({ assignment }: { assignment: Assignment }) {
+function SingleAssignment({ assignment, onSubmitted }: { assignment: Assignment; onSubmitted?: () => void }) {
   const [submission, setSubmission] = useState<AssignmentSubmission | null>(null)
   const [loadingSub, setLoadingSub] = useState(true)
   const [content, setContent] = useState("")
@@ -91,6 +92,7 @@ function SingleAssignment({ assignment }: { assignment: Assignment }) {
       setSubmission(sub)
       setContent("")
       setFileUrl("")
+      onSubmitted?.()
     } catch {
       toast({ title: "Failed to submit assignment", variant: "destructive" })
     } finally {

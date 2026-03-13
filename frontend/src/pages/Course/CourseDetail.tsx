@@ -180,7 +180,12 @@ export default function CourseDetail() {
   }
 
   const isEnrolled = !!enrollment
-  const sortedModules = [...(course.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
+  const sortedModules = [...(course.modules ?? [])].sort((a, b) => {
+    const da = a.due_date ? new Date(a.due_date).getTime() : Infinity
+    const db = b.due_date ? new Date(b.due_date).getTime() : Infinity
+    if (da !== db) return da - db
+    return a.order_index - b.order_index
+  })
   const totalChapters = sortedModules.reduce((sum, m) => sum + (m.chapters?.length ?? 0), 0)
 
   const activeCohort = cohorts.find((c) => c.status === "active")

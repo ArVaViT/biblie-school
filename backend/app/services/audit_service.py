@@ -18,8 +18,8 @@ def log_action(
     details: Optional[dict] = None,
     request: Optional[Request] = None,
 ) -> None:
-    """Persist an audit log entry. Silently swallows errors so it never
-    breaks the main request flow."""
+    """Persist an audit log entry. Uses a separate connection so it never
+    interferes with the caller's transaction."""
     try:
         ip_address = None
         user_agent = None
@@ -37,7 +37,7 @@ def log_action(
             user_agent=user_agent,
         )
         db.add(entry)
-        db.commit()
+        db.flush()
     except Exception:
         logger.exception("Failed to write audit log")
         try:

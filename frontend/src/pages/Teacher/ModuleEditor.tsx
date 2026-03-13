@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
 import {
   ArrowUp, ArrowDown, Plus, Trash2, ChevronRight,
-  Shield, Loader2, Pencil, CalendarDays,
+  Shield, Loader2, Pencil, CalendarDays, Lock, Unlock,
 } from "lucide-react"
 
 const CHAPTER_TYPE_BADGES: Record<string, string> = {
@@ -144,6 +144,20 @@ export default function ModuleEditor() {
       toast({ title: "Chapter deleted", variant: "success" })
     } catch {
       toast({ title: "Failed to delete chapter", variant: "destructive" })
+    }
+  }
+
+  const toggleLock = async (ch: Chapter) => {
+    if (!courseId || !moduleId) return
+    const newLocked = !ch.is_locked
+    updateChapterLocal(ch.id, { is_locked: newLocked })
+    try {
+      await coursesService.updateChapter(courseId, moduleId, ch.id, { is_locked: newLocked })
+      toast({ title: newLocked ? "Chapter locked" : "Chapter unlocked", variant: "success" })
+    } catch (err: any) {
+      updateChapterLocal(ch.id, { is_locked: ch.is_locked })
+      const detail = err?.response?.data?.detail || "Unknown error"
+      toast({ title: `Failed to toggle lock: ${detail}`, variant: "destructive" })
     }
   }
 
@@ -298,6 +312,16 @@ export default function ModuleEditor() {
                       <Shield className="h-3 w-3" />
                     </span>
                   )}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`shrink-0 h-8 w-8 p-0 ${ch.is_locked ? "text-amber-600 hover:text-amber-700" : "text-muted-foreground"}`}
+                    onClick={() => toggleLock(ch)}
+                    title={ch.is_locked ? "Unlock chapter" : "Lock chapter"}
+                  >
+                    {ch.is_locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                  </Button>
 
                   <div className="flex flex-col shrink-0">
                     <Button

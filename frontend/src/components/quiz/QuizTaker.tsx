@@ -85,12 +85,6 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
     }
   }
 
-  const resetQuiz = () => {
-    setAnswers({})
-    setResult(null)
-    setShowResults(false)
-  }
-
   const maxScore = sortedQuestions.reduce((sum, q) => sum + q.points, 0)
 
   return (
@@ -117,7 +111,6 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
           quiz={quiz}
           questions={sortedQuestions}
           answers={answers}
-          onRetry={resetQuiz}
         />
       ) : (
         <div className="p-5 space-y-6">
@@ -280,13 +273,11 @@ function ResultsView({
   quiz,
   questions,
   answers,
-  onRetry,
 }: {
   result: QuizAttempt
   quiz: Quiz
   questions: QuizQuestion[]
   answers: Record<string, { selected_option_id?: string; text_answer?: string }>
-  onRetry: () => void
 }) {
   const scorePercent = result.max_score ? Math.round(((result.score ?? 0) / result.max_score) * 100) : 0
 
@@ -381,11 +372,7 @@ function ResultsView({
         })}
       </div>
 
-      {((quiz.max_attempts ?? null) === null || (quiz.max_attempts ?? 0) > 1) && (
-        <Button variant="outline" onClick={onRetry} className="w-full">
-          {quiz.quiz_type === "exam" ? "Retry Exam" : "Try Again"}
-        </Button>
-      )}
+      
     </div>
   )
 }

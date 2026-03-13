@@ -63,7 +63,7 @@ function ChapterTypeBadge({ type }: { type: string }) {
   )
 }
 
-function BlockRenderer({ block }: { block: ChapterBlock }) {
+function BlockRenderer({ block, onAssignmentSubmitted }: { block: ChapterBlock; onAssignmentSubmitted?: () => void }) {
   switch (block.block_type) {
     case "text":
       return block.content ? (
@@ -92,7 +92,7 @@ function BlockRenderer({ block }: { block: ChapterBlock }) {
       return block.quiz_id ? <QuizTaker chapterId={block.chapter_id} /> : null
 
     case "assignment":
-      return block.assignment_id ? <AssignmentPanel chapterId={block.chapter_id} /> : null
+      return block.assignment_id ? <AssignmentPanel chapterId={block.chapter_id} onSubmitted={onAssignmentSubmitted} /> : null
 
     case "file":
       return block.file_url ? (
@@ -129,6 +129,7 @@ export default function ChapterView() {
   const [chapterBlocks, setChapterBlocks] = useState<ChapterBlock[]>([])
   const [loadingBlocks, setLoadingBlocks] = useState(false)
   const [discussionResponse, setDiscussionResponse] = useState("")
+  const [hasAssignments, setHasAssignments] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -182,6 +183,11 @@ export default function ChapterView() {
       setChapterBlocks([])
     }
     setDiscussionResponse("")
+
+    coursesService
+      .getChapterAssignments(chapter.id)
+      .then((a) => setHasAssignments(a.length > 0))
+      .catch(() => setHasAssignments(false))
   }, [chapter?.id, chapter?.chapter_type])
 
   const isChapterLocked = useCallback(
@@ -196,7 +202,6 @@ export default function ChapterView() {
 
   const toggleComplete = useCallback(async () => {
     if (!chapter || !courseId || toggling) return
-    if (chapter.requires_completion) return
 
     setToggling(true)
     const wasCompleted = completedIds.has(chapter.id)
@@ -229,6 +234,23 @@ export default function ChapterView() {
       setToggling(false)
     }
   }, [chapter, courseId, completedIds, toggling])
+
+  const refreshCompletion = useCallback(async () => {
+    if (!chapter || !courseId) return
+    setCompletedIds((prev) => new Set(prev).add(chapter.id))
+    try {
+      const allCompleted = await coursesService.getMyChapterProgress(courseId)
+      const courseData = await coursesService.getCourse(courseId)
+      const totalChapters = (courseData.modules ?? []).reduce(
+        (sum, m) => sum + (m.chapters?.length ?? 0),
+        0,
+      )
+      const progress = totalChapters > 0 ? Math.round((allCompleted.length / totalChapters) * 100) : 0
+      await coursesService.updateProgress(courseId, progress)
+    } catch {
+      // non-critical
+    }
+  }, [chapter, courseId])
 
   if (loading) {
     return (
@@ -371,7 +393,7 @@ export default function ChapterView() {
         )}
 
         {chapterType === "assignment" && (
-          <AssignmentPanel chapterId={chapter.id} />
+          <AssignmentPanel chapterId={chapter.id} onSubmitted={refreshCompletion} />
         )}
 
         {chapterType === "discussion" && (
@@ -412,7 +434,7 @@ export default function ChapterView() {
             ) : chapterBlocks.length > 0 ? (
               <div className="space-y-6">
                 {chapterBlocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} />
+                  <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
                 ))}
               </div>
             ) : (
@@ -438,7 +460,7 @@ export default function ChapterView() {
                   />
                 )}
                 <QuizTaker chapterId={chapter.id} />
-                <AssignmentPanel chapterId={chapter.id} />
+                <AssignmentPanel chapterId={chapter.id} onSubmitted={refreshCompletion} />
               </>
             )}
           </>
@@ -458,16 +480,16 @@ export default function ChapterView() {
 
       {/* Completion toggle */}
       <div className="mt-6 pt-4 border-t">
-        {chapter.requires_completion ? (
+        {hasAssignments ? (
           isCompleted ? (
             <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
               <CheckCircle className="h-4 w-4" />
-              Marked complete by your instructor
+              Completed
             </p>
           ) : (
-            <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
-              <Lock className="h-4 w-4" />
-              This chapter will be marked complete by your instructor.
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Circle className="h-4 w-4" />
+              Submit the assignment to complete this chapter
             </p>
           )
         ) : (

@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.course import Module, Chapter
 from app.models.enrollment import Enrollment
 from app.models.assignment import Assignment, AssignmentSubmission
+from app.models.chapter_progress import ChapterProgress
 from app.schemas.assignment import (
     AssignmentCreate,
     AssignmentUpdate,
@@ -118,6 +119,27 @@ async def submit_assignment(
         file_url=data.file_url,
     )
     db.add(submission)
+
+    if chapter:
+        progress = (
+            db.query(ChapterProgress)
+            .filter(
+                ChapterProgress.user_id == current_user.id,
+                ChapterProgress.chapter_id == chapter.id,
+            )
+            .first()
+        )
+        if not progress:
+            progress = ChapterProgress(
+                user_id=current_user.id,
+                chapter_id=chapter.id,
+            )
+            db.add(progress)
+        if not progress.completed:
+            progress.completed = True
+            progress.completed_at = datetime.now(timezone.utc)
+            progress.completion_type = "self"
+
     db.commit()
     db.refresh(submission)
     return submission

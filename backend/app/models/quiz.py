@@ -85,6 +85,20 @@ class QuizAttempt(Base):
     completed_at = Column(DateTime(timezone=True))
 
 
+class QuizExtraAttempt(Base):
+    __tablename__ = "quiz_extra_attempts"
+    __table_args__ = (
+        Index("ix_quiz_extra_attempts_quiz_user", "quiz_id", "user_id", unique=True),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    quiz_id = Column(UUID(as_uuid=True), ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    extra_attempts = Column(Integer, nullable=False, default=1)
+    granted_by = Column(UUID(as_uuid=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class QuizAnswer(Base):
     __tablename__ = "quiz_answers"
     __table_args__ = (

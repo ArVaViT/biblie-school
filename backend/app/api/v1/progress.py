@@ -229,12 +229,6 @@ async def self_complete_chapter(
                 detail="You must be enrolled in this course",
             )
 
-    if chapter.requires_completion:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This chapter requires teacher completion",
-        )
-
     progress = (
         db.query(ChapterProgress)
         .filter(ChapterProgress.user_id == current_user.id, ChapterProgress.chapter_id == chapter_id)
@@ -254,6 +248,32 @@ async def self_complete_chapter(
     progress.completion_type = "self"
     db.commit()
     return {"message": "Chapter marked as complete", "chapter_id": chapter_id}
+
+
+@router.put("/chapter/{chapter_id}/uncomplete")
+async def self_uncomplete_chapter(
+    chapter_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Student removes their own chapter completion."""
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+
+    progress = (
+        db.query(ChapterProgress)
+        .filter(ChapterProgress.user_id == current_user.id, ChapterProgress.chapter_id == chapter_id)
+        .first()
+    )
+    if not progress or not progress.completed:
+        return {"message": "Not completed", "chapter_id": chapter_id}
+
+    progress.completed = False
+    progress.completed_at = None
+    progress.completion_type = "self"
+    db.commit()
+    return {"message": "Chapter completion removed", "chapter_id": chapter_id}
 
 
 @router.put("/chapter/{chapter_id}/student/{student_id}/complete")

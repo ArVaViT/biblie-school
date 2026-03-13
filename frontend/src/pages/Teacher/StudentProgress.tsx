@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/hooks/use-toast"
+import { getErrorDetail } from "@/lib/errorDetail"
 import {
   ArrowLeft,
   Users,
@@ -83,8 +84,8 @@ export default function StudentProgress() {
       try {
         const result = await coursesService.getStudentProgress(courseId)
         setData(result)
-      } catch {
-        toast({ title: "Failed to load student progress", variant: "destructive" })
+      } catch (err) {
+        toast({ title: getErrorDetail(err, "Failed to load student progress"), variant: "destructive" })
       } finally {
         setLoading(false)
       }
@@ -208,14 +209,21 @@ export default function StudentProgress() {
 
   if (!data) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <p className="text-muted-foreground">Failed to load student progress.</p>
-        <Link to="/teacher">
-          <Button variant="ghost" className="mt-4">
-            <ArrowLeft className="h-4 w-4 mr-1.5" />
-            Back to courses
+      <div className="container mx-auto px-4 py-8 max-w-6xl text-center">
+        <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+        <h2 className="text-lg font-medium mb-2">Failed to load student progress</h2>
+        <p className="text-sm text-muted-foreground mb-4">The server may be temporarily unavailable. Please try again.</p>
+        <div className="flex justify-center gap-2">
+          <Button variant="outline" onClick={() => { setLoading(true); window.location.reload() }}>
+            Retry
           </Button>
-        </Link>
+          <Link to="/teacher">
+            <Button variant="ghost">
+              <ArrowLeft className="h-4 w-4 mr-1.5" />
+              Back to courses
+            </Button>
+          </Link>
+        </div>
       </div>
     )
   }

@@ -105,10 +105,11 @@ export default function AdminDashboard() {
       if (auditDateTo) params.date_to = new Date(auditDateTo + "T23:59:59").toISOString()
 
       const data = await coursesService.getAuditLogs(params)
-      setAuditLogs(data.items)
-      setAuditTotal(data.total)
-    } catch {
-      toast({ title: "Failed to load audit logs", variant: "destructive" })
+      setAuditLogs(data.items ?? [])
+      setAuditTotal(data.total ?? 0)
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || "The audit_logs table may not exist yet. Deploy the latest migration."
+      toast({ title: `Audit log error: ${detail}`, variant: "destructive" })
     } finally {
       setAuditLoading(false)
     }

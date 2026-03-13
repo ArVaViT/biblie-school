@@ -134,3 +134,20 @@ class QuizAttemptResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class GrantExtraAttemptsRequest(BaseModel):
+    user_id: UUID
+    extra_attempts: int = Field(..., ge=1, le=10)
+
+
+class ExtraAttemptsResponse(BaseModel):
+    id: UUID
+    quiz_id: UUID
+    user_id: UUID
+    extra_attempts: int
+    granted_by: UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -264,6 +264,7 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
             title=module.title,
             description=module.description,
             order_index=module.order_index,
+            due_date=module.due_date,
         )
         db.add(new_module)
 
@@ -294,6 +295,8 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
                     chapter_id=new_chapter_id,
                     title=quiz.title,
                     description=quiz.description,
+                    quiz_type=getattr(quiz, "quiz_type", "quiz") or "quiz",
+                    max_attempts=getattr(quiz, "max_attempts", None),
                     passing_score=quiz.passing_score,
                 )
                 db.add(new_quiz)

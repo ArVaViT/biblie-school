@@ -73,45 +73,23 @@ export const coursesService = {
     return response.data
   },
 
-  // Chapter progress (via Supabase direct)
   async getChapterProgress(chapterIds: string[]): Promise<ChapterProgress[]> {
     if (chapterIds.length === 0) return []
     const { data, error } = await supabase
       .from("chapter_progress")
       .select("*")
       .in("chapter_id", chapterIds)
+      .eq("completed", true)
     if (error) throw error
     return data ?? []
   },
 
-  async markChapterComplete(chapterId: string): Promise<ChapterProgress> {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error("Not authenticated")
-
-    const { data, error } = await supabase
-      .from("chapter_progress")
-      .upsert(
-        { user_id: session.user.id, chapter_id: chapterId },
-        { onConflict: "user_id,chapter_id" },
-      )
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
+  async markChapterComplete(chapterId: string): Promise<void> {
+    await api.put(`/progress/chapter/${chapterId}/complete`)
   },
 
   async unmarkChapterComplete(chapterId: string): Promise<void> {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error("Not authenticated")
-
-    const { error } = await supabase
-      .from("chapter_progress")
-      .delete()
-      .eq("chapter_id", chapterId)
-      .eq("user_id", session.user.id)
-
-    if (error) throw error
+    await api.put(`/progress/chapter/${chapterId}/uncomplete`)
   },
 
   // Admin: all users
