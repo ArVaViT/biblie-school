@@ -6,6 +6,8 @@ from uuid import UUID
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner
 from app.models.user import User
+from app.models.course import Module, Chapter
+from app.models.enrollment import Enrollment
 from app.models.quiz import Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer
 from app.schemas.quiz import (
     QuizCreate,
@@ -135,6 +137,21 @@ async def submit_quiz(
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+
+    chapter = db.query(Chapter).filter(Chapter.id == quiz.chapter_id).first()
+    if chapter:
+        module = db.query(Module).filter(Module.id == chapter.module_id).first()
+        if module:
+            enrolled = (
+                db.query(Enrollment)
+                .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
+                .first()
+            )
+            if not enrolled:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You must be enrolled in this course to submit quizzes",
+                )
 
     attempt = QuizAttempt(
         quiz_id=quiz_id,

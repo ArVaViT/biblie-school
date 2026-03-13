@@ -103,6 +103,8 @@ class CourseResponse(CourseBase):
 
 
 class EnrollmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: UUID
     course_id: str
@@ -110,6 +112,3 @@ class EnrollmentResponse(BaseModel):
     enrolled_at: datetime
     progress: int
     course: Optional[CourseResponse] = None
-
-    class Config:
-        from_attributes = True

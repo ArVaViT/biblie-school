@@ -64,15 +64,11 @@ export default function TeacherGradebook() {
     setLoading(true)
     setError(null)
     try {
-      const [course, gradeSummary, rawGrades] = await Promise.all([
+      const [course, rawGrades] = await Promise.all([
         coursesService.getCourse(courseId),
-        coursesService.getGradeSummary(courseId),
-        coursesService.getCourseGrades(courseId),
+        coursesService.getCourseGrades(courseId).catch(() => []),
       ])
       setCourseTitle(course.title)
-      setSummary(gradeSummary)
-      setConfig(gradeSummary.config)
-      setConfigDraft(gradeSummary.config)
 
       const gradeMap = new Map<string, StudentGrade>()
       const formMap = new Map<string, GradeForm>()
@@ -82,6 +78,15 @@ export default function TeacherGradebook() {
       }
       setManualGrades(gradeMap)
       setForms(formMap)
+
+      try {
+        const gradeSummary = await coursesService.getGradeSummary(courseId)
+        setSummary(gradeSummary)
+        setConfig(gradeSummary.config)
+        setConfigDraft(gradeSummary.config)
+      } catch {
+        // Grade summary may fail on cold start; page still works with manual grades
+      }
     } catch {
       setError("Failed to load gradebook. Please try again.")
     } finally {

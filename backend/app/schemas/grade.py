@@ -16,7 +16,7 @@ class GradeResponse(BaseModel):
     comment: str | None = None
     graded_by: str
     graded_at: datetime
-    updated_at: datetime
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True

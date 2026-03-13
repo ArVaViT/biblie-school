@@ -20,7 +20,7 @@ class AnnouncementResponse(BaseModel):
     course_id: str | None = None
     created_by: str
     created_at: datetime
-    updated_at: datetime
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True

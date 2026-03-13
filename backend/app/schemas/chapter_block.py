@@ -34,7 +34,7 @@ class BlockResponse(BaseModel):
     assignment_id: Optional[str] = None
     file_url: Optional[str] = None
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

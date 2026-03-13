@@ -33,7 +33,7 @@ class CohortResponse(BaseModel):
     status: str
     max_students: Optional[int] = None
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     student_count: int = 0
 
     class Config:

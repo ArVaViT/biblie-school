@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -25,10 +25,11 @@ async def list_course_reviews(
     )
 
 
-@router.post("/course/{course_id}", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/course/{course_id}", response_model=ReviewResponse)
 async def create_or_update_review(
     course_id: str,
     data: ReviewCreate,
+    response: Response,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -58,6 +59,7 @@ async def create_or_update_review(
         existing.comment = data.comment
         db.commit()
         db.refresh(existing)
+        response.status_code = status.HTTP_200_OK
         return existing
 
     review = CourseReview(
@@ -69,6 +71,7 @@ async def create_or_update_review(
     db.add(review)
     db.commit()
     db.refresh(review)
+    response.status_code = status.HTTP_201_CREATED
     return review
 
 

@@ -11,9 +11,24 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "methods": ["OPTIONS"],
+      "headers": {
+        "Access-Control-Allow-Origin": "https://biblie-school-frontend.vercel.app",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Requested-With",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Max-Age": "86400"
+      },
+      "dest": "index.py"
+    },
+    {
       "src": "/(.*)",
+      "headers": {
+        "Access-Control-Allow-Origin": "https://biblie-school-frontend.vercel.app",
+        "Access-Control-Allow-Credentials": "true"
+      },
       "dest": "index.py"
     }
   ]
 }
-

@@ -12,7 +12,7 @@ class NoteResponse(BaseModel):
     chapter_id: str
     content: str
     created_at: datetime
-    updated_at: datetime
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True

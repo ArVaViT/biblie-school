@@ -215,6 +215,20 @@ async def self_complete_chapter(
     chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
     if not chapter:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+
+    module = db.query(Module).filter(Module.id == chapter.module_id).first()
+    if module:
+        enrolled = (
+            db.query(Enrollment)
+            .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
+            .first()
+        )
+        if not enrolled:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must be enrolled in this course",
+            )
+
     if chapter.requires_completion:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

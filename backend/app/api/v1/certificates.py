@@ -133,7 +133,7 @@ async def teacher_approve_certificate(
             detail=f"Certificate is not pending (current status: {cert.status})",
         )
     course = db.query(Course).filter(Course.id == cert.course_id).first()
-    if not course or course.created_by != teacher.id:
+    if not course or str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only approve certificates for your own courses",

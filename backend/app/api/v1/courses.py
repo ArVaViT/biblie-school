@@ -115,7 +115,7 @@ async def update_existing_course(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.created_by != teacher.id:
+    if str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own courses",
@@ -145,7 +145,7 @@ async def remove_course(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.created_by != teacher.id:
+    if str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only delete your own courses",
@@ -210,7 +210,7 @@ async def create_new_module(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.created_by != teacher.id:
+    if str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own courses",
@@ -232,7 +232,7 @@ async def update_existing_module(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.created_by != teacher.id:
+    if str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own courses",
@@ -261,7 +261,7 @@ async def remove_module(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.created_by != teacher.id:
+    if str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own courses",
@@ -297,7 +297,7 @@ async def create_new_chapter(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.created_by != teacher.id:
+    if str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own courses",
@@ -333,7 +333,7 @@ async def update_existing_chapter(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.created_by != teacher.id:
+    if str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own courses",
@@ -368,7 +368,7 @@ async def remove_chapter(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.created_by != teacher.id:
+    if str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own courses",
