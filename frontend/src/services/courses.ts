@@ -298,6 +298,17 @@ export const coursesService = {
     const response = await api.get<QuizAttempt[]>(`/quizzes/${quizId}/my-attempts`)
     return response.data
   },
+  async grantExtraAttempts(quizId: string, userId: string, extraAttempts: number) {
+    const response = await api.post(`/quizzes/${quizId}/extra-attempts`, {
+      user_id: userId,
+      extra_attempts: extraAttempts,
+    })
+    return response.data
+  },
+  async getQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
+    const response = await api.get<QuizAttempt[]>(`/quizzes/${quizId}/attempts`)
+    return response.data
+  },
 
   // Assignments
   async getChapterAssignments(chapterId: string): Promise<Assignment[]> {

@@ -21,14 +21,18 @@ import {
   ClipboardList,
   BarChart3,
   FileText,
+  RotateCcw,
+  Loader2,
 } from "lucide-react"
 
 interface QuizResult {
   chapter_title: string
   chapter_id: string
+  quiz_id?: string
   score: number
   max_score: number
   passed: boolean
+  attempts_used?: number
 }
 
 interface AssignmentResult {
@@ -485,6 +489,7 @@ function StudentRow({
   onStudentUpdate,
 }: StudentRowProps) {
   const [togglingChapter, setTogglingChapter] = useState<string | null>(null)
+  const [grantingQuiz, setGrantingQuiz] = useState<string | null>(null)
 
   const allChapters = new Map<string, { quiz?: QuizResult; assignment?: AssignmentResult; chapterInfo?: ChapterInfo }>()
 
@@ -517,6 +522,18 @@ function StudentRow({
       toast({ title: "Failed to update completion", variant: "destructive" })
     } finally {
       setTogglingChapter(null)
+    }
+  }
+
+  const handleGrantExtraAttempt = async (quizId: string) => {
+    setGrantingQuiz(quizId)
+    try {
+      await coursesService.grantExtraAttempts(quizId, student.id, 1)
+      toast({ title: "Extra attempt granted", variant: "success" })
+    } catch {
+      toast({ title: "Failed to grant extra attempt", variant: "destructive" })
+    } finally {
+      setGrantingQuiz(null)
     }
   }
 
@@ -595,11 +612,6 @@ function StudentRow({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium truncate">{title}</p>
-                            {chapterInfo?.requires_completion && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400 shrink-0">
-                                Required
-                              </span>
-                            )}
                           </div>
                           {chapterInfo && (
                             <p className="text-xs mt-0.5">
@@ -626,6 +638,25 @@ function StudentRow({
                             <span>
                               Quiz: {quiz.score}/{quiz.max_score}
                             </span>
+                            {quiz.quiz_id && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                                disabled={grantingQuiz === quiz.quiz_id}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleGrantExtraAttempt(quiz.quiz_id!)
+                                }}
+                                title="Grant extra attempt"
+                              >
+                                {grantingQuiz === quiz.quiz_id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="h-3 w-3" />
+                                )}
+                              </Button>
+                            )}
                           </div>
                         )}
                         {assignment && (

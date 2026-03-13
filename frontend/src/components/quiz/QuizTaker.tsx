@@ -281,6 +281,10 @@ function ResultsView({
 }) {
   const scorePercent = result.max_score ? Math.round(((result.score ?? 0) / result.max_score) * 100) : 0
 
+  const answerMap = new Map(
+    (result.answers ?? []).map((a) => [a.question_id, a])
+  )
+
   return (
     <div className="p-5 space-y-6">
       <Card className={result.passed ? "border-green-300 dark:border-green-700" : "border-red-300 dark:border-red-700"}>
@@ -306,11 +310,11 @@ function ResultsView({
         <h4 className="text-sm font-semibold">Review Answers</h4>
         {questions.map((q, idx) => {
           const userAnswer = answers[q.id]
-          const correctOption = (q.options ?? []).find((o) => o.is_correct)
+          const answerResult = answerMap.get(q.id)
           const isCorrect =
             q.question_type === "short_answer"
               ? null
-              : userAnswer?.selected_option_id === correctOption?.id
+              : answerResult?.is_correct ?? null
 
           return (
             <div
@@ -342,7 +346,7 @@ function ResultsView({
                 <div className="ml-7 space-y-1">
                   {[...(q.options ?? [])].sort((a, b) => a.order_index - b.order_index).map((opt) => {
                     const isSelected = userAnswer?.selected_option_id === opt.id
-                    const isRight = opt.is_correct
+                    const isRight = answerResult?.correct_option_id === opt.id
                     return (
                       <div
                         key={opt.id}
@@ -371,8 +375,6 @@ function ResultsView({
           )
         })}
       </div>
-
-      
     </div>
   )
 }

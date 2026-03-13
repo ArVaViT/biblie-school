@@ -169,6 +169,15 @@ export interface Quiz {
   created_at: string
 }
 
+export interface QuizAnswerResult {
+  question_id: string
+  selected_option_id: string | null
+  text_answer: string | null
+  is_correct: boolean | null
+  points_earned: number
+  correct_option_id: string | null
+}
+
 export interface QuizAttempt {
   id: string
   quiz_id: string
@@ -178,6 +187,7 @@ export interface QuizAttempt {
   passed: boolean | null
   started_at: string
   completed_at: string | null
+  answers?: QuizAnswerResult[]
 }
 
 export interface Assignment {

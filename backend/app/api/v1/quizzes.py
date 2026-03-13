@@ -16,6 +16,7 @@ from app.schemas.quiz import (
     QuizStudentResponse,
     QuizSubmitRequest,
     QuizAttemptResponse,
+    QuizAnswerResult,
     GrantExtraAttemptsRequest,
     ExtraAttemptsResponse,
 )
@@ -219,6 +220,13 @@ async def submit_quiz(
     )
     options_by_id = {str(o.id): o for o in all_options}
 
+    correct_option_map: dict[str, UUID | None] = {}
+    for o in all_options:
+        if o.is_correct:
+            correct_option_map[str(o.question_id)] = o.id
+
+    answer_results: list[QuizAnswerResult] = []
+
     for ans in data.answers:
         question = questions_map.get(ans.question_id)
         if not question:
@@ -236,7 +244,7 @@ async def submit_quiz(
 
         total_score += points_earned
 
-        answer = QuizAnswer(
+        db_answer = QuizAnswer(
             attempt_id=attempt.id,
             question_id=ans.question_id,
             selected_option_id=ans.selected_option_id,
@@ -244,7 +252,16 @@ async def submit_quiz(
             is_correct=is_correct,
             points_earned=points_earned,
         )
-        db.add(answer)
+        db.add(db_answer)
+
+        answer_results.append(QuizAnswerResult(
+            question_id=ans.question_id,
+            selected_option_id=ans.selected_option_id,
+            text_answer=ans.text_answer,
+            is_correct=is_correct,
+            points_earned=points_earned,
+            correct_option_id=correct_option_map.get(str(ans.question_id)),
+        ))
 
     attempt.score = total_score
     attempt.max_score = max_score
@@ -254,7 +271,18 @@ async def submit_quiz(
 
     db.commit()
     db.refresh(attempt)
-    return attempt
+
+    return QuizAttemptResponse(
+        id=attempt.id,
+        quiz_id=attempt.quiz_id,
+        user_id=attempt.user_id,
+        score=attempt.score,
+        max_score=attempt.max_score,
+        passed=attempt.passed,
+        started_at=attempt.started_at,
+        completed_at=attempt.completed_at,
+        answers=answer_results,
+    )
 
 
 @router.get("/{quiz_id}/attempts", response_model=list[QuizAttemptResponse])

@@ -81,9 +81,11 @@ async def get_course_student_progress(
     ) if all_quiz_ids else []
 
     quiz_to_chapter = {}
+    quiz_to_quiz_id = {}
     for ch_id, qs in quiz_map.items():
         for q in qs:
             quiz_to_chapter[q.id] = ch_id
+            quiz_to_quiz_id[q.id] = str(q.id)
 
     attempts_by_user_chapter: dict[tuple, list] = defaultdict(list)
     latest_quiz_by_user: dict[str, datetime] = {}
@@ -142,9 +144,11 @@ async def get_course_student_progress(
                 quiz_results.append({
                     "chapter_title": chapter_map.get(str(ch_id), ""),
                     "chapter_id": str(ch_id),
+                    "quiz_id": quiz_to_quiz_id.get(best.quiz_id, ""),
                     "score": best.score or 0,
                     "max_score": best.max_score or 0,
                     "passed": bool(best.passed),
+                    "attempts_used": len(best_attempts),
                 })
 
         assignment_results = []
@@ -211,7 +215,7 @@ async def self_complete_chapter(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Student self-completes a chapter (only if requires_completion is False)."""
+    """Student self-completes a chapter."""
     chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
     if not chapter:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")

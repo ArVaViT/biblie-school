@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
 import {
   ArrowUp, ArrowDown, Plus, Trash2, ChevronRight,
-  Shield, Loader2, Pencil, CalendarDays, Lock, Unlock,
+  Loader2, Pencil, CalendarDays, Lock, Unlock,
 } from "lucide-react"
 
 const CHAPTER_TYPE_BADGES: Record<string, string> = {
@@ -306,12 +306,6 @@ export default function ModuleEditor() {
                   >
                     {type}
                   </span>
-
-                  {ch.requires_completion && (
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0" title="Requires teacher approval">
-                      <Shield className="h-3 w-3" />
-                    </span>
-                  )}
 
                   <Button
                     variant="ghost"

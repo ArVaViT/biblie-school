@@ -122,6 +122,18 @@ class QuizSubmitRequest(BaseModel):
     answers: list[QuizSubmitAnswer]
 
 
+class QuizAnswerResult(BaseModel):
+    question_id: UUID
+    selected_option_id: Optional[UUID] = None
+    text_answer: Optional[str] = None
+    is_correct: Optional[bool] = None
+    points_earned: int = 0
+    correct_option_id: Optional[UUID] = None
+
+    class Config:
+        from_attributes = True
+
+
 class QuizAttemptResponse(BaseModel):
     id: UUID
     quiz_id: UUID
@@ -131,6 +143,7 @@ class QuizAttemptResponse(BaseModel):
     passed: Optional[bool] = None
     started_at: datetime
     completed_at: Optional[datetime] = None
+    answers: list[QuizAnswerResult] = []
 
     class Config:
         from_attributes = True

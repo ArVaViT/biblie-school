@@ -14,7 +14,7 @@ import type { Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
   ChevronRight, Save, FileText, PlayCircle, Headphones,
-  HelpCircle, ClipboardList, MessageSquare, Puzzle, Shield, Loader2, GraduationCap,
+  HelpCircle, ClipboardList, MessageSquare, Puzzle, Loader2, GraduationCap,
   ArrowLeft,
 } from "lucide-react"
 
@@ -47,8 +47,6 @@ export default function ChapterEditor() {
   const [chapterType, setChapterType] = useState<ChapterType>("reading")
   const [content, setContent] = useState("")
   const [videoUrl, setVideoUrl] = useState("")
-  const [requiresCompletion, setRequiresCompletion] = useState(false)
-
   const [moduleName, setModuleName] = useState("Module")
   const [isDirty, setIsDirty] = useState(false)
 
@@ -69,7 +67,6 @@ export default function ChapterEditor() {
       setChapterType(CHAPTER_TYPES.some((t) => t.value === type) ? type : "reading")
       setContent(ch.content ?? "")
       setVideoUrl(ch.video_url ?? "")
-      setRequiresCompletion(ch.requires_completion ?? false)
     } catch {
       toast({ title: "Failed to load chapter", variant: "destructive" })
       navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)
@@ -85,7 +82,7 @@ export default function ChapterEditor() {
   useEffect(() => {
     if (!chapter) return
     setIsDirty(true)
-  }, [title, chapterType, content, videoUrl, requiresCompletion])
+  }, [title, chapterType, content, videoUrl])
 
   useEffect(() => {
     if (!isDirty) return
@@ -103,7 +100,6 @@ export default function ChapterEditor() {
       const payload: Record<string, unknown> = {
         title: title.trim(),
         chapter_type: chapterType,
-        requires_completion: requiresCompletion,
       }
 
       if (chapterType === "reading" || chapterType === "discussion") {
@@ -126,7 +122,7 @@ export default function ChapterEditor() {
     } finally {
       setSaving(false)
     }
-  }, [courseId, moduleId, chapterId, title, chapterType, requiresCompletion, content, videoUrl, navigate])
+  }, [courseId, moduleId, chapterId, title, chapterType, content, videoUrl, navigate])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -243,25 +239,6 @@ export default function ChapterEditor() {
             )
           })}
         </div>
-      </div>
-
-      {/* Requires completion toggle */}
-      <div className="mb-6">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={requiresCompletion}
-            onChange={() => setRequiresCompletion(!requiresCompletion)}
-            className="h-4 w-4 rounded border-input"
-          />
-          <Shield className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">
-            Requires teacher approval to complete
-          </span>
-        </label>
-        <p className="text-xs text-muted-foreground mt-1 ml-6">
-          Students cannot self-mark this chapter as complete; a teacher must approve it.
-        </p>
       </div>
 
       {/* Type-specific editor */}
