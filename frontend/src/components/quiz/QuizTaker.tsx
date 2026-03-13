@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react"
+import { toast } from "@/hooks/use-toast"
 
 interface QuizTakerProps {
   chapterId: string
@@ -44,9 +45,9 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
   }, [chapterId])
 
   if (loading) return null
-  if (!quiz || quiz.questions.length === 0) return null
+  if (!quiz || (quiz.questions ?? []).length === 0) return null
 
-  const sortedQuestions = [...quiz.questions].sort((a, b) => a.order_index - b.order_index)
+  const sortedQuestions = [...(quiz.questions ?? [])].sort((a, b) => a.order_index - b.order_index)
 
   const setAnswer = (questionId: string, value: { selected_option_id?: string; text_answer?: string }) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }))

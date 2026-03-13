@@ -53,6 +53,28 @@ def _get_assignment_ids_for_chapters(db: Session, chapter_ids: list[str]) -> lis
     return [r[0] for r in rows]
 
 
+def _build_breakdown(
+    course: Course,
+    quiz_avg: float,
+    assignment_avg: float,
+    participation_pct: float,
+) -> GradeBreakdown:
+    quiz_weighted = quiz_avg * course.quiz_weight / 100.0
+    assignment_weighted = assignment_avg * course.assignment_weight / 100.0
+    participation_weighted = participation_pct * course.participation_weight / 100.0
+    final_score = round(quiz_weighted + assignment_weighted + participation_weighted, 2)
+    return GradeBreakdown(
+        quiz_avg=round(quiz_avg, 2),
+        quiz_weighted=round(quiz_weighted, 2),
+        assignment_avg=round(assignment_avg, 2),
+        assignment_weighted=round(assignment_weighted, 2),
+        participation_pct=round(participation_pct, 2),
+        participation_weighted=round(participation_weighted, 2),
+        final_score=final_score,
+        letter_grade=score_to_letter(final_score),
+    )
+
+
 def calculate_student_grade(
     db: Session,
     course: Course,
@@ -62,30 +84,26 @@ def calculate_student_grade(
     assignment_ids: list[UUID],
 ) -> GradeBreakdown:
     """Calculate a single student's weighted grade breakdown."""
-
-    # --- Quiz component: best attempt per quiz ---
     quiz_avg = 0.0
     if quiz_ids:
-        best_scores: list[float] = []
-        for qid in quiz_ids:
-            best = (
-                db.query(
-                    sqlfunc.max(
-                        QuizAttempt.score * 100.0 / sqlfunc.nullif(QuizAttempt.max_score, 0)
-                    )
-                )
-                .filter(
-                    QuizAttempt.quiz_id == qid,
-                    QuizAttempt.user_id == student_id,
-                    QuizAttempt.completed_at.isnot(None),
-                )
-                .scalar()
+        rows = (
+            db.query(
+                QuizAttempt.quiz_id,
+                sqlfunc.max(
+                    QuizAttempt.score * 100.0 / sqlfunc.nullif(QuizAttempt.max_score, 0)
+                ).label("best"),
             )
-            if best is not None:
-                best_scores.append(float(best))
+            .filter(
+                QuizAttempt.quiz_id.in_(quiz_ids),
+                QuizAttempt.user_id == student_id,
+                QuizAttempt.completed_at.isnot(None),
+            )
+            .group_by(QuizAttempt.quiz_id)
+            .all()
+        )
+        best_scores = [float(r.best) for r in rows if r.best is not None]
         quiz_avg = sum(best_scores) / len(best_scores) if best_scores else 0.0
 
-    # --- Assignment component: average of graded submissions ---
     assignment_avg = 0.0
     if assignment_ids:
         asgn_rows = (
@@ -105,7 +123,6 @@ def calculate_student_grade(
             ]
             assignment_avg = sum(pcts) / len(pcts)
 
-    # --- Participation component: completed chapters / total chapters ---
     total_chapters = len(chapter_ids)
     participation_pct = 0.0
     if total_chapters > 0:
@@ -120,28 +137,13 @@ def calculate_student_grade(
         ) or 0
         participation_pct = (completed_count / total_chapters) * 100.0
 
-    quiz_weighted = quiz_avg * course.quiz_weight / 100.0
-    assignment_weighted = assignment_avg * course.assignment_weight / 100.0
-    participation_weighted = participation_pct * course.participation_weight / 100.0
-    final_score = round(quiz_weighted + assignment_weighted + participation_weighted, 2)
-
-    return GradeBreakdown(
-        quiz_avg=round(quiz_avg, 2),
-        quiz_weighted=round(quiz_weighted, 2),
-        assignment_avg=round(assignment_avg, 2),
-        assignment_weighted=round(assignment_weighted, 2),
-        participation_pct=round(participation_pct, 2),
-        participation_weighted=round(participation_weighted, 2),
-        final_score=final_score,
-        letter_grade=score_to_letter(final_score),
-    )
+    return _build_breakdown(course, quiz_avg, assignment_avg, participation_pct)
 
 
 def calculate_all_student_grades(db: Session, course: Course):
     """
-    Calculate grades for all enrolled students in a course.
-    Returns list of (student_id, student_name, student_email, breakdown, manual_grade).
-    Minimizes DB queries by pre-fetching shared data.
+    Calculate grades for all enrolled students using batch queries.
+    Uses 6 queries total regardless of student count.
     """
     chapter_ids = _get_course_chapter_ids(db, course.id)
     quiz_ids = _get_quiz_ids_for_chapters(db, chapter_ids)
@@ -153,7 +155,68 @@ def calculate_all_student_grades(db: Session, course: Course):
         .filter(Enrollment.course_id == course.id)
         .all()
     )
+    if not enrollments:
+        return []
 
+    student_ids = [e.user_id for e in enrollments]
+
+    # Batch: best quiz scores per student per quiz
+    quiz_scores: dict[str, list[float]] = {str(sid): [] for sid in student_ids}
+    if quiz_ids:
+        rows = (
+            db.query(
+                QuizAttempt.user_id,
+                QuizAttempt.quiz_id,
+                sqlfunc.max(
+                    QuizAttempt.score * 100.0 / sqlfunc.nullif(QuizAttempt.max_score, 0)
+                ).label("best"),
+            )
+            .filter(
+                QuizAttempt.quiz_id.in_(quiz_ids),
+                QuizAttempt.user_id.in_(student_ids),
+                QuizAttempt.completed_at.isnot(None),
+            )
+            .group_by(QuizAttempt.user_id, QuizAttempt.quiz_id)
+            .all()
+        )
+        for r in rows:
+            if r.best is not None:
+                quiz_scores.setdefault(str(r.user_id), []).append(float(r.best))
+
+    # Batch: assignment grades per student
+    asgn_scores: dict[str, list[float]] = {str(sid): [] for sid in student_ids}
+    if assignment_ids:
+        rows = (
+            db.query(AssignmentSubmission.student_id, AssignmentSubmission.grade, Assignment.max_score)
+            .join(Assignment, Assignment.id == AssignmentSubmission.assignment_id)
+            .filter(
+                AssignmentSubmission.assignment_id.in_(assignment_ids),
+                AssignmentSubmission.student_id.in_(student_ids),
+                AssignmentSubmission.grade.isnot(None),
+            )
+            .all()
+        )
+        for r in rows:
+            pct = (r.grade / r.max_score * 100.0) if r.max_score else 0.0
+            asgn_scores.setdefault(str(r.student_id), []).append(pct)
+
+    # Batch: chapter completion counts per student
+    completion_counts: dict[str, int] = {}
+    if chapter_ids:
+        rows = (
+            db.query(ChapterProgress.user_id, sqlfunc.count(ChapterProgress.id))
+            .filter(
+                ChapterProgress.user_id.in_(student_ids),
+                ChapterProgress.chapter_id.in_(chapter_ids),
+                ChapterProgress.completed.is_(True),
+            )
+            .group_by(ChapterProgress.user_id)
+            .all()
+        )
+        for uid, cnt in rows:
+            completion_counts[str(uid)] = cnt
+
+    # Manual grades
     manual_grades_map: dict[str, str | None] = {}
     manual_rows = (
         db.query(StudentGrade.student_id, StudentGrade.grade)
@@ -163,17 +226,24 @@ def calculate_all_student_grades(db: Session, course: Course):
     for row in manual_rows:
         manual_grades_map[str(row.student_id)] = row.grade
 
+    total_chapters = len(chapter_ids)
     results = []
     for user_id, full_name, email in enrollments:
-        breakdown = calculate_student_grade(
-            db, course, user_id, chapter_ids, quiz_ids, assignment_ids
-        )
+        sid = str(user_id)
+        qs = quiz_scores.get(sid, [])
+        quiz_avg = sum(qs) / len(qs) if qs else 0.0
+        asgs = asgn_scores.get(sid, [])
+        assignment_avg = sum(asgs) / len(asgs) if asgs else 0.0
+        comp = completion_counts.get(sid, 0)
+        participation_pct = (comp / total_chapters * 100.0) if total_chapters else 0.0
+
+        breakdown = _build_breakdown(course, quiz_avg, assignment_avg, participation_pct)
         results.append({
-            "student_id": str(user_id),
+            "student_id": sid,
             "student_name": full_name,
             "student_email": email,
             "breakdown": breakdown,
-            "manual_grade": manual_grades_map.get(str(user_id)),
+            "manual_grade": manual_grades_map.get(sid),
         })
 
     return results

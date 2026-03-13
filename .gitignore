@@ -45,3 +45,6 @@ Thumbs.db
 *.log
 
 .vercel
+
+# Database config (may contain credentials)
+alembic.ini
