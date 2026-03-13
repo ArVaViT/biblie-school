@@ -10,6 +10,7 @@ import { Plus, Trash2, Save, ClipboardList, Loader2, GripVertical } from "lucide
 
 interface QuizEditorProps {
   chapterId: string
+  chapterType?: "quiz" | "exam"
 }
 
 interface DraftOption {
@@ -55,7 +56,7 @@ function makeDefaultQuestion(order: number): DraftQuestion {
   }
 }
 
-export default function QuizEditor({ chapterId }: QuizEditorProps) {
+export default function QuizEditor({ chapterId, chapterType = "quiz" }: QuizEditorProps) {
   const [existingQuiz, setExistingQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -64,6 +65,7 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [passingScore, setPassingScore] = useState(70)
+  const [maxAttempts, setMaxAttempts] = useState<number>(1)
   const [questions, setQuestions] = useState<DraftQuestion[]>([])
 
   useEffect(() => {
@@ -77,6 +79,7 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
         setTitle(q.title)
         setDescription(q.description ?? "")
         setPassingScore(q.passing_score)
+        setMaxAttempts(q.max_attempts ?? 1)
         setQuestions(
           q.questions
             .sort((a, b) => a.order_index - b.order_index)
@@ -87,12 +90,14 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
                 .map((o) => ({ ...o, is_correct: !!o.is_correct })),
             })),
         )
+      } else {
+        setMaxAttempts(chapterType === "exam" ? 1 : 3)
       }
       setLoading(false)
     }
     load()
     return () => { cancelled = true }
-  }, [chapterId])
+  }, [chapterId, chapterType])
 
   const addQuestion = () => {
     setQuestions((prev) => [...prev, makeDefaultQuestion(prev.length)])
@@ -177,6 +182,8 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
         chapter_id: chapterId,
         title: title.trim(),
         description: description.trim() || null,
+        quiz_type: chapterType,
+        max_attempts: chapterType === "exam" ? maxAttempts : null,
         passing_score: passingScore,
         questions: questions.map((q) => ({
           question_text: q.question_text,
@@ -191,6 +198,7 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
         })),
       })
       setExistingQuiz(quiz)
+      setMaxAttempts(quiz.max_attempts ?? (chapterType === "exam" ? 1 : 3))
       toast({ title: "Quiz saved", variant: "success" })
     } catch {
       toast({ title: "Failed to save quiz", variant: "destructive" })
@@ -208,6 +216,7 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
       setTitle("")
       setDescription("")
       setPassingScore(70)
+      setMaxAttempts(chapterType === "exam" ? 1 : 3)
       setQuestions([])
       toast({ title: "Quiz deleted", variant: "success" })
     } catch {
@@ -230,7 +239,7 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
       <div className="flex items-center gap-2 mb-2">
         <ClipboardList className="h-4 w-4 text-blue-500" />
         <span className="text-sm font-medium">
-          {existingQuiz ? "Edit Quiz" : "Create Quiz"}
+          {existingQuiz ? `Edit ${chapterType === "exam" ? "Exam" : "Quiz"}` : `Create ${chapterType === "exam" ? "Exam" : "Quiz"}`}
         </span>
       </div>
 
@@ -264,6 +273,19 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
             className="h-8 text-sm w-28"
           />
         </div>
+        {chapterType === "exam" && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Maximum Attempts</Label>
+            <Input
+              type="number"
+              min={1}
+              max={10}
+              value={maxAttempts}
+              onChange={(e) => setMaxAttempts(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
+              className="h-8 text-sm w-28"
+            />
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -416,9 +438,9 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
           ) : (
             <Save className="h-3.5 w-3.5 mr-1.5" />
           )}
-          {saving ? "Saving..." : "Save Quiz"}
+          {saving ? "Saving..." : `Save ${chapterType === "exam" ? "Exam" : "Quiz"}`}
         </Button>
-        {existingQuiz && (
+      {existingQuiz && (
           <Button
             size="sm"
             variant="destructive"
@@ -430,7 +452,7 @@ export default function QuizEditor({ chapterId }: QuizEditorProps) {
             ) : (
               <Trash2 className="h-3.5 w-3.5 mr-1.5" />
             )}
-            Delete Quiz
+            {`Delete ${chapterType === "exam" ? "Exam" : "Quiz"}`}
           </Button>
         )}
       </div>

@@ -9,7 +9,7 @@ class ChapterBase(BaseModel):
     content: Optional[str] = None
     video_url: Optional[str] = None
     order_index: int = 0
-    chapter_type: Literal["reading", "video", "audio", "quiz", "assignment", "discussion", "mixed"] = "reading"
+    chapter_type: Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"] = "reading"
     requires_completion: bool = False
     is_locked: bool = False
 
@@ -23,7 +23,7 @@ class ChapterUpdate(BaseModel):
     content: Optional[str] = None
     video_url: Optional[str] = None
     order_index: Optional[int] = None
-    chapter_type: Optional[Literal["reading", "video", "audio", "quiz", "assignment", "discussion", "mixed"]] = None
+    chapter_type: Optional[Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"]] = None
     requires_completion: Optional[bool] = None
     is_locked: Optional[bool] = None
 

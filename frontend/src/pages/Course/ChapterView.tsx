@@ -13,6 +13,7 @@ import {
   Lock,
   FileText,
   HelpCircle,
+  GraduationCap,
   ClipboardList,
   PlayCircle,
   Headphones,
@@ -45,6 +46,7 @@ const CHAPTER_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText
   video: { label: "Video", icon: PlayCircle, color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
   audio: { label: "Audio", icon: Headphones, color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
   quiz: { label: "Quiz", icon: HelpCircle, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+  exam: { label: "Exam", icon: GraduationCap, color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
   assignment: { label: "Assignment", icon: ClipboardList, color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
   discussion: { label: "Discussion", icon: MessageSquare, color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" },
   mixed: { label: "Mixed", icon: Layers, color: "bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400" },
@@ -364,7 +366,7 @@ export default function ChapterView() {
           </>
         )}
 
-        {chapterType === "quiz" && (
+        {(chapterType === "quiz" || chapterType === "exam") && (
           <QuizTaker chapterId={chapter.id} />
         )}
 
@@ -443,7 +445,7 @@ export default function ChapterView() {
         )}
 
         {/* Fallback for unrecognised types that have content */}
-        {!["reading", "content", "video", "audio", "quiz", "assignment", "discussion", "mixed"].includes(chapterType) && chapter.content && (
+        {!["reading", "content", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"].includes(chapterType) && chapter.content && (
           <div
             className="prose dark:prose-invert max-w-none"
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content) }}

@@ -48,6 +48,10 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
   if (!quiz || (quiz.questions ?? []).length === 0) return null
 
   const sortedQuestions = [...(quiz.questions ?? [])].sort((a, b) => a.order_index - b.order_index)
+  const maxAttempts = quiz.max_attempts ?? null
+  const attemptsUsed = attempts.filter((a) => !!a.completed_at).length
+  const attemptsReached = maxAttempts !== null && attemptsUsed >= maxAttempts
+  const assessmentLabel = quiz.quiz_type === "exam" ? "Exam" : "Quiz"
 
   const setAnswer = (questionId: string, value: { selected_option_id?: string; text_answer?: string }) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }))
@@ -73,8 +77,9 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
       setResult(attempt)
       setShowResults(true)
       setAttempts((prev) => [attempt, ...prev])
-    } catch {
-      toast({ title: "Failed to submit quiz", variant: "destructive" })
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail
+      toast({ title: detail || `Failed to submit ${assessmentLabel.toLowerCase()}`, variant: "destructive" })
     } finally {
       setSubmitting(false)
     }
@@ -102,6 +107,7 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
           <span>{sortedQuestions.length} question{sortedQuestions.length !== 1 ? "s" : ""}</span>
           <span>{maxScore} point{maxScore !== 1 ? "s" : ""}</span>
           <span>Passing: {quiz.passing_score}%</span>
+          {maxAttempts !== null && <span>Attempts: {attemptsUsed}/{maxAttempts}</span>}
         </div>
       </div>
 
@@ -115,6 +121,11 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
         />
       ) : (
         <div className="p-5 space-y-6">
+          {attemptsReached && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-300">
+              Maximum attempts reached for this {assessmentLabel.toLowerCase()}.
+            </div>
+          )}
           {sortedQuestions.map((question, idx) => (
             <QuestionCard
               key={question.id}
@@ -127,7 +138,7 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
 
           <Button
             onClick={handleSubmit}
-            disabled={!allAnswered || submitting}
+            disabled={!allAnswered || submitting || attemptsReached}
             className="w-full"
           >
             {submitting ? (
@@ -136,7 +147,7 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
                 Submitting...
               </>
             ) : (
-              "Submit Quiz"
+              `Submit ${assessmentLabel}`
             )}
           </Button>
         </div>
@@ -370,9 +381,11 @@ function ResultsView({
         })}
       </div>
 
-      <Button variant="outline" onClick={onRetry} className="w-full">
-        Try Again
-      </Button>
+      {((quiz.max_attempts ?? null) === null || (quiz.max_attempts ?? 0) > 1) && (
+        <Button variant="outline" onClick={onRetry} className="w-full">
+          {quiz.quiz_type === "exam" ? "Retry Exam" : "Try Again"}
+        </Button>
+      )}
     </div>
   )
 }

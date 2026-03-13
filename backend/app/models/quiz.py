@@ -16,6 +16,8 @@ class Quiz(Base):
     chapter_id = Column(String, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text)
+    quiz_type = Column(String(20), nullable=False, default="quiz", server_default="quiz")
+    max_attempts = Column(Integer, nullable=True)
     passing_score = Column(Integer, nullable=False, default=70)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

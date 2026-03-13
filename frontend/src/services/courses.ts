@@ -283,11 +283,29 @@ export const coursesService = {
   // Quizzes
   async getChapterQuiz(chapterId: string): Promise<Quiz | null> {
     try {
-      const response = await api.get<Quiz[]>(`/quizzes/chapter/${chapterId}`)
-      return response.data.length > 0 ? response.data[0] : null
+      const response = await api.get<Quiz | null>(`/quizzes/chapter/${chapterId}`)
+      return response.data
     } catch { return null }
   },
-  async createQuiz(data: any): Promise<Quiz> {
+  async createQuiz(data: {
+    chapter_id: string
+    title: string
+    description?: string | null
+    quiz_type?: "quiz" | "exam"
+    max_attempts?: number | null
+    passing_score: number
+    questions: Array<{
+      question_text: string
+      question_type: "multiple_choice" | "true_false" | "short_answer"
+      order_index: number
+      points: number
+      options: Array<{
+        option_text: string
+        is_correct: boolean
+        order_index: number
+      }>
+    }>
+  }): Promise<Quiz> {
     const response = await api.post<Quiz>("/quizzes", data)
     return response.data
   },

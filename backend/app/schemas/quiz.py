@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 
@@ -67,6 +67,8 @@ class QuizCreate(BaseModel):
     chapter_id: str
     title: str
     description: Optional[str] = None
+    quiz_type: Literal["quiz", "exam"] = "quiz"
+    max_attempts: Optional[int] = Field(None, ge=1, le=10)
     passing_score: int = Field(70, ge=0, le=100)
     questions: list[QuizQuestionCreate] = []
 
@@ -74,6 +76,8 @@ class QuizCreate(BaseModel):
 class QuizUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    quiz_type: Optional[Literal["quiz", "exam"]] = None
+    max_attempts: Optional[int] = Field(None, ge=1, le=10)
     passing_score: Optional[int] = None
 
 
@@ -82,6 +86,8 @@ class QuizResponse(BaseModel):
     chapter_id: str
     title: str
     description: Optional[str] = None
+    quiz_type: Literal["quiz", "exam"] = "quiz"
+    max_attempts: Optional[int] = None
     passing_score: int
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -97,6 +103,8 @@ class QuizStudentResponse(BaseModel):
     chapter_id: str
     title: str
     description: Optional[str] = None
+    quiz_type: Literal["quiz", "exam"] = "quiz"
+    max_attempts: Optional[int] = None
     passing_score: int
     questions: list[QuizQuestionStudentResponse] = []
 

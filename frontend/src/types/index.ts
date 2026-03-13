@@ -36,7 +36,7 @@ export interface Module {
   chapters?: Chapter[]
 }
 
-export type ChapterType = 'reading' | 'content' | 'video' | 'audio' | 'quiz' | 'assignment' | 'discussion' | 'mixed'
+export type ChapterType = 'reading' | 'content' | 'video' | 'audio' | 'quiz' | 'exam' | 'assignment' | 'discussion' | 'mixed'
 
 export interface Chapter {
   id: string
@@ -162,6 +162,8 @@ export interface Quiz {
   chapter_id: string
   title: string
   description: string | null
+  quiz_type: 'quiz' | 'exam'
+  max_attempts: number | null
   passing_score: number
   questions: QuizQuestion[]
   created_at: string

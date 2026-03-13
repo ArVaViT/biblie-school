@@ -14,7 +14,7 @@ import type { Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
   ChevronRight, Save, FileText, PlayCircle, Headphones,
-  HelpCircle, ClipboardList, MessageSquare, Puzzle, Shield, Loader2,
+  HelpCircle, ClipboardList, MessageSquare, Puzzle, Shield, Loader2, GraduationCap,
   ArrowLeft,
 } from "lucide-react"
 
@@ -23,6 +23,7 @@ const CHAPTER_TYPES = [
   { value: "video", label: "Video", icon: PlayCircle, desc: "Video lesson with optional notes" },
   { value: "audio", label: "Audio", icon: Headphones, desc: "Audio lesson with transcript" },
   { value: "quiz", label: "Quiz", icon: HelpCircle, desc: "Test student knowledge" },
+  { value: "exam", label: "Exam", icon: GraduationCap, desc: "Final assessment with attempts limit" },
   { value: "assignment", label: "Assignment", icon: ClipboardList, desc: "Submit work for grading" },
   { value: "discussion", label: "Discussion", icon: MessageSquare, desc: "Student discussion prompt" },
   { value: "mixed", label: "Mixed", icon: Puzzle, desc: "Combine multiple content types" },
@@ -310,7 +311,9 @@ export default function ChapterEditor() {
             </>
           )}
 
-          {chapterType === "quiz" && <QuizEditor chapterId={chapter.id} />}
+          {(chapterType === "quiz" || chapterType === "exam") && (
+            <QuizEditor chapterId={chapter.id} chapterType={chapterType} />
+          )}
 
           {chapterType === "assignment" && (
             <AssignmentEditor chapterId={chapter.id} />

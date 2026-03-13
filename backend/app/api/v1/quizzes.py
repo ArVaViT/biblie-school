@@ -59,10 +59,16 @@ async def create_quiz(
     db: Session = Depends(get_db),
 ):
     verify_chapter_owner(db, data.chapter_id, teacher.id)
+    max_attempts = data.max_attempts
+    if data.quiz_type == "exam" and max_attempts is None:
+        max_attempts = 1
+
     quiz = Quiz(
         chapter_id=data.chapter_id,
         title=data.title,
         description=data.description,
+        quiz_type=data.quiz_type,
+        max_attempts=max_attempts,
         passing_score=data.passing_score,
     )
     db.add(quiz)
@@ -108,6 +114,9 @@ async def update_quiz(
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(quiz, field, value)
 
+    if quiz.quiz_type == "exam" and quiz.max_attempts is None:
+        quiz.max_attempts = 1
+
     db.commit()
     db.refresh(quiz)
     return quiz
@@ -152,6 +161,22 @@ async def submit_quiz(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You must be enrolled in this course to submit quizzes",
                 )
+
+    if quiz.max_attempts is not None:
+        used_attempts = (
+            db.query(QuizAttempt)
+            .filter(
+                QuizAttempt.quiz_id == quiz_id,
+                QuizAttempt.user_id == current_user.id,
+                QuizAttempt.completed_at.isnot(None),
+            )
+            .count()
+        )
+        if used_attempts >= quiz.max_attempts:
+            detail = "Maximum attempts reached"
+            if quiz.quiz_type == "exam":
+                detail = "Exam attempts limit reached"
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
     attempt = QuizAttempt(
         quiz_id=quiz_id,
