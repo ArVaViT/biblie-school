@@ -12,6 +12,7 @@ from app.models.enrollment import Enrollment
 from app.models.quiz import Quiz, QuizAttempt
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.chapter_progress import ChapterProgress
+from app.services.course_service import sync_enrollment_progress
 
 router = APIRouter(prefix="/progress", tags=["progress"])
 
@@ -289,6 +290,8 @@ async def self_complete_chapter(
     progress.completed_at = datetime.now(timezone.utc)
     progress.completion_type = "self"
     db.commit()
+    if module:
+        sync_enrollment_progress(db, current_user.id, module.course_id)
     return {"message": "Chapter marked as complete", "chapter_id": chapter_id}
 
 
@@ -315,6 +318,9 @@ async def self_uncomplete_chapter(
     progress.completed_at = None
     progress.completion_type = "self"
     db.commit()
+    module = db.query(Module).filter(Module.id == chapter.module_id).first()
+    if module:
+        sync_enrollment_progress(db, current_user.id, module.course_id)
     return {"message": "Chapter completion removed", "chapter_id": chapter_id}
 
 
@@ -347,6 +353,11 @@ async def teacher_complete_chapter(
     progress.completed_by = teacher.id
     progress.completion_type = "teacher"
     db.commit()
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if chapter:
+        module = db.query(Module).filter(Module.id == chapter.module_id).first()
+        if module:
+            sync_enrollment_progress(db, student_id, module.course_id)
     return {"message": "Chapter marked as complete by teacher", "chapter_id": chapter_id, "student_id": str(student_id)}
 
 
@@ -374,4 +385,9 @@ async def teacher_uncomplete_chapter(
     progress.completed_by = None
     progress.completion_type = "self"
     db.commit()
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if chapter:
+        module = db.query(Module).filter(Module.id == chapter.module_id).first()
+        if module:
+            sync_enrollment_progress(db, student_id, module.course_id)
     return {"message": "Chapter completion removed", "chapter_id": chapter_id, "student_id": str(student_id)}

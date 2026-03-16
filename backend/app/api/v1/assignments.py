@@ -10,6 +10,7 @@ from app.models.course import Module, Chapter
 from app.models.enrollment import Enrollment
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.chapter_progress import ChapterProgress
+from app.services.course_service import sync_enrollment_progress
 from app.schemas.assignment import (
     AssignmentCreate,
     AssignmentUpdate,
@@ -141,6 +142,8 @@ async def submit_assignment(
             progress.completion_type = "self"
 
     db.commit()
+    if chapter and module:
+        sync_enrollment_progress(db, current_user.id, module.course_id)
     db.refresh(submission)
     return submission
 

@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from app.models.course import Course, Module, Chapter
 from app.models.enrollment import Enrollment
+from app.models.chapter_progress import ChapterProgress
 from app.models.chapter_block import ChapterBlock
 from app.models.quiz import Quiz, QuizQuestion, QuizOption
 from app.models.assignment import Assignment
@@ -217,6 +218,40 @@ def update_enrollment_progress(
     if not enrollment:
         return None
     enrollment.progress = max(0, min(100, progress))
+    db.commit()
+    db.refresh(enrollment)
+    return enrollment
+
+
+def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrollment | None:
+    enrollment = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == user_id, Enrollment.course_id == course_id)
+        .first()
+    )
+    if not enrollment:
+        return None
+
+    total_chapters = (
+        db.query(func.count(Chapter.id))
+        .join(Module, Chapter.module_id == Module.id)
+        .filter(Module.course_id == course_id)
+        .scalar()
+    ) or 0
+
+    completed_chapters = (
+        db.query(func.count(ChapterProgress.id))
+        .join(Chapter, Chapter.id == ChapterProgress.chapter_id)
+        .join(Module, Module.id == Chapter.module_id)
+        .filter(
+            Module.course_id == course_id,
+            ChapterProgress.user_id == user_id,
+            ChapterProgress.completed.is_(True),
+        )
+        .scalar()
+    ) or 0
+
+    enrollment.progress = 0 if total_chapters == 0 else round((completed_chapters / total_chapters) * 100)
     db.commit()
     db.refresh(enrollment)
     return enrollment

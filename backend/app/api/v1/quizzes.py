@@ -20,6 +20,7 @@ from app.schemas.quiz import (
     GrantExtraAttemptsRequest,
     ExtraAttemptsResponse,
 )
+from app.services.course_service import sync_enrollment_progress
 
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
@@ -270,6 +271,8 @@ async def submit_quiz(
     attempt.completed_at = datetime.now(timezone.utc)
 
     db.commit()
+    if chapter and module:
+        sync_enrollment_progress(db, current_user.id, module.course_id)
     db.refresh(attempt)
 
     return QuizAttemptResponse(

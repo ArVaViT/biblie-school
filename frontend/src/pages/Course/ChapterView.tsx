@@ -205,26 +205,11 @@ export default function ChapterView() {
     try {
       if (wasCompleted) {
         await coursesService.unmarkChapterComplete(chapter.id)
-        setCompletedIds((prev) => {
-          const next = new Set(prev)
-          next.delete(chapter.id)
-          return next
-        })
       } else {
         await coursesService.markChapterComplete(chapter.id)
-        setCompletedIds((prev) => new Set(prev).add(chapter.id))
       }
-
-      const [allCompleted, courseData] = await Promise.all([
-        coursesService.getMyChapterProgress(courseId),
-        coursesService.getCourse(courseId),
-      ])
-      const totalChapters = (courseData.modules ?? []).reduce(
-        (sum, m) => sum + (m.chapters?.length ?? 0),
-        0,
-      )
-      const progress = totalChapters > 0 ? Math.round((allCompleted.length / totalChapters) * 100) : 0
-      await coursesService.updateProgress(courseId, progress)
+      const completedChapterIds = await coursesService.getMyChapterProgress(courseId)
+      setCompletedIds(new Set(completedChapterIds))
     } catch {
       toast({ title: "Failed to update chapter progress", variant: "destructive" })
     } finally {
@@ -234,16 +219,9 @@ export default function ChapterView() {
 
   const refreshCompletion = useCallback(async () => {
     if (!chapter || !courseId) return
-    setCompletedIds((prev) => new Set(prev).add(chapter.id))
     try {
-      const allCompleted = await coursesService.getMyChapterProgress(courseId)
-      const courseData = await coursesService.getCourse(courseId)
-      const totalChapters = (courseData.modules ?? []).reduce(
-        (sum, m) => sum + (m.chapters?.length ?? 0),
-        0,
-      )
-      const progress = totalChapters > 0 ? Math.round((allCompleted.length / totalChapters) * 100) : 0
-      await coursesService.updateProgress(courseId, progress)
+      const completedChapterIds = await coursesService.getMyChapterProgress(courseId)
+      setCompletedIds(new Set(completedChapterIds))
     } catch {
       // non-critical
     }

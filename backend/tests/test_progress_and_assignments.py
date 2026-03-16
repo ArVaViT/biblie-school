@@ -80,7 +80,7 @@ def test_my_progress_returns_only_completed_course_chapters(student_client: Test
 
 
 def test_student_can_fetch_own_assignment_submissions(student_client: TestClient, db: Session):
-    _course, _module, chapter = _seed_course_graph(db)
+    course, _module, chapter = _seed_course_graph(db)
     assignment = Assignment(
         id=uuid.uuid4(),
         chapter_id=chapter.id,
@@ -117,3 +117,36 @@ def test_student_can_fetch_own_assignment_submissions(student_client: TestClient
     )
     assert progress is not None
     assert progress.completed is True
+
+    enrollment = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == STUDENT_ID, Enrollment.course_id == course.id)
+        .first()
+    )
+    assert enrollment is not None
+    assert enrollment.progress == 100
+
+
+def test_mark_complete_syncs_enrollment_progress(student_client: TestClient, db: Session):
+    course, _module, chapter = _seed_course_graph(db)
+
+    complete_response = student_client.put(
+        f"/api/v1/progress/chapter/{chapter.id}/complete"
+    )
+    assert complete_response.status_code == 200, complete_response.text
+
+    enrollment = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == STUDENT_ID, Enrollment.course_id == course.id)
+        .first()
+    )
+    assert enrollment is not None
+    assert enrollment.progress == 100
+
+    uncomplete_response = student_client.put(
+        f"/api/v1/progress/chapter/{chapter.id}/uncomplete"
+    )
+    assert uncomplete_response.status_code == 200, uncomplete_response.text
+
+    db.refresh(enrollment)
+    assert enrollment.progress == 0
