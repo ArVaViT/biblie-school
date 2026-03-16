@@ -1,6 +1,6 @@
 import { BookOpen } from "lucide-react"
 import { Link } from "react-router-dom"
-import { useTheme } from "@/context/ThemeContext"
+import { useTheme } from "@/context/useTheme"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun } from "lucide-react"
 

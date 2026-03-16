@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Literal, Optional
 
@@ -24,6 +24,8 @@ class BlockUpdate(BaseModel):
 
 
 class BlockResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     chapter_id: str
     block_type: str
@@ -35,9 +37,6 @@ class BlockResponse(BaseModel):
     file_url: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class BlockReorderItem(BaseModel):

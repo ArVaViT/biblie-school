@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from datetime import datetime
 
 
@@ -8,6 +8,8 @@ class GradeUpsert(BaseModel):
 
 
 class GradeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     student_id: str
     course_id: str
@@ -18,19 +20,15 @@ class GradeResponse(BaseModel):
     graded_at: datetime
     updated_at: datetime | None = None
 
-    class Config:
-        from_attributes = True
-
 
 # --- Grading Configuration ---
 
 class GradingConfigResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     quiz_weight: int
     assignment_weight: int
     participation_weight: int
-
-    class Config:
-        from_attributes = True
 
 
 class GradingConfigUpdate(BaseModel):

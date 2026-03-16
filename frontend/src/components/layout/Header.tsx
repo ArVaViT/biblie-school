@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/context/AuthContext"
+import { useAuth } from "@/context/useAuth"
 import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays } from "lucide-react"
 import NotificationBell from "./NotificationBell"
 

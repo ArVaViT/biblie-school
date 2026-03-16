@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Optional, Literal
 
@@ -23,6 +23,8 @@ class CohortUpdate(BaseModel):
 
 
 class CohortResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     course_id: str
     name: str
@@ -35,6 +37,3 @@ class CohortResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     student_count: int = 0
-
-    class Config:
-        from_attributes = True

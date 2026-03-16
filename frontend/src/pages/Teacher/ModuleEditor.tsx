@@ -28,6 +28,22 @@ function chapterTypeBadge(type: string) {
   return CHAPTER_TYPE_BADGES[type] ?? CHAPTER_TYPE_BADGES.reading
 }
 
+function getErrorDetail(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as { response?: unknown }).response === "object"
+  ) {
+    const response = (error as { response?: { data?: { detail?: unknown } } }).response
+    if (typeof response?.data?.detail === "string") {
+      return response.data.detail
+    }
+  }
+
+  return undefined
+}
+
 export default function ModuleEditor() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>()
   const navigate = useNavigate()
@@ -80,7 +96,7 @@ export default function ModuleEditor() {
     setSavingModule(true)
     try {
       const due = value ? new Date(value).toISOString() : null
-      await coursesService.updateModule(courseId, moduleId, { due_date: due } as any)
+      await coursesService.updateModule(courseId, moduleId, { due_date: due })
       setMod((prev) => (prev ? { ...prev, due_date: due } : prev))
     } catch {
       toast({ title: "Failed to save due date", variant: "destructive" })
@@ -154,9 +170,9 @@ export default function ModuleEditor() {
     try {
       await coursesService.updateChapter(courseId, moduleId, ch.id, { is_locked: newLocked })
       toast({ title: newLocked ? "Chapter locked" : "Chapter unlocked", variant: "success" })
-    } catch (err: any) {
+    } catch (error: unknown) {
       updateChapterLocal(ch.id, { is_locked: ch.is_locked })
-      const detail = err?.response?.data?.detail || "Unknown error"
+      const detail = getErrorDetail(error) || "Unknown error"
       toast({ title: `Failed to toggle lock: ${detail}`, variant: "destructive" })
     }
   }

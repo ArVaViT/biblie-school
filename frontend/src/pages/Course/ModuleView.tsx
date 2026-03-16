@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
-import type { Module, ChapterProgress } from "@/types"
+import type { Module } from "@/types"
 import {
   ArrowLeft,
   Book,
@@ -61,14 +61,11 @@ export default function ModuleView() {
         const mod = await coursesService.getModule(courseId, moduleId)
         setModule(mod)
 
-        const chapterIds = (mod.chapters ?? []).map((c) => c.id)
-        if (chapterIds.length > 0) {
-          try {
-            const progress = await coursesService.getChapterProgress(chapterIds)
-            setCompletedIds(new Set(progress.map((p: ChapterProgress) => p.chapter_id)))
-          } catch {
-            // non-critical
-          }
+        try {
+          const completedChapterIds = await coursesService.getMyChapterProgress(courseId)
+          setCompletedIds(new Set(completedChapterIds))
+        } catch {
+          // non-critical
         }
       } catch {
         setError("Failed to load module. Please try again.")

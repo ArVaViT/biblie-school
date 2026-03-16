@@ -1,10 +1,12 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Optional, Any
 from uuid import UUID
 
 
 class NotificationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     user_id: UUID
     type: str
@@ -14,9 +16,6 @@ class NotificationResponse(BaseModel):
     is_read: bool = False
     created_at: datetime
     metadata: Optional[dict[str, Any]] = Field(None, validation_alias="meta")
-
-    class Config:
-        from_attributes = True
 
 
 class NotificationListResponse(BaseModel):

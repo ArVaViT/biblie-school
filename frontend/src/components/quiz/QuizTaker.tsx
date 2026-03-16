@@ -19,6 +19,22 @@ interface QuizTakerProps {
   chapterId: string
 }
 
+function getErrorDetail(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as { response?: unknown }).response === "object"
+  ) {
+    const response = (error as { response?: { data?: { detail?: unknown } } }).response
+    if (typeof response?.data?.detail === "string") {
+      return response.data.detail
+    }
+  }
+
+  return undefined
+}
+
 export default function QuizTaker({ chapterId }: QuizTakerProps) {
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
@@ -78,8 +94,8 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
       setResult(attempt)
       setShowResults(true)
       setAttempts((prev) => [attempt, ...prev])
-    } catch (error: any) {
-      const detail = error?.response?.data?.detail
+    } catch (error: unknown) {
+      const detail = getErrorDetail(error)
       toast({ title: detail || `Failed to submit ${assessmentLabel.toLowerCase()}`, variant: "destructive" })
     } finally {
       setSubmitting(false)

@@ -1,10 +1,12 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import model_validator, Field
 from typing import Optional
 import os
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+
     SUPABASE_URL: str
     SUPABASE_KEY: Optional[str] = Field(default=None, description="Supabase anon key")
     SUPABASE_STORAGE_BUCKET: str = "files"
@@ -57,10 +59,5 @@ class Settings(BaseSettings):
             return ["http://localhost:3000", "http://localhost:5173"]
         origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
         return [o for o in origins if o]
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-
 
 settings = Settings()

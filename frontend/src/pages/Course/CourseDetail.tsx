@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
-import { useAuth } from "@/context/AuthContext"
+import { useAuth } from "@/context/useAuth"
 import type { Course, Enrollment, Certificate, Cohort, CalendarEvent } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
@@ -112,7 +112,7 @@ export default function CourseDetail() {
       }
     }
     load()
-  }, [id, user?.id])
+  }, [id, user])
 
   const handleEnrollClick = () => {
     if (!id || !user) return

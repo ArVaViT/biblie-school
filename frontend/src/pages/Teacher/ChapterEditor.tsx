@@ -30,6 +30,23 @@ const CHAPTER_TYPES = [
 ] as const
 
 type ChapterType = (typeof CHAPTER_TYPES)[number]["value"]
+type ChapterUpdatePayload = Parameters<typeof coursesService.updateChapter>[3]
+
+function getErrorDetail(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as { response?: unknown }).response === "object"
+  ) {
+    const response = (error as { response?: { data?: { detail?: unknown } } }).response
+    if (typeof response?.data?.detail === "string") {
+      return response.data.detail
+    }
+  }
+
+  return undefined
+}
 
 export default function ChapterEditor() {
   const { courseId, moduleId, chapterId } = useParams<{
@@ -82,7 +99,7 @@ export default function ChapterEditor() {
   useEffect(() => {
     if (!chapter) return
     setIsDirty(true)
-  }, [title, chapterType, content, videoUrl])
+  }, [chapter, title, chapterType, content, videoUrl])
 
   useEffect(() => {
     if (!isDirty) return
@@ -97,7 +114,7 @@ export default function ChapterEditor() {
     if (!courseId || !moduleId || !chapterId || !title.trim()) return
     setSaving(true)
     try {
-      const payload: Record<string, unknown> = {
+      const payload: ChapterUpdatePayload = {
         title: title.trim(),
         chapter_type: chapterType,
       }
@@ -112,12 +129,12 @@ export default function ChapterEditor() {
         payload.content = content
       }
 
-      await coursesService.updateChapter(courseId, moduleId, chapterId, payload as any)
+      await coursesService.updateChapter(courseId, moduleId, chapterId, payload)
       setIsDirty(false)
       toast({ title: "Chapter saved", variant: "success" })
       navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail || "Unknown error"
+    } catch (error: unknown) {
+      const detail = getErrorDetail(error) || "Unknown error"
       toast({ title: `Failed to save: ${detail}`, variant: "destructive" })
     } finally {
       setSaving(false)

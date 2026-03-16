@@ -1,13 +1,44 @@
 import api from "./api"
-import { supabase } from "@/lib/supabase"
 import type {
-  Course, Module, Chapter, Enrollment, ChapterProgress, Announcement, StudentNote, StudentGrade,
+  Course, Module, Chapter, Enrollment, Announcement, StudentNote, StudentGrade,
   Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, Cohort,
   Notification, NotificationListResponse,
   AuditLogPage,
   GradingConfig, GradeSummaryResponse,
   CalendarEvent, CourseEvent,
 } from "../types"
+
+type CohortMutation = {
+  name: string
+  start_date: string
+  end_date: string
+  enrollment_start?: string | null
+  enrollment_end?: string | null
+  max_students?: number | null
+  status?: Cohort["status"]
+}
+
+type AssignmentCreateData = {
+  chapter_id: string
+  title: string
+  description?: string | null
+  max_score?: number
+  due_date?: string | null
+}
+
+type ChapterBlockCreateData = {
+  block_type: string
+  order_index?: number
+  content?: string | null
+  video_url?: string | null
+  quiz_id?: string | null
+  assignment_id?: string | null
+  file_url?: string | null
+}
+
+type ChapterBlockUpdateData = Partial<Omit<ChapterBlockCreateData, "block_type">> & {
+  block_type?: string
+}
 
 export const coursesService = {
   async getCourses(search?: string): Promise<Course[]> {
@@ -31,11 +62,11 @@ export const coursesService = {
     const response = await api.get<Cohort[]>(`/cohorts/course/${courseId}`)
     return response.data
   },
-  async createCohort(courseId: string, data: any): Promise<Cohort> {
+  async createCohort(courseId: string, data: CohortMutation): Promise<Cohort> {
     const response = await api.post<Cohort>(`/cohorts/course/${courseId}`, data)
     return response.data
   },
-  async updateCohort(cohortId: string, data: any): Promise<Cohort> {
+  async updateCohort(cohortId: string, data: Partial<CohortMutation>): Promise<Cohort> {
     const response = await api.put<Cohort>(`/cohorts/${cohortId}`, data)
     return response.data
   },
@@ -71,17 +102,6 @@ export const coursesService = {
       { params: { progress } },
     )
     return response.data
-  },
-
-  async getChapterProgress(chapterIds: string[]): Promise<ChapterProgress[]> {
-    if (chapterIds.length === 0) return []
-    const { data, error } = await supabase
-      .from("chapter_progress")
-      .select("*")
-      .in("chapter_id", chapterIds)
-      .eq("completed", true)
-    if (error) throw error
-    return data ?? []
   },
 
   async markChapterComplete(chapterId: string): Promise<void> {
@@ -315,7 +335,7 @@ export const coursesService = {
     const response = await api.get<Assignment[]>(`/assignments/chapter/${chapterId}`)
     return response.data
   },
-  async createAssignment(data: any): Promise<Assignment> {
+  async createAssignment(data: AssignmentCreateData): Promise<Assignment> {
     const response = await api.post<Assignment>("/assignments", data)
     return response.data
   },
@@ -330,6 +350,10 @@ export const coursesService = {
     const response = await api.get<AssignmentSubmission[]>(`/assignments/${assignmentId}/submissions`)
     return response.data
   },
+  async getMySubmissions(assignmentId: string): Promise<AssignmentSubmission[]> {
+    const response = await api.get<AssignmentSubmission[]>(`/assignments/${assignmentId}/my-submissions`)
+    return response.data
+  },
   async gradeSubmission(submissionId: string, data: { grade: number; feedback?: string; status: string }): Promise<AssignmentSubmission> {
     const response = await api.put<AssignmentSubmission>(`/assignments/submissions/${submissionId}/grade`, data)
     return response.data
@@ -340,11 +364,11 @@ export const coursesService = {
     const response = await api.get<ChapterBlock[]>(`/blocks/chapter/${chapterId}`)
     return response.data
   },
-  async createBlock(chapterId: string, data: any) {
+  async createBlock(chapterId: string, data: ChapterBlockCreateData) {
     const response = await api.post(`/blocks/chapter/${chapterId}`, data)
     return response.data
   },
-  async updateBlock(blockId: string, data: any) {
+  async updateBlock(blockId: string, data: ChapterBlockUpdateData) {
     const response = await api.put(`/blocks/${blockId}`, data)
     return response.data
   },

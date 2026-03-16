@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from "react"
 import { Navigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { useAuth } from "@/context/AuthContext"
+import { useAuth } from "@/context/useAuth"
 import { coursesService } from "@/services/courses"
 import { supabase } from "@/lib/supabase"
 import type { UserRole, Certificate, AuditLogEntry } from "@/types"
@@ -42,6 +42,22 @@ const actionBadgeClass: Record<string, string> = {
   approve: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
   reject: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
   grade: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+}
+
+function getErrorDetail(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as { response?: unknown }).response === "object"
+  ) {
+    const response = (error as { response?: { data?: { detail?: unknown } } }).response
+    if (typeof response?.data?.detail === "string") {
+      return response.data.detail
+    }
+  }
+
+  return undefined
 }
 
 export default function AdminDashboard() {
@@ -107,8 +123,8 @@ export default function AdminDashboard() {
       const data = await coursesService.getAuditLogs(params)
       setAuditLogs(data.items ?? [])
       setAuditTotal(data.total ?? 0)
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail || "The audit_logs table may not exist yet. Deploy the latest migration."
+    } catch (error: unknown) {
+      const detail = getErrorDetail(error) || "The audit_logs table may not exist yet. Deploy the latest migration."
       toast({ title: `Audit log error: ${detail}`, variant: "destructive" })
     } finally {
       setAuditLoading(false)
@@ -132,6 +148,12 @@ export default function AdminDashboard() {
         u.email.toLowerCase().includes(q),
     )
   }, [users, search])
+  const userMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const u of users) map[u.id] = u.full_name || u.email
+    return map
+  }, [users])
+  const totalAuditPages = Math.max(1, Math.ceil(auditTotal / auditPageSize))
 
   if (user?.role !== "admin") {
     return <Navigate to="/" replace />
@@ -222,14 +244,6 @@ export default function AdminDashboard() {
     pending_teacher: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
     student: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400",
   }
-
-  const userMap = useMemo(() => {
-    const map: Record<string, string> = {}
-    for (const u of users) map[u.id] = u.full_name || u.email
-    return map
-  }, [users])
-
-  const totalAuditPages = Math.max(1, Math.ceil(auditTotal / auditPageSize))
 
   const resetAuditFilters = () => {
     setAuditAction("")

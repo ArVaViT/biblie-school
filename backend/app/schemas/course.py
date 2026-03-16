@@ -29,14 +29,13 @@ class ChapterUpdate(BaseModel):
 
 
 class ChapterResponse(ChapterBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     module_id: str
     chapter_type: str = "reading"
     requires_completion: bool = False
     is_locked: bool = False
-
-    class Config:
-        from_attributes = True
 
 
 class ModuleBase(BaseModel):
@@ -58,12 +57,11 @@ class ModuleUpdate(BaseModel):
 
 
 class ModuleResponse(ModuleBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     course_id: str
     chapters: list[ChapterResponse] = []
-
-    class Config:
-        from_attributes = True
 
 
 class CourseBase(BaseModel):

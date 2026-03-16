@@ -185,7 +185,7 @@ export default function ChapterView() {
       .getChapterAssignments(chapter.id)
       .then((a) => setHasAssignments(a.length > 0))
       .catch(() => setHasAssignments(false))
-  }, [chapter?.id, chapter?.chapter_type])
+  }, [chapter])
 
   const isChapterLocked = useCallback(
     (ch: Chapter, idx: number) => {

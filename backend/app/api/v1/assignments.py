@@ -163,6 +163,27 @@ async def list_submissions(
     )
 
 
+@router.get("/{assignment_id}/my-submissions", response_model=list[SubmissionResponse])
+async def list_my_submissions(
+    assignment_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
+    if not assignment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
+
+    return (
+        db.query(AssignmentSubmission)
+        .filter(
+            AssignmentSubmission.assignment_id == assignment_id,
+            AssignmentSubmission.student_id == current_user.id,
+        )
+        .order_by(AssignmentSubmission.submitted_at.desc())
+        .all()
+    )
+
+
 @router.put("/submissions/{submission_id}/grade", response_model=SubmissionResponse)
 async def grade_submission(
     submission_id: UUID,

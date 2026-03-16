@@ -96,6 +96,25 @@ export default function CourseEditor() {
 
   useEffect(() => { load() }, [load])
 
+  const saveDetails = useCallback(async () => {
+    if (!courseId || !title.trim()) return
+    setSaving(true)
+    try {
+      const u = await coursesService.updateCourse(courseId, { title: title.trim(), description: description.trim() || undefined, image_url: imageUrl.trim() || undefined })
+      setCourse(p => p ? { ...p, ...u } : p); toast({ title: "Saved", variant: "success" }); setModal(null)
+    } catch { toast({ title: "Failed to save", variant: "destructive" }) } finally { setSaving(false) }
+  }, [courseId, title, description, imageUrl])
+
+  const saveEnrollment = useCallback(async () => {
+    if (!courseId) return
+    setSaving(true)
+    try {
+      await coursesService.updateCourse(courseId, { enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null, enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null })
+      setCourse(p => p ? { ...p, enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null, enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null } : p)
+      toast({ title: "Enrollment saved", variant: "success" }); setModal(null)
+    } catch { toast({ title: "Failed to save", variant: "destructive" }) } finally { setSaving(false) }
+  }, [courseId, enrollStart, enrollEnd])
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
@@ -106,26 +125,7 @@ export default function CourseEditor() {
     }
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [modal, title, description, imageUrl, enrollStart, enrollEnd])
-
-  const saveDetails = async () => {
-    if (!courseId || !title.trim()) return
-    setSaving(true)
-    try {
-      const u = await coursesService.updateCourse(courseId, { title: title.trim(), description: description.trim() || undefined, image_url: imageUrl.trim() || undefined })
-      setCourse(p => p ? { ...p, ...u } : p); toast({ title: "Saved", variant: "success" }); setModal(null)
-    } catch { toast({ title: "Failed to save", variant: "destructive" }) } finally { setSaving(false) }
-  }
-
-  const saveEnrollment = async () => {
-    if (!courseId) return
-    setSaving(true)
-    try {
-      await coursesService.updateCourse(courseId, { enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null, enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null })
-      setCourse(p => p ? { ...p, enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null, enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null } : p)
-      toast({ title: "Enrollment saved", variant: "success" }); setModal(null)
-    } catch { toast({ title: "Failed to save", variant: "destructive" }) } finally { setSaving(false) }
-  }
+  }, [modal, saveDetails, saveEnrollment])
 
   const togglePublish = async () => {
     if (!courseId || !course) return

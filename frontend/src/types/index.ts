@@ -278,7 +278,7 @@ export interface Notification {
   link: string | null
   is_read: boolean
   created_at: string
-  metadata: Record<string, any> | null
+  metadata: Record<string, unknown> | null
 }
 
 export interface NotificationListResponse {

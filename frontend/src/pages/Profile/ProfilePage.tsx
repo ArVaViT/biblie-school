@@ -12,8 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useAuth } from "@/context/AuthContext"
-import { useTheme } from "@/context/ThemeContext"
+import { useAuth } from "@/context/useAuth"
+import { useTheme } from "@/context/useTheme"
 import { usersService } from "@/services/users"
 import { storageService } from "@/services/storage"
 import { coursesService } from "@/services/courses"

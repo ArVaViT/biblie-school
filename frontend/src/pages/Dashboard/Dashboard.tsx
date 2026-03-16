@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
-import { useAuth } from "@/context/AuthContext"
+import { useAuth } from "@/context/useAuth"
 import type { Enrollment, Certificate, StudentGrade } from "@/types"
 import DashboardSkeleton from "@/components/skeletons/DashboardSkeleton"
 import { BookOpen, GraduationCap, BookOpenCheck, ArrowRight, Award, Copy, CheckCircle, TrendingUp } from "lucide-react"
@@ -236,11 +236,13 @@ function CertificateItem({
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(certificate.certificate_number)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {}
+    await navigator.clipboard.writeText(certificate.certificate_number).then(
+      () => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      },
+      () => undefined,
+    )
   }
 
   return (

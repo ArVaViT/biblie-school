@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Literal, Optional
 from uuid import UUID
@@ -20,6 +20,8 @@ class AssignmentUpdate(BaseModel):
 
 
 class AssignmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     chapter_id: str
     title: str
@@ -29,9 +31,6 @@ class AssignmentResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
 
 class SubmissionCreate(BaseModel):
     content: Optional[str] = None
@@ -39,6 +38,8 @@ class SubmissionCreate(BaseModel):
 
 
 class SubmissionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     assignment_id: UUID
     student_id: UUID
@@ -50,9 +51,6 @@ class SubmissionResponse(BaseModel):
     feedback: Optional[str] = None
     graded_by: Optional[UUID] = None
     graded_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class GradeSubmissionRequest(BaseModel):

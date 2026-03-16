@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 
 
@@ -14,6 +14,8 @@ class AnnouncementUpdate(BaseModel):
 
 
 class AnnouncementResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     title: str
     content: str
@@ -21,6 +23,3 @@ class AnnouncementResponse(BaseModel):
     created_by: str
     created_at: datetime
     updated_at: datetime | None = None
-
-    class Config:
-        from_attributes = True

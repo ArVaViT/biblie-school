@@ -1,10 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
 
 class CertificateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     user_id: UUID
     course_id: str
@@ -16,9 +18,6 @@ class CertificateResponse(BaseModel):
     teacher_approved_by: Optional[UUID] = None
     admin_approved_at: Optional[datetime] = None
     admin_approved_by: Optional[UUID] = None
-
-    class Config:
-        from_attributes = True
 
 
 class CertificateVerifyResponse(BaseModel):

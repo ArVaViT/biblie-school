@@ -67,12 +67,12 @@ function SingleAssignment({ assignment, onSubmitted }: { assignment: Assignment;
     let cancelled = false
     const load = async () => {
       try {
-        const subs = await coursesService.getSubmissions(assignment.id)
+        const subs = await coursesService.getMySubmissions(assignment.id)
         if (!cancelled && subs.length > 0) {
           setSubmission(subs[0])
         }
       } catch {
-        // May fail if no submission
+        // Non-critical when no submission exists yet
       } finally {
         if (!cancelled) setLoadingSub(false)
       }

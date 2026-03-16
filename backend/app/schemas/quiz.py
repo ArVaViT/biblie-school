@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Literal, Optional
 from uuid import UUID
@@ -11,23 +11,21 @@ class QuizOptionCreate(BaseModel):
 
 
 class QuizOptionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     option_text: str
     is_correct: bool
     order_index: int
 
-    class Config:
-        from_attributes = True
-
 
 class QuizOptionStudentResponse(BaseModel):
     """Option response without is_correct — used when serving quizzes to students."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     option_text: str
     order_index: int
-
-    class Config:
-        from_attributes = True
 
 
 class QuizQuestionCreate(BaseModel):
@@ -39,6 +37,8 @@ class QuizQuestionCreate(BaseModel):
 
 
 class QuizQuestionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     question_text: str
     question_type: str
@@ -46,21 +46,17 @@ class QuizQuestionResponse(BaseModel):
     points: int
     options: list[QuizOptionResponse] = []
 
-    class Config:
-        from_attributes = True
-
 
 class QuizQuestionStudentResponse(BaseModel):
     """Question response that hides correct answers."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     question_text: str
     question_type: str
     order_index: int
     points: int
     options: list[QuizOptionStudentResponse] = []
-
-    class Config:
-        from_attributes = True
 
 
 class QuizCreate(BaseModel):
@@ -82,6 +78,8 @@ class QuizUpdate(BaseModel):
 
 
 class QuizResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     chapter_id: str
     title: str
@@ -93,12 +91,11 @@ class QuizResponse(BaseModel):
     updated_at: Optional[datetime] = None
     questions: list[QuizQuestionResponse] = []
 
-    class Config:
-        from_attributes = True
-
 
 class QuizStudentResponse(BaseModel):
     """Quiz response that hides correct answers from students."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     chapter_id: str
     title: str
@@ -107,9 +104,6 @@ class QuizStudentResponse(BaseModel):
     max_attempts: Optional[int] = None
     passing_score: int
     questions: list[QuizQuestionStudentResponse] = []
-
-    class Config:
-        from_attributes = True
 
 
 class QuizSubmitAnswer(BaseModel):
@@ -123,6 +117,8 @@ class QuizSubmitRequest(BaseModel):
 
 
 class QuizAnswerResult(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     question_id: UUID
     selected_option_id: Optional[UUID] = None
     text_answer: Optional[str] = None
@@ -130,11 +126,10 @@ class QuizAnswerResult(BaseModel):
     points_earned: int = 0
     correct_option_id: Optional[UUID] = None
 
-    class Config:
-        from_attributes = True
-
 
 class QuizAttemptResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     quiz_id: UUID
     user_id: UUID
@@ -145,9 +140,6 @@ class QuizAttemptResponse(BaseModel):
     completed_at: Optional[datetime] = None
     answers: list[QuizAnswerResult] = []
 
-    class Config:
-        from_attributes = True
-
 
 class GrantExtraAttemptsRequest(BaseModel):
     user_id: UUID
@@ -155,12 +147,11 @@ class GrantExtraAttemptsRequest(BaseModel):
 
 
 class ExtraAttemptsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     quiz_id: UUID
     user_id: UUID
     extra_attempts: int
     granted_by: UUID
     created_at: datetime
-
-    class Config:
-        from_attributes = True

@@ -28,6 +28,22 @@ interface Props {
   chapterId: string
 }
 
+function getErrorDetail(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as { response?: unknown }).response === "object"
+  ) {
+    const response = (error as { response?: { data?: { detail?: unknown } } }).response
+    if (typeof response?.data?.detail === "string") {
+      return response.data.detail
+    }
+  }
+
+  return undefined
+}
+
 export default function ChapterBlockEditor({ chapterId }: Props) {
   const [blocks, setBlocks] = useState<ChapterBlock[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,8 +62,8 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
     try {
       const data = await coursesService.getChapterBlocks(chapterId)
       setBlocks(data.sort((a, b) => a.order_index - b.order_index))
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail
+    } catch (error: unknown) {
+      const detail = getErrorDetail(error)
       if (detail) {
         toast({ title: `Failed to load blocks: ${detail}`, variant: "destructive" })
       }
@@ -72,8 +88,8 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
       setExpandedBlock(newBlock.id)
       initEditState(newBlock)
       toast({ title: `${type} block added`, variant: "success" })
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail || "Unknown error"
+    } catch (error: unknown) {
+      const detail = getErrorDetail(error) || "Unknown error"
       toast({ title: `Failed to add block: ${detail}`, variant: "destructive" })
     } finally {
       setAddingBlock(false)
