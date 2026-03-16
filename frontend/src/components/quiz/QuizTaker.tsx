@@ -11,6 +11,7 @@ import {
   Clock,
   AlertCircle,
   Loader2,
+  BookOpen,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
@@ -303,6 +304,11 @@ function ResultsView({
           <p className="text-sm text-muted-foreground">
             {scorePercent}% — Passing score: {quiz.passing_score}%
           </p>
+          {questions.some((q) => q.question_type === "short_answer") && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+              Open-ended answers are pending teacher review
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -367,9 +373,17 @@ function ResultsView({
                 </div>
               )}
               {q.question_type === "short_answer" && (
-                <p className="ml-7 text-xs text-muted-foreground italic">
-                  Your answer: {userAnswer?.text_answer || "(empty)"}
-                </p>
+                <div className="ml-7 space-y-1.5">
+                  <div className="flex items-center gap-1.5 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5 text-xs text-amber-700 dark:text-amber-400 font-medium w-fit">
+                    <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                    Sent for teacher review
+                  </div>
+                  {userAnswer?.text_answer && (
+                    <p className="text-xs text-muted-foreground italic">
+                      Your answer: {userAnswer.text_answer}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )

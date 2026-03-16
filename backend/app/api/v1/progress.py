@@ -45,10 +45,19 @@ async def get_course_student_progress(
 ):
     course = verify_course_owner(db, course_id, teacher.id)
 
+    modules = (
+        db.query(Module)
+        .filter(Module.course_id == course_id)
+        .order_by(Module.order_index)
+        .all()
+    )
+    module_map = {m.id: {"id": m.id, "title": m.title, "order_index": m.order_index} for m in modules}
+
     chapters = (
         db.query(Chapter)
         .join(Module, Chapter.module_id == Module.id)
         .filter(Module.course_id == course_id)
+        .order_by(Module.order_index, Chapter.order_index)
         .all()
     )
     chapter_ids = [c.id for c in chapters]
@@ -173,12 +182,35 @@ async def get_course_student_progress(
         chapter_infos = []
         for ch in chapters:
             cp = user_progress.get(str(ch.id))
+            # best quiz result for this chapter
+            ch_quiz_results = attempts_by_user_chapter.get((uid, ch.id), [])
+            quiz_data = None
+            if ch_quiz_results:
+                best = max(ch_quiz_results, key=lambda a: (a.score or 0))
+                quiz_data = {
+                    "score": best.score or 0,
+                    "max_score": best.max_score or 0,
+                    "passed": bool(best.passed),
+                }
+            # latest assignment result for this chapter
+            ch_subs = subs_by_user_chapter.get((uid, ch.id), [])
+            asgn_data = None
+            if ch_subs:
+                latest_sub = max(ch_subs, key=lambda s: s.submitted_at or datetime.min)
+                asgn_data = {
+                    "status": latest_sub.status or "submitted",
+                    "grade": latest_sub.grade,
+                }
             chapter_infos.append({
                 "id": str(ch.id),
                 "title": ch.title,
+                "module_id": str(ch.module_id),
+                "chapter_type": ch.chapter_type or "reading",
                 "requires_completion": bool(getattr(ch, "requires_completion", False)),
                 "completed": cp is not None,
                 "completed_by": cp.completion_type if cp else None,
+                "quiz_result": quiz_data,
+                "assignment_result": asgn_data,
             })
 
         latest_activity = enrollment.enrolled_at
@@ -205,6 +237,7 @@ async def get_course_student_progress(
         "course_title": course.title,
         "total_chapters": len(chapter_ids),
         "total_students": len(enrollments),
+        "modules": list(module_map.values()),
         "students": student_progress,
     }
 

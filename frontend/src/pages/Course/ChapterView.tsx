@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom"
 import DOMPurify from "dompurify"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
-import type { Module, Chapter, ChapterProgress, ChapterBlock } from "@/types"
+import type { Module, Chapter, ChapterBlock } from "@/types"
 import {
   ArrowLeft,
   ArrowRight,
@@ -140,14 +140,11 @@ export default function ChapterView() {
         const m = await coursesService.getModule(courseId, moduleId)
         setMod(m)
 
-        const chapterIds = (m.chapters ?? []).map((c) => c.id)
-        if (chapterIds.length > 0) {
-          try {
-            const progress = await coursesService.getChapterProgress(chapterIds)
-            setCompletedIds(new Set(progress.map((p: ChapterProgress) => p.chapter_id)))
-          } catch {
-            // non-critical
-          }
+        try {
+          const completedChapterIds = await coursesService.getMyChapterProgress(courseId)
+          setCompletedIds(new Set(completedChapterIds))
+        } catch {
+          // non-critical
         }
       } catch {
         setError("Failed to load chapter. Please try again.")
