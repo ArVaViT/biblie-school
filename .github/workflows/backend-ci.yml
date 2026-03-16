@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.14'
           cache: 'pip'
 
       - run: pip install -r requirements.txt
@@ -37,7 +37,7 @@ jobs:
           JWT_SECRET_KEY: ci-test-secret-key-not-real
 
       - name: Run tests
-        run: python -m pytest tests/ -v
+        run: python -m pytest tests/ -vv -s --tb=long
         env:
           SUPABASE_URL: https://example.supabase.co
           SUPABASE_KEY: placeholder
