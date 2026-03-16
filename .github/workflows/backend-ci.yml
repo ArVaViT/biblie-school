@@ -29,7 +29,7 @@ jobs:
         run: python -m py_compile app/main.py
 
       - name: Import check
-        run: python -c "from app.main import app; print('OK: FastAPI app imports successfully')"
+        run: 'python -c "from app.main import app; print(''OK: FastAPI app imports successfully'')"'
         env:
           SUPABASE_URL: https://example.supabase.co
           SUPABASE_KEY: placeholder
