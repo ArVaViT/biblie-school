@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { useEffect, useState, useCallback, useMemo, Fragment } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -29,7 +29,7 @@ interface ChapterInfo {
   completed: boolean
   completed_by: "self" | "teacher" | null
   quiz_result: { score: number; max_score: number; passed: boolean } | null
-  assignment_result: { status: string; grade: number | null } | null
+  assignment_result: { status: string; grade: number | null; max_score?: number } | null
 }
 
 interface StudentProgressData {
@@ -793,11 +793,10 @@ function GradeTableView({
         }
       } else if (type === "assignment") {
         const ar = chMap.get(ch.id)?.assignment_result
+        const maxPts = ar?.max_score ?? 100
+        total += maxPts
         if (ar?.grade !== null && ar?.grade !== undefined) {
           earned += ar.grade
-          total += 10 // default max
-        } else {
-          total += 10
         }
       } else {
         // reading/video/audio etc: 1 point for completion
@@ -871,9 +870,8 @@ function GradeTableView({
                   const form = forms.get(student.id) ?? { grade: "", comment: "" }
 
                   return (
-                    <>
+                    <Fragment key={student.id}>
                       <tr
-                        key={student.id}
                         className="hover:bg-muted/20 cursor-pointer transition-colors"
                         onClick={() => toggleExpand(student.id)}
                       >
@@ -907,7 +905,7 @@ function GradeTableView({
                         </td>
                       </tr>
                       {isExpanded && (
-                        <tr key={`${student.id}-expand`}>
+                        <tr>
                           <td colSpan={allChapters.length + 2} className="bg-muted/10 border-b px-4 py-3">
                             <div className="flex flex-wrap items-end gap-3">
                               <div className="space-y-1">
@@ -940,7 +938,7 @@ function GradeTableView({
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   )
                 })}
               </tbody>

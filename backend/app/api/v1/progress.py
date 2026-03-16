@@ -113,10 +113,12 @@ async def get_course_student_progress(
         .all()
     ) if all_assignment_ids else []
 
-    assignment_to_chapter = {}
+    assignment_to_chapter: dict = {}
+    assignment_by_id: dict = {}
     for ch_id, als in assignment_map.items():
         for a in als:
             assignment_to_chapter[a.id] = ch_id
+            assignment_by_id[a.id] = a
 
     subs_by_user_chapter: dict[tuple, list] = defaultdict(list)
     latest_sub_by_user: dict[str, datetime] = {}
@@ -197,9 +199,12 @@ async def get_course_student_progress(
             asgn_data = None
             if ch_subs:
                 latest_sub = max(ch_subs, key=lambda s: s.submitted_at or datetime.min)
+                asgn = assignment_by_id.get(latest_sub.assignment_id)
+                max_score = asgn.max_score if asgn is not None else 100
                 asgn_data = {
                     "status": latest_sub.status or "submitted",
                     "grade": latest_sub.grade,
+                    "max_score": max_score,
                 }
             chapter_infos.append({
                 "id": str(ch.id),
