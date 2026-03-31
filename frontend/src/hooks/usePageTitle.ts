@@ -13,7 +13,9 @@ const TITLES: Record<string, string> = {
   "/dashboard": "Courses",
   "/profile": "My Profile",
   "/certificates": "My Certificates",
+  "/calendar": "Calendar",
   "/teacher": "Teacher Dashboard",
+  "/admin": "Admin Panel",
   "/": "Home",
 }
 

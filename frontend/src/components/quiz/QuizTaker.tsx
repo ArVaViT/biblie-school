@@ -61,7 +61,13 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
     return () => { cancelled = true }
   }, [chapterId])
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
   if (!quiz || (quiz.questions ?? []).length === 0) return null
 
   const sortedQuestions = [...(quiz.questions ?? [])].sort((a, b) => a.order_index - b.order_index)

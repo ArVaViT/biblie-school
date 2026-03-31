@@ -139,7 +139,7 @@ async def get_grade_summary(
         raise
     except Exception as e:
         logger.error(f"Grade summary error: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Grade calculation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Grade calculation failed")
 
 
 # ── Existing Manual Grade Endpoints ───────────────────────────────

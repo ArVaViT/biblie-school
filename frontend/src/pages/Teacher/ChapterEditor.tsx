@@ -81,9 +81,17 @@ export default function ChapterEditor() {
       setChapter(ch)
       setTitle(ch.title)
       const type = (ch.chapter_type || "reading") as ChapterType
-      setChapterType(CHAPTER_TYPES.some((t) => t.value === type) ? type : "reading")
+      const resolvedType = CHAPTER_TYPES.some((t) => t.value === type) ? type : "reading"
+      setChapterType(resolvedType)
       setContent(ch.content ?? "")
       setVideoUrl(ch.video_url ?? "")
+      setInitialSnapshot(JSON.stringify({
+        title: ch.title,
+        chapterType: resolvedType,
+        content: ch.content ?? "",
+        videoUrl: ch.video_url ?? "",
+      }))
+      setIsDirty(false)
     } catch {
       toast({ title: "Failed to load chapter", variant: "destructive" })
       navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)
@@ -96,10 +104,17 @@ export default function ChapterEditor() {
     load()
   }, [load])
 
+  const [initialSnapshot, setInitialSnapshot] = useState("")
+
   useEffect(() => {
     if (!chapter) return
-    setIsDirty(true)
-  }, [chapter, title, chapterType, content, videoUrl])
+    const snapshot = JSON.stringify({ title, chapterType, content, videoUrl })
+    if (!initialSnapshot) {
+      setInitialSnapshot(snapshot)
+      return
+    }
+    setIsDirty(snapshot !== initialSnapshot)
+  }, [chapter, title, chapterType, content, videoUrl, initialSnapshot])
 
   useEffect(() => {
     if (!isDirty) return

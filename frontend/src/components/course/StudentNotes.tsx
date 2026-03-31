@@ -15,11 +15,16 @@ export default function StudentNotes({ chapterId }: StudentNotesProps) {
 
   useEffect(() => {
     let cancelled = false
+    setLoaded(false)
+    setContent("")
+    setSaved(false)
     coursesService.getNote(chapterId).then((note) => {
       if (!cancelled) {
         setContent(note?.content ?? "")
         setLoaded(true)
       }
+    }).catch(() => {
+      if (!cancelled) setLoaded(true)
     })
     return () => { cancelled = true }
   }, [chapterId])

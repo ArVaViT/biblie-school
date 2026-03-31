@@ -162,19 +162,21 @@ async def submit_quiz(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
 
     chapter = db.query(Chapter).filter(Chapter.id == quiz.chapter_id).first()
-    if chapter:
-        module = db.query(Module).filter(Module.id == chapter.module_id).first()
-        if module:
-            enrolled = (
-                db.query(Enrollment)
-                .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
-                .first()
-            )
-            if not enrolled:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You must be enrolled in this course to submit quizzes",
-                )
+    if not chapter:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+    module = db.query(Module).filter(Module.id == chapter.module_id).first()
+    if not module:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+    enrolled = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
+        .first()
+    )
+    if not enrolled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must be enrolled in this course to submit quizzes",
+        )
 
     if quiz.max_attempts is not None:
         used_attempts = (
@@ -209,9 +211,9 @@ async def submit_quiz(
     db.flush()
 
     total_score = 0
-    max_score = 0
 
     questions_map: dict[UUID, QuizQuestion] = {q.id: q for q in quiz.questions}
+    max_score = sum(q.points for q in quiz.questions)
 
     all_options = (
         db.query(QuizOption)
@@ -227,13 +229,14 @@ async def submit_quiz(
             correct_option_map[str(o.question_id)] = o.id
 
     answer_results: list[QuizAnswerResult] = []
+    answered_question_ids: set[UUID] = set()
 
     for ans in data.answers:
         question = questions_map.get(ans.question_id)
         if not question:
             continue
 
-        max_score += question.points
+        answered_question_ids.add(question.id)
         is_correct = False
         points_earned = 0
 
@@ -264,6 +267,26 @@ async def submit_quiz(
             correct_option_id=correct_option_map.get(str(ans.question_id)),
         ))
 
+    for q in quiz.questions:
+        if q.id not in answered_question_ids:
+            db_answer = QuizAnswer(
+                attempt_id=attempt.id,
+                question_id=q.id,
+                selected_option_id=None,
+                text_answer=None,
+                is_correct=False,
+                points_earned=0,
+            )
+            db.add(db_answer)
+            answer_results.append(QuizAnswerResult(
+                question_id=q.id,
+                selected_option_id=None,
+                text_answer=None,
+                is_correct=False,
+                points_earned=0,
+                correct_option_id=correct_option_map.get(str(q.id)),
+            ))
+
     attempt.score = total_score
     attempt.max_score = max_score
     percentage = (total_score / max_score * 100) if max_score > 0 else 0
@@ -271,8 +294,7 @@ async def submit_quiz(
     attempt.completed_at = datetime.now(timezone.utc)
 
     db.commit()
-    if chapter and module:
-        sync_enrollment_progress(db, current_user.id, module.course_id)
+    sync_enrollment_progress(db, current_user.id, module.course_id)
     db.refresh(attempt)
 
     return QuizAttemptResponse(

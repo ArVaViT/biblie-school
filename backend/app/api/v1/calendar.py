@@ -159,6 +159,22 @@ async def list_course_events(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[CourseEventResponse]:
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    is_owner = str(course.created_by) == str(current_user.id)
+    is_admin = current_user.role == "admin"
+    if not is_owner and not is_admin:
+        enrolled = (
+            db.query(Enrollment)
+            .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
+            .first()
+        )
+        if not enrolled:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must be enrolled in this course to view events",
+            )
     events = (
         db.query(CourseEvent)
         .filter(CourseEvent.course_id == course_id)

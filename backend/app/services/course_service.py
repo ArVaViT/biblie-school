@@ -281,7 +281,7 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
     new_course_id = str(uuid.uuid4())
     new_course = Course(
         id=new_course_id,
-        title=f"{original.title} (Копия)",
+        title=f"{original.title} (Copy)",
         description=original.description,
         image_url=original.image_url,
         status="draft",

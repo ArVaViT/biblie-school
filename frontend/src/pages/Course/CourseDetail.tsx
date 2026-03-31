@@ -81,14 +81,25 @@ export default function CourseDetail() {
   const { user } = useAuth()
 
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       if (!id) return
+      setLoading(true)
+      setError(null)
+      setCourse(null)
+      setEnrollment(null)
+      setCertificate(null)
+      setCompletedChapterIds(new Set())
+      setMaterials([])
+      setCalendarEvents([])
+      setCohorts([])
       try {
         const [courseData, enrollments, cohortsData] = await Promise.all([
           coursesService.getCourse(id),
           user ? coursesService.getMyCourses().catch(() => []) : Promise.resolve([]),
           coursesService.getCourseCohorts(id).catch(() => [] as Cohort[]),
         ])
+        if (cancelled) return
         setCourse(courseData)
         setCohorts(cohortsData)
         const match = enrollments.find((e) => e.course_id === id)
@@ -100,18 +111,20 @@ export default function CourseDetail() {
             storageService.listCourseMaterials(id).catch(() => [] as CourseMaterial[]),
             coursesService.getCalendarEvents(id).catch(() => [] as CalendarEvent[]),
           ])
+          if (cancelled) return
           setCertificate(cert)
           setCompletedChapterIds(new Set(progress))
           setMaterials(mats)
           setCalendarEvents(evts)
         }
       } catch {
-        setError("Failed to load course. Please try again.")
+        if (!cancelled) setError("Failed to load course. Please try again.")
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
+    return () => { cancelled = true }
   }, [id, user])
 
   const handleEnrollClick = () => {

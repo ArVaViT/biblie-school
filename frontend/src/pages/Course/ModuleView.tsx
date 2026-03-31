@@ -54,26 +54,30 @@ export default function ModuleView() {
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       if (!courseId || !moduleId) return
+      setLoading(true)
       setError(null)
       try {
         const mod = await coursesService.getModule(courseId, moduleId)
+        if (cancelled) return
         setModule(mod)
 
         try {
           const completedChapterIds = await coursesService.getMyChapterProgress(courseId)
-          setCompletedIds(new Set(completedChapterIds))
+          if (!cancelled) setCompletedIds(new Set(completedChapterIds))
         } catch {
           // non-critical
         }
       } catch {
-        setError("Failed to load module. Please try again.")
+        if (!cancelled) setError("Failed to load module. Please try again.")
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
+    return () => { cancelled = true }
   }, [courseId, moduleId])
 
   const sortedChapters = useMemo(

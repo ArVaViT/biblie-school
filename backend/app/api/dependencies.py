@@ -59,12 +59,16 @@ async def require_admin(
     return current_user
 
 
-def verify_course_owner(db: Session, course_id: str, teacher_id) -> Course:
-    """Verify the teacher owns this course. Raises 404 or 403."""
+def verify_course_owner(db: Session, course_id: str, teacher_id, *, allow_admin: bool = True) -> Course:
+    """Verify the teacher owns this course (admins always pass). Raises 404 or 403."""
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     if str(course.created_by) != str(teacher_id):
+        if allow_admin:
+            user = db.query(User).filter(User.id == teacher_id).first()
+            if user and user.role == UserRole.ADMIN.value:
+                return course
         raise HTTPException(status_code=403, detail="You do not own this course")
     return course
 

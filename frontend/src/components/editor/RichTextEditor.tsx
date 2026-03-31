@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -85,6 +85,17 @@ export default function RichTextEditor({
       },
     },
   });
+
+  const lastExternalContent = useRef(content);
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    if (content === lastExternalContent.current) return;
+    lastExternalContent.current = content;
+    const currentHTML = editor.getHTML();
+    if (currentHTML !== content) {
+      editor.commands.setContent(content, false);
+    }
+  }, [content, editor]);
 
   const setLink = useCallback(() => {
     if (!editor) return;

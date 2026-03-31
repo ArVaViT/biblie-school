@@ -8,7 +8,7 @@ export interface AuthContextValue {
   register: (email: string, password: string, fullName: string, role: "teacher" | "student") => Promise<void>
   signInWithGoogle: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
 

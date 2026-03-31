@@ -99,19 +99,21 @@ async def submit_assignment(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
 
     chapter = db.query(Chapter).filter(Chapter.id == assignment.chapter_id).first()
-    if chapter:
-        module = db.query(Module).filter(Module.id == chapter.module_id).first()
-        if module:
-            enrolled = (
-                db.query(Enrollment)
-                .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
-                .first()
-            )
-            if not enrolled:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You must be enrolled in this course to submit assignments",
-                )
+    if not chapter:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+    module = db.query(Module).filter(Module.id == chapter.module_id).first()
+    if not module:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+    enrolled = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
+        .first()
+    )
+    if not enrolled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must be enrolled in this course to submit assignments",
+        )
 
     submission = AssignmentSubmission(
         assignment_id=assignment_id,
@@ -121,29 +123,27 @@ async def submit_assignment(
     )
     db.add(submission)
 
-    if chapter:
-        progress = (
-            db.query(ChapterProgress)
-            .filter(
-                ChapterProgress.user_id == current_user.id,
-                ChapterProgress.chapter_id == chapter.id,
-            )
-            .first()
+    progress = (
+        db.query(ChapterProgress)
+        .filter(
+            ChapterProgress.user_id == current_user.id,
+            ChapterProgress.chapter_id == chapter.id,
         )
-        if not progress:
-            progress = ChapterProgress(
-                user_id=current_user.id,
-                chapter_id=chapter.id,
-            )
-            db.add(progress)
-        if not progress.completed:
-            progress.completed = True
-            progress.completed_at = datetime.now(timezone.utc)
-            progress.completion_type = "self"
+        .first()
+    )
+    if not progress:
+        progress = ChapterProgress(
+            user_id=current_user.id,
+            chapter_id=chapter.id,
+        )
+        db.add(progress)
+    if not progress.completed:
+        progress.completed = True
+        progress.completed_at = datetime.now(timezone.utc)
+        progress.completion_type = "self"
 
     db.commit()
-    if chapter and module:
-        sync_enrollment_progress(db, current_user.id, module.course_id)
+    sync_enrollment_progress(db, current_user.id, module.course_id)
     db.refresh(submission)
     return submission
 
