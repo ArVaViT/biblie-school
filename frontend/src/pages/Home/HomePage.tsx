@@ -17,18 +17,21 @@ function MyCoursesSection() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       try {
         const [enrollData, gradeData] = await Promise.all([
           coursesService.getMyCourses(),
           coursesService.getMyGrades().catch(() => []),
         ])
+        if (cancelled) return
         setEnrollments(enrollData)
         setGrades(gradeData)
       } catch { /* non-critical */ }
-      finally { setLoading(false) }
+      finally { if (!cancelled) setLoading(false) }
     }
     load()
+    return () => { cancelled = true }
   }, [])
 
   const filtered = enrollments.filter((e) => e.course?.created_by !== user?.id)
@@ -139,21 +142,24 @@ export default function HomePage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoading(true)
     setError(null)
     try {
       const data = await coursesService.getCourses(debouncedSearch || undefined)
+      if (signal?.cancelled) return
       setCourses(data)
     } catch {
-      setError("Failed to load courses. Please try again later.")
+      if (!signal?.cancelled) setError("Failed to load courses. Please try again later.")
     } finally {
-      setLoading(false)
+      if (!signal?.cancelled) setLoading(false)
     }
   }, [debouncedSearch])
 
   useEffect(() => {
-    load()
+    const signal = { cancelled: false }
+    load(signal)
+    return () => { signal.cancelled = true }
   }, [load])
 
   return (
@@ -200,7 +206,7 @@ export default function HomePage() {
           <h3 className="font-serif text-lg font-medium mb-1">Something went wrong</h3>
           <p className="text-sm text-muted-foreground mb-4">{error}</p>
           <button
-            onClick={load}
+            onClick={() => load()}
             className="text-sm text-primary hover:underline"
           >
             Try again

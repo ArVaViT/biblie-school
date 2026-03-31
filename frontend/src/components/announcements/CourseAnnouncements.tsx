@@ -9,12 +9,20 @@ interface Props {
 
 export default function CourseAnnouncements({ courseId }: Props) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    coursesService.getAnnouncements(courseId).then(setAnnouncements).catch(() => {})
+    let cancelled = false
+    setLoaded(false)
+    coursesService.getAnnouncements(courseId).then((data) => {
+      if (!cancelled) setAnnouncements(data)
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setLoaded(true)
+    })
+    return () => { cancelled = true }
   }, [courseId])
 
-  if (announcements.length === 0) return null
+  if (!loaded || announcements.length === 0) return null
 
   return (
     <div className="space-y-3 mb-6">

@@ -109,7 +109,7 @@ export default function AdminDashboard() {
     }
   }
 
-  const loadAuditLogs = useCallback(async () => {
+  const loadAuditLogs = useCallback(async (signal?: { cancelled: boolean }) => {
     setAuditLoading(true)
     try {
       const params: Record<string, string | number> = {
@@ -122,13 +122,15 @@ export default function AdminDashboard() {
       if (auditDateTo) params.date_to = new Date(auditDateTo + "T23:59:59").toISOString()
 
       const data = await coursesService.getAuditLogs(params)
+      if (signal?.cancelled) return
       setAuditLogs(data.items ?? [])
       setAuditTotal(data.total ?? 0)
     } catch (error: unknown) {
+      if (signal?.cancelled) return
       const detail = getErrorDetail(error) || "The audit_logs table may not exist yet. Deploy the latest migration."
       toast({ title: `Audit log error: ${detail}`, variant: "destructive" })
     } finally {
-      setAuditLoading(false)
+      if (!signal?.cancelled) setAuditLoading(false)
     }
   }, [auditPage, auditAction, auditResource, auditDateFrom, auditDateTo])
 
@@ -139,7 +141,10 @@ export default function AdminDashboard() {
   }, [])
 
   useEffect(() => {
-    if (tab === "audit") loadAuditLogs()
+    if (tab !== "audit") return
+    const signal = { cancelled: false }
+    loadAuditLogs(signal)
+    return () => { signal.cancelled = true }
   }, [tab, loadAuditLogs])
 
   const filtered = useMemo(() => {

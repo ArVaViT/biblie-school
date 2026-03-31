@@ -1,23 +1,9 @@
-fix: schema type safety, race conditions, security hardening
+fix: add cancellation flags to remaining async useEffects
 
-Backend:
-- Fix UUID/str type mismatches in Pydantic response schemas (note,
-  chapter_block, cohort, grade) to prevent serialization errors
-- Add unique constraint on certificates (user_id, course_id) with
-  migration and IntegrityError handling for race conditions
-- Add enrollment check in teacher_uncomplete_chapter endpoint
-- Add student enrollment verification in get_calculated_grade to
-  prevent PII leak to course owners for arbitrary user IDs
-- Remove update_progress endpoint that allowed arbitrary 0-100
-  progress values, bypassing real chapter-completion tracking
-- Clean up grade_summary error logging (remove traceback import)
-
-Frontend:
-- Add cancellation flags to useEffect in TeacherGradebook,
-  AdminDashboard, TeacherDashboard, CourseEditor, ChapterEditor,
-  CertificatesPage, and ProfilePage to prevent stale state updates
-- Fix ProfilePage blank screen when user is null (show spinner)
-- Remove dead updateProgress service method
-- Add aria-expanded to mobile menu and notification bell buttons
-- Add aria-label to profile button and aria-haspopup to bell
-- Add role="region" to notification dropdown panel
+Prevent stale state updates from in-flight requests after component
+unmount or rapid prop changes in:
+- AnnouncementBanner, CourseAnnouncements (+ loaded state)
+- HomePage (MyCoursesSection + course catalog search)
+- NotificationBell (unread count polling + notification fetch)
+- CourseReviews, ModuleEditor, ChapterBlockEditor
+- AdminDashboard audit log tab

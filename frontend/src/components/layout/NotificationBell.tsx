@@ -47,30 +47,34 @@ export default function NotificationBell() {
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  const fetchUnreadCount = useCallback(async () => {
+  const fetchUnreadCount = useCallback(async (signal?: { cancelled: boolean }) => {
     try {
       const count = await coursesService.getUnreadCount()
-      setUnreadCount(count)
+      if (!signal?.cancelled) setUnreadCount(count)
     } catch { /* silent */ }
   }, [])
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoading(true)
     try {
       const res = await coursesService.getNotifications()
-      setNotifications(res.items)
+      if (!signal?.cancelled) setNotifications(res.items)
     } catch { /* silent */ }
-    setLoading(false)
+    if (!signal?.cancelled) setLoading(false)
   }, [])
 
   useEffect(() => {
-    fetchUnreadCount()
-    const interval = setInterval(fetchUnreadCount, 30_000)
-    return () => clearInterval(interval)
+    const signal = { cancelled: false }
+    fetchUnreadCount(signal)
+    const interval = setInterval(() => fetchUnreadCount(signal), 30_000)
+    return () => { signal.cancelled = true; clearInterval(interval) }
   }, [fetchUnreadCount])
 
   useEffect(() => {
-    if (open) fetchNotifications()
+    if (!open) return
+    const signal = { cancelled: false }
+    fetchNotifications(signal)
+    return () => { signal.cancelled = true }
   }, [open, fetchNotifications])
 
   useEffect(() => {

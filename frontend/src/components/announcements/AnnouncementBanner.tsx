@@ -8,10 +8,13 @@ export default function AnnouncementBanner() {
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     coursesService.getAnnouncements().then((list) => {
+      if (cancelled) return
       const systemWide = list.find((a) => !a.course_id)
       if (systemWide) setAnnouncement(systemWide)
     }).catch(() => {})
+    return () => { cancelled = true }
   }, [])
 
   if (!announcement || dismissed) return null

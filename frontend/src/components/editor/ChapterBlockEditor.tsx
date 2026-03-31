@@ -58,22 +58,26 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
   const [editVideoUrl, setEditVideoUrl] = useState("")
   const [editFileUrl, setEditFileUrl] = useState("")
 
-  const loadBlocks = useCallback(async () => {
+  const loadBlocks = useCallback(async (signal?: { cancelled: boolean }) => {
     try {
       const data = await coursesService.getChapterBlocks(chapterId)
+      if (signal?.cancelled) return
       setBlocks(data.sort((a, b) => a.order_index - b.order_index))
     } catch (error: unknown) {
+      if (signal?.cancelled) return
       const detail = getErrorDetail(error)
       if (detail) {
         toast({ title: `Failed to load blocks: ${detail}`, variant: "destructive" })
       }
     } finally {
-      setLoading(false)
+      if (!signal?.cancelled) setLoading(false)
     }
   }, [chapterId])
 
   useEffect(() => {
-    loadBlocks()
+    const signal = { cancelled: false }
+    loadBlocks(signal)
+    return () => { signal.cancelled = true }
   }, [loadBlocks])
 
   const addBlock = async (type: BlockType) => {

@@ -16,20 +16,23 @@ export default function CourseReviews({ courseId }: Props) {
   const [reviews, setReviews] = useState<CourseReview[]>([])
   const [loading, setLoading] = useState(true)
 
-  const loadReviews = useCallback(async () => {
+  const loadReviews = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoading(true)
     try {
       const data = await coursesService.getCourseReviews(courseId)
+      if (signal?.cancelled) return
       setReviews(data)
     } catch {
-      toast({ title: "Failed to load reviews", variant: "destructive" })
+      if (!signal?.cancelled) toast({ title: "Failed to load reviews", variant: "destructive" })
     } finally {
-      setLoading(false)
+      if (!signal?.cancelled) setLoading(false)
     }
   }, [courseId])
 
   useEffect(() => {
-    loadReviews()
+    const signal = { cancelled: false }
+    loadReviews(signal)
+    return () => { signal.cancelled = true }
   }, [loadReviews])
 
   const avgRating =

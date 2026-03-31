@@ -56,25 +56,29 @@ export default function ModuleEditor() {
   const [modDescription, setModDescription] = useState("")
   const [modDueDate, setModDueDate] = useState("")
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!courseId || !moduleId) return
     setLoading(true)
     try {
       const data = await coursesService.getModule(courseId, moduleId)
+      if (signal?.cancelled) return
       setMod(data)
       setModTitle(data.title)
       setModDescription(data.description ?? "")
       setModDueDate(data.due_date ? data.due_date.slice(0, 16) : "")
     } catch {
+      if (signal?.cancelled) return
       toast({ title: "Module not found", variant: "destructive" })
       navigate(`/teacher/courses/${courseId}`)
     } finally {
-      setLoading(false)
+      if (!signal?.cancelled) setLoading(false)
     }
   }, [courseId, moduleId, navigate])
 
   useEffect(() => {
-    load()
+    const signal = { cancelled: false }
+    load(signal)
+    return () => { signal.cancelled = true }
   }, [load])
 
   const saveModuleDetails = async (field: "title" | "description", value: string) => {
