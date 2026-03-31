@@ -1,0 +1,90 @@
+import { Node, mergeAttributes } from "@tiptap/core"
+
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    youtubeEmbed: {
+      setYoutubeVideo: (options: { src: string }) => ReturnType
+    }
+  }
+}
+
+function extractEmbedUrl(input: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+  ]
+  for (const p of patterns) {
+    const m = input.match(p)
+    if (m) return `https://www.youtube.com/embed/${m[1]}`
+  }
+  return null
+}
+
+export const YoutubeEmbed = Node.create({
+  name: "youtubeEmbed",
+  group: "block",
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      src: { default: null },
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "div[data-youtube-embed]",
+        getAttrs: (el) => {
+          const iframe = (el as HTMLElement).querySelector("iframe")
+          return { src: iframe?.getAttribute("src") || null }
+        },
+      },
+      {
+        tag: "iframe",
+        getAttrs: (el) => {
+          const src = (el as HTMLIFrameElement).getAttribute("src") || ""
+          if (src.includes("youtube.com/embed/") || src.includes("youtube-nocookie.com/embed/")) {
+            return { src }
+          }
+          return false
+        },
+      },
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "div",
+      { "data-youtube-embed": "", class: "youtube-embed-wrapper" },
+      [
+        "iframe",
+        mergeAttributes(HTMLAttributes, {
+          width: "100%",
+          height: "400",
+          frameborder: "0",
+          allowfullscreen: "true",
+          allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
+          loading: "lazy",
+        }),
+      ],
+    ]
+  },
+
+  addCommands() {
+    return {
+      setYoutubeVideo:
+        (options) =>
+        ({ commands }) => {
+          const embedUrl = extractEmbedUrl(options.src)
+          if (!embedUrl) return false
+          return commands.insertContent({
+            type: this.name,
+            attrs: { src: embedUrl },
+          })
+        },
+    }
+  },
+})

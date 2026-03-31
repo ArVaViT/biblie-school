@@ -14,7 +14,11 @@ DOMPurify.addHook("uponSanitizeElement", (node, data) => {
 
 const SANITIZE_CONFIG = {
   ADD_TAGS: ["iframe"],
-  ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "src", "loading", "referrerpolicy", "style"],
+  ADD_ATTR: [
+    "allow", "allowfullscreen", "frameborder", "src", "loading",
+    "referrerpolicy", "style", "data-callout", "data-youtube-embed",
+    "alt", "width", "height",
+  ],
 }
 
 function sanitize(html: string) {

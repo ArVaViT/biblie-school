@@ -76,3 +76,67 @@
     to { width: 100%; }
   }
 }
+
+/* ===== Callout Blocks ===== */
+.callout {
+  @apply relative rounded-lg border-l-4 px-5 py-4 my-4;
+}
+.callout > *:first-child { @apply mt-0; }
+.callout > *:last-child { @apply mb-0; }
+
+.callout-info {
+  @apply border-l-blue-500 bg-blue-50 dark:bg-blue-950/30;
+}
+.callout-verse {
+  @apply border-l-amber-500 bg-amber-50 dark:bg-amber-950/30;
+}
+.callout-takeaway {
+  @apply border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/30;
+}
+.callout-warning {
+  @apply border-l-red-500 bg-red-50 dark:bg-red-950/30;
+}
+
+/* Icons via ::before */
+.callout::before {
+  @apply block text-sm font-semibold mb-2;
+}
+.callout-info::before {
+  content: "ℹ️ Информация";
+  @apply text-blue-700 dark:text-blue-400;
+}
+.callout-verse::before {
+  content: "📖 Библейский стих";
+  @apply text-amber-700 dark:text-amber-400;
+}
+.callout-takeaway::before {
+  content: "💡 Ключевой вывод";
+  @apply text-emerald-700 dark:text-emerald-400;
+}
+.callout-warning::before {
+  content: "⚠️ Внимание";
+  @apply text-red-700 dark:text-red-400;
+}
+
+/* ===== YouTube Embed ===== */
+.youtube-embed-wrapper {
+  @apply relative w-full overflow-hidden rounded-xl my-4;
+  padding-bottom: 56.25%;
+}
+.youtube-embed-wrapper iframe {
+  @apply absolute inset-0 w-full h-full;
+}
+
+/* ===== TipTap Editor Tweaks ===== */
+.ProseMirror .callout {
+  @apply cursor-text;
+}
+.ProseMirror .youtube-embed-wrapper {
+  @apply cursor-default;
+}
+.ProseMirror img {
+  @apply rounded-lg max-w-full h-auto my-4 cursor-default;
+}
+.ProseMirror img.ProseMirror-selectednode {
+  @apply ring-2 ring-primary ring-offset-2;
+}
