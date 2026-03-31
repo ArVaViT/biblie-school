@@ -153,8 +153,7 @@ export default function CourseDetail() {
       setMaterials(mats)
       toast({ title: "Enrolled successfully", variant: "success" })
     } catch {
-      setError("Failed to enroll. Please try again.")
-      toast({ title: "Failed to enroll", variant: "destructive" })
+      toast({ title: "Failed to enroll. Please try again.", variant: "destructive" })
     } finally {
       setEnrolling(false)
     }

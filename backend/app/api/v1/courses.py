@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func as sa_func
 from typing import Optional
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher
+from app.api.dependencies import get_current_user, get_optional_user, require_teacher
 from app.models.user import User
 from app.models.cohort import Cohort
 from app.models.enrollment import Enrollment
@@ -33,23 +33,6 @@ class EnrollRequest(BaseModel):
 router = APIRouter(prefix="/courses", tags=["courses"])
 
 
-async def _try_get_user(request: Request, db: Session) -> User | None:
-    """Attempt to extract user from Bearer token without raising on failure."""
-    from app.core.security import decode_access_token
-
-    auth = request.headers.get("authorization", "")
-    if not auth.lower().startswith("bearer "):
-        return None
-    token = auth[7:]
-    payload = decode_access_token(token)
-    if not payload:
-        return None
-    user_id = payload.get("sub")
-    if not user_id:
-        return None
-    return db.query(User).filter(User.id == user_id).first()
-
-
 # ---------------------------------------------------------------------------
 # Public course endpoints
 # ---------------------------------------------------------------------------
@@ -75,7 +58,7 @@ async def list_my_courses(
 @router.get("/{course_id}", response_model=CourseResponse)
 async def get_course_detail(
     course_id: str,
-    request: Request,
+    current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
 ) -> CourseResponse:
     course = get_course(db, course_id)
@@ -85,7 +68,6 @@ async def get_course_detail(
             detail=f"Course '{course_id}' not found",
         )
     if course.status != "published":
-        current_user = await _try_get_user(request, db)
         if not current_user or (
             str(course.created_by) != str(current_user.id)
             and current_user.role != "admin"
@@ -101,7 +83,7 @@ async def get_course_detail(
 async def get_module_detail(
     course_id: str,
     module_id: str,
-    request: Request,
+    current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
 ) -> ModuleResponse:
     course = get_course(db, course_id)
@@ -111,7 +93,6 @@ async def get_module_detail(
             detail=f"Course '{course_id}' not found",
         )
     if course.status != "published":
-        current_user = await _try_get_user(request, db)
         if not current_user or (
             str(course.created_by) != str(current_user.id)
             and current_user.role != "admin"
@@ -445,6 +426,11 @@ async def enroll_course(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
+        )
+    if course.status != "published":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot enroll in an unpublished course",
         )
     now = datetime.now(timezone.utc)
 

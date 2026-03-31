@@ -175,9 +175,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz" }: QuizEdit
 
     setSaving(true)
     try {
-      if (existingQuiz) {
-        await coursesService.deleteQuiz(existingQuiz.id)
-      }
+      const oldQuizId = existingQuiz?.id
       const quiz = await coursesService.createQuiz({
         chapter_id: chapterId,
         title: title.trim(),
@@ -199,6 +197,9 @@ export default function QuizEditor({ chapterId, chapterType = "quiz" }: QuizEdit
       })
       setExistingQuiz(quiz)
       setMaxAttempts(quiz.max_attempts ?? (chapterType === "exam" ? 1 : 3))
+      if (oldQuizId) {
+        await coursesService.deleteQuiz(oldQuizId).catch(() => {})
+      }
       toast({ title: "Quiz saved", variant: "success" })
     } catch {
       toast({ title: "Failed to save quiz", variant: "destructive" })

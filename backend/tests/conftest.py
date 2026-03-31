@@ -21,7 +21,7 @@ from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
 from app.core.database import Base, get_db
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, get_optional_user
 from app.models.user import User, UserRole
 from app.main import app
 
@@ -136,6 +136,7 @@ def client(db: Session, teacher: User) -> TestClient:
 
     app.dependency_overrides[get_db] = _override_db
     app.dependency_overrides[get_current_user] = _override_user
+    app.dependency_overrides[get_optional_user] = _override_user
 
     with TestClient(app, raise_server_exceptions=False) as tc:
         yield tc
@@ -155,6 +156,7 @@ def student_client(db: Session, teacher: User, student: User) -> TestClient:
 
     app.dependency_overrides[get_db] = _override_db
     app.dependency_overrides[get_current_user] = _override_user
+    app.dependency_overrides[get_optional_user] = _override_user
 
     with TestClient(app, raise_server_exceptions=False) as tc:
         yield tc
@@ -169,7 +171,11 @@ def anon_client(db: Session, teacher: User) -> TestClient:
     def _override_db():
         yield db
 
+    def _override_anon():
+        return None
+
     app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_optional_user] = _override_anon
 
     with TestClient(app, raise_server_exceptions=False) as tc:
         yield tc

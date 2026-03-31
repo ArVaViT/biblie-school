@@ -260,17 +260,45 @@ async def self_complete_chapter(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
 
     module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if module:
-        enrolled = (
-            db.query(Enrollment)
-            .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
+    if not module:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+
+    enrolled = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
+        .first()
+    )
+    if not enrolled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must be enrolled in this course",
+        )
+
+    if chapter.is_locked:
+        prev_chapter = (
+            db.query(Chapter)
+            .filter(
+                Chapter.module_id == chapter.module_id,
+                Chapter.order_index < chapter.order_index,
+            )
+            .order_by(Chapter.order_index.desc())
             .first()
         )
-        if not enrolled:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You must be enrolled in this course",
+        if prev_chapter:
+            prev_done = (
+                db.query(ChapterProgress)
+                .filter(
+                    ChapterProgress.user_id == current_user.id,
+                    ChapterProgress.chapter_id == prev_chapter.id,
+                    ChapterProgress.completed.is_(True),
+                )
+                .first()
             )
+            if not prev_done:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Complete the previous chapter first",
+                )
 
     progress = (
         db.query(ChapterProgress)
@@ -306,6 +334,21 @@ async def self_uncomplete_chapter(
     if not chapter:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
 
+    module = db.query(Module).filter(Module.id == chapter.module_id).first()
+    if not module:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+
+    enrolled = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
+        .first()
+    )
+    if not enrolled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must be enrolled in this course",
+        )
+
     progress = (
         db.query(ChapterProgress)
         .filter(ChapterProgress.user_id == current_user.id, ChapterProgress.chapter_id == chapter_id)
@@ -318,9 +361,7 @@ async def self_uncomplete_chapter(
     progress.completed_at = None
     progress.completion_type = "self"
     db.commit()
-    module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if module:
-        sync_enrollment_progress(db, current_user.id, module.course_id)
+    sync_enrollment_progress(db, current_user.id, module.course_id)
     return {"message": "Chapter completion removed", "chapter_id": chapter_id}
 
 
@@ -333,6 +374,24 @@ async def teacher_complete_chapter(
 ):
     """Teacher marks a student's chapter as complete."""
     verify_chapter_owner(db, chapter_id, teacher.id)
+
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+    module = db.query(Module).filter(Module.id == chapter.module_id).first()
+    if not module:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+
+    enrolled = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == student_id, Enrollment.course_id == module.course_id)
+        .first()
+    )
+    if not enrolled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Student is not enrolled in this course",
+        )
 
     progress = (
         db.query(ChapterProgress)
@@ -353,11 +412,7 @@ async def teacher_complete_chapter(
     progress.completed_by = teacher.id
     progress.completion_type = "teacher"
     db.commit()
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if chapter:
-        module = db.query(Module).filter(Module.id == chapter.module_id).first()
-        if module:
-            sync_enrollment_progress(db, student_id, module.course_id)
+    sync_enrollment_progress(db, student_id, module.course_id)
     return {"message": "Chapter marked as complete by teacher", "chapter_id": chapter_id, "student_id": str(student_id)}
 
 
@@ -370,6 +425,14 @@ async def teacher_uncomplete_chapter(
 ):
     """Teacher removes a student's chapter completion."""
     verify_chapter_owner(db, chapter_id, teacher.id)
+
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+    module = db.query(Module).filter(Module.id == chapter.module_id).first()
+    if not module:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+
     progress = (
         db.query(ChapterProgress)
         .filter(ChapterProgress.user_id == student_id, ChapterProgress.chapter_id == chapter_id)
@@ -385,9 +448,5 @@ async def teacher_uncomplete_chapter(
     progress.completed_by = None
     progress.completion_type = "self"
     db.commit()
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if chapter:
-        module = db.query(Module).filter(Module.id == chapter.module_id).first()
-        if module:
-            sync_enrollment_progress(db, student_id, module.course_id)
+    sync_enrollment_progress(db, student_id, module.course_id)
     return {"message": "Chapter completion removed", "chapter_id": chapter_id, "student_id": str(student_id)}

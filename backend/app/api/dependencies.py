@@ -7,6 +7,7 @@ from app.models.user import User, UserRole
 from app.models.course import Course, Module, Chapter
 
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
@@ -35,6 +36,22 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+
+async def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Return the authenticated user if a valid token is present, else None."""
+    if credentials is None:
+        return None
+    payload = decode_access_token(credentials.credentials)
+    if payload is None:
+        return None
+    user_id: str | None = payload.get("sub")
+    if user_id is None:
+        return None
+    return db.query(User).filter(User.id == user_id).first()
 
 
 async def require_teacher(
