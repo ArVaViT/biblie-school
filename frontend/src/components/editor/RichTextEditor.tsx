@@ -93,7 +93,7 @@ export default function RichTextEditor({
     lastExternalContent.current = content;
     const currentHTML = editor.getHTML();
     if (currentHTML !== content) {
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content, { emitUpdate: false });
     }
   }, [content, editor]);
 
