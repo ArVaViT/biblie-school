@@ -76,21 +76,25 @@ export default function CalendarPage() {
   const [filterCourseId, setFilterCourseId] = useState<string>("")
 
   useEffect(() => {
+    let cancelled = false
+    setLoading(true)
     const load = async () => {
       try {
         const [evts, enrolls] = await Promise.all([
           coursesService.getCalendarEvents(filterCourseId || undefined),
           coursesService.getMyCourses().catch(() => []),
         ])
+        if (cancelled) return
         setEvents(evts)
         setEnrollments(enrolls)
       } catch {
         // non-critical
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
+    return () => { cancelled = true }
   }, [filterCourseId])
 
   const year = currentDate.getFullYear()

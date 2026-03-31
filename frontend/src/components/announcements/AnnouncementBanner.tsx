@@ -26,7 +26,7 @@ export default function AnnouncementBanner() {
             <span className="text-sm text-blue-700 dark:text-blue-400 ml-2">{announcement.content.slice(0, 150)}</span>
           )}
         </div>
-        <button onClick={() => setDismissed(true)} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded">
+        <button onClick={() => setDismissed(true)} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded" aria-label="Dismiss announcement">
           <X className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
         </button>
       </div>

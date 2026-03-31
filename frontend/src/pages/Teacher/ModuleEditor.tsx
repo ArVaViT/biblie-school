@@ -58,6 +58,7 @@ export default function ModuleEditor() {
 
   const load = useCallback(async () => {
     if (!courseId || !moduleId) return
+    setLoading(true)
     try {
       const data = await coursesService.getModule(courseId, moduleId)
       setMod(data)

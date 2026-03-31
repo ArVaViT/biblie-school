@@ -102,19 +102,19 @@
   @apply block text-sm font-semibold mb-2;
 }
 .callout-info::before {
-  content: "ℹ️ Информация";
+  content: "ℹ️ Information";
   @apply text-blue-700 dark:text-blue-400;
 }
 .callout-verse::before {
-  content: "📖 Библейский стих";
+  content: "📖 Bible Verse";
   @apply text-amber-700 dark:text-amber-400;
 }
 .callout-takeaway::before {
-  content: "💡 Ключевой вывод";
+  content: "💡 Key Takeaway";
   @apply text-emerald-700 dark:text-emerald-400;
 }
 .callout-warning::before {
-  content: "⚠️ Внимание";
+  content: "⚠️ Warning";
   @apply text-red-700 dark:text-red-400;
 }
 

@@ -165,7 +165,7 @@ class TestCloneCourse:
         assert resp.status_code == 201
         clone = resp.json()
         assert clone["id"] != course["id"]
-        assert "Копия" in clone["title"]
+        assert "Copy" in clone["title"]
         assert clone["status"] == "draft"
 
     def test_clone_nonexistent_returns_404(self, client: TestClient):

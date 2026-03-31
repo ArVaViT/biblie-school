@@ -44,7 +44,13 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
     return () => { cancelled = true }
   }, [chapterId])
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <div className="flex justify-center py-6">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
   if (assignments.length === 0) return null
 
   return (

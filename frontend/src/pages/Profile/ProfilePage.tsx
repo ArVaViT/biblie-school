@@ -29,6 +29,10 @@ export default function ProfilePage() {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [name, setName] = useState(user?.full_name ?? "")
+
+  useEffect(() => {
+    if (user?.full_name !== undefined) setName(user.full_name ?? "")
+  }, [user?.full_name])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")

@@ -84,17 +84,21 @@ export default function StudentProgress() {
 
   useEffect(() => {
     if (!courseId) return
+    let cancelled = false
+    setLoading(true)
+    setData(null)
     const load = async () => {
       try {
         const result = await coursesService.getStudentProgress(courseId)
-        setData(result)
+        if (!cancelled) setData(result)
       } catch (err) {
-        toast({ title: getErrorDetail(err, "Failed to load student progress"), variant: "destructive" })
+        if (!cancelled) toast({ title: getErrorDetail(err, "Failed to load student progress"), variant: "destructive" })
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
+    return () => { cancelled = true }
   }, [courseId])
 
   const toggleSort = (col: typeof sortBy) => {

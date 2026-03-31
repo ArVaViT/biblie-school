@@ -56,6 +56,7 @@ export default function StudentNotes({ chapterId }: StudentNotesProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium text-left hover:bg-muted/50 transition-colors rounded-lg"
+        aria-expanded={isOpen}
       >
         {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         <StickyNote className="h-4 w-4 text-amber-500" />

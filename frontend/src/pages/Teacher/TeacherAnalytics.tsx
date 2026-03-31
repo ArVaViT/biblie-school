@@ -39,12 +39,17 @@ export default function TeacherAnalytics() {
 
   useEffect(() => {
     if (!courseId) return
+    let cancelled = false
+    setLoading(true)
+    setAnalytics(null)
+    setCourseTitle("")
     const load = async () => {
       try {
         const [raw, course] = await Promise.all([
           coursesService.getCourseAnalyticsAPI(courseId) as Promise<AnalyticsRaw>,
           coursesService.getCourse(courseId),
         ])
+        if (cancelled) return
         setAnalytics({
           totalStudents: raw.total_students ?? raw.totalStudents ?? 0,
           enrollments: raw.enrollments ?? [],
@@ -55,10 +60,11 @@ export default function TeacherAnalytics() {
       } catch {
         // analytics remains null — fallback UI handles this
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
+    return () => { cancelled = true }
   }, [courseId])
 
   const enrolledThisMonth = analytics?.enrollments.filter((e) => {

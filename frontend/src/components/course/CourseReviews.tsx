@@ -17,6 +17,7 @@ export default function CourseReviews({ courseId }: Props) {
   const [loading, setLoading] = useState(true)
 
   const loadReviews = useCallback(async () => {
+    setLoading(true)
     try {
       const data = await coursesService.getCourseReviews(courseId)
       setReviews(data)
@@ -99,6 +100,7 @@ export default function CourseReviews({ courseId }: Props) {
                         size="sm"
                         className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                         onClick={() => handleDelete(review.id)}
+                        aria-label="Delete review"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

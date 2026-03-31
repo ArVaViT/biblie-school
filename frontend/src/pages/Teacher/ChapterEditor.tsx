@@ -69,6 +69,7 @@ export default function ChapterEditor() {
 
   const load = useCallback(async () => {
     if (!courseId || !moduleId || !chapterId) return
+    setLoading(true)
     try {
       const mod = await coursesService.getModule(courseId, moduleId)
       setModuleName(mod.title)

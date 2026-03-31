@@ -16,27 +16,29 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const load = async () => {
+  useEffect(() => {
+    let cancelled = false
     setLoading(true)
     setError(null)
-    try {
-      const [enrollData, certData, gradeData] = await Promise.all([
-        coursesService.getMyCourses(),
-        coursesService.getMyCertificates().catch(() => []),
-        coursesService.getMyGrades().catch(() => []),
-      ])
-      setEnrollments(enrollData)
-      setCertificates(certData)
-      setGrades(gradeData)
-    } catch {
-      setError("Failed to load your courses. Please try again.")
-    } finally {
-      setLoading(false)
+    const load = async () => {
+      try {
+        const [enrollData, certData, gradeData] = await Promise.all([
+          coursesService.getMyCourses(),
+          coursesService.getMyCertificates().catch(() => []),
+          coursesService.getMyGrades().catch(() => []),
+        ])
+        if (cancelled) return
+        setEnrollments(enrollData)
+        setCertificates(certData)
+        setGrades(gradeData)
+      } catch {
+        if (!cancelled) setError("Failed to load your courses. Please try again.")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-  }
-
-  useEffect(() => {
     load()
+    return () => { cancelled = true }
   }, [])
 
   const isTeacher = user?.role === "teacher" || user?.role === "admin"

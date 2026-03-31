@@ -46,8 +46,14 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setAnswers({})
+    setResult(null)
+    setShowResults(false)
+    setAttempts([])
+    setQuiz(null)
+
     const load = async () => {
-      setLoading(true)
       const q = await coursesService.getChapterQuiz(chapterId)
       if (cancelled) return
       setQuiz(q)
@@ -55,7 +61,7 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
         const att = await coursesService.getMyQuizAttempts(q.id).catch(() => [] as QuizAttempt[])
         if (!cancelled) setAttempts(att)
       }
-      setLoading(false)
+      if (!cancelled) setLoading(false)
     }
     load()
     return () => { cancelled = true }

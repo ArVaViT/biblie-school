@@ -54,6 +54,7 @@ function ToolbarButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={title}
       className={cn(
         "rounded p-1.5 transition-colors",
         active
@@ -143,7 +144,7 @@ export default function RichTextEditor({
   const setLink = useCallback(() => {
     if (!editor) return;
     const previousUrl = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("Введите URL", previousUrl ?? "https://");
+    const url = window.prompt("Enter URL", previousUrl ?? "https://");
     if (url === null) return;
     if (url === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
@@ -154,14 +155,14 @@ export default function RichTextEditor({
 
   const addImage = useCallback(() => {
     if (!editor) return;
-    const url = window.prompt("Введите URL изображения");
+    const url = window.prompt("Enter image URL");
     if (!url) return;
     editor.chain().focus().setImage({ src: url }).run();
   }, [editor]);
 
   const addYoutube = useCallback(() => {
     if (!editor) return;
-    const url = window.prompt("Вставьте ссылку на YouTube видео");
+    const url = window.prompt("Paste YouTube video URL");
     if (!url) return;
     editor.chain().focus().setYoutubeVideo({ src: url }).run();
   }, [editor]);
@@ -187,7 +188,7 @@ export default function RichTextEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             active={editor.isActive("bold")}
-            title="Жирный"
+            title="Bold"
           >
             <Bold size={iconSize} />
           </ToolbarButton>
@@ -195,7 +196,7 @@ export default function RichTextEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleItalic().run()}
             active={editor.isActive("italic")}
-            title="Курсив"
+            title="Italic"
           >
             <Italic size={iconSize} />
           </ToolbarButton>
@@ -206,7 +207,7 @@ export default function RichTextEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             active={editor.isActive("heading", { level: 2 })}
-            title="Заголовок 2"
+            title="Heading 2"
           >
             <Heading2 size={iconSize} />
           </ToolbarButton>
@@ -214,7 +215,7 @@ export default function RichTextEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             active={editor.isActive("heading", { level: 3 })}
-            title="Заголовок 3"
+            title="Heading 3"
           >
             <Heading3 size={iconSize} />
           </ToolbarButton>
@@ -225,7 +226,7 @@ export default function RichTextEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             active={editor.isActive("bulletList")}
-            title="Маркированный список"
+            title="Bullet List"
           >
             <List size={iconSize} />
           </ToolbarButton>
@@ -233,7 +234,7 @@ export default function RichTextEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             active={editor.isActive("orderedList")}
-            title="Нумерованный список"
+            title="Numbered List"
           >
             <ListOrdered size={iconSize} />
           </ToolbarButton>
@@ -241,14 +242,14 @@ export default function RichTextEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             active={editor.isActive("blockquote")}
-            title="Цитата"
+            title="Blockquote"
           >
             <Quote size={iconSize} />
           </ToolbarButton>
 
           <ToolbarButton
             onClick={() => editor.chain().focus().setHorizontalRule().run()}
-            title="Разделитель"
+            title="Horizontal Rule"
           >
             <Minus size={iconSize} />
           </ToolbarButton>
@@ -260,7 +261,7 @@ export default function RichTextEditor({
             <button
               type="button"
               onClick={() => setShowCalloutMenu(!showCalloutMenu)}
-              title="Выделенный блок"
+              title="Callout Block"
               className={cn(
                 "flex items-center gap-0.5 rounded p-1.5 transition-colors",
                 editor.isActive("callout")
@@ -298,7 +299,7 @@ export default function RichTextEditor({
                       }}
                       className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted transition-colors text-left"
                     >
-                      Убрать блок
+                      Remove Block
                     </button>
                   </>
                 )}
@@ -309,18 +310,18 @@ export default function RichTextEditor({
           <div className="mx-1 h-5 w-px bg-border" />
 
           {/* Media */}
-          <ToolbarButton onClick={addImage} title="Вставить изображение">
+          <ToolbarButton onClick={addImage} title="Insert Image">
             <ImageIcon size={iconSize} />
           </ToolbarButton>
 
-          <ToolbarButton onClick={addYoutube} title="Вставить YouTube видео">
+          <ToolbarButton onClick={addYoutube} title="Insert YouTube Video">
             <Youtube size={iconSize} />
           </ToolbarButton>
 
           <ToolbarButton
             onClick={setLink}
             active={editor.isActive("link")}
-            title="Ссылка"
+            title="Link"
           >
             <Link2 size={iconSize} />
           </ToolbarButton>
@@ -331,7 +332,7 @@ export default function RichTextEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().undo().run()}
             disabled={!editor.can().undo()}
-            title="Отменить"
+            title="Undo"
           >
             <Undo2 size={iconSize} />
           </ToolbarButton>
@@ -339,7 +340,7 @@ export default function RichTextEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().redo().run()}
             disabled={!editor.can().redo()}
-            title="Повторить"
+            title="Redo"
           >
             <Redo2 size={iconSize} />
           </ToolbarButton>
