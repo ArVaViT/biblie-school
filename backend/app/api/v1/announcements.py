@@ -34,9 +34,22 @@ async def list_announcements(
         if course_id is not None:
             query = query.filter(Announcement.course_id == course_id)
         rows = query.order_by(Announcement.created_at.desc()).all()
-        return [AnnouncementResponse.model_validate(r) for r in rows]
+        logger.info("announcements: fetched %d rows", len(rows))
+        result = []
+        for i, r in enumerate(rows):
+            try:
+                result.append(AnnouncementResponse.model_validate(r))
+            except Exception as val_err:
+                logger.error(
+                    "announcements row %d (id=%s) validation: %s [%s]",
+                    i, getattr(r, 'id', '?'), type(val_err).__name__, val_err,
+                )
+                raise
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("list_announcements error: %s\n%s", e, traceback.format_exc())
+        logger.error("list_announcements %s: %s", type(e).__name__, e)
         raise HTTPException(status_code=500, detail="Failed to list announcements")
 
 
