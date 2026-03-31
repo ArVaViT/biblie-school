@@ -45,6 +45,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Temp files
+commit-msg.txt
+
 .vercel
 
 # Database config (may contain credentials)

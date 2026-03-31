@@ -1,9 +1,0 @@
-fix: add cancellation flags to remaining async useEffects
-
-Prevent stale state updates from in-flight requests after component
-unmount or rapid prop changes in:
-- AnnouncementBanner, CourseAnnouncements (+ loaded state)
-- HomePage (MyCoursesSection + course catalog search)
-- NotificationBell (unread count polling + notification fetch)
-- CourseReviews, ModuleEditor, ChapterBlockEditor
-- AdminDashboard audit log tab
