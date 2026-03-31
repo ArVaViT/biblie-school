@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Callout, type CalloutVariant } from "./CalloutExtension";
 import { YoutubeEmbed } from "./YoutubeExtension";
+import { storageService } from "@/services/storage";
 
 interface RichTextEditorProps {
   content: string;
@@ -87,6 +88,7 @@ export default function RichTextEditor({
   editable = true,
 }: RichTextEditorProps) {
   const [showCalloutMenu, setShowCalloutMenu] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const calloutMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -155,9 +157,24 @@ export default function RichTextEditor({
 
   const addImage = useCallback(() => {
     if (!editor) return;
-    const url = window.prompt("Enter image URL");
-    if (!url) return;
-    editor.chain().focus().setImage({ src: url }).run();
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      setUploading(true);
+      try {
+        const url = await storageService.uploadContentImage(file);
+        editor.chain().focus().setImage({ src: url }).run();
+      } catch {
+        const url = window.prompt("Upload failed. Enter image URL instead:");
+        if (url) editor.chain().focus().setImage({ src: url }).run();
+      } finally {
+        setUploading(false);
+      }
+    };
+    input.click();
   }, [editor]);
 
   const addYoutube = useCallback(() => {
@@ -310,8 +327,12 @@ export default function RichTextEditor({
           <div className="mx-1 h-5 w-px bg-border" />
 
           {/* Media */}
-          <ToolbarButton onClick={addImage} title="Insert Image">
-            <ImageIcon size={iconSize} />
+          <ToolbarButton onClick={addImage} disabled={uploading} title="Insert Image">
+            {uploading ? (
+              <span className="inline-block h-[18px] w-[18px] animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <ImageIcon size={iconSize} />
+            )}
           </ToolbarButton>
 
           <ToolbarButton onClick={addYoutube} title="Insert YouTube Video">

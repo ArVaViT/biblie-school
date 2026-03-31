@@ -198,7 +198,8 @@ export default function ChapterView() {
     setDiscussionResponse("")
     setHasAssignments(false)
 
-    if (chapter.chapter_type === "mixed") {
+    const contentTypes = ["reading", "content", "video", "audio", "discussion", "mixed"]
+    if (contentTypes.includes(chapter.chapter_type || "reading")) {
       setLoadingBlocks(true)
       coursesService
         .getChapterBlocks(chapter.id)
@@ -339,11 +340,23 @@ export default function ChapterView() {
 
       {/* Content area based on chapter type */}
       <div className="mb-8 space-y-6">
-        {(chapterType === "reading" || chapterType === "content") && chapter.content && (
-          <div
-            className="prose dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
-          />
+        {(chapterType === "reading" || chapterType === "content") && (
+          loadingBlocks ? (
+            <div className="flex justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : chapterBlocks.length > 0 ? (
+            <div className="space-y-6">
+              {chapterBlocks.map((block) => (
+                <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
+              ))}
+            </div>
+          ) : chapter.content ? (
+            <div
+              className="prose dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
+            />
+          ) : null
         )}
 
         {chapterType === "video" && (
@@ -362,12 +375,22 @@ export default function ChapterView() {
                 </div>
               ) : null
             })()}
-            {chapter.content && (
+            {loadingBlocks ? (
+              <div className="flex justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : chapterBlocks.length > 0 ? (
+              <div className="space-y-6">
+                {chapterBlocks.map((block) => (
+                  <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
+                ))}
+              </div>
+            ) : chapter.content ? (
               <div
                 className="prose dark:prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
               />
-            )}
+            ) : null}
           </>
         )}
 
@@ -384,7 +407,17 @@ export default function ChapterView() {
                 </audio>
               </div>
             )}
-            {chapter.content && (
+            {loadingBlocks ? (
+              <div className="flex justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : chapterBlocks.length > 0 ? (
+              <div className="space-y-6">
+                {chapterBlocks.map((block) => (
+                  <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
+                ))}
+              </div>
+            ) : chapter.content ? (
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Transcript</h3>
                 <div
@@ -392,7 +425,7 @@ export default function ChapterView() {
                   dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
                 />
               </div>
-            )}
+            ) : null}
           </>
         )}
 
@@ -418,6 +451,17 @@ export default function ChapterView() {
                 />
               </div>
             )}
+            {loadingBlocks ? (
+              <div className="flex justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : chapterBlocks.length > 0 ? (
+              <div className="space-y-6">
+                {chapterBlocks.map((block) => (
+                  <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
+                ))}
+              </div>
+            ) : null}
             <div>
               <label htmlFor="discussion-response" className="text-sm font-medium mb-2 block">
                 Your Response

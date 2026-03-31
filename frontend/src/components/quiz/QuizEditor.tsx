@@ -11,6 +11,7 @@ import { Plus, Trash2, Save, ClipboardList, Loader2, GripVertical } from "lucide
 interface QuizEditorProps {
   chapterId: string
   chapterType?: "quiz" | "exam"
+  onQuizSaved?: (quizId: string) => void
 }
 
 interface DraftOption {
@@ -56,7 +57,7 @@ function makeDefaultQuestion(order: number): DraftQuestion {
   }
 }
 
-export default function QuizEditor({ chapterId, chapterType = "quiz" }: QuizEditorProps) {
+export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSaved }: QuizEditorProps) {
   const [existingQuiz, setExistingQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -196,6 +197,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz" }: QuizEdit
         })),
       })
       setExistingQuiz(quiz)
+      onQuizSaved?.(quiz.id)
       setMaxAttempts(quiz.max_attempts ?? (chapterType === "exam" ? 1 : 3))
       if (oldQuizId) {
         await coursesService.deleteQuiz(oldQuizId).catch(() => {})

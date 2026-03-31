@@ -54,6 +54,7 @@ def _get_engine() -> Engine:
                 "connect_timeout": 10,
                 "options": "-c statement_timeout=30000",
             },
+            "pool_pre_ping": True,
             "echo": False,
         }
 
@@ -61,7 +62,6 @@ def _get_engine() -> Engine:
             pool_kwargs["poolclass"] = NullPool
         else:
             pool_kwargs.update({
-                "pool_pre_ping": True,
                 "pool_size": 2,
                 "max_overflow": 3,
                 "pool_recycle": 300,

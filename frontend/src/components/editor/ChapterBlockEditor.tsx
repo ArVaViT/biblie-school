@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast"
 import {
   Plus, Trash2, GripVertical, Save, Video, FileText,
   ChevronDown, ChevronRight, Loader2, Type, Film,
-  HelpCircle, ClipboardList, Paperclip,
+  HelpCircle, ClipboardList, Paperclip, Check,
 } from "lucide-react"
 import QuizEditor from "@/components/quiz/QuizEditor"
 import AssignmentEditor from "@/components/assignment/AssignmentEditor"
@@ -57,6 +57,10 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
   const [editContent, setEditContent] = useState("")
   const [editVideoUrl, setEditVideoUrl] = useState("")
   const [editFileUrl, setEditFileUrl] = useState("")
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "pending" | "saving" | "saved">("idle")
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savedResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const editContentRef = useRef("")
 
   const loadBlocks = useCallback(async (signal?: { cancelled: boolean }) => {
     try {
@@ -102,11 +106,49 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
 
   const initEditState = (block: ChapterBlock) => {
     setEditContent(block.content ?? "")
+    editContentRef.current = block.content ?? ""
     setEditVideoUrl(block.video_url ?? "")
     setEditFileUrl(block.file_url ?? "")
   }
 
+  const updateBlockField = async (blockId: string, field: string, value: string) => {
+    try {
+      const updated = await coursesService.updateBlock(blockId, { [field]: value })
+      setBlocks((prev) => prev.map((b) => (b.id === blockId ? updated : b)))
+    } catch {
+      toast({ title: "Failed to update block", variant: "destructive" })
+    }
+  }
+
+  const scheduleAutoSave = useCallback((block: ChapterBlock) => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    if (savedResetTimer.current) clearTimeout(savedResetTimer.current)
+    setAutoSaveStatus("pending")
+    autoSaveTimer.current = setTimeout(async () => {
+      setAutoSaveStatus("saving")
+      try {
+        const updated = await coursesService.updateBlock(block.id, { content: editContentRef.current })
+        setBlocks((prev) => prev.map((b) => (b.id === block.id ? updated : b)))
+        setAutoSaveStatus("saved")
+        savedResetTimer.current = setTimeout(() => setAutoSaveStatus("idle"), 2000)
+      } catch {
+        setAutoSaveStatus("idle")
+        toast({ title: "Auto-save failed", variant: "destructive" })
+      }
+    }, 2000)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+      if (savedResetTimer.current) clearTimeout(savedResetTimer.current)
+    }
+  }, [])
+
   const saveBlock = async (block: ChapterBlock) => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    if (savedResetTimer.current) clearTimeout(savedResetTimer.current)
+    setAutoSaveStatus("idle")
     setSavingBlock(block.id)
     try {
       const payload: Partial<ChapterBlock> = {}
@@ -256,21 +298,44 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
                     <>
                       <RichTextEditor
                         content={editContent}
-                        onChange={setEditContent}
+                        onChange={(html) => {
+                          setEditContent(html)
+                          editContentRef.current = html
+                          scheduleAutoSave(block)
+                        }}
                         placeholder="Write block content..."
                       />
-                      <Button
-                        size="sm"
-                        onClick={() => saveBlock(block)}
-                        disabled={savingBlock === block.id}
-                      >
-                        {savingBlock === block.id ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                        ) : (
-                          <Save className="h-3.5 w-3.5 mr-1.5" />
+                      <div className="flex items-center gap-3">
+                        <Button
+                          size="sm"
+                          onClick={() => saveBlock(block)}
+                          disabled={savingBlock === block.id}
+                        >
+                          {savingBlock === block.id ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                          ) : (
+                            <Save className="h-3.5 w-3.5 mr-1.5" />
+                          )}
+                          Save Text
+                        </Button>
+                        {autoSaveStatus === "pending" && (
+                          <span className="text-xs text-muted-foreground animate-pulse">
+                            Unsaved changes...
+                          </span>
                         )}
-                        Save Text
-                      </Button>
+                        {autoSaveStatus === "saving" && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Auto-saving...
+                          </span>
+                        )}
+                        {autoSaveStatus === "saved" && (
+                          <span className="flex items-center gap-1 text-xs text-green-600">
+                            <Check className="h-3 w-3" />
+                            Saved
+                          </span>
+                        )}
+                      </div>
                     </>
                   )}
 
@@ -304,11 +369,17 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
                   )}
 
                   {block.block_type === "quiz" && (
-                    <QuizEditor chapterId={chapterId} />
+                    <QuizEditor
+                      chapterId={chapterId}
+                      onQuizSaved={(quizId) => updateBlockField(block.id, "quiz_id", quizId)}
+                    />
                   )}
 
                   {block.block_type === "assignment" && (
-                    <AssignmentEditor chapterId={chapterId} />
+                    <AssignmentEditor
+                      chapterId={chapterId}
+                      onAssignmentCreated={(id) => updateBlockField(block.id, "assignment_id", id)}
+                    />
                   )}
 
                   {block.block_type === "file" && (

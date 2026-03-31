@@ -54,14 +54,19 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
     setQuiz(null)
 
     const load = async () => {
-      const q = await coursesService.getChapterQuiz(chapterId)
-      if (cancelled) return
-      setQuiz(q)
-      if (q) {
-        const att = await coursesService.getMyQuizAttempts(q.id).catch(() => [] as QuizAttempt[])
-        if (!cancelled) setAttempts(att)
+      try {
+        const q = await coursesService.getChapterQuiz(chapterId)
+        if (cancelled) return
+        setQuiz(q)
+        if (q) {
+          const att = await coursesService.getMyQuizAttempts(q.id).catch(() => [] as QuizAttempt[])
+          if (!cancelled) setAttempts(att)
+        }
+      } catch {
+        // quiz fetch failed — component will show "no quiz" state
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      if (!cancelled) setLoading(false)
     }
     load()
     return () => { cancelled = true }

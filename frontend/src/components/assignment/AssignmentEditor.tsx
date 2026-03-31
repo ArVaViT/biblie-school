@@ -21,9 +21,10 @@ import {
 
 interface AssignmentEditorProps {
   chapterId: string
+  onAssignmentCreated?: (assignmentId: string) => void
 }
 
-export default function AssignmentEditor({ chapterId }: AssignmentEditorProps) {
+export default function AssignmentEditor({ chapterId, onAssignmentCreated }: AssignmentEditorProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -66,6 +67,7 @@ export default function AssignmentEditor({ chapterId }: AssignmentEditorProps) {
         due_date: newDueDate || null,
       })
       setAssignments((prev) => [...prev, a])
+      onAssignmentCreated?.(a.id)
       setNewTitle("")
       setNewDesc("")
       setNewMaxScore(100)

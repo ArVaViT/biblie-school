@@ -88,4 +88,17 @@ export const storageService = {
 
     if (error) throw error
   },
+
+  async uploadContentImage(file: File): Promise<string> {
+    const ext = file.name.split(".").pop() ?? "jpg"
+    const random = Math.random().toString(36).slice(2, 10)
+    const path = `content-images/${Date.now()}-${random}.${ext}`
+
+    const { error } = await supabase.storage
+      .from(COURSE_ASSETS_BUCKET)
+      .upload(path, file)
+
+    if (error) throw error
+    return getPublicUrl(COURSE_ASSETS_BUCKET, path)
+  },
 }
