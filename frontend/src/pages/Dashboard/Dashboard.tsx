@@ -16,11 +16,13 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [retryKey, setRetryKey] = useState(0)
+
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
-    const load = async () => {
+    const fetchData = async () => {
       try {
         const [enrollData, certData, gradeData] = await Promise.all([
           coursesService.getMyCourses(),
@@ -37,9 +39,9 @@ export default function Dashboard() {
         if (!cancelled) setLoading(false)
       }
     }
-    load()
+    fetchData()
     return () => { cancelled = true }
-  }, [])
+  }, [retryKey])
 
   const isTeacher = user?.role === "teacher" || user?.role === "admin"
   const RoleIcon = isTeacher ? BookOpenCheck : GraduationCap
@@ -95,7 +97,7 @@ export default function Dashboard() {
             <div className="text-center py-12">
               <BookOpen className="h-10 w-10 text-destructive/40 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground mb-4">{error}</p>
-              <Button size="sm" variant="outline" onClick={load}>
+              <Button size="sm" variant="outline" onClick={() => setRetryKey((k) => k + 1)}>
                 Try again
               </Button>
             </div>

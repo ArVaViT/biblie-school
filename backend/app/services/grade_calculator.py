@@ -102,26 +102,33 @@ def calculate_student_grade(
             .all()
         )
         best_scores = [float(r.best) for r in rows if r.best is not None]
-        quiz_avg = sum(best_scores) / len(best_scores) if best_scores else 0.0
+        total_quizzes = len(quiz_ids)
+        quiz_avg = sum(best_scores) / total_quizzes if total_quizzes > 0 else 0.0
 
     assignment_avg = 0.0
     if assignment_ids:
-        asgn_rows = (
-            db.query(AssignmentSubmission.grade, Assignment.max_score)
+        best_per_assignment = (
+            db.query(
+                AssignmentSubmission.assignment_id,
+                sqlfunc.max(AssignmentSubmission.grade).label("best_grade"),
+                Assignment.max_score,
+            )
             .join(Assignment, Assignment.id == AssignmentSubmission.assignment_id)
             .filter(
                 AssignmentSubmission.assignment_id.in_(assignment_ids),
                 AssignmentSubmission.student_id == student_id,
                 AssignmentSubmission.grade.isnot(None),
             )
+            .group_by(AssignmentSubmission.assignment_id, Assignment.max_score)
             .all()
         )
-        if asgn_rows:
-            pcts = [
-                (row.grade / row.max_score * 100.0) if row.max_score else 0.0
-                for row in asgn_rows
+        total_assignments = len(assignment_ids)
+        if total_assignments > 0:
+            graded_pcts = [
+                (row.best_grade / row.max_score * 100.0) if row.max_score else 0.0
+                for row in best_per_assignment
             ]
-            assignment_avg = sum(pcts) / len(pcts)
+            assignment_avg = sum(graded_pcts) / total_assignments
 
     total_chapters = len(chapter_ids)
     participation_pct = 0.0
@@ -183,21 +190,31 @@ def calculate_all_student_grades(db: Session, course: Course):
             if r.best is not None:
                 quiz_scores.setdefault(str(r.user_id), []).append(float(r.best))
 
-    # Batch: assignment grades per student
+    # Batch: best assignment grade per student per assignment
     asgn_scores: dict[str, list[float]] = {str(sid): [] for sid in student_ids}
     if assignment_ids:
         rows = (
-            db.query(AssignmentSubmission.student_id, AssignmentSubmission.grade, Assignment.max_score)
+            db.query(
+                AssignmentSubmission.student_id,
+                AssignmentSubmission.assignment_id,
+                sqlfunc.max(AssignmentSubmission.grade).label("best_grade"),
+                Assignment.max_score,
+            )
             .join(Assignment, Assignment.id == AssignmentSubmission.assignment_id)
             .filter(
                 AssignmentSubmission.assignment_id.in_(assignment_ids),
                 AssignmentSubmission.student_id.in_(student_ids),
                 AssignmentSubmission.grade.isnot(None),
             )
+            .group_by(
+                AssignmentSubmission.student_id,
+                AssignmentSubmission.assignment_id,
+                Assignment.max_score,
+            )
             .all()
         )
         for r in rows:
-            pct = (r.grade / r.max_score * 100.0) if r.max_score else 0.0
+            pct = (float(r.best_grade) / r.max_score * 100.0) if r.max_score else 0.0
             asgn_scores.setdefault(str(r.student_id), []).append(pct)
 
     # Batch: chapter completion counts per student
@@ -227,13 +244,15 @@ def calculate_all_student_grades(db: Session, course: Course):
         manual_grades_map[str(row.student_id)] = row.grade
 
     total_chapters = len(chapter_ids)
+    total_quizzes = len(quiz_ids)
+    total_assignments = len(assignment_ids)
     results = []
     for user_id, full_name, email in enrollments:
         sid = str(user_id)
         qs = quiz_scores.get(sid, [])
-        quiz_avg = sum(qs) / len(qs) if qs else 0.0
+        quiz_avg = sum(qs) / total_quizzes if total_quizzes > 0 else 0.0
         asgs = asgn_scores.get(sid, [])
-        assignment_avg = sum(asgs) / len(asgs) if asgs else 0.0
+        assignment_avg = sum(asgs) / total_assignments if total_assignments > 0 else 0.0
         comp = completion_counts.get(sid, 0)
         participation_pct = (comp / total_chapters * 100.0) if total_chapters else 0.0
 

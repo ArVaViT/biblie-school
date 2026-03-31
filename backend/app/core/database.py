@@ -93,30 +93,43 @@ def reset_engine() -> None:
     _SessionLocal = None
 
 
+_MAX_SESSION_RETRIES = 2
+
+
 def get_db() -> Generator[Session, None, None]:
     """FastAPI dependency that yields a database session."""
-    try:
-        _get_engine()
-    except RuntimeError as e:
-        from fastapi import HTTPException, status
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Database connection error",
-        )
+    from fastapi import HTTPException, status
 
-    if _SessionLocal is None:
-        from fastapi import HTTPException, status
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Database session factory not initialized",
-        )
+    db: Session | None = None
+    last_err: Exception | None = None
 
-    try:
-        db = _SessionLocal()
-    except Exception as e:
-        logger.error(f"Failed to create database session: {e}")
-        reset_engine()
-        from fastapi import HTTPException, status
+    for attempt in range(_MAX_SESSION_RETRIES):
+        try:
+            _get_engine()
+        except RuntimeError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database connection error",
+            )
+
+        if _SessionLocal is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database session factory not initialized",
+            )
+
+        try:
+            db = _SessionLocal()
+            db.execute(__import__("sqlalchemy").text("SELECT 1"))
+            break
+        except Exception as e:
+            last_err = e
+            logger.warning("DB session attempt %d failed: %s", attempt + 1, e)
+            reset_engine()
+            db = None
+
+    if db is None:
+        logger.error("All DB session attempts failed: %s", last_err)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database temporarily unavailable",
@@ -125,11 +138,10 @@ def get_db() -> Generator[Session, None, None]:
     try:
         yield db
     except SQLAlchemyError as e:
-        logger.error(f"Database error: {e}")
+        logger.error("Database error: %s", e)
         db.rollback()
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in database session: {e}")
+    except Exception:
         db.rollback()
         raise
     finally:

@@ -1,0 +1,11 @@
+fix: Dashboard TS error, grade calculator accuracy, DB session resilience
+
+- Fix Dashboard.tsx TypeScript error (Cannot find name 'load') that broke
+  frontend builds for 3 consecutive deployments
+- Grade calculator: divide quiz average by total quizzes (not just attempted)
+  so skipping quizzes properly penalizes the score
+- Grade calculator: use best grade per assignment (GROUP BY) instead of
+  counting all submissions, preventing score inflation from resubmissions
+- Add DB session retry mechanism (2 attempts with SELECT 1 health check)
+  to handle intermittent serverless connection failures
+- Clean up announcements endpoint debug logging
