@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
+from uuid import UUID
 
 
 class AnnouncementCreate(BaseModel):
@@ -16,10 +17,10 @@ class AnnouncementUpdate(BaseModel):
 class AnnouncementResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: UUID
     title: str
     content: str
     course_id: str | None = None
-    created_by: str
+    created_by: UUID
     created_at: datetime
     updated_at: datetime | None = None

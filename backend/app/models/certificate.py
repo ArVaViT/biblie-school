@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, DateTime, Index
+from sqlalchemy import Column, String, ForeignKey, DateTime, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -8,6 +8,7 @@ import uuid
 class Certificate(Base):
     __tablename__ = "certificates"
     __table_args__ = (
+        UniqueConstraint("user_id", "course_id", name="uq_certificate_user_course"),
         Index("ix_certificates_user_course", "user_id", "course_id"),
         Index("ix_certificates_status", "status"),
     )

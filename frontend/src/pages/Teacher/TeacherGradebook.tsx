@@ -119,15 +119,17 @@ export default function TeacherGradebook() {
   const [sortField, setSortField] = useState<SortField>("name")
   const [sortDir, setSortDir] = useState<SortDir>("asc")
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!courseId) return
     setLoading(true)
     setError(null)
+    setExpandedId(null)
     try {
       const [course, rawGrades] = await Promise.all([
         coursesService.getCourse(courseId),
         coursesService.getCourseGrades(courseId).catch(() => []),
       ])
+      if (signal?.cancelled) return
       setCourseTitle(course.title)
 
       const gradeMap = new Map<string, StudentGrade>()
@@ -143,6 +145,7 @@ export default function TeacherGradebook() {
         coursesService.getGradeSummary(courseId),
         coursesService.getStudentProgress(courseId),
       ])
+      if (signal?.cancelled) return
 
       if (gradeSummary.status === "fulfilled") {
         setSummary(gradeSummary.value)
@@ -154,13 +157,17 @@ export default function TeacherGradebook() {
         setProgressData(progress.value as ProgressResponse)
       }
     } catch {
-      setError("Failed to load gradebook. Please try again.")
+      if (!signal?.cancelled) setError("Failed to load gradebook. Please try again.")
     } finally {
-      setLoading(false)
+      if (!signal?.cancelled) setLoading(false)
     }
   }, [courseId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    const signal = { cancelled: false }
+    load(signal)
+    return () => { signal.cancelled = true }
+  }, [load])
 
   // ── Config save ─────────────────────────────────────────────────
 
@@ -336,7 +343,7 @@ export default function TeacherGradebook() {
           <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
           <p className="text-sm text-muted-foreground mb-4">{error}</p>
           <div className="flex gap-3">
-            <Button onClick={load} size="sm" variant="outline">Try again</Button>
+            <Button onClick={() => load()} size="sm" variant="outline">Try again</Button>
             <Link to="/teacher">
               <Button size="sm" variant="ghost">
                 <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />Back to courses

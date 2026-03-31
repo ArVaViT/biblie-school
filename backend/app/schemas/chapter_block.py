@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Literal, Optional
+from uuid import UUID
 
 
 class BlockCreate(BaseModel):
@@ -26,14 +27,14 @@ class BlockUpdate(BaseModel):
 class BlockResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: UUID
     chapter_id: str
     block_type: str
     order_index: int
     content: Optional[str] = None
     video_url: Optional[str] = None
-    quiz_id: Optional[str] = None
-    assignment_id: Optional[str] = None
+    quiz_id: Optional[UUID] = None
+    assignment_id: Optional[UUID] = None
     file_url: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None

@@ -1,13 +1,23 @@
-fix: critical quiz save, draft enrollment, chapter lock enforcement
+fix: schema type safety, race conditions, security hardening
 
-- QuizEditor: create new quiz BEFORE deleting old one to prevent data
-  loss if creation fails (was delete-first, risking total quiz loss)
-- Block enrollment in unpublished/draft courses via API
-- Enforce chapter lock check in self_complete_chapter so students cannot
-  bypass sequential locks via direct API calls
-- Add enrollment verification to self_uncomplete, teacher_complete, and
-  teacher_uncomplete chapter endpoints
-- Replace manual token extraction (_try_get_user) with proper FastAPI
-  get_optional_user dependency (fixes test failures, cleaner DI)
-- CourseDetail: enrollment failure now shows toast instead of replacing
-  the entire page with an error screen
+Backend:
+- Fix UUID/str type mismatches in Pydantic response schemas (note,
+  chapter_block, cohort, grade) to prevent serialization errors
+- Add unique constraint on certificates (user_id, course_id) with
+  migration and IntegrityError handling for race conditions
+- Add enrollment check in teacher_uncomplete_chapter endpoint
+- Add student enrollment verification in get_calculated_grade to
+  prevent PII leak to course owners for arbitrary user IDs
+- Remove update_progress endpoint that allowed arbitrary 0-100
+  progress values, bypassing real chapter-completion tracking
+- Clean up grade_summary error logging (remove traceback import)
+
+Frontend:
+- Add cancellation flags to useEffect in TeacherGradebook,
+  AdminDashboard, TeacherDashboard, CourseEditor, ChapterEditor,
+  CertificatesPage, and ProfilePage to prevent stale state updates
+- Fix ProfilePage blank screen when user is null (show spinner)
+- Remove dead updateProgress service method
+- Add aria-expanded to mobile menu and notification bell buttons
+- Add aria-label to profile button and aria-haspopup to bell
+- Add role="region" to notification dropdown panel

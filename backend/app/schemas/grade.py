@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from datetime import datetime
+from uuid import UUID
 
 
 class GradeUpsert(BaseModel):
@@ -10,13 +11,13 @@ class GradeUpsert(BaseModel):
 class GradeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
-    student_id: str
+    id: UUID
+    student_id: UUID
     course_id: str
-    cohort_id: str | None = None
+    cohort_id: UUID | None = None
     grade: str | None = None
     comment: str | None = None
-    graded_by: str
+    graded_by: UUID
     graded_at: datetime
     updated_at: datetime | None = None
 

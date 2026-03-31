@@ -22,7 +22,7 @@ from app.services.course_service import (
     create_course, update_course, delete_course,
     get_module, create_module, update_module, delete_module,
     get_chapter, create_chapter, update_chapter, delete_chapter,
-    enroll_user_in_course, update_enrollment_progress,
+    enroll_user_in_course,
     clone_course,
 )
 
@@ -472,17 +472,3 @@ async def enroll_course(
     return enrollment
 
 
-@router.put("/{course_id}/progress", response_model=EnrollmentResponse)
-async def update_progress(
-    course_id: str,
-    progress: int = Query(..., ge=0, le=100),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> EnrollmentResponse:
-    enrollment = update_enrollment_progress(db, current_user.id, course_id, progress)
-    if not enrollment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Enrollment not found for course '{course_id}'",
-        )
-    return enrollment

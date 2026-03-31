@@ -68,7 +68,7 @@ export default function TeacherDashboard() {
     }
   }
 
-  const load = async () => {
+  const load = async (signal?: { cancelled: boolean }) => {
     setLoading(true)
     setError(null)
     try {
@@ -76,17 +76,20 @@ export default function TeacherDashboard() {
         coursesService.getTeacherCourses(),
         coursesService.getPendingCertificates().catch(() => []),
       ])
+      if (signal?.cancelled) return
       setCourses(data)
       setPendingCerts(certs)
     } catch {
-      setError("Failed to load your courses. Please try again.")
+      if (!signal?.cancelled) setError("Failed to load your courses. Please try again.")
     } finally {
-      setLoading(false)
+      if (!signal?.cancelled) setLoading(false)
     }
   }
 
   useEffect(() => {
-    load()
+    const signal = { cancelled: false }
+    load(signal)
+    return () => { signal.cancelled = true }
   }, [])
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -275,7 +278,7 @@ export default function TeacherDashboard() {
             <BookOpen className="h-12 w-12 text-destructive/40 mb-4" />
             <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={load} size="sm" variant="outline">
+            <Button onClick={() => load()} size="sm" variant="outline">
               Try again
             </Button>
           </CardContent>

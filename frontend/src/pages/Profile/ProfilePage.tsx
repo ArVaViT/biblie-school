@@ -48,17 +48,20 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState("")
 
   useEffect(() => {
+    let cancelled = false
     const loadStats = async () => {
       try {
         const [certs, enrollments] = await Promise.all([
           coursesService.getMyCertificates().catch(() => []),
           coursesService.getMyCourses().catch(() => []),
         ])
+        if (cancelled) return
         setCertificateCount(certs.length)
         setCompletedCount(enrollments.filter((e) => e.progress >= 100).length)
       } catch { /* non-critical */ }
     }
     loadStats()
+    return () => { cancelled = true }
   }, [])
 
   const handleSave = async () => {
@@ -145,7 +148,13 @@ export default function ProfilePage() {
     navigate("/login", { replace: true })
   }
 
-  if (!user) return null
+  if (!user) {
+    return (
+      <div className="flex justify-center py-24">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
 
   const initials = (user.full_name ?? user.email)
     .split(/[\s@]/)

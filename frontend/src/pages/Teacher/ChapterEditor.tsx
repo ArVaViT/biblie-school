@@ -67,11 +67,12 @@ export default function ChapterEditor() {
   const [moduleName, setModuleName] = useState("Module")
   const [isDirty, setIsDirty] = useState(false)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!courseId || !moduleId || !chapterId) return
     setLoading(true)
     try {
       const mod = await coursesService.getModule(courseId, moduleId)
+      if (signal?.cancelled) return
       setModuleName(mod.title)
       const ch = mod.chapters?.find((c) => c.id === chapterId)
       if (!ch) {
@@ -94,15 +95,18 @@ export default function ChapterEditor() {
       }))
       setIsDirty(false)
     } catch {
+      if (signal?.cancelled) return
       toast({ title: "Failed to load chapter", variant: "destructive" })
       navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)
     } finally {
-      setLoading(false)
+      if (!signal?.cancelled) setLoading(false)
     }
   }, [courseId, moduleId, chapterId, navigate])
 
   useEffect(() => {
-    load()
+    const signal = { cancelled: false }
+    load(signal)
+    return () => { signal.cancelled = true }
   }, [load])
 
   const [initialSnapshot, setInitialSnapshot] = useState("")

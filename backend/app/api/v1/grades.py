@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
 from app.models.user import User
 from app.models.course import Course
+from app.models.enrollment import Enrollment
 from app.models.student_grade import StudentGrade
 from app.schemas.grade import (
     GradeUpsert,
@@ -79,13 +80,22 @@ async def get_calculated_grade(
     db: Session = Depends(get_db),
 ):
     course = verify_course_owner(db, course_id, teacher.id)
-    chapter_ids = _get_course_chapter_ids(db, course_id)
-    quiz_ids = _get_quiz_ids_for_chapters(db, chapter_ids)
-    assignment_ids = _get_assignment_ids_for_chapters(db, chapter_ids)
+
+    enrolled = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id)
+        .first()
+    )
+    if not enrolled:
+        raise HTTPException(status_code=404, detail="Student not enrolled in this course")
 
     user = db.query(User).filter(User.id == student_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Student not found")
+
+    chapter_ids = _get_course_chapter_ids(db, course_id)
+    quiz_ids = _get_quiz_ids_for_chapters(db, chapter_ids)
+    assignment_ids = _get_assignment_ids_for_chapters(db, chapter_ids)
 
     breakdown = calculate_student_grade(
         db, course, uuid.UUID(student_id), chapter_ids, quiz_ids, assignment_ids
@@ -112,7 +122,7 @@ async def get_grade_summary(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    import traceback, logging
+    import logging
     logger = logging.getLogger(__name__)
     try:
         course = verify_course_owner(db, course_id, teacher.id)
@@ -138,7 +148,7 @@ async def get_grade_summary(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Grade summary error: {e}\n{traceback.format_exc()}")
+        logger.error("Grade summary error for course %s: %s", course_id, e)
         raise HTTPException(status_code=500, detail="Grade calculation failed")
 
 

@@ -433,6 +433,17 @@ async def teacher_uncomplete_chapter(
     if not module:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
 
+    enrolled = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == student_id, Enrollment.course_id == module.course_id)
+        .first()
+    )
+    if not enrolled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Student is not enrolled in this course",
+        )
+
     progress = (
         db.query(ChapterProgress)
         .filter(ChapterProgress.user_id == student_id, ChapterProgress.chapter_id == chapter_id)

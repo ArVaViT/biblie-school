@@ -13,21 +13,24 @@ export default function CertificatesPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       try {
         const [certs, courses] = await Promise.all([
           coursesService.getMyCertificates(),
           coursesService.getMyCourses().catch(() => []),
         ])
+        if (cancelled) return
         setCertificates(certs)
         setEnrollments(courses)
       } catch {
-        toast({ title: "Failed to load certificates", variant: "destructive" })
+        if (!cancelled) toast({ title: "Failed to load certificates", variant: "destructive" })
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
+    return () => { cancelled = true }
   }, [])
 
   const courseTitle = (courseId: string) => {

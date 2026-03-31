@@ -125,6 +125,8 @@ export default function NotificationBell() {
         className="h-8 w-8 p-0 relative"
         onClick={() => setOpen(prev => !prev)}
         aria-label="Notifications"
+        aria-expanded={open}
+        aria-haspopup="true"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
@@ -137,6 +139,8 @@ export default function NotificationBell() {
       {open && (
         <div
           ref={panelRef}
+          role="region"
+          aria-label="Notifications"
           className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-lg border border-border bg-background shadow-lg z-50 overflow-hidden"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">

@@ -81,20 +81,30 @@ export default function CourseEditor() {
   const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [savingEvent, setSavingEvent] = useState(false)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!courseId) return
+    setLoading(true)
     try {
       const d = await coursesService.getCourse(courseId)
+      if (signal?.cancelled) return
       setCourse(d); setTitle(d.title); setDescription(d.description ?? ""); setImageUrl(d.image_url ?? "")
       setEnrollStart(d.enrollment_start?.slice(0, 16) ?? ""); setEnrollEnd(d.enrollment_end?.slice(0, 16) ?? "")
-      setMats(await storageService.listCourseMaterials(courseId).catch(() => []))
-      setAnns(await coursesService.getAnnouncements(courseId).catch(() => []))
-      setCohorts(await coursesService.getCourseCohorts(courseId).catch(() => []))
-      setCourseEvents(await coursesService.getCourseEvents(courseId).catch(() => []))
-    } catch { navigate("/teacher") } finally { setLoading(false) }
+      const [mats, anns, cohorts, events] = await Promise.all([
+        storageService.listCourseMaterials(courseId).catch(() => []),
+        coursesService.getAnnouncements(courseId).catch(() => []),
+        coursesService.getCourseCohorts(courseId).catch(() => []),
+        coursesService.getCourseEvents(courseId).catch(() => []),
+      ])
+      if (signal?.cancelled) return
+      setMats(mats); setAnns(anns); setCohorts(cohorts); setCourseEvents(events)
+    } catch { if (!signal?.cancelled) navigate("/teacher") } finally { if (!signal?.cancelled) setLoading(false) }
   }, [courseId, navigate])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    const signal = { cancelled: false }
+    load(signal)
+    return () => { signal.cancelled = true }
+  }, [load])
 
   const saveDetails = useCallback(async () => {
     if (!courseId || !title.trim()) return

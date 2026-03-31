@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Optional, Literal
+from uuid import UUID
 
 
 class CohortCreate(BaseModel):
@@ -25,7 +26,7 @@ class CohortUpdate(BaseModel):
 class CohortResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: UUID
     course_id: str
     name: str
     start_date: datetime

@@ -83,7 +83,7 @@ export default function AdminDashboard() {
   const [auditDateTo, setAuditDateTo] = useState("")
   const auditPageSize = 25
 
-  const load = async () => {
+  const load = async (signal?: { cancelled: boolean }) => {
     setLoading(true)
     setError(null)
     try {
@@ -93,6 +93,7 @@ export default function AdminDashboard() {
         supabase.from("enrollments").select("id", { count: "exact", head: true }),
         coursesService.getAdminPendingCerts().catch(() => []),
       ])
+      if (signal?.cancelled) return
 
       setUsers(allUsers as ProfileRow[])
       setStats({
@@ -102,9 +103,9 @@ export default function AdminDashboard() {
       })
       setAdminCerts(certs)
     } catch {
-      setError("Failed to load admin data. Please try again.")
+      if (!signal?.cancelled) setError("Failed to load admin data. Please try again.")
     } finally {
-      setLoading(false)
+      if (!signal?.cancelled) setLoading(false)
     }
   }
 
@@ -132,7 +133,9 @@ export default function AdminDashboard() {
   }, [auditPage, auditAction, auditResource, auditDateFrom, auditDateTo])
 
   useEffect(() => {
-    load()
+    const signal = { cancelled: false }
+    load(signal)
+    return () => { signal.cancelled = true }
   }, [])
 
   useEffect(() => {
@@ -307,7 +310,7 @@ export default function AdminDashboard() {
             <Shield className="h-12 w-12 text-destructive/40 mb-4" />
             <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={load} size="sm" variant="outline">
+            <Button onClick={() => load()} size="sm" variant="outline">
               Try again
             </Button>
           </CardContent>

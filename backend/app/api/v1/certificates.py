@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from uuid import UUID
 import uuid
@@ -63,7 +64,18 @@ async def request_certificate(
         requested_at=datetime.now(timezone.utc),
     )
     db.add(cert)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = (
+            db.query(Certificate)
+            .filter(Certificate.user_id == current_user.id, Certificate.course_id == course_id)
+            .first()
+        )
+        if existing:
+            return existing
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Certificate already requested")
     db.refresh(cert)
     return cert
 

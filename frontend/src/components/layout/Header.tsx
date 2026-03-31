@@ -52,7 +52,7 @@ export default function Header() {
               )}
               <NotificationBell />
               <Link to="/profile">
-                <Button variant={isActive("/profile") ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0 rounded-full">
+                <Button variant={isActive("/profile") ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0 rounded-full" aria-label="Profile">
                   {user.avatar_url ? (
                     <img src={user.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = "none" }} />
                   ) : (
@@ -69,7 +69,7 @@ export default function Header() {
           )}
         </nav>
 
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 md:hidden" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 md:hidden" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu" aria-expanded={mobileOpen}>
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>

@@ -95,15 +95,6 @@ export const coursesService = {
     return response.data
   },
 
-  async updateProgress(courseId: string, progress: number): Promise<Enrollment> {
-    const response = await api.put<Enrollment>(
-      `/courses/${courseId}/progress`,
-      null,
-      { params: { progress } },
-    )
-    return response.data
-  },
-
   async markChapterComplete(chapterId: string): Promise<void> {
     await api.put(`/progress/chapter/${chapterId}/complete`)
   },
