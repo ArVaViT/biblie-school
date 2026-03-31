@@ -1,7 +1,9 @@
 from collections.abc import Generator
 from typing import Optional
+import os
 
 from sqlalchemy import create_engine, Engine
+from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 import logging
@@ -14,6 +16,8 @@ Base = declarative_base()
 
 _engine: Optional[Engine] = None
 _SessionLocal: Optional[sessionmaker] = None
+
+IS_SERVERLESS = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
 
 
 def _get_engine() -> Engine:
@@ -45,18 +49,25 @@ def _get_engine() -> Engine:
                 "Please ensure psycopg2-binary is in requirements.txt."
             )
 
-        _engine = create_engine(
-            db_url,
-            pool_pre_ping=True,
-            pool_size=1,
-            max_overflow=0,
-            pool_recycle=300,
-            connect_args={
+        pool_kwargs: dict = {
+            "connect_args": {
                 "connect_timeout": 10,
                 "options": "-c statement_timeout=30000",
             },
-            echo=False,
-        )
+            "echo": False,
+        }
+
+        if IS_SERVERLESS:
+            pool_kwargs["poolclass"] = NullPool
+        else:
+            pool_kwargs.update({
+                "pool_pre_ping": True,
+                "pool_size": 2,
+                "max_overflow": 3,
+                "pool_recycle": 300,
+            })
+
+        _engine = create_engine(db_url, **pool_kwargs)
         logger.info("Database engine created successfully")
 
         _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
@@ -78,7 +89,7 @@ def get_db() -> Generator[Session, None, None]:
         from fastapi import HTTPException, status
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Database connection error: {str(e)}",
+            detail="Database connection error",
         )
 
     if _SessionLocal is None:
