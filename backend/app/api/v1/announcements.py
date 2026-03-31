@@ -1,3 +1,6 @@
+import logging
+import traceback
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -16,6 +19,8 @@ from app.schemas.announcement import (
 )
 from app.services.notification_service import create_notification
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/announcements", tags=["announcements"])
 
 
@@ -24,10 +29,15 @@ async def list_announcements(
     course_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ) -> list[AnnouncementResponse]:
-    query = db.query(Announcement)
-    if course_id is not None:
-        query = query.filter(Announcement.course_id == course_id)
-    return query.order_by(Announcement.created_at.desc()).all()
+    try:
+        query = db.query(Announcement)
+        if course_id is not None:
+            query = query.filter(Announcement.course_id == course_id)
+        rows = query.order_by(Announcement.created_at.desc()).all()
+        return [AnnouncementResponse.model_validate(r) for r in rows]
+    except Exception as e:
+        logger.error("list_announcements error: %s\n%s", e, traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to list announcements")
 
 
 @router.post("", response_model=AnnouncementResponse, status_code=status.HTTP_201_CREATED)
