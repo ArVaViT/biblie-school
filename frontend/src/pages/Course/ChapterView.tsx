@@ -151,27 +151,30 @@ export default function ChapterView() {
   const [hasAssignments, setHasAssignments] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       if (!courseId || !moduleId) return
       setLoading(true)
       setError(null)
       try {
         const m = await coursesService.getModule(courseId, moduleId)
+        if (cancelled) return
         setMod(m)
 
         try {
           const completedChapterIds = await coursesService.getMyChapterProgress(courseId)
-          setCompletedIds(new Set(completedChapterIds))
+          if (!cancelled) setCompletedIds(new Set(completedChapterIds))
         } catch {
           // non-critical
         }
       } catch {
-        setError("Failed to load chapter. Please try again.")
+        if (!cancelled) setError("Failed to load chapter. Please try again.")
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
+    return () => { cancelled = true }
   }, [courseId, moduleId])
 
   const sortedChapters = useMemo(

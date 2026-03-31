@@ -81,6 +81,18 @@ def _get_engine() -> Engine:
     return _engine
 
 
+def reset_engine() -> None:
+    """Dispose and reset the cached engine so the next call recreates it."""
+    global _engine, _SessionLocal
+    if _engine is not None:
+        try:
+            _engine.dispose()
+        except Exception:
+            pass
+    _engine = None
+    _SessionLocal = None
+
+
 def get_db() -> Generator[Session, None, None]:
     """FastAPI dependency that yields a database session."""
     try:
@@ -99,7 +111,17 @@ def get_db() -> Generator[Session, None, None]:
             detail="Database session factory not initialized",
         )
 
-    db = _SessionLocal()
+    try:
+        db = _SessionLocal()
+    except Exception as e:
+        logger.error(f"Failed to create database session: {e}")
+        reset_engine()
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database temporarily unavailable",
+        )
+
     try:
         yield db
     except SQLAlchemyError as e:
