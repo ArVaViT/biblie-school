@@ -1,6 +1,25 @@
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import DOMPurify from "dompurify"
+
+DOMPurify.addHook("uponSanitizeElement", (node, data) => {
+  if (data.tagName === "iframe") {
+    const src = (node as HTMLIFrameElement).getAttribute("src") || ""
+    if (src.startsWith("https://www.youtube.com/embed/") || src.startsWith("https://www.youtube-nocookie.com/embed/")) {
+      return
+    }
+    node.parentNode?.removeChild(node)
+  }
+})
+
+const SANITIZE_CONFIG = {
+  ADD_TAGS: ["iframe"],
+  ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "src", "loading", "referrerpolicy", "style"],
+}
+
+function sanitize(html: string) {
+  return DOMPurify.sanitize(html, SANITIZE_CONFIG)
+}
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import type { Module, Chapter, ChapterBlock } from "@/types"
@@ -69,7 +88,7 @@ function BlockRenderer({ block, onAssignmentSubmitted }: { block: ChapterBlock; 
       return block.content ? (
         <div
           className="prose prose-sm dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(block.content) }}
+          dangerouslySetInnerHTML={{ __html: sanitize(block.content) }}
         />
       ) : null
 
@@ -167,24 +186,31 @@ export default function ChapterView() {
 
   useEffect(() => {
     if (!chapter) return
+    let cancelled = false
+
+    setDiscussionResponse("")
+    setHasAssignments(false)
+
     if (chapter.chapter_type === "mixed") {
       setLoadingBlocks(true)
       coursesService
         .getChapterBlocks(chapter.id)
-        .then((blocks) =>
-          setChapterBlocks(blocks.sort((a: ChapterBlock, b: ChapterBlock) => a.order_index - b.order_index)),
-        )
-        .catch(() => setChapterBlocks([]))
-        .finally(() => setLoadingBlocks(false))
+        .then((blocks) => {
+          if (!cancelled)
+            setChapterBlocks(blocks.sort((a: ChapterBlock, b: ChapterBlock) => a.order_index - b.order_index))
+        })
+        .catch(() => { if (!cancelled) setChapterBlocks([]) })
+        .finally(() => { if (!cancelled) setLoadingBlocks(false) })
     } else {
       setChapterBlocks([])
     }
-    setDiscussionResponse("")
 
     coursesService
       .getChapterAssignments(chapter.id)
-      .then((a) => setHasAssignments(a.length > 0))
-      .catch(() => setHasAssignments(false))
+      .then((a) => { if (!cancelled) setHasAssignments(a.length > 0) })
+      .catch(() => { if (!cancelled) setHasAssignments(false) })
+
+    return () => { cancelled = true }
   }, [chapter])
 
   const isChapterLocked = useCallback(
@@ -309,7 +335,7 @@ export default function ChapterView() {
         {(chapterType === "reading" || chapterType === "content") && chapter.content && (
           <div
             className="prose dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content) }}
+            dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
           />
         )}
 
@@ -332,7 +358,7 @@ export default function ChapterView() {
             {chapter.content && (
               <div
                 className="prose dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content) }}
+                dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
               />
             )}
           </>
@@ -356,7 +382,7 @@ export default function ChapterView() {
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Transcript</h3>
                 <div
                   className="prose dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content) }}
+                  dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
                 />
               </div>
             )}
@@ -381,7 +407,7 @@ export default function ChapterView() {
                 </div>
                 <div
                   className="prose dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content) }}
+                  dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
                 />
               </div>
             )}
@@ -431,7 +457,7 @@ export default function ChapterView() {
                 {chapter.content && (
                   <div
                     className="prose dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content) }}
+                    dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
                   />
                 )}
                 <QuizTaker chapterId={chapter.id} />
@@ -445,7 +471,7 @@ export default function ChapterView() {
         {!["reading", "content", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"].includes(chapterType) && chapter.content && (
           <div
             className="prose dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(chapter.content) }}
+            dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
           />
         )}
       </div>
