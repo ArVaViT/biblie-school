@@ -200,7 +200,7 @@ export default function CourseDetail() {
   }
 
   const isEnrolled = !!enrollment
-  const isOwner = user?.id === course.created_by
+  const isOwner = user?.id === course.created_by || user?.role === "admin"
   const sortedModules = [...(course.modules ?? [])].sort((a, b) => {
     const da = a.due_date ? new Date(a.due_date).getTime() : Infinity
     const db = b.due_date ? new Date(b.due_date).getTime() : Infinity

@@ -499,16 +499,16 @@ function StudentRow({
   const allChapters = new Map<string, { quiz?: QuizResult; assignment?: AssignmentResult; chapterInfo?: ChapterInfo }>()
 
   student.chapters?.forEach((ch) => {
-    const existing = allChapters.get(ch.title) || {}
-    allChapters.set(ch.title, { ...existing, chapterInfo: ch })
+    const existing = allChapters.get(ch.id) || {}
+    allChapters.set(ch.id, { ...existing, chapterInfo: ch })
   })
   student.quiz_results.forEach((q) => {
-    const existing = allChapters.get(q.chapter_title) || {}
-    allChapters.set(q.chapter_title, { ...existing, quiz: q })
+    const existing = allChapters.get(q.chapter_id) || {}
+    allChapters.set(q.chapter_id, { ...existing, quiz: q })
   })
   student.assignment_results.forEach((a) => {
-    const existing = allChapters.get(a.chapter_title) || {}
-    allChapters.set(a.chapter_title, { ...existing, assignment: a })
+    const existing = allChapters.get(a.chapter_id) || {}
+    allChapters.set(a.chapter_id, { ...existing, assignment: a })
   })
 
   const handleToggleComplete = async (chapterInfo: ChapterInfo) => {
@@ -609,14 +609,14 @@ function StudentRow({
                     Chapter Breakdown
                   </h4>
                   <div className="space-y-2">
-                    {Array.from(allChapters.entries()).map(([title, { quiz, assignment, chapterInfo }]) => (
+                    {Array.from(allChapters.entries()).map(([chId, { quiz, assignment, chapterInfo }]) => (
                       <div
-                        key={title}
+                        key={chId}
                         className="flex items-center gap-4 bg-background rounded-lg px-4 py-3 border text-sm"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium truncate">{title}</p>
+                            <p className="font-medium truncate">{chapterInfo?.title ?? quiz?.chapter_title ?? assignment?.chapter_title ?? chId}</p>
                           </div>
                           {chapterInfo && ["quiz", "exam", "assignment"].includes(chapterInfo.chapter_type) && (
                             <p className="text-xs mt-0.5">

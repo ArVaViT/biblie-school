@@ -73,10 +73,7 @@ export const coursesService = {
   async deleteCohort(cohortId: string): Promise<void> {
     await api.delete(`/cohorts/${cohortId}`)
   },
-  async getCohortStudents(cohortId: string) {
-    const response = await api.get(`/cohorts/${cohortId}/students`)
-    return response.data
-  },
+  
   async completeCohort(cohortId: string): Promise<void> {
     await api.post(`/cohorts/${cohortId}/complete`)
   },
@@ -221,10 +218,7 @@ export const coursesService = {
     return response.data
   },
 
-  async getGradingConfig(courseId: string): Promise<GradingConfig> {
-    const response = await api.get<GradingConfig>(`/grades/course/${courseId}/config`)
-    return response.data
-  },
+  
 
   async updateGradingConfig(courseId: string, data: GradingConfig): Promise<GradingConfig> {
     const response = await api.put<GradingConfig>(`/grades/course/${courseId}/config`, data)
@@ -247,7 +241,11 @@ export const coursesService = {
     try {
       const response = await api.get<Quiz | null>(`/quizzes/chapter/${chapterId}`)
       return response.data
-    } catch { return null }
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 404) return null
+      throw err
+    }
   },
   async createQuiz(data: {
     chapter_id: string
@@ -289,10 +287,7 @@ export const coursesService = {
     })
     return response.data
   },
-  async getQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
-    const response = await api.get<QuizAttempt[]>(`/quizzes/${quizId}/attempts`)
-    return response.data
-  },
+  
 
   // Assignments
   async getChapterAssignments(chapterId: string): Promise<Assignment[]> {
@@ -348,8 +343,10 @@ export const coursesService = {
     try {
       const response = await api.get<Certificate>(`/certificates/course/${courseId}`)
       return response.data
-    } catch {
-      return null
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 404) return null
+      throw err
     }
   },
   async requestCertificate(courseId: string): Promise<Certificate> {
@@ -395,10 +392,7 @@ export const coursesService = {
     const response = await api.post<CourseReview>(`/reviews/course/${courseId}`, data)
     return response.data
   },
-  async updateReview(reviewId: string, data: { rating: number; comment?: string }): Promise<CourseReview> {
-    const response = await api.put<CourseReview>(`/reviews/${reviewId}`, data)
-    return response.data
-  },
+  
   async deleteReview(id: string): Promise<void> {
     await api.delete(`/reviews/${id}`)
   },

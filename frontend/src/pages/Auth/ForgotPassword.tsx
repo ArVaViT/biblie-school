@@ -30,7 +30,7 @@ export default function ForgotPassword() {
 
     setLoading(true)
     try {
-      await resetPassword(email)
+      await resetPassword(trimmed)
       setSent(true)
     } catch (err: unknown) {
       const supaErr = err as { message?: string }

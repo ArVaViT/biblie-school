@@ -124,11 +124,13 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     if (savedResetTimer.current) clearTimeout(savedResetTimer.current)
     setAutoSaveStatus("pending")
+    const blockId = block.id
+    const snapshot = editContentRef.current
     autoSaveTimer.current = setTimeout(async () => {
       setAutoSaveStatus("saving")
       try {
-        const updated = await coursesService.updateBlock(block.id, { content: editContentRef.current })
-        setBlocks((prev) => prev.map((b) => (b.id === block.id ? updated : b)))
+        const updated = await coursesService.updateBlock(blockId, { content: snapshot })
+        setBlocks((prev) => prev.map((b) => (b.id === blockId ? updated : b)))
         setAutoSaveStatus("saved")
         savedResetTimer.current = setTimeout(() => setAutoSaveStatus("idle"), 2000)
       } catch {

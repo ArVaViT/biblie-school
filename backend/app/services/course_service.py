@@ -256,7 +256,7 @@ def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrol
     ) or 0
 
     if total_gradable == 0:
-        enrollment.progress = 100
+        enrollment.progress = 0
     else:
         enrollment.progress = round((completed_gradable / total_gradable) * 100)
     db.commit()

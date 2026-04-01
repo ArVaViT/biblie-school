@@ -201,7 +201,9 @@ export default function ModuleView() {
               const isGradable = GRADABLE_TYPES.has(chapter.chapter_type ?? "")
               const isCompleted = isGradable && completedIds.has(chapter.id)
               const requiresTeacher = chapter.requires_completion
-              const isLocked = chapter.is_locked && idx > 0 && !completedIds.has(sortedChapters[idx - 1].id)
+              const prevChapter = idx > 0 ? sortedChapters[idx - 1] : null
+              const prevIsGradable = prevChapter ? GRADABLE_TYPES.has(prevChapter.chapter_type ?? "") : false
+              const isLocked = chapter.is_locked && prevChapter != null && prevIsGradable && !completedIds.has(prevChapter.id)
 
               if (isLocked) {
                 return (

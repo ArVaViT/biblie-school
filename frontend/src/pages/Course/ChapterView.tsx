@@ -232,11 +232,13 @@ export default function ChapterView() {
     return () => { cancelled = true }
   }, [chapter])
 
+  const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
   const isChapterLocked = useCallback(
     (ch: Chapter, idx: number) => {
       if (!ch.is_locked) return false
       if (idx === 0) return false
       const prev = sortedChapters[idx - 1]
+      if (!GRADABLE_TYPES.has(prev.chapter_type ?? "")) return false
       return !completedIds.has(prev.id)
     },
     [sortedChapters, completedIds],

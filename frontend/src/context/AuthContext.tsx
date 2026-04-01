@@ -21,8 +21,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const mounted = useRef(true)
+  const activeUserId = useRef<string | null>(null)
 
   const enrichProfile = useCallback((userId: string, email: string) => {
+    activeUserId.current = userId
     supabase
       .from("profiles")
       .select("*")
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .single()
       .then(({ data }) => {
         if (!mounted.current || !data) return
+        if (activeUserId.current !== userId) return
         setUser({
           id: data.id,
           email: data.email || email,
@@ -71,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (event === "SIGNED_OUT") {
+          activeUserId.current = null
           setUser(null)
         }
       },
