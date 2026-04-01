@@ -149,8 +149,16 @@ export default function CourseDetail() {
     try {
       const enrolled = await coursesService.enrollInCourse(id, cohortId)
       setEnrollment(enrolled)
-      const mats = await storageService.listCourseMaterials(id).catch(() => [] as CourseMaterial[])
+      const [cert, progress, mats, evts] = await Promise.all([
+        coursesService.getCourseCertificate(id),
+        coursesService.getMyChapterProgress(id).catch(() => [] as string[]),
+        storageService.listCourseMaterials(id).catch(() => [] as CourseMaterial[]),
+        coursesService.getCalendarEvents(id).catch(() => [] as CalendarEvent[]),
+      ])
+      setCertificate(cert)
+      setCompletedChapterIds(new Set(progress))
       setMaterials(mats)
+      setCalendarEvents(evts)
       toast({ title: "Enrolled successfully", variant: "success" })
     } catch {
       toast({ title: "Failed to enroll. Please try again.", variant: "destructive" })
@@ -192,6 +200,7 @@ export default function CourseDetail() {
   }
 
   const isEnrolled = !!enrollment
+  const isOwner = user?.id === course.created_by
   const sortedModules = [...(course.modules ?? [])].sort((a, b) => {
     const da = a.due_date ? new Date(a.due_date).getTime() : Infinity
     const db = b.due_date ? new Date(b.due_date).getTime() : Infinity
@@ -282,7 +291,13 @@ export default function CourseDetail() {
         )}
 
         <div>
-          {user ? (
+          {isOwner ? (
+            <Link to={`/teacher/courses/${id}`}>
+              <Button size="lg" variant="outline">
+                Manage Course
+              </Button>
+            </Link>
+          ) : user ? (
             <Button onClick={handleEnrollClick} disabled={enrolling || !canEnroll} size="lg">
               <Users className="h-4 w-4 mr-2" />
               {!canEnroll

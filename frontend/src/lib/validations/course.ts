@@ -19,7 +19,7 @@ export const chapterSchema = z.object({
 })
 
 export const profileSchema = z.object({
-  full_name: z.string().min(2, "Name must be at least 2 characters").max(100),
+  full_name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
 })
 
 export type CourseFormData = z.infer<typeof courseSchema>

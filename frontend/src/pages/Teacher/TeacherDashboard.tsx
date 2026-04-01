@@ -117,7 +117,6 @@ export default function TeacherDashboard() {
       toast({ title: "Course created", variant: "success" })
       navigate(`/teacher/courses/${newCourse.id}`)
     } catch {
-      setErrors({ title: "Failed to create course" })
       toast({ title: "Failed to create course", variant: "destructive" })
     } finally {
       setSaving(false)
