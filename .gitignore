@@ -19,6 +19,12 @@ ENV/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# CI virtual environments
+.ci-venv*/
 
 # Node
 node_modules/
@@ -41,12 +47,18 @@ frontend/.vite/
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
+ehthumbs.db
 
 # Logs
 *.log
 
 # Temp files
 commit-msg.txt
+*.dump
+
+# Cursor IDE generated images
+assets/c__Users_*
 
 .vercel
 

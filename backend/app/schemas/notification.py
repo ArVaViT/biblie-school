@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any
 from uuid import UUID
 
 
@@ -12,10 +12,10 @@ class NotificationResponse(BaseModel):
     type: str
     title: str
     message: str
-    link: Optional[str] = None
+    link: str | None = None
     is_read: bool = False
     created_at: datetime
-    metadata: Optional[dict[str, Any]] = Field(None, validation_alias="meta")
+    metadata: dict[str, Any] | None = Field(None, validation_alias="meta")
 
 
 class NotificationListResponse(BaseModel):

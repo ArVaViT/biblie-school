@@ -4,9 +4,14 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner, verify_chapter_access
+from app.api.dependencies import (
+    get_current_user,
+    require_teacher,
+    verify_chapter_owner,
+    verify_chapter_access,
+    resolve_chapter_course_id,
+)
 from app.models.user import User
-from app.models.course import Module, Chapter
 from app.models.enrollment import Enrollment
 from app.models.quiz import Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, QuizExtraAttempt
 from app.models.chapter_progress import ChapterProgress
@@ -50,7 +55,6 @@ async def get_chapter_quiz(
 
 
 def _verify_quiz_owner(db: Session, quiz: Quiz, teacher_id) -> None:
-    """Resolve quiz -> chapter -> module -> course and verify ownership."""
     verify_chapter_owner(db, quiz.chapter_id, teacher_id)
 
 
@@ -60,7 +64,6 @@ async def get_quiz_detail(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    """Teacher-only: get full quiz with correct answers visible."""
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
@@ -163,15 +166,10 @@ async def submit_quiz(
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
 
-    chapter = db.query(Chapter).filter(Chapter.id == quiz.chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
-    module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if not module:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+    course_id = resolve_chapter_course_id(db, quiz.chapter_id)
     enrolled = (
         db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
+        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
         .first()
     )
     if not enrolled:
@@ -309,7 +307,7 @@ async def submit_quiz(
         cp.completion_type = "quiz"
 
     db.commit()
-    sync_enrollment_progress(db, current_user.id, module.course_id)
+    sync_enrollment_progress(db, current_user.id, course_id)
     db.refresh(attempt)
 
     return QuizAttemptResponse(

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 
@@ -20,7 +20,6 @@ class QuizOptionResponse(BaseModel):
 
 
 class QuizOptionStudentResponse(BaseModel):
-    """Option response without is_correct — used when serving quizzes to students."""
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -32,7 +31,7 @@ class QuizQuestionCreate(BaseModel):
     question_text: str = Field(..., max_length=1000)
     question_type: str = "multiple_choice"
     order_index: int = 0
-    points: int = 1
+    points: int = Field(1, ge=1)
     options: list[QuizOptionCreate] = []
 
 
@@ -48,7 +47,6 @@ class QuizQuestionResponse(BaseModel):
 
 
 class QuizQuestionStudentResponse(BaseModel):
-    """Question response that hides correct answers."""
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -62,19 +60,19 @@ class QuizQuestionStudentResponse(BaseModel):
 class QuizCreate(BaseModel):
     chapter_id: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     quiz_type: Literal["quiz", "exam"] = "quiz"
-    max_attempts: Optional[int] = Field(None, ge=1, le=10)
+    max_attempts: int | None = Field(None, ge=1, le=10)
     passing_score: int = Field(70, ge=0, le=100)
     questions: list[QuizQuestionCreate] = []
 
 
 class QuizUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=300)
-    description: Optional[str] = None
-    quiz_type: Optional[Literal["quiz", "exam"]] = None
-    max_attempts: Optional[int] = Field(None, ge=1, le=10)
-    passing_score: Optional[int] = Field(None, ge=0, le=100)
+    title: str | None = Field(None, min_length=1, max_length=300)
+    description: str | None = None
+    quiz_type: Literal["quiz", "exam"] | None = None
+    max_attempts: int | None = Field(None, ge=1, le=10)
+    passing_score: int | None = Field(None, ge=0, le=100)
 
 
 class QuizResponse(BaseModel):
@@ -83,33 +81,32 @@ class QuizResponse(BaseModel):
     id: UUID
     chapter_id: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     quiz_type: Literal["quiz", "exam"] = "quiz"
-    max_attempts: Optional[int] = None
+    max_attempts: int | None = None
     passing_score: int
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
     questions: list[QuizQuestionResponse] = []
 
 
 class QuizStudentResponse(BaseModel):
-    """Quiz response that hides correct answers from students."""
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     chapter_id: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     quiz_type: Literal["quiz", "exam"] = "quiz"
-    max_attempts: Optional[int] = None
+    max_attempts: int | None = None
     passing_score: int
     questions: list[QuizQuestionStudentResponse] = []
 
 
 class QuizSubmitAnswer(BaseModel):
     question_id: UUID
-    selected_option_id: Optional[UUID] = None
-    text_answer: Optional[str] = None
+    selected_option_id: UUID | None = None
+    text_answer: str | None = None
 
 
 class QuizSubmitRequest(BaseModel):
@@ -120,11 +117,11 @@ class QuizAnswerResult(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     question_id: UUID
-    selected_option_id: Optional[UUID] = None
-    text_answer: Optional[str] = None
-    is_correct: Optional[bool] = None
+    selected_option_id: UUID | None = None
+    text_answer: str | None = None
+    is_correct: bool | None = None
     points_earned: int = 0
-    correct_option_id: Optional[UUID] = None
+    correct_option_id: UUID | None = None
 
 
 class QuizAttemptResponse(BaseModel):
@@ -133,11 +130,11 @@ class QuizAttemptResponse(BaseModel):
     id: UUID
     quiz_id: UUID
     user_id: UUID
-    score: Optional[int] = None
-    max_score: Optional[int] = None
-    passed: Optional[bool] = None
+    score: int | None = None
+    max_score: int | None = None
+    passed: bool | None = None
     started_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     answers: list[QuizAnswerResult] = []
 
 

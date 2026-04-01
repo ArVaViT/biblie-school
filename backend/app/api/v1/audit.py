@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -18,13 +17,13 @@ class AuditLogResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    user_id: Optional[UUID] = None
+    user_id: UUID | None = None
     action: str
     resource_type: str
     resource_id: str
-    details: Optional[dict] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    details: dict | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
     created_at: datetime
 
 
@@ -39,11 +38,11 @@ class AuditLogPage(BaseModel):
 async def list_audit_logs(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    user_id: Optional[str] = Query(None),
-    resource_type: Optional[str] = Query(None),
-    action: Optional[str] = Query(None),
-    date_from: Optional[datetime] = Query(None),
-    date_to: Optional[datetime] = Query(None),
+    user_id: str | None = Query(None),
+    resource_type: str | None = Query(None),
+    action: str | None = Query(None),
+    date_from: datetime | None = Query(None),
+    date_to: datetime | None = Query(None),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AuditLogPage:

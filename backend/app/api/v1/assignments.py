@@ -4,9 +4,14 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner, verify_chapter_access
+from app.api.dependencies import (
+    get_current_user,
+    require_teacher,
+    verify_chapter_owner,
+    verify_chapter_access,
+    resolve_chapter_course_id,
+)
 from app.models.user import User
-from app.models.course import Module, Chapter
 from app.models.enrollment import Enrollment
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.chapter_progress import ChapterProgress
@@ -99,15 +104,10 @@ async def submit_assignment(
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
 
-    chapter = db.query(Chapter).filter(Chapter.id == assignment.chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
-    module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if not module:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+    course_id = resolve_chapter_course_id(db, assignment.chapter_id)
     enrolled = (
         db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
+        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
         .first()
     )
     if not enrolled:
@@ -128,14 +128,14 @@ async def submit_assignment(
         db.query(ChapterProgress)
         .filter(
             ChapterProgress.user_id == current_user.id,
-            ChapterProgress.chapter_id == chapter.id,
+            ChapterProgress.chapter_id == assignment.chapter_id,
         )
         .first()
     )
     if not progress:
         progress = ChapterProgress(
             user_id=current_user.id,
-            chapter_id=chapter.id,
+            chapter_id=assignment.chapter_id,
         )
         db.add(progress)
     if not progress.completed:
@@ -144,7 +144,7 @@ async def submit_assignment(
         progress.completion_type = "self"
 
     db.commit()
-    sync_enrollment_progress(db, current_user.id, module.course_id)
+    sync_enrollment_progress(db, current_user.id, course_id)
     db.refresh(submission)
     return submission
 
@@ -203,6 +203,12 @@ async def grade_submission(
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
     verify_chapter_owner(db, assignment.chapter_id, teacher.id)
+
+    if data.grade > assignment.max_score:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Grade ({data.grade}) cannot exceed max score ({assignment.max_score})",
+        )
 
     submission.grade = data.grade
     submission.feedback = data.feedback

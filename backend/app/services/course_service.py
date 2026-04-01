@@ -11,6 +11,7 @@ from app.schemas.course import (
     ModuleCreate, ModuleUpdate,
     ChapterCreate, ChapterUpdate,
 )
+from app.constants import GRADABLE_CHAPTER_TYPES
 import uuid
 
 
@@ -221,9 +222,6 @@ def update_enrollment_progress(
     db.commit()
     db.refresh(enrollment)
     return enrollment
-
-
-GRADABLE_CHAPTER_TYPES = ("quiz", "exam", "assignment")
 
 
 def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrollment | None:

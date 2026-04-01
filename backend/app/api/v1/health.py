@@ -1,5 +1,4 @@
-"""Health check endpoints for diagnostics."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.database import get_db
@@ -29,4 +28,4 @@ async def check_database(db: Session = Depends(get_db)) -> dict:
             "profiles_table_exists": profiles_table_exists,
         }
     except Exception:
-        raise HTTPException(status_code=503, detail="Database connection failed")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database connection failed")

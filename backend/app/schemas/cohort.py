@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Literal
 from uuid import UUID
 
 
@@ -8,19 +8,19 @@ class CohortCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     start_date: datetime
     end_date: datetime
-    enrollment_start: Optional[datetime] = None
-    enrollment_end: Optional[datetime] = None
-    max_students: Optional[int] = Field(None, ge=1)
+    enrollment_start: datetime | None = None
+    enrollment_end: datetime | None = None
+    max_students: int | None = Field(None, ge=1)
 
 
 class CohortUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    enrollment_start: Optional[datetime] = None
-    enrollment_end: Optional[datetime] = None
-    status: Optional[Literal["upcoming", "active", "completed", "archived"]] = None
-    max_students: Optional[int] = Field(None, ge=1)
+    name: str | None = Field(None, min_length=1, max_length=200)
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    enrollment_start: datetime | None = None
+    enrollment_end: datetime | None = None
+    status: Literal["upcoming", "active", "completed", "archived"] | None = None
+    max_students: int | None = Field(None, ge=1)
 
 
 class CohortResponse(BaseModel):
@@ -31,10 +31,10 @@ class CohortResponse(BaseModel):
     name: str
     start_date: datetime
     end_date: datetime
-    enrollment_start: Optional[datetime] = None
-    enrollment_end: Optional[datetime] = None
+    enrollment_start: datetime | None = None
+    enrollment_end: datetime | None = None
     status: str
-    max_students: Optional[int] = None
+    max_students: int | None = None
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
     student_count: int = 0

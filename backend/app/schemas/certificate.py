@@ -1,6 +1,5 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 
@@ -10,19 +9,19 @@ class CertificateResponse(BaseModel):
     id: UUID
     user_id: UUID
     course_id: str
-    issued_at: Optional[datetime] = None
-    certificate_number: Optional[str] = None
+    issued_at: datetime | None = None
+    certificate_number: str | None = None
     status: str = "pending"
-    requested_at: Optional[datetime] = None
-    teacher_approved_at: Optional[datetime] = None
-    teacher_approved_by: Optional[UUID] = None
-    admin_approved_at: Optional[datetime] = None
-    admin_approved_by: Optional[UUID] = None
+    requested_at: datetime | None = None
+    teacher_approved_at: datetime | None = None
+    teacher_approved_by: UUID | None = None
+    admin_approved_at: datetime | None = None
+    admin_approved_by: UUID | None = None
 
 
 class CertificateVerifyResponse(BaseModel):
     valid: bool
     certificate_number: str
-    user_name: Optional[str] = None
-    course_title: Optional[str] = None
-    issued_at: Optional[datetime] = None
+    user_name: str | None = None
+    course_title: str | None = None
+    issued_at: datetime | None = None

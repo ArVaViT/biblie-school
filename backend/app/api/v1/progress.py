@@ -6,6 +6,7 @@ from uuid import UUID
 
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner, verify_chapter_owner
+from app.constants import GRADABLE_CHAPTER_TYPES
 from app.models.user import User
 from app.models.course import Module, Chapter
 from app.models.enrollment import Enrollment
@@ -23,7 +24,6 @@ async def get_my_chapter_progress(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Return list of completed chapter IDs for current user in this course."""
     completed = (
         db.query(ChapterProgress.chapter_id)
         .join(Chapter, Chapter.id == ChapterProgress.chapter_id)
@@ -61,9 +61,8 @@ async def get_course_student_progress(
         .order_by(Module.order_index, Chapter.order_index)
         .all()
     )
-    GRADABLE_TYPES = ("quiz", "exam", "assignment")
     chapter_ids = [c.id for c in chapters]
-    gradable_chapter_ids = [c.id for c in chapters if c.chapter_type in GRADABLE_TYPES]
+    gradable_chapter_ids = [c.id for c in chapters if c.chapter_type in GRADABLE_CHAPTER_TYPES]
     chapter_map = {c.id: c.title for c in chapters}
 
     quiz_map: dict[str, list] = {}
@@ -187,7 +186,6 @@ async def get_course_student_progress(
         chapter_infos = []
         for ch in chapters:
             cp = user_progress.get(str(ch.id))
-            # best quiz result for this chapter
             ch_quiz_results = attempts_by_user_chapter.get((uid, ch.id), [])
             quiz_data = None
             if ch_quiz_results:
@@ -197,7 +195,6 @@ async def get_course_student_progress(
                     "max_score": best.max_score or 0,
                     "passed": bool(best.passed),
                 }
-            # latest assignment result for this chapter
             ch_subs = subs_by_user_chapter.get((uid, ch.id), [])
             asgn_data = None
             if ch_subs:
@@ -257,19 +254,11 @@ async def teacher_complete_chapter(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    """Teacher marks a student's chapter as complete."""
-    verify_chapter_owner(db, chapter_id, teacher.id)
-
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
-    module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if not module:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+    _chapter, course_id = verify_chapter_owner(db, chapter_id, teacher.id)
 
     enrolled = (
         db.query(Enrollment)
-        .filter(Enrollment.user_id == student_id, Enrollment.course_id == module.course_id)
+        .filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id)
         .first()
     )
     if not enrolled:
@@ -297,7 +286,7 @@ async def teacher_complete_chapter(
     progress.completed_by = teacher.id
     progress.completion_type = "teacher"
     db.commit()
-    sync_enrollment_progress(db, student_id, module.course_id)
+    sync_enrollment_progress(db, student_id, course_id)
     return {"message": "Chapter marked as complete by teacher", "chapter_id": chapter_id, "student_id": str(student_id)}
 
 
@@ -308,19 +297,11 @@ async def teacher_uncomplete_chapter(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    """Teacher removes a student's chapter completion."""
-    verify_chapter_owner(db, chapter_id, teacher.id)
-
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
-    module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if not module:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
+    _chapter, course_id = verify_chapter_owner(db, chapter_id, teacher.id)
 
     enrolled = (
         db.query(Enrollment)
-        .filter(Enrollment.user_id == student_id, Enrollment.course_id == module.course_id)
+        .filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id)
         .first()
     )
     if not enrolled:
@@ -344,5 +325,5 @@ async def teacher_uncomplete_chapter(
     progress.completed_by = None
     progress.completion_type = "self"
     db.commit()
-    sync_enrollment_progress(db, student_id, module.course_id)
+    sync_enrollment_progress(db, student_id, course_id)
     return {"message": "Chapter completion removed", "chapter_id": chapter_id, "student_id": str(student_id)}

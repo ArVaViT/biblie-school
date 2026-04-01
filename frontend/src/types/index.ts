@@ -50,13 +50,6 @@ export interface Chapter {
   is_locked: boolean
 }
 
-export interface ChapterProgress {
-  id: string
-  user_id: string
-  chapter_id: string
-  completed_at: string
-}
-
 export interface Enrollment {
   id: string
   user_id: string
@@ -108,16 +101,6 @@ export interface GradeSummaryResponse {
   config: GradingConfig
   students: StudentCalculatedGrade[]
   class_average: number
-}
-
-export interface FileMetadata {
-  id: string
-  name: string
-  url: string
-  file_type: string
-  course_id: string | null
-  user_id: string | null
-  uploaded_at: string
 }
 
 export interface Announcement {
@@ -296,12 +279,6 @@ export interface AuditLogPage {
   total: number
   page: number
   page_size: number
-}
-
-export interface AuthResponse {
-  access_token: string
-  token_type: string
-  user: User
 }
 
 export interface Profile {

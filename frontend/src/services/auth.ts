@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase"
+import type { Session } from "@supabase/supabase-js"
 import type { UserRole } from "@/types"
 
 export const authService = {
@@ -7,7 +8,7 @@ export const authService = {
     password: string,
     fullName: string,
     role: "teacher" | "student" = "student",
-  ) {
+  ): Promise<void> {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -20,11 +21,9 @@ export const authService = {
     if (data.user && data.user.identities?.length === 0) {
       throw new Error("DUPLICATE_EMAIL")
     }
-
-    return data
   },
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<{ user: Session["user"]; session: Session }> {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -33,7 +32,7 @@ export const authService = {
     return data
   },
 
-  async signInWithGoogle() {
+  async signInWithGoogle(): Promise<{ provider: string; url: string | null }> {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -44,24 +43,24 @@ export const authService = {
     return data
   },
 
-  async resetPassword(email: string) {
+  async resetPassword(email: string): Promise<void> {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/reset-password`,
     })
     if (error) throw error
   },
 
-  async updatePassword(password: string) {
+  async updatePassword(password: string): Promise<void> {
     const { error } = await supabase.auth.updateUser({ password })
     if (error) throw error
   },
 
-  async logout() {
+  async logout(): Promise<void> {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
   },
 
-  async getSession() {
+  async getSession(): Promise<Session | null> {
     const { data } = await supabase.auth.getSession()
     return data.session
   },

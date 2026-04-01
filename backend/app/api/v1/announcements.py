@@ -1,8 +1,5 @@
-import logging
-
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import Optional
 import uuid
 
 from app.core.database import get_db
@@ -18,14 +15,12 @@ from app.schemas.announcement import (
 )
 from app.services.notification_service import create_notification
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/announcements", tags=["announcements"])
 
 
 @router.get("", response_model=list[AnnouncementResponse])
 async def list_announcements(
-    course_id: Optional[str] = Query(None),
+    course_id: str | None = Query(None),
     db: Session = Depends(get_db),
 ) -> list[AnnouncementResponse]:
     query = db.query(Announcement)

@@ -47,18 +47,22 @@ export const storageService = {
 
     if (error) throw error
 
-    const { data } = await supabase.storage
+    const { data: urlData, error: urlError } = await supabase.storage
       .from(COURSE_MATERIALS_BUCKET)
       .createSignedUrl(path, 3600)
 
+    if (urlError || !urlData?.signedUrl) {
+      throw urlError ?? new Error("Failed to create signed URL")
+    }
+
     return {
-      url: data?.signedUrl ?? path,
+      url: urlData.signedUrl,
       name: file.name,
       type: file.type,
     }
   },
 
-  async listCourseMaterials(courseId: string) {
+  async listCourseMaterials(courseId: string): Promise<{ name: string; path: string; size: number | undefined; created: string }[]> {
     const { data, error } = await supabase.storage
       .from(COURSE_MATERIALS_BUCKET)
       .list(courseId, { sortBy: { column: "created_at", order: "desc" } })

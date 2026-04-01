@@ -1,13 +1,13 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 
 class ChapterBase(BaseModel):
     title: str
-    content: Optional[str] = None
-    video_url: Optional[str] = None
+    content: str | None = None
+    video_url: str | None = None
     order_index: int = 0
     chapter_type: Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"] = "reading"
     requires_completion: bool = False
@@ -19,13 +19,13 @@ class ChapterCreate(ChapterBase):
 
 
 class ChapterUpdate(BaseModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
-    video_url: Optional[str] = None
-    order_index: Optional[int] = None
-    chapter_type: Optional[Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"]] = None
-    requires_completion: Optional[bool] = None
-    is_locked: Optional[bool] = None
+    title: str | None = None
+    content: str | None = None
+    video_url: str | None = None
+    order_index: int | None = None
+    chapter_type: Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"] | None = None
+    requires_completion: bool | None = None
+    is_locked: bool | None = None
 
 
 class ChapterResponse(ChapterBase):
@@ -40,9 +40,9 @@ class ChapterResponse(ChapterBase):
 
 class ModuleBase(BaseModel):
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     order_index: int = 0
-    due_date: Optional[datetime] = None
+    due_date: datetime | None = None
 
 
 class ModuleCreate(ModuleBase):
@@ -50,10 +50,10 @@ class ModuleCreate(ModuleBase):
 
 
 class ModuleUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    order_index: Optional[int] = None
-    due_date: Optional[datetime] = None
+    title: str | None = None
+    description: str | None = None
+    order_index: int | None = None
+    due_date: datetime | None = None
 
 
 class ModuleResponse(ModuleBase):
@@ -66,8 +66,8 @@ class ModuleResponse(ModuleBase):
 
 class CourseBase(BaseModel):
     title: str
-    description: Optional[str] = None
-    image_url: Optional[str] = None
+    description: str | None = None
+    image_url: str | None = None
 
 
 class CourseCreate(CourseBase):
@@ -75,14 +75,14 @@ class CourseCreate(CourseBase):
 
 
 class CourseUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-    status: Optional[Literal["draft", "published"]] = None
-    enrollment_start: Optional[datetime] = None
-    enrollment_end: Optional[datetime] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    title: str | None = None
+    description: str | None = None
+    image_url: str | None = None
+    status: Literal["draft", "published"] | None = None
+    enrollment_start: datetime | None = None
+    enrollment_end: datetime | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
 
 
 class CourseResponse(CourseBase):
@@ -90,13 +90,13 @@ class CourseResponse(CourseBase):
 
     id: str
     status: str = "draft"
-    created_by: Optional[UUID] = None
+    created_by: UUID | None = None
     created_at: datetime
-    updated_at: Optional[datetime] = None
-    enrollment_start: Optional[datetime] = None
-    enrollment_end: Optional[datetime] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    updated_at: datetime | None = None
+    enrollment_start: datetime | None = None
+    enrollment_end: datetime | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
     modules: list[ModuleResponse] = []
 
 
@@ -106,7 +106,7 @@ class EnrollmentResponse(BaseModel):
     id: str
     user_id: UUID
     course_id: str
-    cohort_id: Optional[UUID] = None
+    cohort_id: UUID | None = None
     enrolled_at: datetime
     progress: int
-    course: Optional[CourseResponse] = None
+    course: CourseResponse | None = None

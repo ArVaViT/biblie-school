@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Any
+from typing import Any
 
 from fastapi import Request
 from sqlalchemy.orm import Session
@@ -11,12 +11,12 @@ logger = logging.getLogger(__name__)
 
 def log_action(
     db: Session,
-    user_id: Optional[Any],
+    user_id: Any,
     action: str,
     resource_type: str,
     resource_id: str,
-    details: Optional[dict] = None,
-    request: Optional[Request] = None,
+    details: dict | None = None,
+    request: Request | None = None,
 ) -> None:
     """Persist an audit log entry. Uses a separate connection so it never
     interferes with the caller's transaction."""

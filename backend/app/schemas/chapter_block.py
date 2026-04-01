@@ -1,27 +1,27 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 
 class BlockCreate(BaseModel):
     block_type: Literal["text", "video", "quiz", "assignment", "file"]
     order_index: int = 0
-    content: Optional[str] = None
-    video_url: Optional[str] = None
-    quiz_id: Optional[str] = None
-    assignment_id: Optional[str] = None
-    file_url: Optional[str] = None
+    content: str | None = None
+    video_url: str | None = None
+    quiz_id: str | None = None
+    assignment_id: str | None = None
+    file_url: str | None = None
 
 
 class BlockUpdate(BaseModel):
-    block_type: Optional[str] = None
-    order_index: Optional[int] = None
-    content: Optional[str] = None
-    video_url: Optional[str] = None
-    quiz_id: Optional[str] = None
-    assignment_id: Optional[str] = None
-    file_url: Optional[str] = None
+    block_type: str | None = None
+    order_index: int | None = None
+    content: str | None = None
+    video_url: str | None = None
+    quiz_id: str | None = None
+    assignment_id: str | None = None
+    file_url: str | None = None
 
 
 class BlockResponse(BaseModel):
@@ -31,13 +31,13 @@ class BlockResponse(BaseModel):
     chapter_id: str
     block_type: str
     order_index: int
-    content: Optional[str] = None
-    video_url: Optional[str] = None
-    quiz_id: Optional[UUID] = None
-    assignment_id: Optional[UUID] = None
-    file_url: Optional[str] = None
+    content: str | None = None
+    video_url: str | None = None
+    quiz_id: UUID | None = None
+    assignment_id: UUID | None = None
+    file_url: str | None = None
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
 
 
 class BlockReorderItem(BaseModel):

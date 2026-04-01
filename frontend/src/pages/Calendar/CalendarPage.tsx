@@ -77,7 +77,17 @@ export default function CalendarPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [currentDate, setCurrentDate] = useState(() => new Date())
   const [selectedDay, setSelectedDay] = useState<Date | null>(() => new Date())
-  const [filterCourseId, setFilterCourseId] = useState<string>("")
+  const [filterCourseId, setFilterCourseId] = useState<string>(
+    () => sessionStorage.getItem("calendar:filterCourseId") ?? "",
+  )
+
+  useEffect(() => {
+    if (filterCourseId) {
+      sessionStorage.setItem("calendar:filterCourseId", filterCourseId)
+    } else {
+      sessionStorage.removeItem("calendar:filterCourseId")
+    }
+  }, [filterCourseId])
 
   useEffect(() => {
     let cancelled = false

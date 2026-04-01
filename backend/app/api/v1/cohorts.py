@@ -37,7 +37,7 @@ def _cohort_to_response(db: Session, cohort: Cohort) -> CohortResponse:
 def _get_cohort_or_404(db: Session, cohort_id: str) -> Cohort:
     cohort = db.query(Cohort).filter(Cohort.id == cohort_id).first()
     if not cohort:
-        raise HTTPException(status_code=404, detail="Cohort not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cohort not found")
     return cohort
 
 

@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sa_func
-from typing import Optional
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, get_optional_user, require_teacher
 from app.models.user import User
@@ -28,7 +27,7 @@ from app.services.course_service import (
 
 
 class EnrollRequest(BaseModel):
-    cohort_id: Optional[str] = None
+    cohort_id: str | None = None
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -41,7 +40,7 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 async def list_courses(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
-    search: Optional[str] = Query(None, min_length=1, max_length=200),
+    search: str | None = Query(None, min_length=1, max_length=200),
     db: Session = Depends(get_db),
 ) -> list[CourseResponse]:
     return get_courses(db, skip=skip, limit=limit, search=search)
@@ -441,19 +440,19 @@ async def enroll_course(
             Cohort.course_id == course_id,
         ).first()
         if not cohort:
-            raise HTTPException(status_code=404, detail="Cohort not found for this course")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cohort not found for this course")
         if cohort.status != "active":
-            raise HTTPException(status_code=403, detail="Cohort is not active")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cohort is not active")
         if cohort.enrollment_start and now < cohort.enrollment_start:
-            raise HTTPException(status_code=403, detail="Cohort enrollment has not started yet")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cohort enrollment has not started yet")
         if cohort.enrollment_end and now > cohort.enrollment_end:
-            raise HTTPException(status_code=403, detail="Cohort enrollment period has ended")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cohort enrollment period has ended")
         if cohort.max_students:
             current_count = db.query(sa_func.count(Enrollment.id)).filter(
                 Enrollment.cohort_id == cohort.id
             ).scalar() or 0
             if current_count >= cohort.max_students:
-                raise HTTPException(status_code=403, detail="Cohort has reached maximum capacity")
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cohort has reached maximum capacity")
         cohort_id = body.cohort_id
     else:
         if course.enrollment_start and now < course.enrollment_start:

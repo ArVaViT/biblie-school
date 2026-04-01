@@ -1,6 +1,7 @@
 import api from "./api"
+import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
 import type {
-  Course, Module, Chapter, Enrollment, Announcement, StudentGrade,
+  User, Course, Module, Chapter, Enrollment, Announcement, StudentGrade,
   Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, Cohort,
   Notification, NotificationListResponse,
   AuditLogPage,
@@ -42,13 +43,21 @@ type ChapterBlockUpdateData = Partial<Omit<ChapterBlockCreateData, "block_type">
 
 export const coursesService = {
   async getCourses(search?: string): Promise<Course[]> {
+    const key = `courses:list:${search ?? ""}`
+    const cached = cacheGet<Course[]>(key)
+    if (cached) return cached
     const params = search ? { search } : undefined
     const response = await api.get<Course[]>("/courses", { params })
+    cacheSet(key, response.data, 2 * 60 * 1000)
     return response.data
   },
 
   async getCourse(id: string): Promise<Course> {
+    const key = `courses:detail:${id}`
+    const cached = cacheGet<Course>(key)
+    if (cached) return cached
     const response = await api.get<Course>(`/courses/${id}`)
+    cacheSet(key, response.data, 3 * 60 * 1000)
     return response.data
   },
 
@@ -92,13 +101,12 @@ export const coursesService = {
     return response.data
   },
 
-  // Admin: all users
-  async getAllUsers() {
-    const response = await api.get("/users/admin/users")
+  async getAllUsers(): Promise<User[]> {
+    const response = await api.get<User[]>("/users/admin/users")
     return response.data
   },
 
-  async updateUserRole(userId: string, role: string) {
+  async updateUserRole(userId: string, role: string): Promise<void> {
     await api.put(`/users/admin/users/${userId}/role`, null, { params: { role } })
   },
 
@@ -110,6 +118,7 @@ export const coursesService = {
 
   async createCourse(data: { title: string; description?: string; image_url?: string }): Promise<Course> {
     const response = await api.post<Course>("/courses", data)
+    cacheInvalidatePrefix("courses:list:")
     return response.data
   },
 
@@ -118,11 +127,15 @@ export const coursesService = {
     data: { title?: string; description?: string; image_url?: string; status?: string; enrollment_start?: string | null; enrollment_end?: string | null },
   ): Promise<Course> {
     const response = await api.put<Course>(`/courses/${id}`, data)
+    cacheInvalidate(`courses:detail:${id}`)
+    cacheInvalidatePrefix("courses:list:")
     return response.data
   },
 
   async deleteCourse(id: string): Promise<void> {
     await api.delete(`/courses/${id}`)
+    cacheInvalidate(`courses:detail:${id}`)
+    cacheInvalidatePrefix("courses:list:")
   },
 
   async cloneCourse(id: string): Promise<Course> {
@@ -202,14 +215,13 @@ export const coursesService = {
     await api.delete(`/announcements/${id}`)
   },
 
-  // Grades (via API instead of Supabase direct)
-  async getCourseGrades(courseId: string) {
-    const response = await api.get(`/grades/course/${courseId}`)
+  async getCourseGrades(courseId: string): Promise<StudentGrade[]> {
+    const response = await api.get<StudentGrade[]>(`/grades/course/${courseId}`)
     return response.data
   },
 
-  async upsertGrade(courseId: string, studentId: string, data: { grade?: string; comment?: string }) {
-    const response = await api.put(`/grades/course/${courseId}/student/${studentId}`, data)
+  async upsertGrade(courseId: string, studentId: string, data: { grade?: string; comment?: string }): Promise<StudentGrade> {
+    const response = await api.put<StudentGrade>(`/grades/course/${courseId}/student/${studentId}`, data)
     return response.data
   },
 
@@ -217,8 +229,6 @@ export const coursesService = {
     const response = await api.get<StudentGrade[]>("/grades/my")
     return response.data
   },
-
-  
 
   async updateGradingConfig(courseId: string, data: GradingConfig): Promise<GradingConfig> {
     const response = await api.put<GradingConfig>(`/grades/course/${courseId}/config`, data)
@@ -230,20 +240,26 @@ export const coursesService = {
     return response.data
   },
 
-  // Analytics (via API instead of Supabase direct)
-  async getCourseAnalyticsAPI(courseId: string) {
+  async getCourseAnalyticsAPI(courseId: string): Promise<unknown> {
     const response = await api.get(`/analytics/course/${courseId}`)
     return response.data
   },
 
   // Quizzes
   async getChapterQuiz(chapterId: string): Promise<Quiz | null> {
+    const key = `quiz:chapter:${chapterId}`
+    const cached = cacheGet<Quiz | null>(key)
+    if (cached !== undefined) return cached
     try {
       const response = await api.get<Quiz | null>(`/quizzes/chapter/${chapterId}`)
+      cacheSet(key, response.data, 5 * 60 * 1000)
       return response.data
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
-      if (status === 404) return null
+      if (status === 404) {
+        cacheSet(key, null, 5 * 60 * 1000)
+        return null
+      }
       throw err
     }
   },
@@ -267,10 +283,12 @@ export const coursesService = {
     }>
   }): Promise<Quiz> {
     const response = await api.post<Quiz>("/quizzes", data)
+    cacheInvalidate(`quiz:chapter:${data.chapter_id}`)
     return response.data
   },
   async deleteQuiz(quizId: string): Promise<void> {
     await api.delete(`/quizzes/${quizId}`)
+    cacheInvalidatePrefix("quiz:chapter:")
   },
   async submitQuiz(quizId: string, answers: { question_id: string; selected_option_id?: string; text_answer?: string }[]): Promise<QuizAttempt> {
     const response = await api.post<QuizAttempt>(`/quizzes/${quizId}/submit`, { answers })
@@ -280,14 +298,12 @@ export const coursesService = {
     const response = await api.get<QuizAttempt[]>(`/quizzes/${quizId}/my-attempts`)
     return response.data
   },
-  async grantExtraAttempts(quizId: string, userId: string, extraAttempts: number) {
-    const response = await api.post(`/quizzes/${quizId}/extra-attempts`, {
+  async grantExtraAttempts(quizId: string, userId: string, extraAttempts: number): Promise<void> {
+    await api.post(`/quizzes/${quizId}/extra-attempts`, {
       user_id: userId,
       extra_attempts: extraAttempts,
     })
-    return response.data
   },
-  
 
   // Assignments
   async getChapterAssignments(chapterId: string): Promise<Assignment[]> {
@@ -324,22 +340,30 @@ export const coursesService = {
 
   // Chapter blocks
   async getChapterBlocks(chapterId: string): Promise<ChapterBlock[]> {
+    const key = `blocks:chapter:${chapterId}`
+    const cached = cacheGet<ChapterBlock[]>(key)
+    if (cached) return cached
     const response = await api.get<ChapterBlock[]>(`/blocks/chapter/${chapterId}`)
+    cacheSet(key, response.data, 5 * 60 * 1000)
     return response.data
   },
-  async createBlock(chapterId: string, data: ChapterBlockCreateData) {
-    const response = await api.post(`/blocks/chapter/${chapterId}`, data)
+  async createBlock(chapterId: string, data: ChapterBlockCreateData): Promise<ChapterBlock> {
+    const response = await api.post<ChapterBlock>(`/blocks/chapter/${chapterId}`, data)
+    cacheInvalidate(`blocks:chapter:${chapterId}`)
     return response.data
   },
-  async updateBlock(blockId: string, data: ChapterBlockUpdateData) {
-    const response = await api.put(`/blocks/${blockId}`, data)
+  async updateBlock(blockId: string, data: ChapterBlockUpdateData): Promise<ChapterBlock> {
+    const response = await api.put<ChapterBlock>(`/blocks/${blockId}`, data)
+    cacheInvalidatePrefix("blocks:chapter:")
     return response.data
   },
-  async deleteBlock(blockId: string) {
+  async deleteBlock(blockId: string): Promise<void> {
     await api.delete(`/blocks/${blockId}`)
+    cacheInvalidatePrefix("blocks:chapter:")
   },
-  async reorderBlocks(chapterId: string, blocks: { id: string; order_index: number }[]) {
+  async reorderBlocks(chapterId: string, blocks: { id: string; order_index: number }[]): Promise<void> {
     await api.put(`/blocks/chapter/${chapterId}/reorder`, blocks)
+    cacheInvalidate(`blocks:chapter:${chapterId}`)
   },
 
   // Certificates
@@ -365,13 +389,13 @@ export const coursesService = {
     const response = await api.get<Certificate[]>("/certificates/pending")
     return response.data
   },
-  async teacherApproveCert(certId: string) {
+  async teacherApproveCert(certId: string): Promise<void> {
     await api.put(`/certificates/${certId}/teacher-approve`)
   },
-  async adminApproveCert(certId: string) {
+  async adminApproveCert(certId: string): Promise<void> {
     await api.put(`/certificates/${certId}/admin-approve`)
   },
-  async rejectCert(certId: string) {
+  async rejectCert(certId: string): Promise<void> {
     await api.put(`/certificates/${certId}/reject`)
   },
   async getAdminPendingCerts(): Promise<Certificate[]> {
@@ -379,26 +403,31 @@ export const coursesService = {
     return response.data
   },
 
-  // Teacher completion
-  async teacherMarkComplete(chapterId: string, studentId: string) {
+  async teacherMarkComplete(chapterId: string, studentId: string): Promise<void> {
     await api.put(`/progress/chapter/${chapterId}/student/${studentId}/complete`)
   },
-  async teacherMarkIncomplete(chapterId: string, studentId: string) {
+  async teacherMarkIncomplete(chapterId: string, studentId: string): Promise<void> {
     await api.put(`/progress/chapter/${chapterId}/student/${studentId}/incomplete`)
   },
 
   // Reviews
   async getCourseReviews(courseId: string): Promise<CourseReview[]> {
+    const key = `reviews:course:${courseId}`
+    const cached = cacheGet<CourseReview[]>(key)
+    if (cached) return cached
     const response = await api.get<CourseReview[]>(`/reviews/course/${courseId}`)
+    cacheSet(key, response.data, 2 * 60 * 1000)
     return response.data
   },
   async submitReview(courseId: string, data: { rating: number; comment?: string }): Promise<CourseReview> {
     const response = await api.post<CourseReview>(`/reviews/course/${courseId}`, data)
+    cacheInvalidate(`reviews:course:${courseId}`)
     return response.data
   },
-  
+
   async deleteReview(id: string): Promise<void> {
     await api.delete(`/reviews/${id}`)
+    cacheInvalidatePrefix("reviews:course:")
   },
 
   async getMyChapterProgress(courseId: string): Promise<string[]> {
@@ -406,8 +435,8 @@ export const coursesService = {
     return response.data
   },
 
-  // Student progress (teacher)
-  async getStudentProgress(courseId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getStudentProgress(courseId: string): Promise<any> {
     const response = await api.get(`/progress/course/${courseId}/students`)
     return response.data
   },

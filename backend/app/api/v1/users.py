@@ -210,7 +210,7 @@ class DeleteAccountRequest(BaseModel):
     confirm: str
 
 
-@router.delete("/me", status_code=204)
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_my_account(
     body: DeleteAccountRequest,
     request: Request,
@@ -273,7 +273,7 @@ async def delete_my_account(
             detail="Account deletion failed. Please try again or contact support.",
         )
 
-    return Response(status_code=204)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/admin/users")

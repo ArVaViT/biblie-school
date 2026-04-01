@@ -10,6 +10,7 @@ from app.models.enrollment import Enrollment
 from app.models.student_grade import StudentGrade
 from app.models.user import User
 from app.schemas.grade import GradeBreakdown
+from app.constants import GRADABLE_CHAPTER_TYPES
 
 
 LETTER_GRADES = [
@@ -26,9 +27,6 @@ def score_to_letter(score: float) -> str:
         if score >= threshold:
             return letter
     return "F"
-
-
-GRADABLE_CHAPTER_TYPES = ("quiz", "exam", "assignment")
 
 
 def _get_course_chapter_ids(db: Session, course_id: str) -> list[str]:

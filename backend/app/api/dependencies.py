@@ -43,7 +43,6 @@ async def get_optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
     db: Session = Depends(get_db),
 ) -> User | None:
-    """Return the authenticated user if a valid token is present, else None."""
     if credentials is None:
         return None
     payload = decode_access_token(credentials.credentials)
@@ -77,37 +76,54 @@ async def require_admin(
     return current_user
 
 
-def verify_course_owner(db: Session, course_id: str, teacher_id, *, allow_admin: bool = True) -> Course:
-    """Verify the teacher owns this course (admins always pass). Raises 404 or 403."""
+def verify_course_owner(
+    db: Session, course_id: str, teacher_id, *, allow_admin: bool = True
+) -> Course:
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
+        )
     if str(course.created_by) != str(teacher_id):
         if allow_admin:
             user = db.query(User).filter(User.id == teacher_id).first()
             if user and user.role == UserRole.ADMIN.value:
                 return course
-        raise HTTPException(status_code=403, detail="You do not own this course")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not own this course",
+        )
     return course
 
 
+def _resolve_chapter(
+    db: Session, chapter_id: str
+) -> tuple[Chapter, Module, Course]:
+    row = (
+        db.query(Chapter, Module, Course)
+        .join(Module, Chapter.module_id == Module.id)
+        .join(Course, Module.course_id == Course.id)
+        .filter(Chapter.id == chapter_id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found"
+        )
+    return row[0], row[1], row[2]
+
+
 def verify_chapter_access(db: Session, chapter_id: str, user: User) -> Chapter:
-    """Ensure user can read chapter content (enrolled, owner, or admin)."""
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=404, detail="Chapter not found")
-    module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if not module:
-        raise HTTPException(status_code=404, detail="Module not found")
-    course = db.query(Course).filter(Course.id == module.course_id).first()
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+    chapter, _module, course = _resolve_chapter(db, chapter_id)
+
     if user.role == UserRole.ADMIN.value:
         return chapter
     if str(course.created_by) == str(user.id):
         return chapter
     if course.status != "published":
-        raise HTTPException(status_code=404, detail="Chapter not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found"
+        )
     enrolled = (
         db.query(Enrollment)
         .filter(Enrollment.user_id == user.id, Enrollment.course_id == course.id)
@@ -121,13 +137,34 @@ def verify_chapter_access(db: Session, chapter_id: str, user: User) -> Chapter:
     return chapter
 
 
-def verify_chapter_owner(db: Session, chapter_id: str, teacher_id) -> Chapter:
-    """Resolve chapter -> module -> course and verify ownership."""
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=404, detail="Chapter not found")
-    module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if not module:
-        raise HTTPException(status_code=404, detail="Module not found")
-    verify_course_owner(db, module.course_id, teacher_id)
-    return chapter
+def verify_chapter_owner(
+    db: Session, chapter_id: str, teacher_id
+) -> tuple[Chapter, str]:
+    """Resolve chapter -> module -> course and verify ownership.
+
+    Returns ``(chapter, course_id)`` so callers can skip redundant lookups.
+    """
+    chapter, _module, course = _resolve_chapter(db, chapter_id)
+    if str(course.created_by) != str(teacher_id):
+        user = db.query(User).filter(User.id == teacher_id).first()
+        if not (user and user.role == UserRole.ADMIN.value):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not own this course",
+            )
+    return chapter, str(course.id)
+
+
+def resolve_chapter_course_id(db: Session, chapter_id: str) -> str:
+    """Return the course_id for a chapter (single joined query). Raises 404."""
+    row = (
+        db.query(Module.course_id)
+        .join(Chapter, Chapter.module_id == Module.id)
+        .filter(Chapter.id == chapter_id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found"
+        )
+    return row[0]

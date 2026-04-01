@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import Optional
-
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
 from app.models.user import User
@@ -18,7 +16,7 @@ router = APIRouter(prefix="/calendar", tags=["calendar"])
 
 @router.get("/events", response_model=list[CalendarEvent])
 async def get_calendar_events(
-    course_id: Optional[str] = Query(None),
+    course_id: str | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[CalendarEvent]:
@@ -161,7 +159,7 @@ async def list_course_events(
 ) -> list[CourseEventResponse]:
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     is_owner = str(course.created_by) == str(current_user.id)
     is_admin = current_user.role == "admin"
     if not is_owner and not is_admin:
@@ -201,7 +199,7 @@ async def update_course_event(
         CourseEvent.course_id == course_id,
     ).first()
     if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(event, field, value)
     db.commit()
@@ -225,6 +223,6 @@ async def delete_course_event(
         CourseEvent.course_id == course_id,
     ).first()
     if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     db.delete(event)
     db.commit()

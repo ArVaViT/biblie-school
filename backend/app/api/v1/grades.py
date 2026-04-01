@@ -1,13 +1,13 @@
+import logging
 from datetime import datetime, timezone
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import Optional
-import uuid
 
 from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
 from app.models.user import User
-from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.student_grade import StudentGrade
 from app.schemas.grade import (
@@ -18,6 +18,7 @@ from app.schemas.grade import (
     StudentCalculatedGrade,
     GradeSummaryResponse,
 )
+from app.models.course import Course
 from app.services.grade_calculator import (
     calculate_student_grade,
     calculate_all_student_grades,
@@ -25,6 +26,8 @@ from app.services.grade_calculator import (
     _get_quiz_ids_for_chapters,
     _get_assignment_ids_for_chapters,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/grades", tags=["grades"])
 
@@ -39,7 +42,7 @@ async def get_grading_config(
 ):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     return GradingConfigResponse(
         quiz_weight=course.quiz_weight,
         assignment_weight=course.assignment_weight,
@@ -87,11 +90,16 @@ async def get_calculated_grade(
         .first()
     )
     if not enrolled:
-        raise HTTPException(status_code=404, detail="Student not enrolled in this course")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student not enrolled in this course",
+        )
 
     user = db.query(User).filter(User.id == student_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Student not found"
+        )
 
     chapter_ids = _get_course_chapter_ids(db, course_id)
     quiz_ids = _get_quiz_ids_for_chapters(db, chapter_ids)
@@ -122,8 +130,6 @@ async def get_grade_summary(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    import logging
-    logger = logging.getLogger(__name__)
     try:
         course = verify_course_owner(db, course_id, teacher.id)
         results = calculate_all_student_grades(db, course)
@@ -149,7 +155,10 @@ async def get_grade_summary(
         raise
     except Exception as e:
         logger.error("Grade summary error for course %s: %s", course_id, e)
-        raise HTTPException(status_code=500, detail="Grade calculation failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Grade calculation failed",
+        )
 
 
 # ── Existing Manual Grade Endpoints ───────────────────────────────
@@ -192,7 +201,7 @@ async def get_my_grade_for_course(
 @router.get("/course/{course_id}", response_model=list[GradeResponse])
 async def list_course_grades(
     course_id: str,
-    cohort_id: Optional[str] = Query(None),
+    cohort_id: str | None = Query(None),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> list[GradeResponse]:
@@ -207,7 +216,7 @@ async def list_course_grades(
 async def get_student_grade(
     course_id: str,
     student_id: str,
-    cohort_id: Optional[str] = Query(None),
+    cohort_id: str | None = Query(None),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> GradeResponse:
@@ -232,7 +241,7 @@ async def upsert_student_grade(
     course_id: str,
     student_id: str,
     data: GradeUpsert,
-    cohort_id: Optional[str] = Query(None),
+    cohort_id: str | None = Query(None),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> GradeResponse:

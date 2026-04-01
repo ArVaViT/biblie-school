@@ -1,12 +1,11 @@
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 
 class ReviewCreate(BaseModel):
     rating: int = Field(..., ge=1, le=5)
-    comment: Optional[str] = Field(None, max_length=5000)
+    comment: str | None = Field(None, max_length=5000)
 
 
 class ReviewResponse(BaseModel):
@@ -16,6 +15,6 @@ class ReviewResponse(BaseModel):
     user_id: UUID
     course_id: str
     rating: int
-    comment: Optional[str] = None
+    comment: str | None = None
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
