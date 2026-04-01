@@ -80,6 +80,23 @@ async def request_certificate(
     return cert
 
 
+@router.get("/course/{course_id}", response_model=CertificateResponse)
+async def get_course_certificate(
+    course_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get the current user's certificate for a specific course."""
+    cert = (
+        db.query(Certificate)
+        .filter(Certificate.user_id == current_user.id, Certificate.course_id == course_id)
+        .first()
+    )
+    if not cert:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No certificate found")
+    return cert
+
+
 @router.get("/my", response_model=list[CertificateResponse])
 async def list_my_certificates(
     current_user: User = Depends(get_current_user),
