@@ -56,7 +56,11 @@ export default function ModuleView() {
   useEffect(() => {
     let cancelled = false
     const load = async () => {
-      if (!courseId || !moduleId) return
+      if (!courseId || !moduleId) {
+        setLoading(false)
+        setError("Invalid course or module link.")
+        return
+      }
       setLoading(true)
       setError(null)
       try {

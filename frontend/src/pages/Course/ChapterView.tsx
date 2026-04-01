@@ -98,17 +98,27 @@ function BlockRenderer({ block, onAssignmentSubmitted }: { block: ChapterBlock; 
 
     case "video": {
       const videoId = block.video_url ? extractYouTubeId(block.video_url) : null
-      return videoId ? (
-        <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "56.25%" }}>
-          <iframe
-            className="absolute inset-0 h-full w-full"
-            src={`https://www.youtube.com/embed/${videoId}`}
-            title="Video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      ) : null
+      if (videoId) {
+        return (
+          <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "56.25%" }}>
+            <iframe
+              className="absolute inset-0 h-full w-full"
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title="Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        )
+      }
+      if (block.video_url) {
+        return (
+          <a href={block.video_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+            <PlayCircle className="h-4 w-4" /> Open video in new tab
+          </a>
+        )
+      }
+      return null
     }
 
     case "quiz":
@@ -157,7 +167,11 @@ export default function ChapterView() {
   useEffect(() => {
     let cancelled = false
     const load = async () => {
-      if (!courseId || !moduleId) return
+      if (!courseId || !moduleId) {
+        setLoading(false)
+        setError("Invalid course or module link.")
+        return
+      }
       setLoading(true)
       setError(null)
       try {
@@ -473,6 +487,9 @@ export default function ChapterView() {
                 placeholder="Share your thoughts on this topic..."
                 className="w-full min-h-[160px] p-4 text-sm bg-muted/30 border rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Discussion responses are for personal reflection and are not saved.
+              </p>
             </div>
           </div>
         )}
