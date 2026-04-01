@@ -160,22 +160,6 @@ def upgrade() -> None:
     op.create_index("ix_announcements_course_id", "announcements", ["course_id"])
     op.create_index("ix_announcements_created_by", "announcements", ["created_by"])
 
-    # ── student_notes ─────────────────────────────────────────────────
-    op.create_table(
-        "student_notes",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("chapter_id", sa.String(), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False, server_default=""),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(["chapter_id"], ["chapters.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint("user_id", "chapter_id", name="uq_student_note_user_chapter"),
-    )
-    op.create_index("ix_student_notes_user_id", "student_notes", ["user_id"])
-    op.create_index("ix_student_notes_chapter_id", "student_notes", ["chapter_id"])
-
     # ── student_grades ────────────────────────────────────────────────
     op.create_table(
         "student_grades",
@@ -416,7 +400,6 @@ def downgrade() -> None:
     op.drop_table("quiz_questions")
     op.drop_table("quizzes")
     op.drop_table("student_grades")
-    op.drop_table("student_notes")
     op.drop_table("announcements")
     op.drop_table("files")
     op.drop_table("enrollments")

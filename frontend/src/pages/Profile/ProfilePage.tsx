@@ -370,7 +370,7 @@ export default function ProfilePage() {
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
               Deleting your account will remove your profile, enrollments, quiz attempts,
-              assignment submissions, grades, certificates, notes, reviews, and notifications.
+              assignment submissions, grades, certificates, reviews, and notifications.
               Courses you created will be preserved but disassociated from your account.
             </p>
             <Button

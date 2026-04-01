@@ -127,13 +127,19 @@ def test_student_can_fetch_own_assignment_submissions(student_client: TestClient
     assert enrollment.progress == 100
 
 
-def test_mark_complete_syncs_enrollment_progress(student_client: TestClient, db: Session):
-    course, _module, chapter = _seed_course_graph(db)
+def test_content_chapter_does_not_affect_progress(student_client: TestClient, db: Session):
+    """Content-only chapters (reading, video, etc.) should not count toward progress."""
+    course, _module, _chapter = _seed_course_graph(db)
 
-    complete_response = student_client.put(
-        f"/api/v1/progress/chapter/{chapter.id}/complete"
+    content_chapter = Chapter(
+        id="chapter-content",
+        module_id=_module.id,
+        title="Reading Material",
+        order_index=2,
+        chapter_type="reading",
     )
-    assert complete_response.status_code == 200, complete_response.text
+    db.add(content_chapter)
+    db.commit()
 
     enrollment = (
         db.query(Enrollment)
@@ -141,12 +147,17 @@ def test_mark_complete_syncs_enrollment_progress(student_client: TestClient, db:
         .first()
     )
     assert enrollment is not None
-    assert enrollment.progress == 100
-
-    uncomplete_response = student_client.put(
-        f"/api/v1/progress/chapter/{chapter.id}/uncomplete"
-    )
-    assert uncomplete_response.status_code == 200, uncomplete_response.text
-
-    db.refresh(enrollment)
     assert enrollment.progress == 0
+
+    db.add(ChapterProgress(
+        user_id=STUDENT_ID,
+        chapter_id=_chapter.id,
+        completed=True,
+        completion_type="quiz",
+    ))
+    db.commit()
+
+    from app.services.course_service import sync_enrollment_progress
+    sync_enrollment_progress(db, STUDENT_ID, course.id)
+    db.refresh(enrollment)
+    assert enrollment.progress == 100

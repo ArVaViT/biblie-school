@@ -726,17 +726,9 @@ function ChapterCell({ chapter }: { chapter: ChapterInfo | undefined }) {
     )
   }
 
-  // Reading / video / audio / discussion / mixed — chapter completion = 1 point
-  if (chapter.completed) {
-    return (
-      <div className="flex items-center justify-center h-9 rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400">
-        <CheckCircle2 className="h-4 w-4" />
-      </div>
-    )
-  }
   return (
-    <div className="flex items-center justify-center h-9 rounded bg-muted/30 text-muted-foreground/40">
-      <Circle className="h-3.5 w-3.5" />
+    <div className="flex items-center justify-center h-9 rounded bg-muted/20 text-muted-foreground/30 text-[10px]">
+      —
     </div>
   )
 }

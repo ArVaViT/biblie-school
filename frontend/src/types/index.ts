@@ -130,15 +130,6 @@ export interface Announcement {
   updated_at: string
 }
 
-export interface StudentNote {
-  id: string
-  user_id: string
-  chapter_id: string
-  content: string
-  created_at: string
-  updated_at: string
-}
-
 export interface QuizOption {
   id: string
   question_id: string

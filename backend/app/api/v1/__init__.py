@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1 import auth, courses, users, files, health
-from app.api.v1 import announcements, notes, grades, analytics
+from app.api.v1 import announcements, grades, analytics
 from app.api.v1 import quizzes, assignments, certificates, reviews, prerequisites, progress
 from app.api.v1 import blocks, cohorts, notifications, audit
 from app.api.v1 import calendar as calendar_mod
@@ -12,7 +12,6 @@ api_router.include_router(users.router)
 api_router.include_router(files.router)
 api_router.include_router(health.router)
 api_router.include_router(announcements.router)
-api_router.include_router(notes.router)
 api_router.include_router(grades.router)
 api_router.include_router(analytics.router)
 api_router.include_router(quizzes.router)

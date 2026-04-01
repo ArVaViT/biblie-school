@@ -478,18 +478,20 @@ export default function CourseDetail() {
               const chapters = [...(module.chapters ?? [])].sort(
                 (a, b) => a.order_index - b.order_index,
               )
-              const chapterCount = chapters.length
+              const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
+              const gradable = chapters.filter((ch) => GRADABLE_TYPES.has(ch.chapter_type ?? ""))
+              const gradableCount = gradable.length
 
               const isLocked = (() => {
                 if (idx === 0) return false
                 const prevModule = sortedModules[idx - 1]
-                const prevChapters = prevModule.chapters ?? []
+                const prevChapters = (prevModule.chapters ?? []).filter((ch) => GRADABLE_TYPES.has(ch.chapter_type ?? ""))
                 if (prevChapters.length === 0) return false
                 return !prevChapters.every((ch) => completedChapterIds.has(ch.id))
               })()
 
-              const allComplete = chapterCount > 0 && chapters.every((ch) => completedChapterIds.has(ch.id))
-              const completedInModule = chapters.filter((ch) => completedChapterIds.has(ch.id)).length
+              const allComplete = gradableCount > 0 && gradable.every((ch) => completedChapterIds.has(ch.id))
+              const completedInModule = gradable.filter((ch) => completedChapterIds.has(ch.id)).length
 
               return (
                 <Card
@@ -510,7 +512,7 @@ export default function CourseDetail() {
                         </span>
                         <span className="truncate">{module.title}</span>
                         <span className="text-xs font-normal text-muted-foreground whitespace-nowrap">
-                          {chapterCount > 0 ? `${completedInModule}/${chapterCount}` : `${chapterCount} ch.`}
+                          {gradableCount > 0 ? `${completedInModule}/${gradableCount}` : `${chapters.length} ch.`}
                         </span>
                       </CardTitle>
                       {!isLocked && (

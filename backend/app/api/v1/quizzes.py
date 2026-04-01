@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.course import Module, Chapter
 from app.models.enrollment import Enrollment
 from app.models.quiz import Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, QuizExtraAttempt
+from app.models.chapter_progress import ChapterProgress
 from app.schemas.quiz import (
     QuizCreate,
     QuizUpdate,
@@ -293,6 +294,19 @@ async def submit_quiz(
     percentage = (total_score / max_score * 100) if max_score > 0 else 0
     attempt.passed = percentage >= quiz.passing_score
     attempt.completed_at = datetime.now(timezone.utc)
+
+    cp = (
+        db.query(ChapterProgress)
+        .filter(ChapterProgress.user_id == current_user.id, ChapterProgress.chapter_id == str(quiz.chapter_id))
+        .first()
+    )
+    if not cp:
+        cp = ChapterProgress(user_id=current_user.id, chapter_id=str(quiz.chapter_id))
+        db.add(cp)
+    if not cp.completed:
+        cp.completed = True
+        cp.completed_at = datetime.now(timezone.utc)
+        cp.completion_type = "quiz"
 
     db.commit()
     sync_enrollment_progress(db, current_user.id, module.course_id)

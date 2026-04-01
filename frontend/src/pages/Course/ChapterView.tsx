@@ -45,8 +45,6 @@ import {
   Download,
   File,
 } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
-import StudentNotes from "@/components/course/StudentNotes"
 import QuizTaker from "@/components/quiz/QuizTaker"
 import AssignmentPanel from "@/components/assignment/AssignmentPanel"
 
@@ -158,7 +156,6 @@ export default function ChapterView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
-  const [toggling, setToggling] = useState(false)
   const [chapterBlocks, setChapterBlocks] = useState<ChapterBlock[]>([])
   const [loadingBlocks, setLoadingBlocks] = useState(false)
   const [discussionResponse, setDiscussionResponse] = useState("")
@@ -244,26 +241,6 @@ export default function ChapterView() {
     },
     [sortedChapters, completedIds],
   )
-
-  const toggleComplete = useCallback(async () => {
-    if (!chapter || !courseId || toggling) return
-
-    setToggling(true)
-    const wasCompleted = completedIds.has(chapter.id)
-    try {
-      if (wasCompleted) {
-        await coursesService.unmarkChapterComplete(chapter.id)
-      } else {
-        await coursesService.markChapterComplete(chapter.id)
-      }
-      const completedChapterIds = await coursesService.getMyChapterProgress(courseId)
-      setCompletedIds(new Set(completedChapterIds))
-    } catch {
-      toast({ title: "Failed to update chapter progress", variant: "destructive" })
-    } finally {
-      setToggling(false)
-    }
-  }, [chapter, courseId, completedIds, toggling])
 
   const refreshCompletion = useCallback(async () => {
     if (!chapter || !courseId) return
@@ -544,13 +521,10 @@ export default function ChapterView() {
         )}
       </div>
 
-      {/* Student Notes */}
-      <StudentNotes chapterId={chapter.id} />
-
-      {/* Completion toggle */}
-      <div className="mt-6 pt-4 border-t">
-        {hasAssignments ? (
-          isCompleted ? (
+      {/* Completion status for graded chapters */}
+      {hasAssignments && (
+        <div className="mt-6 pt-4 border-t">
+          {isCompleted ? (
             <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
               <CheckCircle className="h-4 w-4" />
               Completed
@@ -560,28 +534,9 @@ export default function ChapterView() {
               <Circle className="h-4 w-4" />
               Submit the assignment to complete this chapter
             </p>
-          )
-        ) : (
-          <button
-            type="button"
-            onClick={toggleComplete}
-            disabled={toggling}
-            className="flex items-center gap-2 text-sm transition-colors hover:text-primary disabled:opacity-50"
-          >
-            {isCompleted ? (
-              <>
-                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                <span className="text-green-600 dark:text-green-400 font-medium">Completed — click to undo</span>
-              </>
-            ) : (
-              <>
-                <Circle className="h-5 w-5 text-muted-foreground/40" />
-                <span>Mark as complete</span>
-              </>
-            )}
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Navigation arrows */}
       <div className="mt-8 pt-6 border-t flex items-center justify-between">

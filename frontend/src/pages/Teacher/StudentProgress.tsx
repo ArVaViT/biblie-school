@@ -47,9 +47,10 @@ interface AssignmentResult {
 interface ChapterInfo {
   id: string
   title: string
+  chapter_type: string
   requires_completion: boolean
   completed: boolean
-  completed_by: "teacher" | "self" | null
+  completed_by: "teacher" | "self" | "quiz" | null
 }
 
 interface StudentData {
@@ -617,14 +618,18 @@ function StudentRow({
                           <div className="flex items-center gap-2">
                             <p className="font-medium truncate">{title}</p>
                           </div>
-                          {chapterInfo && (
+                          {chapterInfo && ["quiz", "exam", "assignment"].includes(chapterInfo.chapter_type) && (
                             <p className="text-xs mt-0.5">
                               {chapterInfo.completed ? (
                                 <span className={chapterInfo.completed_by === "teacher"
                                   ? "text-blue-600 dark:text-blue-400"
                                   : "text-emerald-600 dark:text-emerald-400"
                                 }>
-                                  {chapterInfo.completed_by === "teacher" ? "Completed by teacher" : "Self-completed"}
+                                  {chapterInfo.completed_by === "teacher"
+                                    ? "Completed by teacher"
+                                    : chapterInfo.completed_by === "quiz"
+                                      ? "Completed via quiz"
+                                      : "Completed via submission"}
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground">Not completed</span>
@@ -678,7 +683,7 @@ function StudentRow({
                             </span>
                           </div>
                         )}
-                        {chapterInfo && (
+                        {chapterInfo && ["quiz", "exam", "assignment"].includes(chapterInfo.chapter_type) && (
                           <Button
                             variant={chapterInfo.completed ? "outline" : "default"}
                             size="sm"

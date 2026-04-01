@@ -1,6 +1,6 @@
 import api from "./api"
 import type {
-  Course, Module, Chapter, Enrollment, Announcement, StudentNote, StudentGrade,
+  Course, Module, Chapter, Enrollment, Announcement, StudentGrade,
   Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, Cohort,
   Notification, NotificationListResponse,
   AuditLogPage,
@@ -93,14 +93,6 @@ export const coursesService = {
   async getMyCourses(): Promise<Enrollment[]> {
     const response = await api.get<Enrollment[]>("/users/me/courses")
     return response.data
-  },
-
-  async markChapterComplete(chapterId: string): Promise<void> {
-    await api.put(`/progress/chapter/${chapterId}/complete`)
-  },
-
-  async unmarkChapterComplete(chapterId: string): Promise<void> {
-    await api.put(`/progress/chapter/${chapterId}/uncomplete`)
   },
 
   // Admin: all users
@@ -211,25 +203,6 @@ export const coursesService = {
 
   async deleteAnnouncement(id: string): Promise<void> {
     await api.delete(`/announcements/${id}`)
-  },
-
-  // Student notes
-  async getNote(chapterId: string): Promise<StudentNote | null> {
-    try {
-      const response = await api.get<StudentNote>(`/notes/chapter/${chapterId}`)
-      return response.data
-    } catch {
-      return null
-    }
-  },
-
-  async saveNote(chapterId: string, content: string): Promise<StudentNote> {
-    const response = await api.put<StudentNote>(`/notes/chapter/${chapterId}`, { content })
-    return response.data
-  },
-
-  async deleteNote(chapterId: string): Promise<void> {
-    await api.delete(`/notes/chapter/${chapterId}`)
   },
 
   // Grades (via API instead of Supabase direct)

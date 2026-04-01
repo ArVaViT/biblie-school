@@ -61,7 +61,9 @@ async def get_course_student_progress(
         .order_by(Module.order_index, Chapter.order_index)
         .all()
     )
+    GRADABLE_TYPES = ("quiz", "exam", "assignment")
     chapter_ids = [c.id for c in chapters]
+    gradable_chapter_ids = [c.id for c in chapters if c.chapter_type in GRADABLE_TYPES]
     chapter_map = {c.id: c.title for c in chapters}
 
     quiz_map: dict[str, list] = {}
@@ -180,7 +182,7 @@ async def get_course_student_progress(
                     })
 
         user_progress = progress_by_user.get(uid, {})
-        chapters_completed = len(user_progress)
+        chapters_completed = sum(1 for cid in gradable_chapter_ids if cid in user_progress)
 
         chapter_infos = []
         for ch in chapters:
@@ -231,7 +233,7 @@ async def get_course_student_progress(
             "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
             "progress": enrollment.progress,
             "chapters_completed": chapters_completed,
-            "total_chapters": len(chapter_ids),
+            "total_chapters": len(gradable_chapter_ids),
             "quiz_results": quiz_results,
             "assignment_results": assignment_results,
             "last_activity": latest_activity.isoformat() if latest_activity else None,
@@ -241,128 +243,11 @@ async def get_course_student_progress(
     return {
         "course_id": course_id,
         "course_title": course.title,
-        "total_chapters": len(chapter_ids),
+        "total_chapters": len(gradable_chapter_ids),
         "total_students": len(enrollments),
         "modules": list(module_map.values()),
         "students": student_progress,
     }
-
-
-@router.put("/chapter/{chapter_id}/complete")
-async def self_complete_chapter(
-    chapter_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Student self-completes a chapter."""
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
-
-    module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if not module:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
-
-    enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
-        .first()
-    )
-    if not enrolled:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You must be enrolled in this course",
-        )
-
-    if chapter.is_locked:
-        prev_chapter = (
-            db.query(Chapter)
-            .filter(
-                Chapter.module_id == chapter.module_id,
-                Chapter.order_index < chapter.order_index,
-            )
-            .order_by(Chapter.order_index.desc())
-            .first()
-        )
-        if prev_chapter:
-            prev_done = (
-                db.query(ChapterProgress)
-                .filter(
-                    ChapterProgress.user_id == current_user.id,
-                    ChapterProgress.chapter_id == prev_chapter.id,
-                    ChapterProgress.completed.is_(True),
-                )
-                .first()
-            )
-            if not prev_done:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Complete the previous chapter first",
-                )
-
-    progress = (
-        db.query(ChapterProgress)
-        .filter(ChapterProgress.user_id == current_user.id, ChapterProgress.chapter_id == chapter_id)
-        .first()
-    )
-    if progress and progress.completed:
-        return {"message": "Already completed", "chapter_id": chapter_id}
-
-    if not progress:
-        progress = ChapterProgress(
-            user_id=current_user.id,
-            chapter_id=chapter_id,
-        )
-        db.add(progress)
-    progress.completed = True
-    progress.completed_at = datetime.now(timezone.utc)
-    progress.completion_type = "self"
-    db.commit()
-    if module:
-        sync_enrollment_progress(db, current_user.id, module.course_id)
-    return {"message": "Chapter marked as complete", "chapter_id": chapter_id}
-
-
-@router.put("/chapter/{chapter_id}/uncomplete")
-async def self_uncomplete_chapter(
-    chapter_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Student removes their own chapter completion."""
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
-
-    module = db.query(Module).filter(Module.id == chapter.module_id).first()
-    if not module:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
-
-    enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == module.course_id)
-        .first()
-    )
-    if not enrolled:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You must be enrolled in this course",
-        )
-
-    progress = (
-        db.query(ChapterProgress)
-        .filter(ChapterProgress.user_id == current_user.id, ChapterProgress.chapter_id == chapter_id)
-        .first()
-    )
-    if not progress or not progress.completed:
-        return {"message": "Not completed", "chapter_id": chapter_id}
-
-    progress.completed = False
-    progress.completed_at = None
-    progress.completion_type = "self"
-    db.commit()
-    sync_enrollment_progress(db, current_user.id, module.course_id)
-    return {"message": "Chapter completion removed", "chapter_id": chapter_id}
 
 
 @router.put("/chapter/{chapter_id}/student/{student_id}/complete")

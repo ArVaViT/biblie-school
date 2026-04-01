@@ -223,6 +223,9 @@ def update_enrollment_progress(
     return enrollment
 
 
+GRADABLE_CHAPTER_TYPES = ("quiz", "exam", "assignment")
+
+
 def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrollment | None:
     enrollment = (
         db.query(Enrollment)
@@ -232,26 +235,30 @@ def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrol
     if not enrollment:
         return None
 
-    total_chapters = (
+    total_gradable = (
         db.query(func.count(Chapter.id))
         .join(Module, Chapter.module_id == Module.id)
-        .filter(Module.course_id == course_id)
+        .filter(Module.course_id == course_id, Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES))
         .scalar()
     ) or 0
 
-    completed_chapters = (
+    completed_gradable = (
         db.query(func.count(ChapterProgress.id))
         .join(Chapter, Chapter.id == ChapterProgress.chapter_id)
         .join(Module, Module.id == Chapter.module_id)
         .filter(
             Module.course_id == course_id,
+            Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES),
             ChapterProgress.user_id == user_id,
             ChapterProgress.completed.is_(True),
         )
         .scalar()
     ) or 0
 
-    enrollment.progress = 0 if total_chapters == 0 else round((completed_chapters / total_chapters) * 100)
+    if total_gradable == 0:
+        enrollment.progress = 100
+    else:
+        enrollment.progress = round((completed_gradable / total_gradable) * 100)
     db.commit()
     db.refresh(enrollment)
     return enrollment

@@ -89,7 +89,9 @@ export default function ModuleView() {
     [module],
   )
 
-  const allComplete = sortedChapters.length > 0 && sortedChapters.every((c) => completedIds.has(c.id))
+  const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
+  const gradableChapters = sortedChapters.filter((c) => GRADABLE_TYPES.has(c.chapter_type ?? ""))
+  const allComplete = gradableChapters.length > 0 && gradableChapters.every((c) => completedIds.has(c.id))
 
   if (loading) {
     return (
@@ -113,8 +115,8 @@ export default function ModuleView() {
     )
   }
 
-  const completedCount = sortedChapters.filter((c) => completedIds.has(c.id)).length
-  const progressPercent = sortedChapters.length > 0 ? Math.round((completedCount / sortedChapters.length) * 100) : 0
+  const completedCount = gradableChapters.filter((c) => completedIds.has(c.id)).length
+  const progressPercent = gradableChapters.length > 0 ? Math.round((completedCount / gradableChapters.length) * 100) : 100
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-3xl">
@@ -167,11 +169,11 @@ export default function ModuleView() {
         </div>
       )}
 
-      {sortedChapters.length > 0 && (
+      {gradableChapters.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="font-medium">
-              {completedCount}/{sortedChapters.length} chapters
+              {completedCount}/{gradableChapters.length} completed
             </span>
             <span className="text-muted-foreground">{progressPercent}%</span>
           </div>
@@ -196,7 +198,8 @@ export default function ModuleView() {
         {sortedChapters.length > 0 ? (
           <div className="space-y-3">
             {sortedChapters.map((chapter, idx) => {
-              const isCompleted = completedIds.has(chapter.id)
+              const isGradable = GRADABLE_TYPES.has(chapter.chapter_type ?? "")
+              const isCompleted = isGradable && completedIds.has(chapter.id)
               const requiresTeacher = chapter.requires_completion
               const isLocked = chapter.is_locked && idx > 0 && !completedIds.has(sortedChapters[idx - 1].id)
 
@@ -233,13 +236,15 @@ export default function ModuleView() {
                   >
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2">
-                        {isCompleted ? (
-                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
-                        ) : requiresTeacher ? (
-                          <Lock className="h-5 w-5 text-amber-500 shrink-0" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground/40 shrink-0" />
-                        )}
+                        {isGradable ? (
+                          isCompleted ? (
+                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
+                          ) : requiresTeacher ? (
+                            <Lock className="h-5 w-5 text-amber-500 shrink-0" />
+                          ) : (
+                            <Circle className="h-5 w-5 text-muted-foreground/40 shrink-0" />
+                          )
+                        ) : null}
                         <span className={isCompleted ? "line-through text-muted-foreground" : ""}>
                           {chapter.title}
                         </span>

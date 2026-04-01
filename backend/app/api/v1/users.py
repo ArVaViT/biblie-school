@@ -13,7 +13,6 @@ from app.models.course import Course
 from app.models.quiz import QuizAttempt, QuizAnswer
 from app.models.assignment import AssignmentSubmission
 from app.models.certificate import Certificate
-from app.models.student_note import StudentNote
 from app.models.student_grade import StudentGrade
 from app.models.review import CourseReview
 from app.models.notification import Notification
@@ -150,18 +149,6 @@ async def export_my_data(
         for c, title in certs_rows
     ]
 
-    notes_rows = db.query(StudentNote).filter(StudentNote.user_id == uid).all()
-    notes = [
-        {
-            "id": str(n.id),
-            "chapter_id": str(n.chapter_id),
-            "content": n.content,
-            "created_at": _ts(n.created_at),
-            "updated_at": _ts(n.updated_at),
-        }
-        for n in notes_rows
-    ]
-
     reviews_rows = (
         db.query(CourseReview, Course.title)
         .outerjoin(Course, Course.id == CourseReview.course_id)
@@ -213,7 +200,6 @@ async def export_my_data(
         "assignment_submissions": assignment_submissions,
         "grades": grades,
         "certificates": certificates,
-        "notes": notes,
         "reviews": reviews,
         "notifications": notifications,
         "chapter_progress": chapter_progress,
@@ -257,7 +243,6 @@ async def delete_my_account(
         db.query(QuizAttempt).filter(QuizAttempt.user_id == uid).delete(synchronize_session=False)
 
         db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == uid).delete(synchronize_session=False)
-        db.query(StudentNote).filter(StudentNote.user_id == uid).delete(synchronize_session=False)
         db.query(StudentGrade).filter(StudentGrade.student_id == uid).delete(synchronize_session=False)
         db.query(Enrollment).filter(Enrollment.user_id == uid).delete(synchronize_session=False)
 

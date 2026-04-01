@@ -28,12 +28,15 @@ def score_to_letter(score: float) -> str:
     return "F"
 
 
+GRADABLE_CHAPTER_TYPES = ("quiz", "exam", "assignment")
+
+
 def _get_course_chapter_ids(db: Session, course_id: str) -> list[str]:
-    """Get all chapter IDs for a course in a single query."""
+    """Get chapter IDs for gradable chapters (quiz/exam/assignment) in a course."""
     rows = (
         db.query(Chapter.id)
         .join(Module, Module.id == Chapter.module_id)
-        .filter(Module.course_id == course_id)
+        .filter(Module.course_id == course_id, Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES))
         .all()
     )
     return [r[0] for r in rows]
