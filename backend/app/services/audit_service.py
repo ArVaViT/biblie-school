@@ -27,6 +27,7 @@ def log_action(
             ip_address = request.client.host if request.client else None
             user_agent = request.headers.get("user-agent", "")[:500]
 
+        nested = db.begin_nested()
         entry = AuditLog(
             user_id=user_id,
             action=action,
@@ -38,9 +39,10 @@ def log_action(
         )
         db.add(entry)
         db.flush()
+        nested.commit()
     except Exception:
         logger.exception("Failed to write audit log")
         try:
-            db.rollback()
+            nested.rollback()  # type: ignore[possibly-undefined]
         except Exception:
             pass

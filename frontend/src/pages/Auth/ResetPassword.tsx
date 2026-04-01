@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +25,13 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const navigate = useNavigate()
+  const redirectTimer = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +52,7 @@ export default function ResetPassword() {
     try {
       await authService.updatePassword(result.data.password)
       setSuccess(true)
-      setTimeout(() => navigate("/", { replace: true }), 2500)
+      redirectTimer.current = setTimeout(() => navigate("/", { replace: true }), 2500)
     } catch (err: unknown) {
       const supaErr = err as { message?: string }
       setServerError(supaErr.message || "Failed to reset password.")

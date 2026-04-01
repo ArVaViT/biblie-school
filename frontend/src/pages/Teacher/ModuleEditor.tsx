@@ -229,7 +229,12 @@ export default function ModuleEditor() {
     )
   }
 
-  if (!mod) return null
+  if (!mod) return (
+    <div className="container mx-auto px-4 py-16 text-center">
+      <p className="text-muted-foreground">Module not found or failed to load.</p>
+      <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate(`/teacher/courses/${courseId}`)}>Back to course</Button>
+    </div>
+  )
 
   const chapters = [...(mod.chapters ?? [])].sort(
     (a, b) => a.order_index - b.order_index,

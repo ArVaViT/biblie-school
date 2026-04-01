@@ -343,7 +343,12 @@ export default function CourseEditor() {
       </div>
     )
   }
-  if (!course) return null
+  if (!course) return (
+    <div className="container mx-auto px-4 py-16 text-center">
+      <p className="text-muted-foreground">Course not found or failed to load.</p>
+      <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/teacher")}>Back to courses</Button>
+    </div>
+  )
   const modules = [...(course.modules ?? [])].sort((a, b) => {
     const da = a.due_date ? new Date(a.due_date).getTime() : Infinity
     const db = b.due_date ? new Date(b.due_date).getTime() : Infinity

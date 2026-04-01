@@ -66,8 +66,6 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(RateLimitMiddleware, calls=100, window=60)
 
-app.add_middleware(OptionsMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
@@ -77,6 +75,8 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=3600,
 )
+
+app.add_middleware(OptionsMiddleware)
 
 app.include_router(api_router, prefix="/api/v1")
 

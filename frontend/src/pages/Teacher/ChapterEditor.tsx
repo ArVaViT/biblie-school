@@ -187,7 +187,12 @@ export default function ChapterEditor() {
     )
   }
 
-  if (!chapter) return null
+  if (!chapter) return (
+    <div className="container mx-auto px-4 py-16 text-center">
+      <p className="text-muted-foreground">Chapter not found or failed to load.</p>
+      <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)}>Back to module</Button>
+    </div>
+  )
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">

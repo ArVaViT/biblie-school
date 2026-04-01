@@ -13,7 +13,7 @@ export default function AuthCallback() {
       navigate(path, { replace: true })
     }
 
-    const timeout = setTimeout(() => go("/login"), 8000)
+    const timeout = setTimeout(() => go("/login"), 15000)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {

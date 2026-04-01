@@ -70,11 +70,11 @@ class QuizCreate(BaseModel):
 
 
 class QuizUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(None, min_length=1, max_length=300)
     description: Optional[str] = None
     quiz_type: Optional[Literal["quiz", "exam"]] = None
     max_attempts: Optional[int] = Field(None, ge=1, le=10)
-    passing_score: Optional[int] = None
+    passing_score: Optional[int] = Field(None, ge=0, le=100)
 
 
 class QuizResponse(BaseModel):

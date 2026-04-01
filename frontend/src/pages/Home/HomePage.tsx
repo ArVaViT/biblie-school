@@ -56,7 +56,21 @@ function MyCoursesSection() {
     )
   }
 
-  if (filtered.length === 0) return null
+  if (filtered.length === 0) return (
+    <Card className="mb-10">
+      <CardHeader>
+        <CardTitle className="font-serif text-lg flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-accent" />
+          My Courses
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground py-4 text-center">
+          You haven't enrolled in any courses yet. Browse the catalog below to get started.
+        </p>
+      </CardContent>
+    </Card>
+  )
 
   return (
     <Card className="mb-10">

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Literal, Optional
 from uuid import UUID
@@ -6,16 +6,16 @@ from uuid import UUID
 
 class AssignmentCreate(BaseModel):
     chapter_id: str
-    title: str
+    title: str = Field(..., min_length=1, max_length=300)
     description: Optional[str] = None
-    max_score: int = 100
+    max_score: int = Field(100, ge=1, le=10000)
     due_date: Optional[datetime] = None
 
 
 class AssignmentUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(None, min_length=1, max_length=300)
     description: Optional[str] = None
-    max_score: Optional[int] = None
+    max_score: Optional[int] = Field(None, ge=1, le=10000)
     due_date: Optional[datetime] = None
 
 
@@ -54,6 +54,6 @@ class SubmissionResponse(BaseModel):
 
 
 class GradeSubmissionRequest(BaseModel):
-    grade: int
+    grade: int = Field(..., ge=0)
     feedback: Optional[str] = None
     status: Literal["graded", "pending"] = "graded"

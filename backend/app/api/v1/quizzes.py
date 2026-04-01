@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner
+from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner, verify_chapter_access
 from app.models.user import User
 from app.models.course import Module, Chapter
 from app.models.enrollment import Enrollment
@@ -31,6 +31,7 @@ async def get_chapter_quiz(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    verify_chapter_access(db, chapter_id, current_user)
     quiz = db.query(Quiz).filter(Quiz.chapter_id == chapter_id).first()
     if not quiz:
         return None

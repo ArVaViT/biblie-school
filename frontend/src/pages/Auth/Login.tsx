@@ -24,6 +24,7 @@ export default function Login() {
   const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({})
   const [serverError, setServerError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const { login, signInWithGoogle } = useAuth()
 
   const handleChange = (field: keyof LoginFormData, value: string) => {
@@ -58,11 +59,14 @@ export default function Login() {
   }
 
   const handleGoogleLogin = async () => {
+    setGoogleLoading(true)
     try {
       await signInWithGoogle()
     } catch (err: unknown) {
       const supaErr = err as { message?: string }
       setServerError(supaErr.message || "Google login failed.")
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -80,9 +84,13 @@ export default function Login() {
           variant="outline"
           className="w-full h-11 font-medium rounded-md"
           onClick={handleGoogleLogin}
+          disabled={googleLoading || loading}
         >
-          <GoogleIcon className="h-4 w-4 mr-2.5" />
-          Continue with Google
+          {googleLoading ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Connecting...</>
+          ) : (
+            <><GoogleIcon className="h-4 w-4 mr-2.5" />Continue with Google</>
+          )}
         </Button>
 
         <div className="relative">

@@ -18,8 +18,13 @@ export default function ForgotPassword() {
     e.preventDefault()
     setError("")
 
-    if (!email.trim()) {
+    const trimmed = email.trim()
+    if (!trimmed) {
       setError("Please enter your email address")
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError("Please enter a valid email address")
       return
     }
 
@@ -63,7 +68,7 @@ export default function ForgotPassword() {
     <AuthLayout heading="Reset password" subheading="Enter your email and we'll send you a reset link">
       <div className="space-y-6 animate-fade-in">
         {error && (
-          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
+          <div role="alert" className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
             {error}
           </div>
         )}
