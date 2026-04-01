@@ -290,7 +290,7 @@ export default function Register() {
             {errors.email && <p id="reg-email-error" role="alert" className="text-xs text-destructive mt-1">{errors.email}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input

@@ -44,7 +44,7 @@ export default function TeacherDashboard() {
     try {
       await coursesService.rejectCert(certId)
       setPendingCerts((prev) => prev.filter((c) => c.id !== certId))
-      toast({ title: "Certificate rejected", variant: "success" })
+      toast({ title: "Certificate request declined" })
     } catch (err) {
       toast({ title: getErrorDetail(err, "Failed to reject certificate"), variant: "destructive" })
     } finally {
@@ -358,16 +358,19 @@ export default function TeacherDashboard() {
                   <Link to={`/teacher/courses/${course.id}/analytics`}>
                     <Button variant="ghost" size="sm" title="Analytics">
                       <BarChart3 className="h-4 w-4" />
+                      <span className="sr-only">Analytics</span>
                     </Button>
                   </Link>
                   <Link to={`/teacher/courses/${course.id}/gradebook`}>
                     <Button variant="ghost" size="sm" title="Gradebook">
                       <ClipboardList className="h-4 w-4" />
+                      <span className="sr-only">Gradebook</span>
                     </Button>
                   </Link>
                   <Link to={`/teacher/courses/${course.id}/progress`}>
                     <Button variant="ghost" size="sm" title="Student Progress">
                       <Users className="h-4 w-4" />
+                      <span className="sr-only">Progress</span>
                     </Button>
                   </Link>
                   <Button
@@ -382,6 +385,7 @@ export default function TeacherDashboard() {
                     ) : (
                       <Eye className="h-4 w-4" />
                     )}
+                    <span className="sr-only">{course.status === "published" ? "Unpublish" : "Publish"}</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -395,20 +399,21 @@ export default function TeacherDashboard() {
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
+                    <span className="sr-only">Clone</span>
                   </Button>
                   <Link to={`/teacher/courses/${course.id}`}>
                     <Button variant="ghost" size="sm" title="Edit">
                       <Pencil className="h-4 w-4" />
+                      <span className="hidden sm:inline">Edit</span>
                     </Button>
                   </Link>
                   <Button
-                    variant="ghost"
+                    variant="destructive"
                     size="sm"
                     onClick={() => handleDelete(course.id)}
-                    className="text-destructive hover:text-destructive"
-                    title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
+                    Delete
                   </Button>
                 </div>
               </div>

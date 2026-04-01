@@ -44,6 +44,7 @@ import {
   Layers,
   Download,
   File,
+  Info,
 } from "lucide-react"
 import QuizTaker from "@/components/quiz/QuizTaker"
 import AssignmentPanel from "@/components/assignment/AssignmentPanel"
@@ -349,7 +350,9 @@ export default function ChapterView() {
               className="prose dark:prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
             />
-          ) : null
+          ) : (
+            <p className="text-muted-foreground text-center py-8">No content has been added to this chapter yet.</p>
+          )
         )}
 
         {chapterType === "video" && (
@@ -466,9 +469,12 @@ export default function ChapterView() {
                 placeholder="Share your thoughts on this topic..."
                 className="w-full min-h-[160px] p-4 text-sm bg-muted/30 border rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Discussion responses are for personal reflection and are not saved.
-              </p>
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-3 flex items-start gap-3">
+                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  Discussion responses are for personal reflection and are not saved.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -558,8 +564,8 @@ export default function ChapterView() {
           </Button>
         )}
 
-        <span className="text-xs text-muted-foreground hidden sm:block">
-          {currentIdx + 1} / {sortedChapters.length}
+        <span className="text-xs text-muted-foreground">
+          {currentIdx + 1}/{sortedChapters.length}
         </span>
 
         {nextChapter ? (

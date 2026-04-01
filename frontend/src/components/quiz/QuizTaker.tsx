@@ -140,12 +140,29 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
       </div>
 
       {showResults && result ? (
-        <ResultsView
-          result={result}
-          quiz={quiz}
-          questions={sortedQuestions}
-          answers={answers}
-        />
+        <>
+          <ResultsView
+            result={result}
+            quiz={quiz}
+            questions={sortedQuestions}
+            answers={answers}
+          />
+          {!attemptsReached && (
+            <div className="px-5 pb-5">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setShowResults(false)
+                  setAnswers({})
+                  setResult(null)
+                }}
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="p-5 space-y-6">
           {attemptsReached && (
@@ -177,10 +194,13 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
               `Submit ${assessmentLabel}`
             )}
           </Button>
+          {!allAnswered && !attemptsReached && (
+            <p className="text-xs text-muted-foreground text-center">Answer all questions to submit</p>
+          )}
         </div>
       )}
 
-      {attempts.length > 0 && !showResults && (
+      {attempts.length > 0 && (
         <div className="border-t p-5">
           <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />

@@ -246,6 +246,13 @@ export default function AdminDashboard() {
     }
   }
 
+  const roleDisplayNames: Record<UserRole, string> = {
+    student: "Student",
+    pending_teacher: "Pending Teacher",
+    teacher: "Teacher",
+    admin: "Admin",
+  }
+
   const roleBadgeClass: Record<UserRole, string> = {
     admin: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
     teacher: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
@@ -380,7 +387,11 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-2 shrink-0 ml-4">
                     <Button
                       size="sm"
-                      onClick={() => handleApproveTeacher(u.id)}
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to approve this teacher?")) {
+                          handleApproveTeacher(u.id)
+                        }
+                      }}
                       disabled={updatingId === u.id}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
@@ -390,7 +401,11 @@ export default function AdminDashboard() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleDenyTeacher(u.id)}
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to deny this teacher?")) {
+                          handleDenyTeacher(u.id)
+                        }
+                      }}
                       disabled={updatingId === u.id}
                       className="text-destructive hover:text-destructive"
                     >
@@ -530,7 +545,7 @@ export default function AdminDashboard() {
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-2">
                           <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${roleBadgeClass[u.role]}`}>
-                            {u.role}
+                            {roleDisplayNames[u.role]}
                           </span>
                           <select
                             value={u.role}
@@ -538,10 +553,10 @@ export default function AdminDashboard() {
                             onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
                             className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                           >
-                            <option value="student">student</option>
-                            <option value="pending_teacher">pending teacher</option>
-                            <option value="teacher">teacher</option>
-                            <option value="admin">admin</option>
+                            <option value="student">Student</option>
+                            <option value="pending_teacher">Pending Teacher</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="admin">Admin</option>
                           </select>
                         </div>
                       </td>

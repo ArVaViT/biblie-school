@@ -2,16 +2,19 @@ import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/useAuth"
-import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays } from "lucide-react"
+import { useTheme } from "@/context/useTheme"
+import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays, Sun, Moon } from "lucide-react"
 import NotificationBell from "./NotificationBell"
 
 export default function Header() {
   const { user } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const isTeacher = user?.role === "teacher" || user?.role === "admin"
-  const isActive = (path: string) => location.pathname === path
+  const isActive = (path: string) =>
+    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path)
 
   return (
     <header className="border-b border-border/60 bg-background/95 backdrop-blur-sm sticky top-0 z-50">
@@ -51,6 +54,15 @@ export default function Header() {
                 </Link>
               )}
               <NotificationBell />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={toggleTheme}
+                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
               <Link to="/profile">
                 <Button variant={isActive("/profile") ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0 rounded-full" aria-label="Profile">
                   {user.avatar_url ? (

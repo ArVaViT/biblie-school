@@ -17,6 +17,8 @@ import {
   User,
   MessageSquare,
   Star,
+  Pencil,
+  X,
 } from "lucide-react"
 
 interface AssignmentEditorProps {
@@ -178,7 +180,12 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
       )}
 
       {assignments.map((a) => (
-        <AssignmentItem key={a.id} assignment={a} onDelete={handleDelete} />
+        <AssignmentItem
+          key={a.id}
+          assignment={a}
+          onDelete={handleDelete}
+          onUpdate={(updated) => setAssignments((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))}
+        />
       ))}
 
       {assignments.length === 0 && !showCreate && (
@@ -193,13 +200,21 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
 function AssignmentItem({
   assignment,
   onDelete,
+  onUpdate,
 }: {
   assignment: Assignment
   onDelete: (id: string) => void
+  onUpdate: (updated: Assignment) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([])
   const [loadingSubs, setLoadingSubs] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState(assignment.title)
+  const [editDesc, setEditDesc] = useState(assignment.description ?? "")
+  const [editMaxScore, setEditMaxScore] = useState(assignment.max_score)
+  const [editDueDate, setEditDueDate] = useState(assignment.due_date?.slice(0, 10) ?? "")
+  const [updating, setUpdating] = useState(false)
 
   const toggleExpand = async () => {
     if (!expanded) {
@@ -214,6 +229,37 @@ function AssignmentItem({
       }
     }
     setExpanded(!expanded)
+  }
+
+  const startEdit = () => {
+    setEditTitle(assignment.title)
+    setEditDesc(assignment.description ?? "")
+    setEditMaxScore(assignment.max_score)
+    setEditDueDate(assignment.due_date?.slice(0, 10) ?? "")
+    setEditing(true)
+  }
+
+  const handleUpdate = async () => {
+    if (!editTitle.trim()) {
+      toast({ title: "Assignment title is required", variant: "destructive" })
+      return
+    }
+    setUpdating(true)
+    try {
+      const updated = await coursesService.updateAssignment(assignment.id, {
+        title: editTitle.trim(),
+        description: editDesc.trim() || null,
+        max_score: editMaxScore,
+        due_date: editDueDate || null,
+      })
+      onUpdate(updated)
+      setEditing(false)
+      toast({ title: "Assignment updated", variant: "success" })
+    } catch {
+      toast({ title: "Failed to update assignment", variant: "destructive" })
+    } finally {
+      setUpdating(false)
+    }
   }
 
   return (
@@ -236,6 +282,17 @@ function AssignmentItem({
         <Button
           variant="ghost"
           size="sm"
+          className="h-7 w-7 p-0 shrink-0"
+          onClick={(e) => {
+            e.stopPropagation()
+            startEdit()
+          }}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           className="text-destructive hover:text-destructive h-7 w-7 p-0 shrink-0"
           onClick={(e) => {
             e.stopPropagation()
@@ -245,6 +302,67 @@ function AssignmentItem({
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
+
+      {editing && (
+        <div className="border-t px-4 py-3">
+          <Card className="bg-muted/30">
+            <CardContent className="p-4 space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Title</Label>
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Description (optional)</Label>
+                <textarea
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  placeholder="Assignment instructions..."
+                  className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
+                />
+              </div>
+              <div className="flex gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Max Score</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={editMaxScore}
+                    onChange={(e) => setEditMaxScore(Number(e.target.value) || 100)}
+                    className="h-8 text-sm w-24"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Due Date (optional)</Label>
+                  <Input
+                    type="date"
+                    value={editDueDate}
+                    onChange={(e) => setEditDueDate(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleUpdate} disabled={updating}>
+                  {updating ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  {updating ? "Updating..." : "Update Assignment"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                  <X className="h-3.5 w-3.5 mr-1.5" />
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {expanded && (
         <div className="border-t px-4 pb-4">

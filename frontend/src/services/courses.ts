@@ -298,6 +298,10 @@ export const coursesService = {
     const response = await api.post<Assignment>("/assignments", data)
     return response.data
   },
+  async updateAssignment(id: string, data: Partial<AssignmentCreateData>): Promise<Assignment> {
+    const response = await api.put<Assignment>(`/assignments/${id}`, data)
+    return response.data
+  },
   async deleteAssignment(id: string): Promise<void> {
     await api.delete(`/assignments/${id}`)
   },

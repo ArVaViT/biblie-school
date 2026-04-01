@@ -15,6 +15,7 @@ export default function CourseReviews({ courseId }: Props) {
   const { user } = useAuth()
   const [reviews, setReviews] = useState<CourseReview[]>([])
   const [loading, setLoading] = useState(true)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const loadReviews = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoading(true)
@@ -41,10 +42,10 @@ export default function CourseReviews({ courseId }: Props) {
       : 0
 
   const handleDelete = async (reviewId: string) => {
-    if (!confirm("Delete your review?")) return
     try {
       await coursesService.deleteReview(reviewId)
       setReviews((prev) => prev.filter((r) => r.id !== reviewId))
+      setConfirmDeleteId(null)
       toast({ title: "Review deleted", variant: "success" })
     } catch {
       toast({ title: "Failed to delete review", variant: "destructive" })
@@ -98,15 +99,37 @@ export default function CourseReviews({ courseId }: Props) {
                       {new Date(review.created_at).toLocaleDateString()}
                     </span>
                     {review.user_id === user?.id && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(review.id)}
-                        aria-label="Delete review"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      confirmDeleteId === review.id ? (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground">Delete?</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(review.id)}
+                          >
+                            Yes
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => setConfirmDeleteId(null)}
+                          >
+                            No
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                          onClick={() => setConfirmDeleteId(review.id)}
+                          aria-label="Delete review"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )
                     )}
                   </div>
                 </div>

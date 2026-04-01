@@ -11,6 +11,8 @@ import {
   Clock,
   BookOpen,
   Filter,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react"
 
 const EVENT_COLORS: Record<string, { dot: string; bg: string; text: string; border: string }> = {
@@ -71,13 +73,16 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
   const [currentDate, setCurrentDate] = useState(() => new Date())
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const [selectedDay, setSelectedDay] = useState<Date | null>(() => new Date())
   const [filterCourseId, setFilterCourseId] = useState<string>("")
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setFetchError(null)
     const load = async () => {
       try {
         const [evts, enrolls] = await Promise.all([
@@ -88,14 +93,14 @@ export default function CalendarPage() {
         setEvents(evts)
         setEnrollments(enrolls)
       } catch {
-        // non-critical
+        if (!cancelled) setFetchError("Failed to load calendar events. Please try again.")
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     load()
     return () => { cancelled = true }
-  }, [filterCourseId])
+  }, [filterCourseId, retryCount])
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -158,6 +163,20 @@ export default function CalendarPage() {
     return (
       <div className="flex justify-center py-20">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (fetchError) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center">
+        <AlertTriangle className="h-12 w-12 text-destructive/60 mx-auto mb-4" />
+        <h2 className="text-lg font-medium mb-2">Something went wrong</h2>
+        <p className="text-sm text-muted-foreground mb-4">{fetchError}</p>
+        <Button variant="outline" size="sm" onClick={() => setRetryCount((c) => c + 1)}>
+          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+          Retry
+        </Button>
       </div>
     )
   }

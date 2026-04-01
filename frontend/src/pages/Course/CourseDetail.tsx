@@ -181,8 +181,20 @@ export default function CourseDetail() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        <div className="h-8 w-24 animate-pulse bg-muted rounded mb-4" />
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="w-full sm:w-36 h-24 animate-pulse bg-muted rounded-lg shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-7 w-3/4 animate-pulse bg-muted rounded" />
+            <div className="h-4 w-1/2 animate-pulse bg-muted rounded" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 animate-pulse bg-muted rounded-lg" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -298,14 +310,23 @@ export default function CourseDetail() {
               </Button>
             </Link>
           ) : user ? (
-            <Button onClick={handleEnrollClick} disabled={enrolling || !canEnroll} size="lg">
-              <Users className="h-4 w-4 mr-2" />
-              {!canEnroll
-                ? "Enrollment not available"
-                : enrolling
-                  ? "Enrolling..."
-                  : "Enroll in Course"}
-            </Button>
+            <div>
+              <Button onClick={handleEnrollClick} disabled={enrolling || !canEnroll} size="lg">
+                <Users className="h-4 w-4 mr-2" />
+                {!canEnroll
+                  ? "Enrollment not available"
+                  : enrolling
+                    ? "Enrolling..."
+                    : "Enroll in Course"}
+              </Button>
+              {!canEnroll && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  {cohorts.length > 0
+                    ? "Enrollment window is closed for all available cohorts."
+                    : "No cohorts are currently available for this course."}
+                </p>
+              )}
+            </div>
           ) : (
             <Link to="/login">
               <Button size="lg">Sign in to Enroll</Button>
@@ -530,6 +551,11 @@ export default function CourseDetail() {
                         </span>
                       )}
                     </div>
+                    {isLocked && (
+                      <p className="text-xs text-muted-foreground ml-8 mt-1">
+                        Complete all assessments in the previous module to unlock.
+                      </p>
+                    )}
                     {module.description && (
                       <CardDescription className="text-xs ml-8 mt-0.5">
                         {module.description}

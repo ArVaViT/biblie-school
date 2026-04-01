@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -83,24 +83,27 @@ export default function StudentProgress() {
   const [sortBy, setSortBy] = useState<"name" | "progress" | "last_activity">("name")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
-  useEffect(() => {
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!courseId) return
-    let cancelled = false
     setLoading(true)
     setData(null)
-    const load = async () => {
-      try {
-        const result = await coursesService.getStudentProgress(courseId)
-        if (!cancelled) setData(result)
-      } catch (err) {
-        if (!cancelled) toast({ title: getErrorDetail(err, "Failed to load student progress"), variant: "destructive" })
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+    try {
+      const result = await coursesService.getStudentProgress(courseId)
+      if (signal?.cancelled) return
+      setData(result)
+    } catch (err) {
+      if (signal?.cancelled) return
+      toast({ title: getErrorDetail(err, "Failed to load student progress"), variant: "destructive" })
+    } finally {
+      if (!signal?.cancelled) setLoading(false)
     }
-    load()
-    return () => { cancelled = true }
   }, [courseId])
+
+  useEffect(() => {
+    const signal = { cancelled: false }
+    load(signal)
+    return () => { signal.cancelled = true }
+  }, [load])
 
   const toggleSort = (col: typeof sortBy) => {
     if (sortBy === col) {
@@ -223,7 +226,7 @@ export default function StudentProgress() {
         <h2 className="text-lg font-medium mb-2">Failed to load student progress</h2>
         <p className="text-sm text-muted-foreground mb-4">The server may be temporarily unavailable. Please try again.</p>
         <div className="flex justify-center gap-2">
-          <Button variant="outline" onClick={() => { setLoading(true); window.location.reload() }}>
+          <Button variant="outline" onClick={() => load()}>
             Retry
           </Button>
           <Link to="/teacher">

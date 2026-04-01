@@ -200,7 +200,7 @@ export default function NotificationBell() {
                     </div>
                     <button
                       onClick={(e) => handleDelete(e, n.id)}
-                      className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                      className="mt-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                       aria-label="Delete notification"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

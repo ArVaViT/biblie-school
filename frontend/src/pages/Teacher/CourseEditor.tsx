@@ -416,7 +416,7 @@ export default function CourseEditor() {
               <p className="font-medium truncate">{mod.title}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{mod.chapters?.length ?? 0} chapter{(mod.chapters?.length ?? 0) !== 1 ? "s" : ""}</p>
             </div>
-            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive shrink-0 transition-opacity"
+            <Button variant="ghost" size="sm" className="opacity-60 group-hover:opacity-100 text-destructive hover:text-destructive shrink-0 transition-opacity"
               onClick={e => { e.stopPropagation(); removeModule(mod.id) }}><Trash2 className="h-3.5 w-3.5" /></Button>
           </Card>
         ))}</div>

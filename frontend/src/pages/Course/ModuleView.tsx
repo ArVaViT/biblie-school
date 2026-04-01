@@ -95,8 +95,18 @@ export default function ModuleView() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="container mx-auto px-4 py-6 max-w-3xl">
+        <div className="h-8 w-28 animate-pulse bg-muted rounded mb-4" />
+        <div className="mb-4 space-y-2">
+          <div className="h-7 w-2/3 animate-pulse bg-muted rounded" />
+          <div className="h-4 w-full animate-pulse bg-muted rounded" />
+        </div>
+        <div className="h-2 w-full animate-pulse bg-muted rounded-full mb-4" />
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-14 animate-pulse bg-muted rounded-lg" />
+          ))}
+        </div>
       </div>
     )
   }

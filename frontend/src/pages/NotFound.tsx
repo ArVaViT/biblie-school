@@ -13,7 +13,7 @@ export default function NotFound() {
       <Link to="/">
         <Button>
           <Home className="h-4 w-4 mr-2" />
-          Go to Dashboard
+          Go to Home
         </Button>
       </Link>
     </div>

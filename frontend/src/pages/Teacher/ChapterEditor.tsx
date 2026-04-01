@@ -150,16 +150,17 @@ export default function ChapterEditor() {
       }
 
       await coursesService.updateChapter(courseId, moduleId, chapterId, payload)
+      const snapshot = JSON.stringify({ title: title.trim(), chapterType, content, videoUrl })
+      setInitialSnapshot(snapshot)
       setIsDirty(false)
-      toast({ title: "Chapter saved", variant: "success" })
-      navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)
+      toast({ title: "Chapter saved" })
     } catch (error: unknown) {
       const detail = getErrorDetail(error) || "Unknown error"
       toast({ title: `Failed to save: ${detail}`, variant: "destructive" })
     } finally {
       setSaving(false)
     }
-  }, [courseId, moduleId, chapterId, title, chapterType, content, videoUrl, navigate])
+  }, [courseId, moduleId, chapterId, title, chapterType, content, videoUrl])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

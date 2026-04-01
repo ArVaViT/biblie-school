@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/hooks/use-toast"
 import type { Quiz } from "@/types"
-import { Plus, Trash2, Save, ClipboardList, Loader2, GripVertical } from "lucide-react"
+import { Plus, Trash2, Save, ClipboardList, Loader2, ArrowUp, ArrowDown } from "lucide-react"
 
 interface QuizEditorProps {
   chapterId: string
@@ -106,6 +106,16 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
 
   const removeQuestion = (idx: number) => {
     setQuestions((prev) => prev.filter((_, i) => i !== idx).map((q, i) => ({ ...q, order_index: i })))
+  }
+
+  const moveQuestion = (idx: number, direction: "up" | "down") => {
+    setQuestions((prev) => {
+      const next = [...prev]
+      const targetIdx = direction === "up" ? idx - 1 : idx + 1
+      if (targetIdx < 0 || targetIdx >= next.length) return prev
+      ;[next[idx], next[targetIdx]] = [next[targetIdx], next[idx]]
+      return next.map((q, i) => ({ ...q, order_index: i }))
+    })
   }
 
   const updateQuestion = (idx: number, patch: Partial<DraftQuestion>) => {
@@ -304,7 +314,24 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
           <Card key={q.id} className="bg-muted/30">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-start gap-2">
-                <GripVertical className="h-4 w-4 text-muted-foreground/40 mt-2 shrink-0" />
+                <div className="flex flex-col gap-0.5 shrink-0 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => moveQuestion(qIdx, "up")}
+                    disabled={qIdx === 0}
+                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground"
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveQuestion(qIdx, "down")}
+                    disabled={qIdx === questions.length - 1}
+                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
+                </div>
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-muted-foreground">Q{qIdx + 1}</span>

@@ -80,6 +80,7 @@ function PendingTeacherBanner() {
       <div className="container mx-auto px-4 py-3 text-center">
         <p className="text-sm text-amber-800 dark:text-amber-300">
           Your teacher account is pending administrator approval. You can browse courses as a student in the meantime.
+          {" "}Contact <a href="mailto:support@bibleschool.com" className="underline font-medium hover:no-underline">support</a> if you have questions.
         </p>
       </div>
     </div>
@@ -160,7 +161,7 @@ function AppRoutes() {
             </div>
             <p className="text-[11px] text-muted-foreground italic font-serif">Training servants for the work of ministry</p>
             <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-              <span>&copy; {new Date().getFullYear()} Bible School Seminary</span>
+              <span>&copy; {new Date().getFullYear()} Bible School</span>
             </div>
           </div>
         </div>

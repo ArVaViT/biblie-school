@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
 
 export default function AuthCallback() {
   const navigate = useNavigate()
   const handled = useRef(false)
+  const [timedOut, setTimedOut] = useState(false)
 
   useEffect(() => {
     const go = (path: string) => {
@@ -13,7 +14,10 @@ export default function AuthCallback() {
       navigate(path, { replace: true })
     }
 
-    const timeout = setTimeout(() => go("/login"), 15000)
+    const timeout = setTimeout(() => {
+      setTimedOut(true)
+      setTimeout(() => go("/login?error=oauth_timeout"), 3000)
+    }, 15000)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -36,8 +40,20 @@ export default function AuthCallback() {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <span className="text-sm text-muted-foreground">Completing sign in...</span>
+        {timedOut ? (
+          <>
+            <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
+              <span className="text-destructive text-lg font-bold">!</span>
+            </div>
+            <span className="text-sm text-destructive font-medium">Sign-in didn't complete. Please try again.</span>
+            <span className="text-xs text-muted-foreground">Redirecting to login...</span>
+          </>
+        ) : (
+          <>
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <span className="text-sm text-muted-foreground">Completing sign in...</span>
+          </>
+        )}
       </div>
     </div>
   )

@@ -186,12 +186,13 @@ export default function ProfilePage() {
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                  aria-label="Change avatar"
+                  className="absolute -bottom-0.5 -right-0.5 h-6 w-6 rounded-full bg-primary text-primary-foreground shadow-sm flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
                 >
                   {uploading ? (
-                    <Loader2 className="h-5 w-5 text-white animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
-                    <Camera className="h-5 w-5 text-white" />
+                    <Camera className="h-3 w-3" />
                   )}
                 </button>
                 <input
