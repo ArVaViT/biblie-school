@@ -106,7 +106,7 @@ export default function CourseDetail() {
         if (match) {
           setEnrollment(match)
           const [cert, progress, mats, evts] = await Promise.all([
-            coursesService.getCourseCertificate(id),
+            coursesService.getCourseCertificate(id).catch(() => null),
             coursesService.getMyChapterProgress(id).catch(() => [] as string[]),
             storageService.listCourseMaterials(id).catch(() => [] as CourseMaterial[]),
             coursesService.getCalendarEvents(id).catch(() => [] as CalendarEvent[]),
