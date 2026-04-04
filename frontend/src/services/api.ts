@@ -1,4 +1,4 @@
-import axios from "axios"
+import axios, { isAxiosError } from "axios"
 import type { AxiosRequestConfig, AxiosResponse } from "axios"
 import { supabase } from "@/lib/supabase"
 
@@ -21,15 +21,15 @@ api.interceptors.request.use(async (config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
+  async (error: unknown) => {
+    if (isAxiosError(error) && error.response?.status === 401) {
       await supabase.auth.signOut()
     }
     return Promise.reject(error)
   },
 )
 
-const inflight = new Map<string, Promise<unknown>>()
+const inflight = new Map<string, Promise<AxiosResponse<unknown>>>()
 
 function dedupeKey(url: string, params?: Record<string, unknown>): string {
   return params ? `${url}?${JSON.stringify(params)}` : url
@@ -37,8 +37,7 @@ function dedupeKey(url: string, params?: Record<string, unknown>): string {
 
 const originalGet = api.get.bind(api)
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-api.get = function dedupedGet<T = any, R = AxiosResponse<T>, D = any>(
+api.get = function dedupedGet<T = unknown, R = AxiosResponse<T>, D = unknown>(
   url: string,
   config?: AxiosRequestConfig<D>,
 ): Promise<R> {
@@ -49,7 +48,7 @@ api.get = function dedupedGet<T = any, R = AxiosResponse<T>, D = any>(
   const promise = originalGet<T, R, D>(url, config).finally(() => {
     inflight.delete(key)
   })
-  inflight.set(key, promise)
+  inflight.set(key, promise as Promise<AxiosResponse<unknown>>)
   return promise
 } as typeof api.get
 

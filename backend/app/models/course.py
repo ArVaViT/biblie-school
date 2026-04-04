@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, Boolean, Index, CheckConstraint
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 
@@ -42,9 +43,7 @@ class Course(Base):
 
 class Module(Base):
     __tablename__ = "modules"
-    __table_args__ = (
-        Index("ix_modules_course_id_order", "course_id", "order_index"),
-    )
+    __table_args__ = (Index("ix_modules_course_id_order", "course_id", "order_index"),)
 
     id = Column(String, primary_key=True, index=True)
     course_id = Column(String, ForeignKey("courses.id"), nullable=False, index=True)
@@ -62,9 +61,7 @@ class Module(Base):
 
 class Chapter(Base):
     __tablename__ = "chapters"
-    __table_args__ = (
-        Index("ix_chapters_module_id_order", "module_id", "order_index"),
-    )
+    __table_args__ = (Index("ix_chapters_module_id_order", "module_id", "order_index"),)
 
     id = Column(String, primary_key=True, index=True)
     module_id = Column(String, ForeignKey("modules.id"), nullable=False, index=True)

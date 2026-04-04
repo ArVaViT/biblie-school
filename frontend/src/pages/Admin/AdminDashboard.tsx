@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context/useAuth"
 import { coursesService } from "@/services/courses"
+import { getErrorDetail } from "@/lib/errorDetail"
 import { supabase } from "@/lib/supabase"
 import type { UserRole, Certificate, AuditLogEntry } from "@/types"
 import { Button } from "@/components/ui/button"
@@ -42,22 +43,6 @@ const actionBadgeClass: Record<string, string> = {
   approve: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
   reject: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
   grade: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-}
-
-function getErrorDetail(error: unknown): string | undefined {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof (error as { response?: unknown }).response === "object"
-  ) {
-    const response = (error as { response?: { data?: { detail?: unknown } } }).response
-    if (typeof response?.data?.detail === "string") {
-      return response.data.detail
-    }
-  }
-
-  return undefined
 }
 
 export default function AdminDashboard() {

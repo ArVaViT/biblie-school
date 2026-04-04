@@ -1,8 +1,10 @@
-from sqlalchemy import Column, String, ForeignKey, DateTime, Index, UniqueConstraint
+import uuid
+
+from sqlalchemy import Column, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from app.core.database import Base
-import uuid
 
 
 class Certificate(Base):

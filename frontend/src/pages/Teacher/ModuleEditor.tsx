@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
+import { getErrorDetail } from "@/lib/errorDetail"
 import type { Module, Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
@@ -26,22 +27,6 @@ const CHAPTER_TYPE_BADGES: Record<string, string> = {
 
 function chapterTypeBadge(type: string) {
   return CHAPTER_TYPE_BADGES[type] ?? CHAPTER_TYPE_BADGES.reading
-}
-
-function getErrorDetail(error: unknown): string | undefined {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof (error as { response?: unknown }).response === "object"
-  ) {
-    const response = (error as { response?: { data?: { detail?: unknown } } }).response
-    if (typeof response?.data?.detail === "string") {
-      return response.data.detail
-    }
-  }
-
-  return undefined
 }
 
 export default function ModuleEditor() {

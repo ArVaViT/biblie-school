@@ -1,6 +1,5 @@
 import re
 
-
 _TAG_RE = re.compile(r"<\s*/?\s*(script|iframe|object|embed|form|style|link|meta)[^>]*>", re.IGNORECASE)
 _EVENT_ATTR_RE = re.compile(r"\bon\w+\s*=", re.IGNORECASE)
 _JS_PROTO_RE = re.compile(r"javascript\s*:", re.IGNORECASE)

@@ -1,33 +1,52 @@
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from sqlalchemy import func as sa_func
-from app.core.database import get_db
+from sqlalchemy.orm import Session
+
 from app.api.dependencies import get_current_user, get_optional_user, require_teacher, verify_course_owner
-from app.models.user import User
+from app.core.database import get_db
+from app.core.sanitize import sanitize_string
 from app.models.cohort import Cohort
 from app.models.enrollment import Enrollment
-from app.services.audit_service import log_action
-from app.core.sanitize import sanitize_string
+from app.models.user import User
 from app.schemas.course import (
-    CourseCreate, CourseUpdate, CourseResponse,
-    ModuleCreate, ModuleUpdate, ModuleResponse,
-    ChapterCreate, ChapterUpdate, ChapterResponse,
+    ChapterCreate,
+    ChapterResponse,
+    ChapterUpdate,
+    CourseCreate,
+    CourseResponse,
+    CourseUpdate,
     EnrollmentResponse,
+    ModuleCreate,
+    ModuleResponse,
+    ModuleUpdate,
 )
+from app.services.audit_service import log_action
 from app.services.course_service import (
-    get_courses, get_course, get_teacher_courses,
-    create_course, update_course, delete_course,
-    get_module, create_module, update_module, delete_module,
-    get_chapter, create_chapter, update_chapter, delete_chapter,
-    enroll_user_in_course,
     clone_course,
+    create_chapter,
+    create_course,
+    create_module,
+    delete_chapter,
+    delete_course,
+    delete_module,
+    enroll_user_in_course,
+    get_chapter,
+    get_course,
+    get_courses,
+    get_module,
+    get_teacher_courses,
+    update_chapter,
+    update_course,
+    update_module,
 )
 
 
 class EnrollRequest(BaseModel):
     cohort_id: str | None = None
+
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -35,6 +54,7 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 # ---------------------------------------------------------------------------
 # Public course endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("", response_model=list[CourseResponse])
 async def list_courses(
@@ -67,10 +87,7 @@ async def get_course_detail(
             detail=f"Course '{course_id}' not found",
         )
     if course.status != "published":
-        if not current_user or (
-            str(course.created_by) != str(current_user.id)
-            and current_user.role != "admin"
-        ):
+        if not current_user or (str(course.created_by) != str(current_user.id) and current_user.role != "admin"):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Course '{course_id}' not found",
@@ -92,10 +109,7 @@ async def get_module_detail(
             detail=f"Course '{course_id}' not found",
         )
     if course.status != "published":
-        if not current_user or (
-            str(course.created_by) != str(current_user.id)
-            and current_user.role != "admin"
-        ):
+        if not current_user or (str(course.created_by) != str(current_user.id) and current_user.role != "admin"):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Course '{course_id}' not found",
@@ -112,6 +126,7 @@ async def get_module_detail(
 # ---------------------------------------------------------------------------
 # Teacher course CRUD
 # ---------------------------------------------------------------------------
+
 
 @router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
 async def create_new_course(
@@ -184,6 +199,7 @@ async def remove_course(
 # Course cloning
 # ---------------------------------------------------------------------------
 
+
 @router.post(
     "/{course_id}/clone",
     response_model=CourseResponse,
@@ -219,6 +235,7 @@ async def clone_existing_course(
 # Teacher module CRUD
 # ---------------------------------------------------------------------------
 
+
 @router.post(
     "/{course_id}/modules",
     response_model=ModuleResponse,
@@ -252,9 +269,7 @@ async def update_existing_module(
     return update_module(db, module, data)
 
 
-@router.delete(
-    "/{course_id}/modules/{module_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/{course_id}/modules/{module_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_module(
     course_id: str,
     module_id: str,
@@ -274,6 +289,7 @@ async def remove_module(
 # ---------------------------------------------------------------------------
 # Teacher chapter CRUD
 # ---------------------------------------------------------------------------
+
 
 @router.post(
     "/{course_id}/modules/{module_id}/chapters",
@@ -352,6 +368,7 @@ async def remove_chapter(
 # Enrollment
 # ---------------------------------------------------------------------------
 
+
 @router.post("/{course_id}/enroll", response_model=EnrollmentResponse)
 async def enroll_course(
     course_id: str,
@@ -371,14 +388,18 @@ async def enroll_course(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot enroll in an unpublished course",
         )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     cohort_id: str | None = None
     if body.cohort_id:
-        cohort = db.query(Cohort).filter(
-            Cohort.id == body.cohort_id,
-            Cohort.course_id == course_id,
-        ).first()
+        cohort = (
+            db.query(Cohort)
+            .filter(
+                Cohort.id == body.cohort_id,
+                Cohort.course_id == course_id,
+            )
+            .first()
+        )
         if not cohort:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cohort not found for this course")
         if cohort.status != "active":
@@ -388,9 +409,9 @@ async def enroll_course(
         if cohort.enrollment_end and now > cohort.enrollment_end:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cohort enrollment period has ended")
         if cohort.max_students:
-            current_count = db.query(sa_func.count(Enrollment.id)).filter(
-                Enrollment.cohort_id == cohort.id
-            ).scalar() or 0
+            current_count = (
+                db.query(sa_func.count(Enrollment.id)).filter(Enrollment.cohort_id == cohort.id).scalar() or 0
+            )
             if current_count >= cohort.max_students:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cohort has reached maximum capacity")
         cohort_id = body.cohort_id
@@ -407,7 +428,13 @@ async def enroll_course(
             )
 
     enrollment = enroll_user_in_course(db, current_user.id, course_id, cohort_id=cohort_id)
-    log_action(db, current_user.id, "enroll", "enrollment", str(enrollment.id), details={"course_id": course_id}, request=request)
+    log_action(
+        db,
+        current_user.id,
+        "enroll",
+        "enrollment",
+        str(enrollment.id),
+        details={"course_id": course_id},
+        request=request,
+    )
     return enrollment
-
-

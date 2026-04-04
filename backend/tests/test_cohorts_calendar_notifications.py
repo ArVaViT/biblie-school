@@ -1,20 +1,20 @@
 """Tests for Cohorts, Calendar Events, Notifications, and Announcements endpoints."""
 
+import contextlib
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
-import pytest
 import sqlalchemy.types as _sa_types
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from tests.conftest import TEACHER_ID, STUDENT_ID
-from app.models.course import Course, Module, Chapter
-from app.models.enrollment import Enrollment
-from app.models.cohort import Cohort
-from app.models.course_event import CourseEvent
-from app.models.notification import Notification
 from app.models.announcement import Announcement
+from app.models.cohort import Cohort
+from app.models.course import Course, Module
+from app.models.course_event import CourseEvent
+from app.models.enrollment import Enrollment
+from app.models.notification import Notification
+from tests.conftest import STUDENT_ID, TEACHER_ID
 
 # ---------------------------------------------------------------------------
 # SQLite compatibility: Uuid.bind_processor expects uuid.UUID objects but
@@ -23,18 +23,20 @@ from app.models.announcement import Announcement
 # ---------------------------------------------------------------------------
 _orig_uuid_bp = _sa_types.Uuid.bind_processor
 
+
 def _uuid_bp_accepting_strings(self, dialect):
     processor = _orig_uuid_bp(self, dialect)
     if processor is None:
         return None
+
     def _process(value):
         if isinstance(value, str):
-            try:
+            with contextlib.suppress(ValueError):
                 value = uuid.UUID(value)
-            except ValueError:
-                pass
         return processor(value)
+
     return _process
+
 
 _sa_types.Uuid.bind_processor = _uuid_bp_accepting_strings
 
@@ -44,7 +46,7 @@ COURSES_PREFIX = "/api/v1/courses"
 NOTIFICATION_PREFIX = "/api/v1/notifications"
 ANNOUNCEMENT_PREFIX = "/api/v1/announcements"
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 TOMORROW = NOW + timedelta(days=1)
 NEXT_WEEK = NOW + timedelta(weeks=1)
 
@@ -52,6 +54,7 @@ NEXT_WEEK = NOW + timedelta(weeks=1)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _seed_course(db: Session, *, course_id: str = "test-course-1", owner_id=TEACHER_ID) -> Course:
     course = Course(
@@ -70,8 +73,9 @@ def _seed_course(db: Session, *, course_id: str = "test-course-1", owner_id=TEAC
     return course
 
 
-def _seed_enrollment(db: Session, *, user_id=STUDENT_ID, course_id: str = "test-course-1",
-                     cohort_id=None) -> Enrollment:
+def _seed_enrollment(
+    db: Session, *, user_id=STUDENT_ID, course_id: str = "test-course-1", cohort_id=None
+) -> Enrollment:
     enrollment = Enrollment(
         id=f"enroll-{uuid.uuid4().hex[:8]}",
         user_id=user_id,
@@ -243,8 +247,10 @@ class TestUpdateCohort:
     def test_student_cannot_update(self, student_client: TestClient, db: Session):
         _seed_course(db)
         cohort = Cohort(
-            course_id="test-course-1", name="X",
-            start_date=NOW, end_date=NEXT_WEEK,
+            course_id="test-course-1",
+            name="X",
+            start_date=NOW,
+            end_date=NEXT_WEEK,
         )
         db.add(cohort)
         db.commit()
@@ -276,8 +282,10 @@ class TestDeleteCohort:
     def test_student_cannot_delete(self, student_client: TestClient, db: Session):
         _seed_course(db)
         cohort = Cohort(
-            course_id="test-course-1", name="X",
-            start_date=NOW, end_date=NEXT_WEEK,
+            course_id="test-course-1",
+            name="X",
+            start_date=NOW,
+            end_date=NEXT_WEEK,
         )
         db.add(cohort)
         db.commit()
@@ -318,8 +326,10 @@ class TestCohortStudents:
     def test_student_cannot_view_roster(self, student_client: TestClient, db: Session):
         _seed_course(db)
         cohort = Cohort(
-            course_id="test-course-1", name="X",
-            start_date=NOW, end_date=NEXT_WEEK,
+            course_id="test-course-1",
+            name="X",
+            start_date=NOW,
+            end_date=NEXT_WEEK,
         )
         db.add(cohort)
         db.commit()
@@ -356,8 +366,10 @@ class TestCompleteCohort:
     def test_student_cannot_complete(self, student_client: TestClient, db: Session):
         _seed_course(db)
         cohort = Cohort(
-            course_id="test-course-1", name="X",
-            start_date=NOW, end_date=NEXT_WEEK,
+            course_id="test-course-1",
+            name="X",
+            start_date=NOW,
+            end_date=NEXT_WEEK,
         )
         db.add(cohort)
         db.commit()
@@ -477,8 +489,10 @@ class TestListCourseEvents:
         _seed_enrollment(db, user_id=STUDENT_ID, course_id="test-course-1")
 
         ev = CourseEvent(
-            course_id="test-course-1", title="Lecture",
-            event_type="live_session", event_date=TOMORROW,
+            course_id="test-course-1",
+            title="Lecture",
+            event_type="live_session",
+            event_date=TOMORROW,
             created_by=TEACHER_ID,
         )
         db.add(ev)
@@ -543,8 +557,10 @@ class TestUpdateCourseEvent:
     def test_student_cannot_update(self, student_client: TestClient, db: Session):
         _seed_course(db)
         ev = CourseEvent(
-            course_id="test-course-1", title="Lecture",
-            event_type="other", event_date=TOMORROW,
+            course_id="test-course-1",
+            title="Lecture",
+            event_type="other",
+            event_date=TOMORROW,
             created_by=TEACHER_ID,
         )
         db.add(ev)
@@ -581,8 +597,10 @@ class TestDeleteCourseEvent:
     def test_student_cannot_delete(self, student_client: TestClient, db: Session):
         _seed_course(db)
         ev = CourseEvent(
-            course_id="test-course-1", title="Lecture",
-            event_type="other", event_date=TOMORROW,
+            course_id="test-course-1",
+            title="Lecture",
+            event_type="other",
+            event_date=TOMORROW,
             created_by=TEACHER_ID,
         )
         db.add(ev)
@@ -598,8 +616,7 @@ class TestDeleteCourseEvent:
 # ===========================================================================
 
 
-def _seed_notification(db: Session, *, user_id=TEACHER_ID, is_read=False,
-                       title="Test Notification") -> Notification:
+def _seed_notification(db: Session, *, user_id=TEACHER_ID, is_read=False, title="Test Notification") -> Notification:
     n = Notification(
         user_id=user_id,
         type="info",
@@ -721,10 +738,14 @@ class TestMarkAllRead:
 
         client.post(f"{NOTIFICATION_PREFIX}/read-all")
 
-        still_unread = db.query(Notification).filter(
-            Notification.user_id == STUDENT_ID,
-            Notification.is_read == False,
-        ).count()
+        still_unread = (
+            db.query(Notification)
+            .filter(
+                Notification.user_id == STUDENT_ID,
+                Notification.is_read == False,
+            )
+            .count()
+        )
         assert still_unread == 1
 
     def test_idempotent_when_already_read(self, client: TestClient, db: Session):
@@ -847,10 +868,14 @@ class TestCreateAnnouncement:
             json=_announcement_payload(course_id=course["id"]),
         )
 
-        notifs = db.query(Notification).filter(
-            Notification.user_id == STUDENT_ID,
-            Notification.type == "new_announcement",
-        ).all()
+        notifs = (
+            db.query(Notification)
+            .filter(
+                Notification.user_id == STUDENT_ID,
+                Notification.type == "new_announcement",
+            )
+            .all()
+        )
         assert len(notifs) == 1
 
 
@@ -935,6 +960,7 @@ class TestDeleteAnnouncement:
     def test_teacher_cannot_delete_others_announcement(self, client: TestClient, db: Session):
         other_teacher_id = uuid.uuid4()
         from app.models.user import User, UserRole
+
         other = User(
             id=other_teacher_id,
             email="other-teacher@example.com",

@@ -1,10 +1,11 @@
 import logging
 import re
 
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
-from app.core.database import get_db
+
 from app.api.dependencies import get_current_user
+from app.core.database import get_db
 from app.models.user import User
 from app.services.file_service import upload_file_to_storage
 
@@ -69,5 +70,4 @@ async def upload_file(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="File upload failed",
-        )
-
+        ) from None

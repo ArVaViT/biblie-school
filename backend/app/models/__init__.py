@@ -1,33 +1,45 @@
-from app.models.user import User, UserRole
-from app.models.course import Course, Module, Chapter
-from app.models.enrollment import Enrollment
-from app.models.file import File
 from app.models.announcement import Announcement
-from app.models.student_grade import StudentGrade
-from app.models.quiz import Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer
 from app.models.assignment import Assignment, AssignmentSubmission
+from app.models.audit_log import AuditLog
 from app.models.certificate import Certificate
-from app.models.review import CourseReview
-from app.models.prerequisite import CoursePrerequisite
 from app.models.chapter_block import ChapterBlock
 from app.models.chapter_progress import ChapterProgress
 from app.models.cohort import Cohort
-from app.models.notification import Notification
-from app.models.audit_log import AuditLog
+from app.models.course import Chapter, Course, Module
 from app.models.course_event import CourseEvent
+from app.models.enrollment import Enrollment
+from app.models.file import File
+from app.models.notification import Notification
+from app.models.prerequisite import CoursePrerequisite
+from app.models.quiz import Quiz, QuizAnswer, QuizAttempt, QuizOption, QuizQuestion
+from app.models.review import CourseReview
+from app.models.student_grade import StudentGrade
+from app.models.user import User, UserRole
 
 __all__ = [
-    "User", "UserRole", "Course", "Module", "Chapter",
-    "Enrollment", "File", "Announcement", "StudentGrade",
-    "Quiz", "QuizQuestion", "QuizOption", "QuizAttempt", "QuizAnswer",
-    "Assignment", "AssignmentSubmission",
+    "Announcement",
+    "Assignment",
+    "AssignmentSubmission",
+    "AuditLog",
     "Certificate",
-    "CourseReview",
-    "CoursePrerequisite",
+    "Chapter",
     "ChapterBlock",
     "ChapterProgress",
     "Cohort",
-    "Notification",
-    "AuditLog",
+    "Course",
     "CourseEvent",
+    "CoursePrerequisite",
+    "CourseReview",
+    "Enrollment",
+    "File",
+    "Module",
+    "Notification",
+    "Quiz",
+    "QuizAnswer",
+    "QuizAttempt",
+    "QuizOption",
+    "QuizQuestion",
+    "StudentGrade",
+    "User",
+    "UserRole",
 ]

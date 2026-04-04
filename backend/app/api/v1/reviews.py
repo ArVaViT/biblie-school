@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.orm import Session
+
 from app.api.dependencies import get_current_user
-from app.models.user import User
+from app.core.database import get_db
 from app.models.certificate import Certificate
 from app.models.review import CourseReview
+from app.models.user import User
 from app.schemas.review import ReviewCreate, ReviewResponse
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])

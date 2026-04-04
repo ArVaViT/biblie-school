@@ -1,8 +1,6 @@
 """Tests for the /api/v1/courses endpoints."""
 
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
 from tests.conftest import TEACHER_ID
 
@@ -12,6 +10,7 @@ PREFIX = "/api/v1/courses"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _create_course(client: TestClient, **overrides) -> dict:
     payload = {"title": "Genesis Overview", "description": "An intro course"}
@@ -124,9 +123,7 @@ class TestDeleteCourse:
 
 
 class TestEnrollment:
-    def test_enroll_in_published_course(
-        self, student_client: TestClient, client: TestClient
-    ):
+    def test_enroll_in_published_course(self, student_client: TestClient, client: TestClient):
         course = _create_course(client)
         client.put(f"{PREFIX}/{course['id']}", json={"status": "published"})
 
@@ -136,9 +133,7 @@ class TestEnrollment:
         assert body["course_id"] == course["id"]
         assert body["progress"] == 0
 
-    def test_enroll_is_idempotent(
-        self, student_client: TestClient, client: TestClient
-    ):
+    def test_enroll_is_idempotent(self, student_client: TestClient, client: TestClient):
         course = _create_course(client)
         client.put(f"{PREFIX}/{course['id']}", json={"status": "published"})
 
@@ -146,9 +141,7 @@ class TestEnrollment:
         resp2 = student_client.post(f"{PREFIX}/{course['id']}/enroll")
         assert resp1.json()["id"] == resp2.json()["id"]
 
-    def test_enroll_nonexistent_course_returns_404(
-        self, student_client: TestClient
-    ):
+    def test_enroll_nonexistent_course_returns_404(self, student_client: TestClient):
         resp = student_client.post(f"{PREFIX}/nonexistent-id/enroll")
         assert resp.status_code == 404
 

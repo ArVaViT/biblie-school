@@ -305,6 +305,60 @@ export interface CalendarEvent {
   source: CalendarEventSource
 }
 
+export interface StudentChapterInfo {
+  id: string
+  title: string
+  module_id: string
+  chapter_type: string
+  requires_completion: boolean
+  completed: boolean
+  completed_by: 'teacher' | 'self' | 'quiz' | null
+  quiz_result: { score: number; max_score: number; passed: boolean } | null
+  assignment_result: { status: string; grade: number | null; max_score: number } | null
+}
+
+export interface StudentQuizResult {
+  chapter_title: string
+  chapter_id: string
+  quiz_id: string
+  score: number
+  max_score: number
+  passed: boolean
+  attempts_used: number
+}
+
+export interface StudentAssignmentResult {
+  chapter_title: string
+  chapter_id: string
+  title: string
+  status: string
+  grade: number | null
+  max_score: number
+}
+
+export interface StudentProgressEntry {
+  id: string
+  full_name: string
+  email: string
+  enrolled_at: string | null
+  progress: number
+  chapters_completed: number
+  total_chapters: number
+  quiz_results: StudentQuizResult[]
+  assignment_results: StudentAssignmentResult[]
+  last_activity: string | null
+  chapters: StudentChapterInfo[]
+}
+
+export interface StudentProgressResponse {
+  course_id: string
+  course_title: string
+  total_chapters: number
+  total_students: number
+  modules: { id: string; title: string; order_index: number }[]
+  students: StudentProgressEntry[]
+}
+
 export interface CourseEvent {
   id: string
   course_id: string

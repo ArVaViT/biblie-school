@@ -1,8 +1,10 @@
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Index
+import uuid
+
+from sqlalchemy import Column, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from app.core.database import Base
-import uuid
 
 
 class StudentGrade(Base):

@@ -1,8 +1,10 @@
-from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime, UniqueConstraint, Index
+import uuid
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from app.core.database import Base
-import uuid
 
 
 class ChapterProgress(Base):

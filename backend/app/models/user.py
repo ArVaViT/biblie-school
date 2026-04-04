@@ -1,12 +1,14 @@
-from sqlalchemy import Column, String, DateTime
-from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
-from app.core.database import Base
 import enum
 
+from sqlalchemy import Column, DateTime, String
+from sqlalchemy.dialects.postgresql import UUID as PgUUID
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
-class UserRole(str, enum.Enum):
+from app.core.database import Base
+
+
+class UserRole(enum.StrEnum):
     ADMIN = "admin"
     TEACHER = "teacher"
     PENDING_TEACHER = "pending_teacher"

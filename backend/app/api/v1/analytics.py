@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.api.dependencies import require_teacher, verify_course_owner
-from app.models.user import User
+from app.core.database import get_db
 from app.models.enrollment import Enrollment
+from app.models.user import User
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -35,14 +35,16 @@ async def get_course_analytics(
         completion_count = sum(1 for p in progress_values if p >= 100)
 
     for enrollment, user in enrollments:
-        student_list.append({
-            "enrollment_id": enrollment.id,
-            "user_id": str(enrollment.user_id),
-            "full_name": user.full_name or user.email,
-            "email": user.email,
-            "progress": enrollment.progress,
-            "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
-        })
+        student_list.append(
+            {
+                "enrollment_id": enrollment.id,
+                "user_id": str(enrollment.user_id),
+                "full_name": user.full_name or user.email,
+                "email": user.email,
+                "progress": enrollment.progress,
+                "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+            }
+        )
 
     return {
         "course_id": course_id,

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -13,13 +14,15 @@ async def check_database(db: Session = Depends(get_db)) -> dict:
         result = db.execute(text("SELECT 1"))
         result.fetchone()
 
-        result = db.execute(text("""
+        result = db.execute(
+            text("""
             SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name = 'profiles'
             )
-        """))
+        """)
+        )
         profiles_table_exists = result.scalar()
 
         return {
@@ -28,4 +31,6 @@ async def check_database(db: Session = Depends(get_db)) -> dict:
             "profiles_table_exists": profiles_table_exists,
         }
     except Exception:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database connection failed")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database connection failed"
+        ) from None

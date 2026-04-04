@@ -1,28 +1,28 @@
 import logging
 import uuid as _uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_admin
-from app.models.user import User
-from app.models.enrollment import Enrollment
-from app.models.course import Course
-from app.models.quiz import QuizAttempt, QuizAnswer
+from app.core.database import get_db
 from app.models.assignment import AssignmentSubmission
-from app.models.certificate import Certificate
-from app.models.student_grade import StudentGrade
-from app.models.review import CourseReview
-from app.models.notification import Notification
-from app.models.chapter_progress import ChapterProgress
 from app.models.audit_log import AuditLog
+from app.models.certificate import Certificate
+from app.models.chapter_progress import ChapterProgress
+from app.models.course import Course
+from app.models.enrollment import Enrollment
 from app.models.file import File
+from app.models.notification import Notification
+from app.models.quiz import QuizAnswer, QuizAttempt
+from app.models.review import CourseReview
+from app.models.student_grade import StudentGrade
+from app.models.user import User
 from app.schemas.course import EnrollmentResponse
-from app.services.course_service import get_user_courses
 from app.services.audit_service import log_action
+from app.services.course_service import get_user_courses
 
 logger = logging.getLogger(__name__)
 
@@ -76,11 +76,7 @@ async def export_my_data(
         for e, title in enrollments_rows
     ]
 
-    attempts = (
-        db.query(QuizAttempt)
-        .filter(QuizAttempt.user_id == uid)
-        .all()
-    )
+    attempts = db.query(QuizAttempt).filter(QuizAttempt.user_id == uid).all()
     quiz_attempts = [
         {
             "id": str(a.id),
@@ -94,11 +90,7 @@ async def export_my_data(
         for a in attempts
     ]
 
-    submissions = (
-        db.query(AssignmentSubmission)
-        .filter(AssignmentSubmission.student_id == uid)
-        .all()
-    )
+    submissions = db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == uid).all()
     assignment_submissions = [
         {
             "id": str(s.id),
@@ -194,7 +186,7 @@ async def export_my_data(
     ]
 
     return {
-        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
         "profile": profile,
         "enrollments": enrollments,
         "quiz_attempts": quiz_attempts,
@@ -227,7 +219,11 @@ async def delete_my_account(
     uid = current_user.id
 
     log_action(
-        db, uid, "delete", "user", str(uid),
+        db,
+        uid,
+        "delete",
+        "user",
+        str(uid),
         details={"email": current_user.email, "self_deletion": True},
         request=request,
     )
@@ -236,9 +232,7 @@ async def delete_my_account(
         db.query(ChapterProgress).filter(ChapterProgress.user_id == uid).delete(synchronize_session=False)
         db.query(Notification).filter(Notification.user_id == uid).delete(synchronize_session=False)
 
-        attempt_ids = [
-            a.id for a in db.query(QuizAttempt.id).filter(QuizAttempt.user_id == uid).all()
-        ]
+        attempt_ids = [a.id for a in db.query(QuizAttempt.id).filter(QuizAttempt.user_id == uid).all()]
         if attempt_ids:
             db.query(QuizAnswer).filter(QuizAnswer.attempt_id.in_(attempt_ids)).delete(synchronize_session=False)
         db.query(QuizAttempt).filter(QuizAttempt.user_id == uid).delete(synchronize_session=False)
@@ -252,15 +246,18 @@ async def delete_my_account(
         db.query(Certificate).filter(Certificate.user_id == uid).delete(synchronize_session=False)
 
         db.query(Course).filter(Course.created_by == uid).update(
-            {Course.created_by: None}, synchronize_session=False,
+            {Course.created_by: None},
+            synchronize_session=False,
         )
 
         db.query(File).filter(File.user_id == uid).update(
-            {File.user_id: None}, synchronize_session=False,
+            {File.user_id: None},
+            synchronize_session=False,
         )
 
         db.query(AuditLog).filter(AuditLog.user_id == uid).update(
-            {AuditLog.user_id: None}, synchronize_session=False,
+            {AuditLog.user_id: None},
+            synchronize_session=False,
         )
 
         db.query(User).filter(User.id == uid).delete(synchronize_session=False)
@@ -272,7 +269,7 @@ async def delete_my_account(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Account deletion failed. Please try again or contact support.",
-        )
+        ) from None
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -309,7 +306,7 @@ async def update_user_role(
     try:
         uid = _uuid.UUID(user_id)
     except ValueError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found") from None
     user = db.query(User).filter(User.id == uid).first()
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
@@ -317,5 +314,7 @@ async def update_user_role(
     user.role = role
     db.commit()
     db.refresh(user)
-    log_action(db, admin.id, "update", "user", user_id, details={"old_role": old_role, "new_role": role}, request=request)
+    log_action(
+        db, admin.id, "update", "user", user_id, details={"old_role": old_role, "new_role": role}, request=request
+    )
     return {"id": str(user.id), "email": user.email, "role": user.role}

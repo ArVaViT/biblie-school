@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.api.dependencies import require_admin
-from app.models.user import User
+from app.core.database import get_db
 from app.models.audit_log import AuditLog
+from app.models.user import User
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -60,11 +60,6 @@ async def list_audit_logs(
         q = q.filter(AuditLog.created_at <= date_to)
 
     total = q.count()
-    items = (
-        q.order_by(AuditLog.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
-    )
+    items = q.order_by(AuditLog.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
 
     return AuditLogPage(items=items, total=total, page=page, page_size=page_size)

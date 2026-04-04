@@ -3,24 +3,23 @@ Files, Health, Audit, and Modules/Chapters endpoints.
 """
 
 import uuid
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.main import app
-from app.core.database import get_db
 from app.api.dependencies import get_current_user, get_optional_user, require_admin, require_teacher
-from app.models.user import User, UserRole
-from app.models.course import Course, Module, Chapter
-from app.models.enrollment import Enrollment
-from app.models.certificate import Certificate
-from app.models.review import CourseReview
-from app.models.prerequisite import CoursePrerequisite
+from app.core.database import get_db
+from app.main import app
 from app.models.audit_log import AuditLog
-from app.models.file import File
-from tests.conftest import TEACHER_ID, STUDENT_ID
+from app.models.certificate import Certificate
+from app.models.course import Chapter, Course, Module
+from app.models.enrollment import Enrollment
+from app.models.prerequisite import CoursePrerequisite
+from app.models.review import CourseReview
+from app.models.user import User, UserRole
+from tests.conftest import STUDENT_ID, TEACHER_ID
 
 ADMIN_ID = uuid.UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
 
@@ -28,6 +27,7 @@ ADMIN_ID = uuid.UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_admin(db: Session) -> User:
     admin = User(
@@ -42,8 +42,9 @@ def _make_admin(db: Session) -> User:
     return admin
 
 
-def _seed_course(db: Session, course_id: str = "course-1", *, owner=TEACHER_ID,
-                 status: str = "published", title: str = "Test Course") -> Course:
+def _seed_course(
+    db: Session, course_id: str = "course-1", *, owner=TEACHER_ID, status: str = "published", title: str = "Test Course"
+) -> Course:
     course = Course(
         id=course_id,
         title=title,
@@ -57,8 +58,7 @@ def _seed_course(db: Session, course_id: str = "course-1", *, owner=TEACHER_ID,
     return course
 
 
-def _seed_module(db: Session, course_id: str = "course-1",
-                 module_id: str = "mod-1", title: str = "Module 1") -> Module:
+def _seed_module(db: Session, course_id: str = "course-1", module_id: str = "mod-1", title: str = "Module 1") -> Module:
     module = Module(id=module_id, course_id=course_id, title=title, order_index=0)
     db.add(module)
     db.commit()
@@ -66,8 +66,9 @@ def _seed_module(db: Session, course_id: str = "course-1",
     return module
 
 
-def _seed_chapter(db: Session, module_id: str = "mod-1",
-                  chapter_id: str = "chap-1", title: str = "Chapter 1") -> Chapter:
+def _seed_chapter(
+    db: Session, module_id: str = "mod-1", chapter_id: str = "chap-1", title: str = "Chapter 1"
+) -> Chapter:
     chapter = Chapter(id=chapter_id, module_id=module_id, title=title, order_index=0)
     db.add(chapter)
     db.commit()
@@ -75,8 +76,7 @@ def _seed_chapter(db: Session, module_id: str = "mod-1",
     return chapter
 
 
-def _seed_enrollment(db: Session, user_id=STUDENT_ID,
-                     course_id: str = "course-1", progress: int = 0) -> Enrollment:
+def _seed_enrollment(db: Session, user_id=STUDENT_ID, course_id: str = "course-1", progress: int = 0) -> Enrollment:
     enrollment = Enrollment(
         id=str(uuid.uuid4()),
         user_id=user_id,
@@ -89,8 +89,9 @@ def _seed_enrollment(db: Session, user_id=STUDENT_ID,
     return enrollment
 
 
-def _seed_certificate(db: Session, user_id=STUDENT_ID,
-                      course_id: str = "course-1", status: str = "approved") -> Certificate:
+def _seed_certificate(
+    db: Session, user_id=STUDENT_ID, course_id: str = "course-1", status: str = "approved"
+) -> Certificate:
     cert = Certificate(
         user_id=user_id,
         course_id=course_id,
@@ -103,9 +104,9 @@ def _seed_certificate(db: Session, user_id=STUDENT_ID,
     return cert
 
 
-def _seed_review(db: Session, user_id=STUDENT_ID,
-                 course_id: str = "course-1", rating: int = 5,
-                 comment: str = "Great course!") -> CourseReview:
+def _seed_review(
+    db: Session, user_id=STUDENT_ID, course_id: str = "course-1", rating: int = 5, comment: str = "Great course!"
+) -> CourseReview:
     review = CourseReview(
         user_id=user_id,
         course_id=course_id,
@@ -136,6 +137,7 @@ def _seed_audit_log(db: Session, user_id=TEACHER_ID) -> AuditLog:
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def admin_client(db: Session, teacher: "User") -> TestClient:
     """TestClient authenticated as an admin user."""
@@ -163,6 +165,7 @@ def admin_client(db: Session, teacher: "User") -> TestClient:
 # USERS — GET /api/v1/users/me/courses
 # ===================================================================
 
+
 class TestGetMyCourses:
     def test_returns_empty_when_no_enrollments(self, student_client: TestClient):
         resp = student_client.get("/api/v1/users/me/courses")
@@ -187,6 +190,7 @@ class TestGetMyCourses:
 # USERS — GET /api/v1/users/me/export-data
 # ===================================================================
 
+
 class TestExportData:
     def test_export_returns_profile(self, client: TestClient):
         resp = client.get("/api/v1/users/me/export-data")
@@ -200,9 +204,16 @@ class TestExportData:
         resp = client.get("/api/v1/users/me/export-data")
         assert resp.status_code == 200
         body = resp.json()
-        for key in ("enrollments", "quiz_attempts", "assignment_submissions",
-                     "grades", "certificates", "reviews", "notifications",
-                     "chapter_progress"):
+        for key in (
+            "enrollments",
+            "quiz_attempts",
+            "assignment_submissions",
+            "grades",
+            "certificates",
+            "reviews",
+            "notifications",
+            "chapter_progress",
+        ):
             assert key in body
 
     def test_export_with_enrollments(self, student_client: TestClient, db: Session):
@@ -222,38 +233,32 @@ class TestExportData:
 # USERS — DELETE /api/v1/users/me
 # ===================================================================
 
+
 class TestDeleteMyAccount:
     def test_delete_own_account(self, student_client: TestClient, db: Session):
         _seed_course(db)
         _seed_enrollment(db, user_id=STUDENT_ID)
-        resp = student_client.request(
-            "DELETE", "/api/v1/users/me", json={"confirm": "DELETE"}
-        )
+        resp = student_client.request("DELETE", "/api/v1/users/me", json={"confirm": "DELETE"})
         assert resp.status_code == 204
         assert db.query(User).filter(User.id == STUDENT_ID).first() is None
 
     def test_wrong_confirm_string(self, student_client: TestClient):
-        resp = student_client.request(
-            "DELETE", "/api/v1/users/me", json={"confirm": "NOPE"}
-        )
+        resp = student_client.request("DELETE", "/api/v1/users/me", json={"confirm": "NOPE"})
         assert resp.status_code == 400
 
     def test_missing_confirm(self, student_client: TestClient):
-        resp = student_client.request(
-            "DELETE", "/api/v1/users/me", json={}
-        )
+        resp = student_client.request("DELETE", "/api/v1/users/me", json={})
         assert resp.status_code == 422
 
     def test_anon_gets_401(self, anon_client: TestClient):
-        resp = anon_client.request(
-            "DELETE", "/api/v1/users/me", json={"confirm": "DELETE"}
-        )
+        resp = anon_client.request("DELETE", "/api/v1/users/me", json={"confirm": "DELETE"})
         assert resp.status_code in (401, 403)
 
 
 # ===================================================================
 # USERS — GET /api/v1/users/admin/users (admin only)
 # ===================================================================
+
 
 class TestAdminListUsers:
     def test_admin_can_list_users(self, admin_client: TestClient):
@@ -280,44 +285,36 @@ class TestAdminListUsers:
 # USERS — PUT /api/v1/users/admin/users/{user_id}/role
 # ===================================================================
 
+
 class TestAdminUpdateRole:
     def test_admin_can_change_role(self, admin_client: TestClient, db: Session):
-        resp = admin_client.put(
-            f"/api/v1/users/admin/users/{TEACHER_ID}/role?role=admin"
-        )
+        resp = admin_client.put(f"/api/v1/users/admin/users/{TEACHER_ID}/role?role=admin")
         assert resp.status_code == 200
         body = resp.json()
         assert body["role"] == "admin"
 
     def test_invalid_role(self, admin_client: TestClient):
-        resp = admin_client.put(
-            f"/api/v1/users/admin/users/{TEACHER_ID}/role?role=superadmin"
-        )
+        resp = admin_client.put(f"/api/v1/users/admin/users/{TEACHER_ID}/role?role=superadmin")
         assert resp.status_code == 400
 
     def test_user_not_found(self, admin_client: TestClient):
         fake_id = uuid.uuid4()
-        resp = admin_client.put(
-            f"/api/v1/users/admin/users/{fake_id}/role?role=student"
-        )
+        resp = admin_client.put(f"/api/v1/users/admin/users/{fake_id}/role?role=student")
         assert resp.status_code == 404
 
     def test_teacher_cannot_change_role(self, client: TestClient):
-        resp = client.put(
-            f"/api/v1/users/admin/users/{STUDENT_ID}/role?role=admin"
-        )
+        resp = client.put(f"/api/v1/users/admin/users/{STUDENT_ID}/role?role=admin")
         assert resp.status_code == 403
 
     def test_missing_role_query_param(self, admin_client: TestClient):
-        resp = admin_client.put(
-            f"/api/v1/users/admin/users/{TEACHER_ID}/role"
-        )
+        resp = admin_client.put(f"/api/v1/users/admin/users/{TEACHER_ID}/role")
         assert resp.status_code == 422
 
 
 # ===================================================================
 # REVIEWS — GET /api/v1/reviews/course/{course_id}
 # ===================================================================
+
 
 class TestListReviews:
     def test_list_reviews_empty(self, client: TestClient, db: Session):
@@ -344,6 +341,7 @@ class TestListReviews:
 # ===================================================================
 # REVIEWS — POST /api/v1/reviews/course/{course_id}
 # ===================================================================
+
 
 class TestCreateReview:
     def test_create_review_with_approved_cert(self, student_client: TestClient, db: Session):
@@ -418,6 +416,7 @@ class TestCreateReview:
 # REVIEWS — DELETE /api/v1/reviews/{review_id}
 # ===================================================================
 
+
 class TestDeleteReview:
     def test_delete_own_review(self, student_client: TestClient, db: Session):
         _seed_course(db)
@@ -447,6 +446,7 @@ class TestDeleteReview:
 # PREREQUISITES — GET /api/v1/prerequisites/course/{course_id}
 # ===================================================================
 
+
 class TestGetPrerequisites:
     def test_empty_prerequisites(self, client: TestClient, db: Session):
         _seed_course(db)
@@ -457,9 +457,7 @@ class TestGetPrerequisites:
     def test_with_prerequisite(self, client: TestClient, db: Session):
         _seed_course(db, course_id="course-1")
         _seed_course(db, course_id="course-2", title="Prereq Course")
-        prereq = CoursePrerequisite(
-            course_id="course-1", prerequisite_course_id="course-2"
-        )
+        prereq = CoursePrerequisite(course_id="course-1", prerequisite_course_id="course-2")
         db.add(prereq)
         db.commit()
 
@@ -474,6 +472,7 @@ class TestGetPrerequisites:
 # ===================================================================
 # PREREQUISITES — PUT /api/v1/prerequisites/course/{course_id}
 # ===================================================================
+
 
 class TestSetPrerequisites:
     def test_set_prerequisites(self, client: TestClient, db: Session):
@@ -545,8 +544,9 @@ class TestSetPrerequisites:
 
     def test_non_owner_teacher_rejected(self, client: TestClient, db: Session):
         other_teacher_id = uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
-        other = User(id=other_teacher_id, email="other@example.com",
-                     full_name="Other Teacher", role=UserRole.TEACHER.value)
+        other = User(
+            id=other_teacher_id, email="other@example.com", full_name="Other Teacher", role=UserRole.TEACHER.value
+        )
         db.add(other)
         db.commit()
         _seed_course(db, course_id="course-1", owner=other_teacher_id)
@@ -561,11 +561,13 @@ class TestSetPrerequisites:
 # ANALYTICS — GET /api/v1/analytics/course/{course_id}
 # ===================================================================
 
+
 class TestCourseAnalytics:
     def test_owner_gets_analytics(self, client: TestClient, db: Session):
         _seed_course(db, course_id="course-1", owner=TEACHER_ID)
-        student = User(id=STUDENT_ID, email="student@example.com",
-                       full_name="Test Student", role=UserRole.STUDENT.value)
+        student = User(
+            id=STUDENT_ID, email="student@example.com", full_name="Test Student", role=UserRole.STUDENT.value
+        )
         db.add(student)
         db.commit()
         _seed_enrollment(db, user_id=STUDENT_ID, course_id="course-1", progress=50)
@@ -578,8 +580,7 @@ class TestCourseAnalytics:
 
     def test_non_owner_rejected(self, client: TestClient, db: Session):
         other_id = uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
-        other = User(id=other_id, email="other@example.com",
-                     full_name="Other", role=UserRole.TEACHER.value)
+        other = User(id=other_id, email="other@example.com", full_name="Other", role=UserRole.TEACHER.value)
         db.add(other)
         db.commit()
         _seed_course(db, course_id="course-1", owner=other_id)
@@ -608,6 +609,7 @@ class TestCourseAnalytics:
 # ===================================================================
 # FILES — POST /api/v1/files/upload
 # ===================================================================
+
 
 class TestFileUpload:
     def test_upload_pdf(self, client: TestClient, db: Session):
@@ -661,6 +663,7 @@ class TestFileUpload:
 # HEALTH — GET /api/v1/health/db
 # ===================================================================
 
+
 class TestHealthDb:
     def test_db_health_check(self, client: TestClient):
         resp = client.get("/api/v1/health/db")
@@ -677,6 +680,7 @@ class TestHealthDb:
 # ===================================================================
 # AUDIT — GET /api/v1/audit
 # ===================================================================
+
 
 class TestAuditLog:
     def test_admin_can_list_audit_logs(self, admin_client: TestClient, db: Session):
@@ -728,6 +732,7 @@ class TestAuditLog:
 # COURSES — GET /api/v1/courses/my (teacher's own courses)
 # ===================================================================
 
+
 class TestListMyCourses:
     def test_teacher_sees_own_courses(self, client: TestClient, db: Session):
         _seed_course(db, course_id="course-1", owner=TEACHER_ID)
@@ -739,8 +744,7 @@ class TestListMyCourses:
 
     def test_teacher_does_not_see_others(self, client: TestClient, db: Session):
         other_id = uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
-        other = User(id=other_id, email="other@example.com",
-                     full_name="Other", role=UserRole.TEACHER.value)
+        other = User(id=other_id, email="other@example.com", full_name="Other", role=UserRole.TEACHER.value)
         db.add(other)
         db.commit()
         _seed_course(db, course_id="other-course", owner=other_id)
@@ -757,6 +761,7 @@ class TestListMyCourses:
 # ===================================================================
 # MODULES — GET /api/v1/courses/{course_id}/modules/{module_id}
 # ===================================================================
+
 
 class TestGetModule:
     def test_get_module_published_course(self, client: TestClient, db: Session):
@@ -788,6 +793,7 @@ class TestGetModule:
 # MODULES — POST /api/v1/courses/{course_id}/modules
 # ===================================================================
 
+
 class TestCreateModule:
     def test_create_module(self, client: TestClient, db: Session):
         _seed_course(db, course_id="course-1", owner=TEACHER_ID)
@@ -817,8 +823,7 @@ class TestCreateModule:
 
     def test_non_owner_teacher_rejected(self, client: TestClient, db: Session):
         other_id = uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
-        other = User(id=other_id, email="other@example.com",
-                     full_name="Other", role=UserRole.TEACHER.value)
+        other = User(id=other_id, email="other@example.com", full_name="Other", role=UserRole.TEACHER.value)
         db.add(other)
         db.commit()
         _seed_course(db, course_id="other-course", owner=other_id)
@@ -832,6 +837,7 @@ class TestCreateModule:
 # ===================================================================
 # MODULES — PUT /api/v1/courses/{course_id}/modules/{module_id}
 # ===================================================================
+
 
 class TestUpdateModule:
     def test_update_module(self, client: TestClient, db: Session):
@@ -857,6 +863,7 @@ class TestUpdateModule:
 # MODULES — DELETE /api/v1/courses/{course_id}/modules/{module_id}
 # ===================================================================
 
+
 class TestDeleteModule:
     def test_delete_module(self, client: TestClient, db: Session):
         _seed_course(db, course_id="course-1", owner=TEACHER_ID)
@@ -879,6 +886,7 @@ class TestDeleteModule:
 # ===================================================================
 # CHAPTERS — POST /api/v1/courses/{cid}/modules/{mid}/chapters
 # ===================================================================
+
 
 class TestCreateChapter:
     def test_create_chapter(self, client: TestClient, db: Session):
@@ -935,6 +943,7 @@ class TestCreateChapter:
 # CHAPTERS — PUT /{cid}/modules/{mid}/chapters/{chid}
 # ===================================================================
 
+
 class TestUpdateChapter:
     def test_update_chapter(self, client: TestClient, db: Session):
         _seed_course(db, course_id="course-1", owner=TEACHER_ID)
@@ -961,29 +970,24 @@ class TestUpdateChapter:
 # CHAPTERS — DELETE /{cid}/modules/{mid}/chapters/{chid}
 # ===================================================================
 
+
 class TestDeleteChapter:
     def test_delete_chapter(self, client: TestClient, db: Session):
         _seed_course(db, course_id="course-1", owner=TEACHER_ID)
         _seed_module(db, course_id="course-1", module_id="mod-1")
         _seed_chapter(db, module_id="mod-1", chapter_id="chap-1")
-        resp = client.delete(
-            "/api/v1/courses/course-1/modules/mod-1/chapters/chap-1"
-        )
+        resp = client.delete("/api/v1/courses/course-1/modules/mod-1/chapters/chap-1")
         assert resp.status_code == 204
 
     def test_delete_chapter_not_found(self, client: TestClient, db: Session):
         _seed_course(db, course_id="course-1", owner=TEACHER_ID)
         _seed_module(db, course_id="course-1", module_id="mod-1")
-        resp = client.delete(
-            "/api/v1/courses/course-1/modules/mod-1/chapters/no-chap"
-        )
+        resp = client.delete("/api/v1/courses/course-1/modules/mod-1/chapters/no-chap")
         assert resp.status_code == 404
 
     def test_student_cannot_delete_chapter(self, student_client: TestClient, db: Session):
         _seed_course(db, course_id="course-1", owner=TEACHER_ID)
         _seed_module(db, course_id="course-1", module_id="mod-1")
         _seed_chapter(db, module_id="mod-1", chapter_id="chap-1")
-        resp = student_client.delete(
-            "/api/v1/courses/course-1/modules/mod-1/chapters/chap-1"
-        )
+        resp = student_client.delete("/api/v1/courses/course-1/modules/mod-1/chapters/chap-1")
         assert resp.status_code == 403

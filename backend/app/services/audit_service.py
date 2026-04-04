@@ -1,28 +1,35 @@
-import logging
-from typing import Any
+from __future__ import annotations
 
-from fastapi import Request
-from sqlalchemy.orm import Session
+import contextlib
+import logging
+from typing import TYPE_CHECKING
 
 from app.models.audit_log import AuditLog
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from fastapi import Request
+    from sqlalchemy.orm import Session, SessionTransaction
 
 logger = logging.getLogger(__name__)
 
 
 def log_action(
     db: Session,
-    user_id: Any,
+    user_id: str | UUID,
     action: str,
     resource_type: str,
     resource_id: str,
-    details: dict | None = None,
+    details: dict[str, object] | None = None,
     request: Request | None = None,
 ) -> None:
-    """Persist an audit log entry. Uses a separate connection so it never
+    """Persist an audit log entry inside a SAVEPOINT so it never
     interferes with the caller's transaction."""
+    nested: SessionTransaction | None = None
     try:
-        ip_address = None
-        user_agent = None
+        ip_address: str | None = None
+        user_agent: str | None = None
         if request is not None:
             ip_address = request.client.host if request.client else None
             user_agent = request.headers.get("user-agent", "")[:500]
@@ -42,7 +49,6 @@ def log_action(
         nested.commit()
     except Exception:
         logger.exception("Failed to write audit log")
-        try:
-            nested.rollback()  # type: ignore[possibly-undefined]
-        except Exception:
-            pass
+        if nested is not None:
+            with contextlib.suppress(Exception):
+                nested.rollback()

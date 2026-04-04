@@ -145,6 +145,8 @@ function BlockRenderer({ block, onAssignmentSubmitted }: { block: ChapterBlock; 
   }
 }
 
+const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
+
 export default function ChapterView() {
   const { courseId, moduleId, chapterId } = useParams<{
     courseId: string
@@ -233,7 +235,6 @@ export default function ChapterView() {
     return () => { cancelled = true }
   }, [chapter])
 
-  const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
   const isChapterLocked = useCallback(
     (ch: Chapter, idx: number) => {
       if (!ch.is_locked) return false

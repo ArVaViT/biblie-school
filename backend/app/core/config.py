@@ -1,39 +1,37 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import model_validator, Field
-from typing import Optional
 import os
+
+from pydantic import Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
     SUPABASE_URL: str
-    SUPABASE_KEY: Optional[str] = Field(default=None, description="Supabase anon key")
+    SUPABASE_KEY: str | None = Field(default=None, description="Supabase anon key")
     SUPABASE_STORAGE_BUCKET: str = "files"
 
-    DATABASE_URL: Optional[str] = Field(default=None, description="Database connection URL")
+    DATABASE_URL: str | None = Field(default=None, description="Database connection URL")
 
-    JWT_SECRET_KEY: Optional[str] = Field(default=None, description="JWT secret key")
+    JWT_SECRET_KEY: str | None = Field(default=None, description="JWT secret key")
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30 * 24 * 60  # 30 days
 
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,https://biblie-school-frontend.vercel.app"
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def load_alternative_env_vars(self):
         """Support alternative env var names from Vercel/Supabase integration."""
         if not self.SUPABASE_KEY:
             self.SUPABASE_KEY = (
-                os.getenv("SUPABASE_KEY") or
-                os.getenv("SUPABASE_ANON_KEY") or
-                os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+                os.getenv("SUPABASE_KEY")
+                or os.getenv("SUPABASE_ANON_KEY")
+                or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
             )
 
         if not self.DATABASE_URL:
             self.DATABASE_URL = (
-                os.getenv("DATABASE_URL") or
-                os.getenv("POSTGRES_URL") or
-                os.getenv("POSTGRES_PRISMA_URL")
+                os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("POSTGRES_PRISMA_URL")
             )
         if self.DATABASE_URL:
             self.DATABASE_URL = self.DATABASE_URL.strip()
@@ -59,5 +57,6 @@ class Settings(BaseSettings):
             return ["http://localhost:3000", "http://localhost:5173"]
         origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
         return [o for o in origins if o]
+
 
 settings = Settings()

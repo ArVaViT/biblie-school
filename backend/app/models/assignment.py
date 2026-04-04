@@ -1,15 +1,15 @@
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, DateTime, Index
+import uuid
+
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from app.core.database import Base
-import uuid
 
 
 class Assignment(Base):
     __tablename__ = "assignments"
-    __table_args__ = (
-        Index("ix_assignments_chapter_id", "chapter_id"),
-    )
+    __table_args__ = (Index("ix_assignments_chapter_id", "chapter_id"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     chapter_id = Column(String, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False)

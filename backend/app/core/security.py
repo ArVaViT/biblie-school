@@ -1,4 +1,3 @@
-from typing import Optional
 import logging
 
 import jwt
@@ -8,7 +7,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-def decode_access_token(token: str) -> Optional[dict]:
+def decode_access_token(token: str) -> dict | None:
     try:
         return jwt.decode(
             token,

@@ -1,7 +1,8 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 
 class ChapterBase(BaseModel):
@@ -23,7 +24,9 @@ class ChapterUpdate(BaseModel):
     content: str | None = None
     video_url: str | None = None
     order_index: int | None = None
-    chapter_type: Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"] | None = None
+    chapter_type: Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"] | None = (
+        None
+    )
     requires_completion: bool | None = None
     is_locked: bool | None = None
 

@@ -1,12 +1,12 @@
-from collections.abc import Generator
-from typing import Optional
-import os
-
-from sqlalchemy import create_engine, Engine
-from sqlalchemy.pool import NullPool
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
-from sqlalchemy.exc import SQLAlchemyError
+import contextlib
 import logging
+import os
+from collections.abc import Generator
+
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
-_engine: Optional[Engine] = None
-_SessionLocal: Optional[sessionmaker] = None
+_engine: Engine | None = None
+_SessionLocal: sessionmaker | None = None
 
 IS_SERVERLESS = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
 
@@ -31,7 +31,7 @@ def _get_engine() -> Engine:
         db_url = settings.DATABASE_URL
     except Exception as e:
         logger.error(f"Failed to load DATABASE_URL: {e}")
-        raise RuntimeError(f"DATABASE_URL not configured: {e}")
+        raise RuntimeError(f"DATABASE_URL not configured: {e}") from e
 
     if not db_url:
         raise RuntimeError("DATABASE_URL is empty or not set")
@@ -42,12 +42,14 @@ def _get_engine() -> Engine:
 
     try:
         try:
-            import psycopg2  # noqa: F401
-        except ImportError:
+            import psycopg2 as _psycopg2
+
+            _ = _psycopg2  # verify driver is importable
+        except ImportError as e:
             raise RuntimeError(
                 "PostgreSQL driver (psycopg2-binary) is not installed. "
                 "Please ensure psycopg2-binary is in requirements.txt."
-            )
+            ) from e
 
         pool_kwargs: dict = {
             "connect_args": {
@@ -61,11 +63,13 @@ def _get_engine() -> Engine:
         if IS_SERVERLESS:
             pool_kwargs["poolclass"] = NullPool
         else:
-            pool_kwargs.update({
-                "pool_size": 2,
-                "max_overflow": 3,
-                "pool_recycle": 300,
-            })
+            pool_kwargs.update(
+                {
+                    "pool_size": 2,
+                    "max_overflow": 3,
+                    "pool_recycle": 300,
+                }
+            )
 
         _engine = create_engine(db_url, **pool_kwargs)
         logger.info("Database engine created successfully")
@@ -74,7 +78,7 @@ def _get_engine() -> Engine:
     except RuntimeError:
         raise
     except Exception as e:
-        error_msg = f"Failed to create database engine: {str(e)}"
+        error_msg = f"Failed to create database engine: {e!s}"
         logger.error(error_msg)
         raise RuntimeError(error_msg) from e
 
@@ -85,10 +89,8 @@ def reset_engine() -> None:
     """Dispose and reset the cached engine so the next call recreates it."""
     global _engine, _SessionLocal
     if _engine is not None:
-        try:
+        with contextlib.suppress(Exception):
             _engine.dispose()
-        except Exception:
-            pass
     _engine = None
     _SessionLocal = None
 
@@ -110,7 +112,7 @@ def get_db() -> Generator[Session, None, None]:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Database connection error",
-            )
+            ) from None
 
         if _SessionLocal is None:
             raise HTTPException(

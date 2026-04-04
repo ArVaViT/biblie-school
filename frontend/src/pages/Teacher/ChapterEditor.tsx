@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
+import { getErrorDetail } from "@/lib/errorDetail"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,22 +32,6 @@ const CHAPTER_TYPES = [
 
 type ChapterType = (typeof CHAPTER_TYPES)[number]["value"]
 type ChapterUpdatePayload = Parameters<typeof coursesService.updateChapter>[3]
-
-function getErrorDetail(error: unknown): string | undefined {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof (error as { response?: unknown }).response === "object"
-  ) {
-    const response = (error as { response?: { data?: { detail?: unknown } } }).response
-    if (typeof response?.data?.detail === "string") {
-      return response.data.detail
-    }
-  }
-
-  return undefined
-}
 
 export default function ChapterEditor() {
   const { courseId, moduleId, chapterId } = useParams<{

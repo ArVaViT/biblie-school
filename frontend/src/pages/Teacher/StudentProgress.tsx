@@ -6,6 +6,13 @@ import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/hooks/use-toast"
 import { getErrorDetail } from "@/lib/errorDetail"
+import type {
+  StudentProgressResponse,
+  StudentProgressEntry,
+  StudentQuizResult,
+  StudentAssignmentResult,
+  StudentChapterInfo,
+} from "@/types"
 import {
   ArrowLeft,
   Users,
@@ -25,54 +32,11 @@ import {
   Loader2,
 } from "lucide-react"
 
-interface QuizResult {
-  chapter_title: string
-  chapter_id: string
-  quiz_id?: string
-  score: number
-  max_score: number
-  passed: boolean
-  attempts_used?: number
-}
-
-interface AssignmentResult {
-  chapter_title: string
-  chapter_id: string
-  title: string
-  status: string
-  grade: number | null
-  max_score: number
-}
-
-interface ChapterInfo {
-  id: string
-  title: string
-  chapter_type: string
-  requires_completion: boolean
-  completed: boolean
-  completed_by: "teacher" | "self" | "quiz" | null
-}
-
-interface StudentData {
-  id: string
-  full_name: string
-  email: string
-  enrolled_at: string
-  progress: number
-  chapters_completed: number
-  total_chapters: number
-  quiz_results: QuizResult[]
-  assignment_results: AssignmentResult[]
-  last_activity: string | null
-  chapters?: ChapterInfo[]
-}
-
-interface ProgressData {
-  course_title: string
-  total_chapters: number
-  students: StudentData[]
-  chapters?: { id: string; title: string; requires_completion: boolean }[]
-}
+type ProgressData = StudentProgressResponse
+type StudentData = StudentProgressEntry
+type QuizResult = StudentQuizResult
+type AssignmentResult = StudentAssignmentResult
+type ChapterInfo = StudentChapterInfo
 
 export default function StudentProgress() {
   const { courseId } = useParams<{ courseId: string }>()

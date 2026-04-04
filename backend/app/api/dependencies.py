@@ -1,11 +1,12 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.security import decode_access_token
-from app.models.user import User, UserRole
-from app.models.course import Course, Module, Chapter
+from app.models.course import Chapter, Course, Module
 from app.models.enrollment import Enrollment
+from app.models.user import User, UserRole
 
 security = HTTPBearer()
 optional_security = HTTPBearer(auto_error=False)
@@ -76,14 +77,10 @@ async def require_admin(
     return current_user
 
 
-def verify_course_owner(
-    db: Session, course_id: str, teacher_id, *, allow_admin: bool = True
-) -> Course:
+def verify_course_owner(db: Session, course_id: str, teacher_id, *, allow_admin: bool = True) -> Course:
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     if str(course.created_by) != str(teacher_id):
         if allow_admin:
             user = db.query(User).filter(User.id == teacher_id).first()
@@ -96,9 +93,7 @@ def verify_course_owner(
     return course
 
 
-def _resolve_chapter(
-    db: Session, chapter_id: str
-) -> tuple[Chapter, Module, Course]:
+def _resolve_chapter(db: Session, chapter_id: str) -> tuple[Chapter, Module, Course]:
     row = (
         db.query(Chapter, Module, Course)
         .join(Module, Chapter.module_id == Module.id)
@@ -107,9 +102,7 @@ def _resolve_chapter(
         .first()
     )
     if not row:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
     return row[0], row[1], row[2]
 
 
@@ -121,14 +114,8 @@ def verify_chapter_access(db: Session, chapter_id: str, user: User) -> Chapter:
     if str(course.created_by) == str(user.id):
         return chapter
     if course.status != "published":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found"
-        )
-    enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == user.id, Enrollment.course_id == course.id)
-        .first()
-    )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
+    enrolled = db.query(Enrollment).filter(Enrollment.user_id == user.id, Enrollment.course_id == course.id).first()
     if not enrolled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -137,9 +124,7 @@ def verify_chapter_access(db: Session, chapter_id: str, user: User) -> Chapter:
     return chapter
 
 
-def verify_chapter_owner(
-    db: Session, chapter_id: str, teacher_id
-) -> tuple[Chapter, str]:
+def verify_chapter_owner(db: Session, chapter_id: str, teacher_id) -> tuple[Chapter, str]:
     """Resolve chapter -> module -> course and verify ownership.
 
     Returns ``(chapter, course_id)`` so callers can skip redundant lookups.
@@ -164,7 +149,5 @@ def resolve_chapter_course_id(db: Session, chapter_id: str) -> str:
         .first()
     )
     if not row:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
     return row[0]

@@ -1,8 +1,17 @@
+"""Alembic migration environment configuration.
+
+Imports of app.core.database and app.models are placed after
+_get_database_url() intentionally: the function only uses stdlib/env
+and must work before any app-level module is loaded.
+"""
+
+from __future__ import annotations
+
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 
@@ -27,9 +36,12 @@ def _get_database_url() -> str:
     return url
 
 
+# These imports MUST come after _get_database_url is defined because they
+# trigger module-level side effects (engine creation, model registration).
 from app.core.database import Base  # noqa: E402
+import app.models as _models  # noqa: E402
 
-import app.models  # noqa: E402, F401 — registers all models with Base.metadata
+_ = _models  # ensure the import is not flagged as unused
 
 target_metadata = Base.metadata
 

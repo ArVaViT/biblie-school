@@ -1,21 +1,22 @@
-from datetime import datetime, timezone
+import hashlib
+import time
+import uuid
+from datetime import UTC, datetime
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from uuid import UUID
-import uuid
-import hashlib
-import time
 
+from app.api.dependencies import get_current_user, require_admin, require_teacher
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher, require_admin
-from app.models.user import User
+from app.models.certificate import Certificate
 from app.models.course import Course
 from app.models.enrollment import Enrollment
-from app.models.certificate import Certificate
+from app.models.user import User
 from app.schemas.certificate import CertificateResponse, CertificateVerifyResponse
-from app.services.notification_service import create_notification
 from app.services.audit_service import log_action
+from app.services.notification_service import create_notification
 
 router = APIRouter(prefix="/certificates", tags=["certificates"])
 
@@ -37,9 +38,7 @@ async def request_certificate(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
 
     enrollment = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
-        .first()
+        db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
     )
     if not enrollment:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Not enrolled in this course")
@@ -50,9 +49,7 @@ async def request_certificate(
         )
 
     existing = (
-        db.query(Certificate)
-        .filter(Certificate.user_id == current_user.id, Certificate.course_id == course_id)
-        .first()
+        db.query(Certificate).filter(Certificate.user_id == current_user.id, Certificate.course_id == course_id).first()
     )
     if existing:
         return existing
@@ -61,7 +58,7 @@ async def request_certificate(
         user_id=current_user.id,
         course_id=course_id,
         status="pending",
-        requested_at=datetime.now(timezone.utc),
+        requested_at=datetime.now(UTC),
     )
     db.add(cert)
     try:
@@ -75,7 +72,7 @@ async def request_certificate(
         )
         if existing:
             return existing
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Certificate already requested")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Certificate already requested") from None
     db.refresh(cert)
     return cert
 
@@ -88,9 +85,7 @@ async def get_course_certificate(
 ):
     """Get the current user's certificate for a specific course."""
     cert = (
-        db.query(Certificate)
-        .filter(Certificate.user_id == current_user.id, Certificate.course_id == course_id)
-        .first()
+        db.query(Certificate).filter(Certificate.user_id == current_user.id, Certificate.course_id == course_id).first()
     )
     if not cert:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No certificate found")
@@ -116,9 +111,7 @@ async def list_pending_certificates(
     db: Session = Depends(get_db),
 ):
     """Teacher: list pending certificates for courses they teach."""
-    teacher_course_ids = [
-        c.id for c in db.query(Course).filter(Course.created_by == teacher.id).all()
-    ]
+    teacher_course_ids = [c.id for c in db.query(Course).filter(Course.created_by == teacher.id).all()]
     if not teacher_course_ids:
         return []
     return (
@@ -168,7 +161,7 @@ async def teacher_approve_certificate(
             detail="You can only approve certificates for your own courses",
         )
     cert.status = "teacher_approved"
-    cert.teacher_approved_at = datetime.now(timezone.utc)
+    cert.teacher_approved_at = datetime.now(UTC)
     cert.teacher_approved_by = teacher.id
     db.commit()
     db.refresh(cert)
@@ -193,9 +186,9 @@ async def admin_approve_certificate(
         )
     cert.status = "approved"
     cert.certificate_number = _generate_certificate_number()
-    cert.admin_approved_at = datetime.now(timezone.utc)
+    cert.admin_approved_at = datetime.now(UTC)
     cert.admin_approved_by = admin.id
-    cert.issued_at = datetime.now(timezone.utc)
+    cert.issued_at = datetime.now(UTC)
 
     course = db.query(Course).filter(Course.id == cert.course_id).first()
     course_title = course.title if course else "a course"
@@ -204,7 +197,7 @@ async def admin_approve_certificate(
         user_id=cert.user_id,
         type="certificate_approved",
         title="Certificate Approved",
-        message=f"Your certificate for \"{course_title}\" has been approved!",
+        message=f'Your certificate for "{course_title}" has been approved!',
         link="/certificates",
         metadata={"course_id": cert.course_id, "certificate_id": str(cert.id)},
     )
@@ -246,7 +239,7 @@ async def reject_certificate(
         user_id=cert.user_id,
         type="certificate_rejected",
         title="Certificate Rejected",
-        message=f"Your certificate request for \"{course_title}\" was rejected.",
+        message=f'Your certificate request for "{course_title}" was rejected.',
         link="/certificates",
         metadata={"course_id": cert.course_id, "certificate_id": str(cert.id)},
     )

@@ -51,7 +51,5 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._hits[bucket_key].append(now)
         response = await call_next(request)
         response.headers["X-RateLimit-Limit"] = str(max_calls)
-        response.headers["X-RateLimit-Remaining"] = str(
-            max(0, max_calls - len(self._hits[bucket_key]))
-        )
+        response.headers["X-RateLimit-Remaining"] = str(max(0, max_calls - len(self._hits[bucket_key])))
         return response

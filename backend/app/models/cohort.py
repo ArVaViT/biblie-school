@@ -1,8 +1,10 @@
-from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, Index
+import uuid
+
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from app.core.database import Base
-import uuid
 
 
 class Cohort(Base):

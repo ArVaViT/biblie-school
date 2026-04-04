@@ -40,10 +40,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ESLint
-        run: npm run lint
+      - name: Run ESLint (zero warnings)
+        run: npx eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0
 
-      - name: Typecheck with TypeScript
+      - name: Typecheck with TypeScript (strict)
         run: npx tsc --noEmit
 
       - name: Build production bundle

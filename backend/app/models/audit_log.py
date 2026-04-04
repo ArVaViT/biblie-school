@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, String, DateTime, Index, JSON
+from sqlalchemy import JSON, Column, DateTime, Index, String
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.sql import func
 

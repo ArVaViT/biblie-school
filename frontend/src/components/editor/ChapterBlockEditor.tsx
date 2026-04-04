@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import RichTextEditor from "./RichTextEditor"
 import { coursesService } from "@/services/courses"
+import { getErrorDetail } from "@/lib/errorDetail"
 import type { ChapterBlock } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
@@ -26,22 +27,6 @@ type BlockType = (typeof BLOCK_TYPES)[number]["value"]
 
 interface Props {
   chapterId: string
-}
-
-function getErrorDetail(error: unknown): string | undefined {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof (error as { response?: unknown }).response === "object"
-  ) {
-    const response = (error as { response?: { data?: { detail?: unknown } } }).response
-    if (typeof response?.data?.detail === "string") {
-      return response.data.detail
-    }
-  }
-
-  return undefined
 }
 
 export default function ChapterBlockEditor({ chapterId }: Props) {

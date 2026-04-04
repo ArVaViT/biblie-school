@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 from datetime import datetime
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class GradeUpsert(BaseModel):
@@ -24,6 +25,7 @@ class GradeResponse(BaseModel):
 
 # --- Grading Configuration ---
 
+
 class GradingConfigResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -46,6 +48,7 @@ class GradingConfigUpdate(BaseModel):
 
 
 # --- Calculated Grade ---
+
 
 class GradeBreakdown(BaseModel):
     quiz_avg: float

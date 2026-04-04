@@ -1,17 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
 import uuid
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
 from app.api.dependencies import require_teacher
-from app.models.user import User, UserRole
+from app.core.database import get_db
 from app.models.announcement import Announcement
 from app.models.course import Course
 from app.models.enrollment import Enrollment
+from app.models.user import User, UserRole
 from app.schemas.announcement import (
     AnnouncementCreate,
-    AnnouncementUpdate,
     AnnouncementResponse,
+    AnnouncementUpdate,
 )
 from app.services.notification_service import create_notification
 
@@ -61,11 +62,7 @@ async def create_announcement(
     db.flush()
 
     if data.course_id:
-        enrolled_users = (
-            db.query(Enrollment.user_id)
-            .filter(Enrollment.course_id == data.course_id)
-            .all()
-        )
+        enrolled_users = db.query(Enrollment.user_id).filter(Enrollment.course_id == data.course_id).all()
         course_title = course.title if course else "a course"
         for (user_id,) in enrolled_users:
             if str(user_id) != str(teacher.id):
@@ -74,7 +71,7 @@ async def create_announcement(
                     user_id=user_id,
                     type="new_announcement",
                     title="New Announcement",
-                    message=f"{data.title} — in \"{course_title}\"",
+                    message=f'{data.title} — in "{course_title}"',
                     link=f"/courses/{data.course_id}",
                     metadata={"course_id": data.course_id, "announcement_id": str(announcement.id)},
                 )

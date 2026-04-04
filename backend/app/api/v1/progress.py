@@ -1,18 +1,19 @@
 from collections import defaultdict
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from datetime import UTC, datetime
 from uuid import UUID
 
-from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher, verify_course_owner, verify_chapter_owner
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner, verify_course_owner
 from app.constants import GRADABLE_CHAPTER_TYPES
-from app.models.user import User
-from app.models.course import Module, Chapter
-from app.models.enrollment import Enrollment
-from app.models.quiz import Quiz, QuizAttempt
+from app.core.database import get_db
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.chapter_progress import ChapterProgress
+from app.models.course import Chapter, Module
+from app.models.enrollment import Enrollment
+from app.models.quiz import Quiz, QuizAttempt
+from app.models.user import User
 from app.services.course_service import sync_enrollment_progress
 
 router = APIRouter(prefix="/progress", tags=["progress"])
@@ -46,12 +47,7 @@ async def get_course_student_progress(
 ):
     course = verify_course_owner(db, course_id, teacher.id)
 
-    modules = (
-        db.query(Module)
-        .filter(Module.course_id == course_id)
-        .order_by(Module.order_index)
-        .all()
-    )
+    modules = db.query(Module).filter(Module.course_id == course_id).order_by(Module.order_index).all()
     module_map = {m.id: {"id": m.id, "title": m.title, "order_index": m.order_index} for m in modules}
 
     chapters = (
@@ -86,10 +82,14 @@ async def get_course_student_progress(
 
     all_quiz_ids = [q.id for qs in quiz_map.values() for q in qs]
     all_attempts = (
-        db.query(QuizAttempt)
-        .filter(QuizAttempt.quiz_id.in_(all_quiz_ids), QuizAttempt.completed_at.isnot(None))
-        .all()
-    ) if all_quiz_ids else []
+        (
+            db.query(QuizAttempt)
+            .filter(QuizAttempt.quiz_id.in_(all_quiz_ids), QuizAttempt.completed_at.isnot(None))
+            .all()
+        )
+        if all_quiz_ids
+        else []
+    )
 
     quiz_to_chapter = {}
     quiz_to_quiz_id = {}
@@ -110,10 +110,10 @@ async def get_course_student_progress(
 
     all_assignment_ids = [a.id for al in assignment_map.values() for a in al]
     all_submissions = (
-        db.query(AssignmentSubmission)
-        .filter(AssignmentSubmission.assignment_id.in_(all_assignment_ids))
-        .all()
-    ) if all_assignment_ids else []
+        (db.query(AssignmentSubmission).filter(AssignmentSubmission.assignment_id.in_(all_assignment_ids)).all())
+        if all_assignment_ids
+        else []
+    )
 
     assignment_to_chapter: dict = {}
     assignment_by_id: dict = {}
@@ -133,13 +133,17 @@ async def get_course_student_progress(
             latest_sub_by_user[uid] = s.submitted_at
 
     all_progress = (
-        db.query(ChapterProgress)
-        .filter(
-            ChapterProgress.chapter_id.in_(chapter_ids),
-            ChapterProgress.completed == True,
+        (
+            db.query(ChapterProgress)
+            .filter(
+                ChapterProgress.chapter_id.in_(chapter_ids),
+                ChapterProgress.completed == True,
+            )
+            .all()
         )
-        .all()
-    ) if chapter_ids else []
+        if chapter_ids
+        else []
+    )
 
     progress_by_user: dict[str, dict[str, ChapterProgress]] = defaultdict(dict)
     for p in all_progress:
@@ -153,16 +157,18 @@ async def get_course_student_progress(
         for ch_id in quiz_map:
             best_attempts = attempts_by_user_chapter.get((uid, ch_id), [])
             if best_attempts:
-                best = max(best_attempts, key=lambda a: (a.score or 0))
-                quiz_results.append({
-                    "chapter_title": chapter_map.get(str(ch_id), ""),
-                    "chapter_id": str(ch_id),
-                    "quiz_id": quiz_to_quiz_id.get(best.quiz_id, ""),
-                    "score": best.score or 0,
-                    "max_score": best.max_score or 0,
-                    "passed": bool(best.passed),
-                    "attempts_used": len(best_attempts),
-                })
+                best = max(best_attempts, key=lambda a: a.score or 0)
+                quiz_results.append(
+                    {
+                        "chapter_title": chapter_map.get(str(ch_id), ""),
+                        "chapter_id": str(ch_id),
+                        "quiz_id": quiz_to_quiz_id.get(best.quiz_id, ""),
+                        "score": best.score or 0,
+                        "max_score": best.max_score or 0,
+                        "passed": bool(best.passed),
+                        "attempts_used": len(best_attempts),
+                    }
+                )
 
         assignment_results = []
         for ch_id in assignment_map:
@@ -171,14 +177,16 @@ async def get_course_student_progress(
                 a_subs = [s for s in submissions if str(s.assignment_id) == str(a.id)]
                 if a_subs:
                     latest = max(a_subs, key=lambda s: s.submitted_at or datetime.min)
-                    assignment_results.append({
-                        "chapter_title": chapter_map.get(str(ch_id), ""),
-                        "chapter_id": str(ch_id),
-                        "title": a.title,
-                        "status": latest.status or "submitted",
-                        "grade": latest.grade,
-                        "max_score": a.max_score or 0,
-                    })
+                    assignment_results.append(
+                        {
+                            "chapter_title": chapter_map.get(str(ch_id), ""),
+                            "chapter_id": str(ch_id),
+                            "title": a.title,
+                            "status": latest.status or "submitted",
+                            "grade": latest.grade,
+                            "max_score": a.max_score or 0,
+                        }
+                    )
 
         user_progress = progress_by_user.get(uid, {})
         chapters_completed = sum(1 for cid in gradable_chapter_ids if cid in user_progress)
@@ -189,7 +197,7 @@ async def get_course_student_progress(
             ch_quiz_results = attempts_by_user_chapter.get((uid, ch.id), [])
             quiz_data = None
             if ch_quiz_results:
-                best = max(ch_quiz_results, key=lambda a: (a.score or 0))
+                best = max(ch_quiz_results, key=lambda a: a.score or 0)
                 quiz_data = {
                     "score": best.score or 0,
                     "max_score": best.max_score or 0,
@@ -206,36 +214,40 @@ async def get_course_student_progress(
                     "grade": latest_sub.grade,
                     "max_score": max_score,
                 }
-            chapter_infos.append({
-                "id": str(ch.id),
-                "title": ch.title,
-                "module_id": str(ch.module_id),
-                "chapter_type": ch.chapter_type or "reading",
-                "requires_completion": bool(getattr(ch, "requires_completion", False)),
-                "completed": cp is not None,
-                "completed_by": cp.completion_type if cp else None,
-                "quiz_result": quiz_data,
-                "assignment_result": asgn_data,
-            })
+            chapter_infos.append(
+                {
+                    "id": str(ch.id),
+                    "title": ch.title,
+                    "module_id": str(ch.module_id),
+                    "chapter_type": ch.chapter_type or "reading",
+                    "requires_completion": bool(getattr(ch, "requires_completion", False)),
+                    "completed": cp is not None,
+                    "completed_by": cp.completion_type if cp else None,
+                    "quiz_result": quiz_data,
+                    "assignment_result": asgn_data,
+                }
+            )
 
         latest_activity = enrollment.enrolled_at
         for ts in [latest_quiz_by_user.get(uid), latest_sub_by_user.get(uid)]:
             if ts and (latest_activity is None or ts > latest_activity):
                 latest_activity = ts
 
-        student_progress.append({
-            "id": uid,
-            "full_name": user.full_name or user.email,
-            "email": user.email,
-            "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
-            "progress": enrollment.progress,
-            "chapters_completed": chapters_completed,
-            "total_chapters": len(gradable_chapter_ids),
-            "quiz_results": quiz_results,
-            "assignment_results": assignment_results,
-            "last_activity": latest_activity.isoformat() if latest_activity else None,
-            "chapters": chapter_infos,
-        })
+        student_progress.append(
+            {
+                "id": uid,
+                "full_name": user.full_name or user.email,
+                "email": user.email,
+                "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+                "progress": enrollment.progress,
+                "chapters_completed": chapters_completed,
+                "total_chapters": len(gradable_chapter_ids),
+                "quiz_results": quiz_results,
+                "assignment_results": assignment_results,
+                "last_activity": latest_activity.isoformat() if latest_activity else None,
+                "chapters": chapter_infos,
+            }
+        )
 
     return {
         "course_id": course_id,
@@ -256,11 +268,7 @@ async def teacher_complete_chapter(
 ):
     _chapter, course_id = verify_chapter_owner(db, chapter_id, teacher.id)
 
-    enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id)
-        .first()
-    )
+    enrolled = db.query(Enrollment).filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id).first()
     if not enrolled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -282,7 +290,7 @@ async def teacher_complete_chapter(
         )
         db.add(progress)
     progress.completed = True
-    progress.completed_at = datetime.now(timezone.utc)
+    progress.completed_at = datetime.now(UTC)
     progress.completed_by = teacher.id
     progress.completion_type = "teacher"
     db.commit()
@@ -299,11 +307,7 @@ async def teacher_uncomplete_chapter(
 ):
     _chapter, course_id = verify_chapter_owner(db, chapter_id, teacher.id)
 
-    enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id)
-        .first()
-    )
+    enrolled = db.query(Enrollment).filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id).first()
     if not enrolled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

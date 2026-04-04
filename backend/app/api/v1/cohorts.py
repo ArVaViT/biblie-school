@@ -1,22 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.api.dependencies import require_teacher, verify_course_owner
-from app.models.user import User
+from app.core.database import get_db
 from app.models.cohort import Cohort
 from app.models.enrollment import Enrollment
 from app.models.student_grade import StudentGrade
-from app.schemas.cohort import CohortCreate, CohortUpdate, CohortResponse
+from app.models.user import User
+from app.schemas.cohort import CohortCreate, CohortResponse, CohortUpdate
 
 router = APIRouter(prefix="/cohorts", tags=["cohorts"])
 
 
 def _cohort_to_response(db: Session, cohort: Cohort) -> CohortResponse:
-    student_count = db.query(func.count(Enrollment.id)).filter(
-        Enrollment.cohort_id == cohort.id
-    ).scalar() or 0
+    student_count = db.query(func.count(Enrollment.id)).filter(Enrollment.cohort_id == cohort.id).scalar() or 0
 
     return CohortResponse(
         id=str(cohort.id),
@@ -46,12 +44,7 @@ async def list_cohorts(
     course_id: str,
     db: Session = Depends(get_db),
 ) -> list[CohortResponse]:
-    cohorts = (
-        db.query(Cohort)
-        .filter(Cohort.course_id == course_id)
-        .order_by(Cohort.start_date.desc())
-        .all()
-    )
+    cohorts = db.query(Cohort).filter(Cohort.course_id == course_id).order_by(Cohort.start_date.desc()).all()
     if not cohorts:
         return []
 
@@ -150,11 +143,7 @@ async def list_cohort_students(
     cohort = _get_cohort_or_404(db, cohort_id)
     verify_course_owner(db, cohort.course_id, teacher.id)
 
-    enrollments = (
-        db.query(Enrollment)
-        .filter(Enrollment.cohort_id == cohort.id)
-        .all()
-    )
+    enrollments = db.query(Enrollment).filter(Enrollment.cohort_id == cohort.id).all()
 
     student_ids = [e.user_id for e in enrollments]
     grades_map: dict[str, StudentGrade] = {}
@@ -173,14 +162,16 @@ async def list_cohort_students(
     results = []
     for enrollment in enrollments:
         grade = grades_map.get(str(enrollment.user_id))
-        results.append({
-            "enrollment_id": str(enrollment.id),
-            "user_id": str(enrollment.user_id),
-            "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
-            "progress": enrollment.progress,
-            "grade": grade.grade if grade else None,
-            "grade_comment": grade.comment if grade else None,
-        })
+        results.append(
+            {
+                "enrollment_id": str(enrollment.id),
+                "user_id": str(enrollment.user_id),
+                "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+                "progress": enrollment.progress,
+                "grade": grade.grade if grade else None,
+                "grade_comment": grade.comment if grade else None,
+            }
+        )
 
     return results
 

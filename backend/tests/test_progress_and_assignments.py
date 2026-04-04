@@ -3,11 +3,11 @@ import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import get_current_user, get_optional_user
+from app.main import app
 from app.models.assignment import Assignment
 from app.models.chapter_progress import ChapterProgress
 from app.models.course import Chapter, Course, Module
-from app.api.dependencies import get_current_user, get_optional_user
-from app.main import app
 from app.models.enrollment import Enrollment
 from app.models.user import User, UserRole
 from tests.conftest import STUDENT_ID, TEACHER_ID
@@ -241,7 +241,11 @@ class TestListAssignmentSubmissions:
     """GET /api/v1/assignments/{assignment_id}/submissions"""
 
     def test_teacher_lists_submissions(
-        self, client: TestClient, student_client: TestClient, db: Session, teacher: User,
+        self,
+        client: TestClient,
+        student_client: TestClient,
+        db: Session,
+        teacher: User,
     ):
         _course, _mod, chapter = _seed_course_graph(db)
         aid = uuid.uuid4()
@@ -284,7 +288,11 @@ class TestGradeSubmission:
     """PUT /api/v1/assignments/submissions/{submission_id}/grade"""
 
     def test_happy_path(
-        self, client: TestClient, student_client: TestClient, db: Session, teacher: User,
+        self,
+        client: TestClient,
+        student_client: TestClient,
+        db: Session,
+        teacher: User,
     ):
         _course, _mod, chapter = _seed_course_graph(db)
         aid = uuid.uuid4()
@@ -316,7 +324,11 @@ class TestGradeSubmission:
         assert body["status"] == "graded"
 
     def test_grade_exceeds_max_score(
-        self, client: TestClient, student_client: TestClient, db: Session, teacher: User,
+        self,
+        client: TestClient,
+        student_client: TestClient,
+        db: Session,
+        teacher: User,
     ):
         _course, _mod, chapter = _seed_course_graph(db)
         aid = uuid.uuid4()
@@ -398,9 +410,7 @@ def test_student_can_fetch_own_assignment_submissions(student_client: TestClient
     )
     assert submit_response.status_code == 201, submit_response.text
 
-    my_submissions_response = student_client.get(
-        f"/api/v1/assignments/{assignment.id}/my-submissions"
-    )
+    my_submissions_response = student_client.get(f"/api/v1/assignments/{assignment.id}/my-submissions")
 
     assert my_submissions_response.status_code == 200, my_submissions_response.text
     body = my_submissions_response.json()
@@ -420,9 +430,7 @@ def test_student_can_fetch_own_assignment_submissions(student_client: TestClient
     assert progress.completed is True
 
     enrollment = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == STUDENT_ID, Enrollment.course_id == course.id)
-        .first()
+        db.query(Enrollment).filter(Enrollment.user_id == STUDENT_ID, Enrollment.course_id == course.id).first()
     )
     assert enrollment is not None
     assert enrollment.progress == 100
@@ -443,22 +451,23 @@ def test_content_chapter_does_not_affect_progress(student_client: TestClient, db
     db.commit()
 
     enrollment = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == STUDENT_ID, Enrollment.course_id == course.id)
-        .first()
+        db.query(Enrollment).filter(Enrollment.user_id == STUDENT_ID, Enrollment.course_id == course.id).first()
     )
     assert enrollment is not None
     assert enrollment.progress == 0
 
-    db.add(ChapterProgress(
-        user_id=STUDENT_ID,
-        chapter_id=_chapter.id,
-        completed=True,
-        completion_type="quiz",
-    ))
+    db.add(
+        ChapterProgress(
+            user_id=STUDENT_ID,
+            chapter_id=_chapter.id,
+            completed=True,
+            completion_type="quiz",
+        )
+    )
     db.commit()
 
     from app.services.course_service import sync_enrollment_progress
+
     sync_enrollment_progress(db, STUDENT_ID, course.id)
     db.refresh(enrollment)
     assert enrollment.progress == 100

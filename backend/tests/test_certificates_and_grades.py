@@ -1,6 +1,8 @@
 """Tests for certificate, grade, and teacher-progress endpoints."""
+
+import contextlib
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import sqlalchemy.types as _sa_types
 from fastapi.testclient import TestClient
@@ -9,12 +11,12 @@ from sqlalchemy.orm import Session
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.certificate import Certificate
 from app.models.chapter_progress import ChapterProgress
-from app.models.course import Course, Module, Chapter
+from app.models.course import Chapter, Course, Module
 from app.models.enrollment import Enrollment
 from app.models.quiz import Quiz, QuizAttempt
 from app.models.student_grade import StudentGrade
 from app.models.user import User, UserRole
-from tests.conftest import TEACHER_ID, STUDENT_ID
+from tests.conftest import STUDENT_ID, TEACHER_ID
 
 # SQLite does not auto-cast str → UUID for bind parameters.  The grade
 # endpoints receive ``student_id`` as a plain ``str`` from the URL and
@@ -31,10 +33,8 @@ def _patched_uuid_bp(self, dialect):
 
     def _wrap(value):
         if isinstance(value, str):
-            try:
+            with contextlib.suppress(ValueError, AttributeError):
                 value = uuid.UUID(value)
-            except (ValueError, AttributeError):
-                pass
         return fn(value)
 
     return _wrap
@@ -52,8 +52,10 @@ def _ensure_student(db: Session) -> User:
     if existing:
         return existing
     user = User(
-        id=STUDENT_ID, email="student@example.com",
-        full_name="Test Student", role=UserRole.STUDENT.value,
+        id=STUDENT_ID,
+        email="student@example.com",
+        full_name="Test Student",
+        role=UserRole.STUDENT.value,
     )
     db.add(user)
     db.flush()
@@ -65,8 +67,10 @@ def _ensure_other_teacher(db: Session) -> User:
     if existing:
         return existing
     user = User(
-        id=OTHER_TEACHER_ID, email="other@example.com",
-        full_name="Other Teacher", role=UserRole.TEACHER.value,
+        id=OTHER_TEACHER_ID,
+        email="other@example.com",
+        full_name="Other Teacher",
+        role=UserRole.TEACHER.value,
     )
     db.add(user)
     db.flush()
@@ -81,17 +85,27 @@ def _seed_course(
     owner: uuid.UUID = TEACHER_ID,
 ) -> tuple[Course, Module, Chapter]:
     course = Course(
-        id=course_id, title="Test Course", description="Test",
-        status="published", created_by=owner,
-        quiz_weight=30, assignment_weight=50, participation_weight=20,
+        id=course_id,
+        title="Test Course",
+        description="Test",
+        status="published",
+        created_by=owner,
+        quiz_weight=30,
+        assignment_weight=50,
+        participation_weight=20,
     )
     module = Module(
-        id=f"{course_id}-mod", course_id=course_id,
-        title="Module 1", order_index=1,
+        id=f"{course_id}-mod",
+        course_id=course_id,
+        title="Module 1",
+        order_index=1,
     )
     chapter = Chapter(
-        id=f"{course_id}-ch", module_id=module.id,
-        title="Chapter 1", order_index=1, chapter_type=chapter_type,
+        id=f"{course_id}-ch",
+        module_id=module.id,
+        title="Chapter 1",
+        order_index=1,
+        chapter_type=chapter_type,
     )
     db.add_all([course, module, chapter])
     db.commit()
@@ -107,11 +121,15 @@ def _seed_enrolled_course(
 ) -> tuple[Course, Module, Chapter, Enrollment]:
     _ensure_student(db)
     course, module, chapter = _seed_course(
-        db, course_id=course_id, chapter_type=chapter_type,
+        db,
+        course_id=course_id,
+        chapter_type=chapter_type,
     )
     enrollment = Enrollment(
-        id=f"enroll-{course_id}", user_id=STUDENT_ID,
-        course_id=course_id, progress=progress,
+        id=f"enroll-{course_id}",
+        user_id=STUDENT_ID,
+        course_id=course_id,
+        progress=progress,
     )
     db.add(enrollment)
     db.commit()
@@ -119,17 +137,23 @@ def _seed_enrolled_course(
 
 
 def _seed_foreign_course(
-    db: Session, course_id: str = "other-course",
+    db: Session,
+    course_id: str = "other-course",
 ) -> tuple[Course, Module, Chapter]:
     _ensure_other_teacher(db)
     return _seed_course(db, course_id=course_id, owner=OTHER_TEACHER_ID)
 
 
 def _seed_certificate(
-    db: Session, course_id: str, *, cert_status: str = "pending",
+    db: Session,
+    course_id: str,
+    *,
+    cert_status: str = "pending",
 ) -> Certificate:
     cert = Certificate(
-        user_id=STUDENT_ID, course_id=course_id, status=cert_status,
+        user_id=STUDENT_ID,
+        course_id=course_id,
+        status=cert_status,
     )
     db.add(cert)
     db.commit()
@@ -144,11 +168,19 @@ def _make_admin(db: Session) -> None:
 
 
 def _seed_grade(
-    db: Session, course_id: str, *, grade: str = "A", comment: str = "Good work",
+    db: Session,
+    course_id: str,
+    *,
+    grade: str = "A",
+    comment: str = "Good work",
 ) -> StudentGrade:
     sg = StudentGrade(
-        id=uuid.uuid4(), student_id=STUDENT_ID, course_id=course_id,
-        grade=grade, comment=comment, graded_by=TEACHER_ID,
+        id=uuid.uuid4(),
+        student_id=STUDENT_ID,
+        course_id=course_id,
+        grade=grade,
+        comment=comment,
+        graded_by=TEACHER_ID,
     )
     db.add(sg)
     db.commit()
@@ -306,10 +338,14 @@ class TestTeacherApproveCertificate:
     def test_not_course_owner(self, client: TestClient, db: Session):
         _ensure_student(db)
         _seed_foreign_course(db)
-        db.add(Enrollment(
-            id="enroll-other", user_id=STUDENT_ID,
-            course_id="other-course", progress=100,
-        ))
+        db.add(
+            Enrollment(
+                id="enroll-other",
+                user_id=STUDENT_ID,
+                course_id="other-course",
+                progress=100,
+            )
+        )
         db.commit()
         cert = _seed_certificate(db, "other-course")
         r = client.put(f"/api/v1/certificates/{cert.id}/teacher-approve")
@@ -392,10 +428,14 @@ class TestRejectCertificate:
     def test_not_course_owner(self, client: TestClient, db: Session):
         _ensure_student(db)
         _seed_foreign_course(db)
-        db.add(Enrollment(
-            id="enroll-other", user_id=STUDENT_ID,
-            course_id="other-course", progress=100,
-        ))
+        db.add(
+            Enrollment(
+                id="enroll-other",
+                user_id=STUDENT_ID,
+                course_id="other-course",
+                progress=100,
+            )
+        )
         db.commit()
         cert = _seed_certificate(db, "other-course")
         r = client.put(f"/api/v1/certificates/{cert.id}/reject")
@@ -762,8 +802,8 @@ def _seed_teacher_progress_dashboard(db: Session) -> tuple[str, uuid.UUID, uuid.
         title="Unit quiz",
         description=None,
     )
-    t0 = datetime(2024, 1, 10, 12, 0, tzinfo=timezone.utc)
-    t1 = datetime(2024, 1, 11, 12, 0, tzinfo=timezone.utc)
+    t0 = datetime(2024, 1, 10, 12, 0, tzinfo=UTC)
+    t1 = datetime(2024, 1, 11, 12, 0, tzinfo=UTC)
     attempt_low = QuizAttempt(
         quiz_id=quiz_id,
         user_id=STUDENT_ID,
@@ -793,7 +833,7 @@ def _seed_teacher_progress_dashboard(db: Session) -> tuple[str, uuid.UUID, uuid.
         student_id=STUDENT_ID,
         content="Draft",
         status="submitted",
-        submitted_at=datetime(2024, 1, 12, 12, 0, tzinfo=timezone.utc),
+        submitted_at=datetime(2024, 1, 12, 12, 0, tzinfo=UTC),
     )
     enrollment = Enrollment(
         id=f"enroll-{course_id}",
@@ -828,9 +868,7 @@ class TestCourseStudentProgress:
     """GET /api/v1/progress/course/{course_id}/students — teacher dashboard."""
 
     def test_happy_path_includes_quiz_assignment_and_chapters(self, client: TestClient, db: Session):
-        course_id, quiz_id, asg_id, ch_quiz_id, ch_asg_id, ch_read_id = (
-            _seed_teacher_progress_dashboard(db)
-        )
+        course_id, quiz_id, _asg_id, ch_quiz_id, ch_asg_id, ch_read_id = _seed_teacher_progress_dashboard(db)
         r = client.get(f"/api/v1/progress/course/{course_id}/students")
         assert r.status_code == 200, r.text
         body = r.json()
@@ -915,10 +953,14 @@ class TestTeacherCompleteChapter:
 
     def test_already_completed(self, client: TestClient, db: Session):
         _seed_enrolled_course(db)
-        db.add(ChapterProgress(
-            user_id=STUDENT_ID, chapter_id="course-1-ch",
-            completed=True, completion_type="self",
-        ))
+        db.add(
+            ChapterProgress(
+                user_id=STUDENT_ID,
+                chapter_id="course-1-ch",
+                completed=True,
+                completion_type="self",
+            )
+        )
         db.commit()
         r = client.put(
             f"/api/v1/progress/chapter/course-1-ch/student/{STUDENT_ID}/complete",
@@ -954,10 +996,14 @@ class TestTeacherIncompleteChapter:
 
     def test_happy_path(self, client: TestClient, db: Session):
         _seed_enrolled_course(db)
-        db.add(ChapterProgress(
-            user_id=STUDENT_ID, chapter_id="course-1-ch",
-            completed=True, completion_type="teacher",
-        ))
+        db.add(
+            ChapterProgress(
+                user_id=STUDENT_ID,
+                chapter_id="course-1-ch",
+                completed=True,
+                completion_type="teacher",
+            )
+        )
         db.commit()
         r = client.put(
             f"/api/v1/progress/chapter/course-1-ch/student/{STUDENT_ID}/incomplete",

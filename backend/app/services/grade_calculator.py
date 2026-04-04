@@ -1,17 +1,17 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import func as sqlfunc
 from uuid import UUID
 
-from app.models.course import Course, Module, Chapter
-from app.models.quiz import Quiz, QuizAttempt
+from sqlalchemy import func as sqlfunc
+from sqlalchemy.orm import Session
+
+from app.constants import GRADABLE_CHAPTER_TYPES
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.chapter_progress import ChapterProgress
+from app.models.course import Chapter, Course, Module
 from app.models.enrollment import Enrollment
+from app.models.quiz import Quiz, QuizAttempt
 from app.models.student_grade import StudentGrade
 from app.models.user import User
 from app.schemas.grade import GradeBreakdown
-from app.constants import GRADABLE_CHAPTER_TYPES
-
 
 LETTER_GRADES = [
     (90, "A"),
@@ -90,9 +90,7 @@ def calculate_student_grade(
         rows = (
             db.query(
                 QuizAttempt.quiz_id,
-                sqlfunc.max(
-                    QuizAttempt.score * 100.0 / sqlfunc.nullif(QuizAttempt.max_score, 0)
-                ).label("best"),
+                sqlfunc.max(QuizAttempt.score * 100.0 / sqlfunc.nullif(QuizAttempt.max_score, 0)).label("best"),
             )
             .filter(
                 QuizAttempt.quiz_id.in_(quiz_ids),
@@ -126,8 +124,7 @@ def calculate_student_grade(
         total_assignments = len(assignment_ids)
         if total_assignments > 0:
             graded_pcts = [
-                (row.best_grade / row.max_score * 100.0) if row.max_score else 0.0
-                for row in best_per_assignment
+                (row.best_grade / row.max_score * 100.0) if row.max_score else 0.0 for row in best_per_assignment
             ]
             assignment_avg = sum(graded_pcts) / total_assignments
 
@@ -175,9 +172,7 @@ def calculate_all_student_grades(db: Session, course: Course):
             db.query(
                 QuizAttempt.user_id,
                 QuizAttempt.quiz_id,
-                sqlfunc.max(
-                    QuizAttempt.score * 100.0 / sqlfunc.nullif(QuizAttempt.max_score, 0)
-                ).label("best"),
+                sqlfunc.max(QuizAttempt.score * 100.0 / sqlfunc.nullif(QuizAttempt.max_score, 0)).label("best"),
             )
             .filter(
                 QuizAttempt.quiz_id.in_(quiz_ids),
@@ -237,9 +232,7 @@ def calculate_all_student_grades(db: Session, course: Course):
     # Manual grades
     manual_grades_map: dict[str, str | None] = {}
     manual_rows = (
-        db.query(StudentGrade.student_id, StudentGrade.grade)
-        .filter(StudentGrade.course_id == course.id)
-        .all()
+        db.query(StudentGrade.student_id, StudentGrade.grade).filter(StudentGrade.course_id == course.id).all()
     )
     for row in manual_rows:
         manual_grades_map[str(row.student_id)] = row.grade
@@ -258,12 +251,14 @@ def calculate_all_student_grades(db: Session, course: Course):
         participation_pct = (comp / total_chapters * 100.0) if total_chapters else 0.0
 
         breakdown = _build_breakdown(course, quiz_avg, assignment_avg, participation_pct)
-        results.append({
-            "student_id": sid,
-            "student_name": full_name,
-            "student_email": email,
-            "breakdown": breakdown,
-            "manual_grade": manual_grades_map.get(sid),
-        })
+        results.append(
+            {
+                "student_id": sid,
+                "student_name": full_name,
+                "student_email": email,
+                "breakdown": breakdown,
+                "manual_grade": manual_grades_map.get(sid),
+            }
+        )
 
     return results

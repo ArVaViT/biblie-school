@@ -1,8 +1,10 @@
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, DateTime, UniqueConstraint, Index
+import uuid
+
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from app.core.database import Base
-import uuid
 
 
 class CourseReview(Base):

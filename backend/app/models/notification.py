@@ -1,8 +1,10 @@
-from sqlalchemy import Column, String, Text, Boolean, DateTime, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import UUID, JSON
-from sqlalchemy.sql import func
-from app.core.database import Base
 import uuid
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSON, UUID
+from sqlalchemy.sql import func
+
+from app.core.database import Base
 
 
 class Notification(Base):

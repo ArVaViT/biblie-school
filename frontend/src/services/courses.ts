@@ -1,5 +1,6 @@
 import api from "./api"
 import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
+import { isAxiosError } from "axios"
 import type {
   User, Course, Module, Chapter, Enrollment, Announcement, StudentGrade,
   Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, Cohort,
@@ -7,6 +8,7 @@ import type {
   AuditLogPage,
   GradingConfig, GradeSummaryResponse,
   CalendarEvent, CourseEvent,
+  StudentProgressResponse,
 } from "../types"
 
 type CohortMutation = {
@@ -255,8 +257,7 @@ export const coursesService = {
       cacheSet(key, response.data, 5 * 60 * 1000)
       return response.data
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status
-      if (status === 404) {
+      if (isAxiosError(err) && err.response?.status === 404) {
         cacheSet(key, null, 5 * 60 * 1000)
         return null
       }
@@ -372,8 +373,7 @@ export const coursesService = {
       const response = await api.get<Certificate>(`/certificates/course/${courseId}`)
       return response.data
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status
-      if (status === 404) return null
+      if (isAxiosError(err) && err.response?.status === 404) return null
       throw err
     }
   },
@@ -435,9 +435,8 @@ export const coursesService = {
     return response.data
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async getStudentProgress(courseId: string): Promise<any> {
-    const response = await api.get(`/progress/course/${courseId}/students`)
+  async getStudentProgress(courseId: string): Promise<StudentProgressResponse> {
+    const response = await api.get<StudentProgressResponse>(`/progress/course/${courseId}/students`)
     return response.data
   },
 

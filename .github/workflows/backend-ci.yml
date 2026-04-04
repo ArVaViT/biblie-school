@@ -22,7 +22,6 @@ jobs:
       run:
         working-directory: backend
     env:
-      # Optional repo variables / secrets override CI-safe defaults (configure in GitHub Settings).
       SUPABASE_URL: ${{ vars.CI_SUPABASE_URL || 'https://example.supabase.co' }}
       SUPABASE_KEY: ${{ secrets.CI_SUPABASE_ANON_KEY || 'ci-placeholder-not-real' }}
       DATABASE_URL: ${{ secrets.CI_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/ci' }}
@@ -44,6 +43,9 @@ jobs:
 
       - name: Lint with Ruff
         run: ruff check app/ tests/
+
+      - name: Check formatting with Ruff
+        run: ruff format app/ tests/ --check
 
       - name: Verify main entrypoint syntax
         run: python -m py_compile app/main.py

@@ -1,7 +1,9 @@
-from sqlalchemy.orm import Session
-from app.models.notification import Notification
-from typing import Any
 import uuid
+from typing import Any
+
+from sqlalchemy.orm import Session
+
+from app.models.notification import Notification
 
 
 def create_notification(

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
+import { getErrorDetail } from "@/lib/errorDetail"
 import type { Quiz, QuizAttempt, QuizQuestion } from "@/types"
 import {
   CheckCircle,
@@ -17,22 +18,6 @@ import { toast } from "@/hooks/use-toast"
 
 interface QuizTakerProps {
   chapterId: string
-}
-
-function getErrorDetail(error: unknown): string | undefined {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof (error as { response?: unknown }).response === "object"
-  ) {
-    const response = (error as { response?: { data?: { detail?: unknown } } }).response
-    if (typeof response?.data?.detail === "string") {
-      return response.data.detail
-    }
-  }
-
-  return undefined
 }
 
 export default function QuizTaker({ chapterId }: QuizTakerProps) {

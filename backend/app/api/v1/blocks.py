@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from uuid import UUID
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.api.dependencies import get_current_user, require_teacher, verify_chapter_access, verify_chapter_owner
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner, verify_chapter_access
-from app.models.user import User
 from app.models.chapter_block import ChapterBlock
-from app.schemas.chapter_block import BlockCreate, BlockUpdate, BlockResponse, BlockReorderItem
+from app.models.user import User
+from app.schemas.chapter_block import BlockCreate, BlockReorderItem, BlockResponse, BlockUpdate
 
 router = APIRouter(prefix="/blocks", tags=["blocks"])
 
@@ -18,12 +19,7 @@ async def list_blocks(
     db: Session = Depends(get_db),
 ):
     verify_chapter_access(db, chapter_id, current_user)
-    return (
-        db.query(ChapterBlock)
-        .filter(ChapterBlock.chapter_id == chapter_id)
-        .order_by(ChapterBlock.order_index)
-        .all()
-    )
+    return db.query(ChapterBlock).filter(ChapterBlock.chapter_id == chapter_id).order_by(ChapterBlock.order_index).all()
 
 
 @router.post("/chapter/{chapter_id}", response_model=BlockResponse, status_code=status.HTTP_201_CREATED)
@@ -91,16 +87,15 @@ async def reorder_blocks(
 ):
     verify_chapter_owner(db, chapter_id, teacher.id)
     for item in items:
-        block = db.query(ChapterBlock).filter(
-            ChapterBlock.id == item.id,
-            ChapterBlock.chapter_id == chapter_id,
-        ).first()
+        block = (
+            db.query(ChapterBlock)
+            .filter(
+                ChapterBlock.id == item.id,
+                ChapterBlock.chapter_id == chapter_id,
+            )
+            .first()
+        )
         if block:
             block.order_index = item.order_index
     db.commit()
-    return (
-        db.query(ChapterBlock)
-        .filter(ChapterBlock.chapter_id == chapter_id)
-        .order_by(ChapterBlock.order_index)
-        .all()
-    )
+    return db.query(ChapterBlock).filter(ChapterBlock.chapter_id == chapter_id).order_by(ChapterBlock.order_index).all()

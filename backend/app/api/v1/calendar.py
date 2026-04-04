@@ -1,14 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from app.core.database import get_db
+
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
-from app.models.user import User
-from app.models.course import Course, Module, Chapter
-from app.models.enrollment import Enrollment
+from app.core.database import get_db
 from app.models.assignment import Assignment
+from app.models.course import Chapter, Course, Module
 from app.models.course_event import CourseEvent
+from app.models.enrollment import Enrollment
+from app.models.user import User
 from app.schemas.calendar import (
-    CourseEventCreate, CourseEventUpdate, CourseEventResponse, CalendarEvent,
+    CalendarEvent,
+    CourseEventCreate,
+    CourseEventResponse,
+    CourseEventUpdate,
 )
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
@@ -20,9 +24,7 @@ async def get_calendar_events(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[CalendarEvent]:
-    enrolled_q = db.query(Enrollment.course_id).filter(
-        Enrollment.user_id == current_user.id
-    )
+    enrolled_q = db.query(Enrollment.course_id).filter(Enrollment.user_id == current_user.id)
     if course_id:
         enrolled_q = enrolled_q.filter(Enrollment.course_id == course_id)
     enrolled_course_ids = [row[0] for row in enrolled_q.all()]
@@ -31,30 +33,26 @@ async def get_calendar_events(
         return []
 
     course_titles: dict[str, str] = {}
-    courses = db.query(Course.id, Course.title).filter(
-        Course.id.in_(enrolled_course_ids)
-    ).all()
+    courses = db.query(Course.id, Course.title).filter(Course.id.in_(enrolled_course_ids)).all()
     for cid, ctitle in courses:
         course_titles[cid] = ctitle
 
     events: list[CalendarEvent] = []
 
-    modules = (
-        db.query(Module)
-        .filter(Module.course_id.in_(enrolled_course_ids), Module.due_date.isnot(None))
-        .all()
-    )
+    modules = db.query(Module).filter(Module.course_id.in_(enrolled_course_ids), Module.due_date.isnot(None)).all()
     for m in modules:
-        events.append(CalendarEvent(
-            id=f"module-{m.id}",
-            title=f"{m.title} — Due",
-            description=m.description,
-            event_type="deadline",
-            event_date=m.due_date,
-            course_id=m.course_id,
-            course_title=course_titles.get(m.course_id),
-            source="module_deadline",
-        ))
+        events.append(
+            CalendarEvent(
+                id=f"module-{m.id}",
+                title=f"{m.title} — Due",
+                description=m.description,
+                event_type="deadline",
+                event_date=m.due_date,
+                course_id=m.course_id,
+                course_title=course_titles.get(m.course_id),
+                source="module_deadline",
+            )
+        )
 
     chapter_ids_by_course: dict[str, list[str]] = {}
     chapters = (
@@ -83,33 +81,33 @@ async def get_calendar_events(
         )
         for a in assignments:
             crs_id = ch_to_course.get(a.chapter_id, "")
-            events.append(CalendarEvent(
-                id=f"assignment-{a.id}",
-                title=a.title,
-                description=a.description,
-                event_type="deadline",
-                event_date=a.due_date,
-                course_id=crs_id,
-                course_title=course_titles.get(crs_id),
-                source="assignment_deadline",
-            ))
+            events.append(
+                CalendarEvent(
+                    id=f"assignment-{a.id}",
+                    title=a.title,
+                    description=a.description,
+                    event_type="deadline",
+                    event_date=a.due_date,
+                    course_id=crs_id,
+                    course_title=course_titles.get(crs_id),
+                    source="assignment_deadline",
+                )
+            )
 
-    course_events = (
-        db.query(CourseEvent)
-        .filter(CourseEvent.course_id.in_(enrolled_course_ids))
-        .all()
-    )
+    course_events = db.query(CourseEvent).filter(CourseEvent.course_id.in_(enrolled_course_ids)).all()
     for ce in course_events:
-        events.append(CalendarEvent(
-            id=str(ce.id),
-            title=ce.title,
-            description=ce.description,
-            event_type=ce.event_type,
-            event_date=ce.event_date,
-            course_id=ce.course_id,
-            course_title=course_titles.get(ce.course_id),
-            source="course_event",
-        ))
+        events.append(
+            CalendarEvent(
+                id=str(ce.id),
+                title=ce.title,
+                description=ce.description,
+                event_type=ce.event_type,
+                event_date=ce.event_date,
+                course_id=ce.course_id,
+                course_title=course_titles.get(ce.course_id),
+                source="course_event",
+            )
+        )
 
     events.sort(key=lambda e: e.event_date)
     return events
@@ -173,12 +171,7 @@ async def list_course_events(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You must be enrolled in this course to view events",
             )
-    events = (
-        db.query(CourseEvent)
-        .filter(CourseEvent.course_id == course_id)
-        .order_by(CourseEvent.event_date)
-        .all()
-    )
+    events = db.query(CourseEvent).filter(CourseEvent.course_id == course_id).order_by(CourseEvent.event_date).all()
     return events
 
 
@@ -194,10 +187,14 @@ async def update_course_event(
     db: Session = Depends(get_db),
 ) -> CourseEventResponse:
     verify_course_owner(db, course_id, teacher.id)
-    event = db.query(CourseEvent).filter(
-        CourseEvent.id == event_id,
-        CourseEvent.course_id == course_id,
-    ).first()
+    event = (
+        db.query(CourseEvent)
+        .filter(
+            CourseEvent.id == event_id,
+            CourseEvent.course_id == course_id,
+        )
+        .first()
+    )
     if not event:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     for field, value in data.model_dump(exclude_unset=True).items():
@@ -218,10 +215,14 @@ async def delete_course_event(
     db: Session = Depends(get_db),
 ) -> None:
     verify_course_owner(db, course_id, teacher.id)
-    event = db.query(CourseEvent).filter(
-        CourseEvent.id == event_id,
-        CourseEvent.course_id == course_id,
-    ).first()
+    event = (
+        db.query(CourseEvent)
+        .filter(
+            CourseEvent.id == event_id,
+            CourseEvent.course_id == course_id,
+        )
+        .first()
+    )
     if not event:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     db.delete(event)

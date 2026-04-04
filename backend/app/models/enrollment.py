@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, UniqueConstraint, Index
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 

@@ -1,16 +1,16 @@
-from sqlalchemy import Column, String, Text, Integer, Boolean, ForeignKey, DateTime, Index
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
-from app.core.database import Base
 import uuid
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
+from app.core.database import Base
 
 
 class Quiz(Base):
     __tablename__ = "quizzes"
-    __table_args__ = (
-        Index("ix_quizzes_chapter_id", "chapter_id"),
-    )
+    __table_args__ = (Index("ix_quizzes_chapter_id", "chapter_id"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     chapter_id = Column(String, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False)
@@ -32,9 +32,7 @@ class Quiz(Base):
 
 class QuizQuestion(Base):
     __tablename__ = "quiz_questions"
-    __table_args__ = (
-        Index("ix_quiz_questions_quiz_id_order", "quiz_id", "order_index"),
-    )
+    __table_args__ = (Index("ix_quiz_questions_quiz_id_order", "quiz_id", "order_index"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     quiz_id = Column(UUID(as_uuid=True), ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)
@@ -55,9 +53,7 @@ class QuizQuestion(Base):
 
 class QuizOption(Base):
     __tablename__ = "quiz_options"
-    __table_args__ = (
-        Index("ix_quiz_options_question_id", "question_id"),
-    )
+    __table_args__ = (Index("ix_quiz_options_question_id", "question_id"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     question_id = Column(UUID(as_uuid=True), ForeignKey("quiz_questions.id", ondelete="CASCADE"), nullable=False)
@@ -87,9 +83,7 @@ class QuizAttempt(Base):
 
 class QuizExtraAttempt(Base):
     __tablename__ = "quiz_extra_attempts"
-    __table_args__ = (
-        Index("ix_quiz_extra_attempts_quiz_user", "quiz_id", "user_id", unique=True),
-    )
+    __table_args__ = (Index("ix_quiz_extra_attempts_quiz_user", "quiz_id", "user_id", unique=True),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     quiz_id = Column(UUID(as_uuid=True), ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)

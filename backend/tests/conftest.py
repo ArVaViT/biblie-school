@@ -15,15 +15,15 @@ os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-testing-only")
 import uuid
 
 import pytest
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app.core.database import Base, get_db
 from app.api.dependencies import get_current_user, get_optional_user
-from app.models.user import User, UserRole
+from app.core.database import Base, get_db
 from app.main import app
+from app.models.user import User, UserRole
 
 # ---------------------------------------------------------------------------
 # In-memory SQLite engine shared across the entire test session
@@ -43,9 +43,7 @@ def _enable_fk(dbapi_connection, connection_record):
     cursor.close()
 
 
-TestSessionFactory = sessionmaker(
-    bind=test_engine, autocommit=False, autoflush=False
-)
+TestSessionFactory = sessionmaker(bind=test_engine, autocommit=False, autoflush=False)
 
 # Stable UUIDs so tests can reference them predictably
 TEACHER_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")

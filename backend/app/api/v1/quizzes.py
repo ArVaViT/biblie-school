@@ -1,30 +1,31 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
 from app.api.dependencies import (
     get_current_user,
     require_teacher,
-    verify_chapter_owner,
-    verify_chapter_access,
     resolve_chapter_course_id,
+    verify_chapter_access,
+    verify_chapter_owner,
 )
-from app.models.user import User
-from app.models.enrollment import Enrollment
-from app.models.quiz import Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, QuizExtraAttempt
+from app.core.database import get_db
 from app.models.chapter_progress import ChapterProgress
+from app.models.enrollment import Enrollment
+from app.models.quiz import Quiz, QuizAnswer, QuizAttempt, QuizExtraAttempt, QuizOption, QuizQuestion
+from app.models.user import User
 from app.schemas.quiz import (
+    ExtraAttemptsResponse,
+    GrantExtraAttemptsRequest,
+    QuizAnswerResult,
+    QuizAttemptResponse,
     QuizCreate,
-    QuizUpdate,
     QuizResponse,
     QuizStudentResponse,
     QuizSubmitRequest,
-    QuizAttemptResponse,
-    QuizAnswerResult,
-    GrantExtraAttemptsRequest,
-    ExtraAttemptsResponse,
+    QuizUpdate,
 )
 from app.services.course_service import sync_enrollment_progress
 
@@ -168,9 +169,7 @@ async def submit_quiz(
 
     course_id = resolve_chapter_course_id(db, quiz.chapter_id)
     enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
-        .first()
+        db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
     )
     if not enrolled:
         raise HTTPException(
@@ -215,12 +214,7 @@ async def submit_quiz(
     questions_map: dict[UUID, QuizQuestion] = {q.id: q for q in quiz.questions}
     max_score = sum(q.points for q in quiz.questions)
 
-    all_options = (
-        db.query(QuizOption)
-        .join(QuizQuestion)
-        .filter(QuizQuestion.quiz_id == quiz_id)
-        .all()
-    )
+    all_options = db.query(QuizOption).join(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).all()
     options_by_id = {str(o.id): o for o in all_options}
 
     correct_option_map: dict[str, UUID | None] = {}
@@ -258,14 +252,16 @@ async def submit_quiz(
         )
         db.add(db_answer)
 
-        answer_results.append(QuizAnswerResult(
-            question_id=ans.question_id,
-            selected_option_id=ans.selected_option_id,
-            text_answer=ans.text_answer,
-            is_correct=is_correct,
-            points_earned=points_earned,
-            correct_option_id=correct_option_map.get(str(ans.question_id)),
-        ))
+        answer_results.append(
+            QuizAnswerResult(
+                question_id=ans.question_id,
+                selected_option_id=ans.selected_option_id,
+                text_answer=ans.text_answer,
+                is_correct=is_correct,
+                points_earned=points_earned,
+                correct_option_id=correct_option_map.get(str(ans.question_id)),
+            )
+        )
 
     for q in quiz.questions:
         if q.id not in answered_question_ids:
@@ -278,20 +274,22 @@ async def submit_quiz(
                 points_earned=0,
             )
             db.add(db_answer)
-            answer_results.append(QuizAnswerResult(
-                question_id=q.id,
-                selected_option_id=None,
-                text_answer=None,
-                is_correct=False,
-                points_earned=0,
-                correct_option_id=correct_option_map.get(str(q.id)),
-            ))
+            answer_results.append(
+                QuizAnswerResult(
+                    question_id=q.id,
+                    selected_option_id=None,
+                    text_answer=None,
+                    is_correct=False,
+                    points_earned=0,
+                    correct_option_id=correct_option_map.get(str(q.id)),
+                )
+            )
 
     attempt.score = total_score
     attempt.max_score = max_score
     percentage = (total_score / max_score * 100) if max_score > 0 else 0
     attempt.passed = percentage >= quiz.passing_score
-    attempt.completed_at = datetime.now(timezone.utc)
+    attempt.completed_at = datetime.now(UTC)
 
     cp = (
         db.query(ChapterProgress)
@@ -303,7 +301,7 @@ async def submit_quiz(
         db.add(cp)
     if not cp.completed:
         cp.completed = True
-        cp.completed_at = datetime.now(timezone.utc)
+        cp.completed_at = datetime.now(UTC)
         cp.completion_type = "quiz"
 
     db.commit()
@@ -333,12 +331,7 @@ async def get_quiz_attempts(
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     _verify_quiz_owner(db, quiz, teacher.id)
-    return (
-        db.query(QuizAttempt)
-        .filter(QuizAttempt.quiz_id == quiz_id)
-        .order_by(QuizAttempt.started_at.desc())
-        .all()
-    )
+    return db.query(QuizAttempt).filter(QuizAttempt.quiz_id == quiz_id).order_by(QuizAttempt.started_at.desc()).all()
 
 
 @router.get("/{quiz_id}/my-attempts", response_model=list[QuizAttemptResponse])
@@ -403,8 +396,4 @@ async def list_extra_attempts(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     _verify_quiz_owner(db, quiz, teacher.id)
 
-    return (
-        db.query(QuizExtraAttempt)
-        .filter(QuizExtraAttempt.quiz_id == quiz_id)
-        .all()
-    )
+    return db.query(QuizExtraAttempt).filter(QuizExtraAttempt.quiz_id == quiz_id).all()

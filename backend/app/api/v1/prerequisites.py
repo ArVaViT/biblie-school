@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.api.dependencies import require_teacher, verify_course_owner
-from app.models.user import User
+from app.core.database import get_db
 from app.models.course import Course
 from app.models.prerequisite import CoursePrerequisite
+from app.models.user import User
 
 router = APIRouter(prefix="/prerequisites", tags=["prerequisites"])
 
@@ -26,11 +26,7 @@ async def get_prerequisites(
     course_id: str,
     db: Session = Depends(get_db),
 ):
-    prereqs = (
-        db.query(CoursePrerequisite)
-        .filter(CoursePrerequisite.course_id == course_id)
-        .all()
-    )
+    prereqs = db.query(CoursePrerequisite).filter(CoursePrerequisite.course_id == course_id).all()
 
     prereq_ids = [p.prerequisite_course_id for p in prereqs]
     courses = db.query(Course).filter(Course.id.in_(prereq_ids)).all() if prereq_ids else []

@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import func as sa_func
 from uuid import UUID
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func as sa_func
+from sqlalchemy.orm import Session
+
 from app.api.dependencies import get_current_user
-from app.models.user import User
+from app.core.database import get_db
 from app.models.notification import Notification
+from app.models.user import User
 from app.schemas.notification import (
-    NotificationResponse,
     NotificationListResponse,
+    NotificationResponse,
     UnreadCountResponse,
 )
 
@@ -23,11 +24,7 @@ async def list_notifications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    total = (
-        db.query(sa_func.count(Notification.id))
-        .filter(Notification.user_id == current_user.id)
-        .scalar()
-    ) or 0
+    total = (db.query(sa_func.count(Notification.id)).filter(Notification.user_id == current_user.id).scalar()) or 0
 
     items = (
         db.query(Notification)

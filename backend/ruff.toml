@@ -1,0 +1,29 @@
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = [
+  "E",     # pycodestyle errors
+  "W",     # pycodestyle warnings
+  "F",     # pyflakes
+  "I",     # isort
+  "UP",    # pyupgrade
+  "B",     # flake8-bugbear
+  "SIM",   # flake8-simplify
+  "TCH",   # flake8-type-checking
+  "RUF",   # ruff-specific
+]
+ignore = [
+  "E501",   # line too long — handled by formatter
+  "B008",   # function-call-in-default-argument — FastAPI Depends pattern
+  "E712",   # true-false-comparison — SQLAlchemy requires == True/False for SQL generation
+  "SIM102", # collapsible-if — sometimes readability is better with nested ifs
+  "UP007",  # use X | Y for union — we already use __future__.annotations
+]
+
+[lint.isort]
+known-first-party = ["app"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

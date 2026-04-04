@@ -1,31 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
+
 from app.api.dependencies import (
     get_current_user,
     require_teacher,
-    verify_chapter_owner,
-    verify_chapter_access,
     resolve_chapter_course_id,
+    verify_chapter_access,
+    verify_chapter_owner,
 )
-from app.models.user import User
-from app.models.enrollment import Enrollment
+from app.core.database import get_db
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.chapter_progress import ChapterProgress
-from app.services.course_service import sync_enrollment_progress
+from app.models.enrollment import Enrollment
+from app.models.user import User
 from app.schemas.assignment import (
     AssignmentCreate,
-    AssignmentUpdate,
     AssignmentResponse,
+    AssignmentUpdate,
+    GradeSubmissionRequest,
     SubmissionCreate,
     SubmissionResponse,
-    GradeSubmissionRequest,
 )
-from app.services.notification_service import create_notification
 from app.services.audit_service import log_action
+from app.services.course_service import sync_enrollment_progress
+from app.services.notification_service import create_notification
 
 router = APIRouter(prefix="/assignments", tags=["assignments"])
 
@@ -37,12 +38,7 @@ async def list_chapter_assignments(
     db: Session = Depends(get_db),
 ):
     verify_chapter_access(db, chapter_id, current_user)
-    return (
-        db.query(Assignment)
-        .filter(Assignment.chapter_id == chapter_id)
-        .order_by(Assignment.created_at)
-        .all()
-    )
+    return db.query(Assignment).filter(Assignment.chapter_id == chapter_id).order_by(Assignment.created_at).all()
 
 
 @router.post("", response_model=AssignmentResponse, status_code=status.HTTP_201_CREATED)
@@ -106,9 +102,7 @@ async def submit_assignment(
 
     course_id = resolve_chapter_course_id(db, assignment.chapter_id)
     enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
-        .first()
+        db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
     )
     if not enrolled:
         raise HTTPException(
@@ -140,7 +134,7 @@ async def submit_assignment(
         db.add(progress)
     if not progress.completed:
         progress.completed = True
-        progress.completed_at = datetime.now(timezone.utc)
+        progress.completed_at = datetime.now(UTC)
         progress.completion_type = "self"
 
     db.commit()
@@ -214,19 +208,27 @@ async def grade_submission(
     submission.feedback = data.feedback
     submission.status = data.status
     submission.graded_by = teacher.id
-    submission.graded_at = datetime.now(timezone.utc)
+    submission.graded_at = datetime.now(UTC)
 
     create_notification(
         db,
         user_id=submission.student_id,
         type="assignment_graded",
         title="Assignment Graded",
-        message=f"Your submission for \"{assignment.title}\" has been graded: {data.grade}/{assignment.max_score}.",
+        message=f'Your submission for "{assignment.title}" has been graded: {data.grade}/{assignment.max_score}.',
         link=None,
         metadata={"assignment_id": str(assignment.id), "submission_id": str(submission.id)},
     )
 
     db.commit()
     db.refresh(submission)
-    log_action(db, teacher.id, "grade", "assignment_submission", str(submission_id), details={"grade": data.grade, "status": data.status}, request=request)
+    log_action(
+        db,
+        teacher.id,
+        "grade",
+        "assignment_submission",
+        str(submission_id),
+        details={"grade": data.grade, "status": data.status},
+        request=request,
+    )
     return submission

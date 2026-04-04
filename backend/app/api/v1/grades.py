@@ -1,30 +1,30 @@
 import logging
-from datetime import datetime, timezone
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
-from app.models.user import User
+from app.core.database import get_db
+from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.student_grade import StudentGrade
+from app.models.user import User
 from app.schemas.grade import (
-    GradeUpsert,
     GradeResponse,
+    GradeSummaryResponse,
+    GradeUpsert,
     GradingConfigResponse,
     GradingConfigUpdate,
     StudentCalculatedGrade,
-    GradeSummaryResponse,
 )
-from app.models.course import Course
 from app.services.grade_calculator import (
-    calculate_student_grade,
-    calculate_all_student_grades,
+    _get_assignment_ids_for_chapters,
     _get_course_chapter_ids,
     _get_quiz_ids_for_chapters,
-    _get_assignment_ids_for_chapters,
+    calculate_all_student_grades,
+    calculate_student_grade,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ router = APIRouter(prefix="/grades", tags=["grades"])
 
 
 # ── Grading Configuration ──────────────────────────────────────────
+
 
 @router.get("/course/{course_id}/config", response_model=GradingConfigResponse)
 async def get_grading_config(
@@ -72,6 +73,7 @@ async def update_grading_config(
 
 # ── Calculated Grades ──────────────────────────────────────────────
 
+
 @router.get(
     "/course/{course_id}/student/{student_id}/calculated",
     response_model=StudentCalculatedGrade,
@@ -84,11 +86,7 @@ async def get_calculated_grade(
 ):
     course = verify_course_owner(db, course_id, teacher.id)
 
-    enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id)
-        .first()
-    )
+    enrolled = db.query(Enrollment).filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id).first()
     if not enrolled:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -97,17 +95,13 @@ async def get_calculated_grade(
 
     user = db.query(User).filter(User.id == student_id).first()
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Student not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
     chapter_ids = _get_course_chapter_ids(db, course_id)
     quiz_ids = _get_quiz_ids_for_chapters(db, chapter_ids)
     assignment_ids = _get_assignment_ids_for_chapters(db, chapter_ids)
 
-    breakdown = calculate_student_grade(
-        db, course, uuid.UUID(student_id), chapter_ids, quiz_ids, assignment_ids
-    )
+    breakdown = calculate_student_grade(db, course, uuid.UUID(student_id), chapter_ids, quiz_ids, assignment_ids)
 
     manual = (
         db.query(StudentGrade.grade)
@@ -135,11 +129,7 @@ async def get_grade_summary(
         results = calculate_all_student_grades(db, course)
 
         students = [StudentCalculatedGrade(**r) for r in results]
-        class_avg = (
-            round(sum(s.breakdown.final_score for s in students) / len(students), 2)
-            if students
-            else 0.0
-        )
+        class_avg = round(sum(s.breakdown.final_score for s in students) / len(students), 2) if students else 0.0
 
         return GradeSummaryResponse(
             course_id=course_id,
@@ -158,10 +148,11 @@ async def get_grade_summary(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Grade calculation failed",
-        )
+        ) from None
 
 
 # ── Existing Manual Grade Endpoints ───────────────────────────────
+
 
 @router.get("/my", response_model=list[GradeResponse])
 async def list_my_grades(
@@ -260,7 +251,7 @@ async def upsert_student_grade(
         if data.comment is not None:
             grade.comment = data.comment
         grade.graded_by = teacher.id
-        grade.graded_at = datetime.now(timezone.utc)
+        grade.graded_at = datetime.now(UTC)
     else:
         grade = StudentGrade(
             id=uuid.uuid4(),
