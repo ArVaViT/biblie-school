@@ -6,11 +6,32 @@ from sqlalchemy.orm import Session
 from app.models.assignment import Assignment
 from app.models.chapter_progress import ChapterProgress
 from app.models.course import Chapter, Course, Module
+from app.api.dependencies import get_current_user, get_optional_user
+from app.main import app
 from app.models.enrollment import Enrollment
+from app.models.user import User, UserRole
 from tests.conftest import STUDENT_ID, TEACHER_ID
+
+OTHER_TEACHER_ID = uuid.UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
+
+
+def _ensure_enrolled_student_row(db: Session) -> None:
+    """Enrollment FK requires a profiles row; ``client`` only seeds the teacher."""
+    if db.query(User).filter(User.id == STUDENT_ID).first():
+        return
+    db.add(
+        User(
+            id=STUDENT_ID,
+            email="student@example.com",
+            full_name="Test Student",
+            role=UserRole.STUDENT.value,
+        )
+    )
+    db.flush()
 
 
 def _seed_course_graph(db: Session) -> tuple[Course, Module, Chapter]:
+    _ensure_enrolled_student_row(db)
     course = Course(
         id="course-progress",
         title="Progress Course",
@@ -40,6 +61,286 @@ def _seed_course_graph(db: Session) -> tuple[Course, Module, Chapter]:
     db.add_all([course, module, chapter, enrollment])
     db.commit()
     return course, module, chapter
+
+
+def _seed_foreign_teacher_chapter(db: Session) -> Chapter:
+    if not db.query(User).filter(User.id == OTHER_TEACHER_ID).first():
+        db.add(
+            User(
+                id=OTHER_TEACHER_ID,
+                email="foreign-teacher@example.com",
+                full_name="Foreign",
+                role=UserRole.TEACHER.value,
+            )
+        )
+        db.flush()
+    course = Course(
+        id="course-foreign-asg",
+        title="Foreign",
+        description="x",
+        status="published",
+        created_by=OTHER_TEACHER_ID,
+        quiz_weight=30,
+        assignment_weight=50,
+        participation_weight=20,
+    )
+    module = Module(
+        id="mod-foreign-asg",
+        course_id=course.id,
+        title="M",
+        order_index=1,
+    )
+    chapter = Chapter(
+        id="chapter-foreign-asg",
+        module_id=module.id,
+        title="Foreign chapter",
+        order_index=1,
+        chapter_type="assignment",
+    )
+    db.add_all([course, module, chapter])
+    db.commit()
+    return chapter
+
+
+class TestListChapterAssignments:
+    """GET /api/v1/assignments/chapter/{chapter_id}"""
+
+    def test_teacher_lists_assignments(self, client: TestClient, db: Session):
+        _course, _mod, chapter = _seed_course_graph(db)
+        r = client.post(
+            "/api/v1/assignments",
+            json={
+                "chapter_id": chapter.id,
+                "title": "Task A",
+                "description": "Do it",
+                "max_score": 50,
+            },
+        )
+        assert r.status_code == 201, r.text
+        r2 = client.get(f"/api/v1/assignments/chapter/{chapter.id}")
+        assert r2.status_code == 200, r2.text
+        items = r2.json()
+        assert len(items) == 1
+        assert items[0]["title"] == "Task A"
+        assert items[0]["max_score"] == 50
+
+    def test_enrolled_student_can_list(self, student_client: TestClient, db: Session):
+        _course, _mod, chapter = _seed_course_graph(db)
+        r = student_client.get(f"/api/v1/assignments/chapter/{chapter.id}")
+        assert r.status_code == 200, r.text
+        assert r.json() == []
+
+    def test_not_enrolled_forbidden(self, student_client: TestClient, db: Session):
+        foreign = _seed_foreign_teacher_chapter(db)
+        r = student_client.get(f"/api/v1/assignments/chapter/{foreign.id}")
+        assert r.status_code == 403
+
+
+class TestCreateAssignment:
+    """POST /api/v1/assignments"""
+
+    def test_happy_path(self, client: TestClient, db: Session):
+        _course, _mod, chapter = _seed_course_graph(db)
+        r = client.post(
+            "/api/v1/assignments",
+            json={
+                "chapter_id": chapter.id,
+                "title": "New homework",
+                "description": "Details",
+                "max_score": 25,
+            },
+        )
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["chapter_id"] == chapter.id
+        assert body["title"] == "New homework"
+        assert body["max_score"] == 25
+        assert "id" in body
+
+    def test_not_chapter_owner(self, client: TestClient, db: Session):
+        foreign = _seed_foreign_teacher_chapter(db)
+        r = client.post(
+            "/api/v1/assignments",
+            json={"chapter_id": foreign.id, "title": "Hack", "max_score": 10},
+        )
+        assert r.status_code == 403
+
+    def test_student_forbidden(self, student_client: TestClient, db: Session):
+        _course, _mod, chapter = _seed_course_graph(db)
+        r = student_client.post(
+            "/api/v1/assignments",
+            json={"chapter_id": chapter.id, "title": "No", "max_score": 10},
+        )
+        assert r.status_code == 403
+
+
+class TestUpdateAssignment:
+    """PUT /api/v1/assignments/{assignment_id}"""
+
+    def test_happy_path(self, client: TestClient, db: Session):
+        _course, _mod, chapter = _seed_course_graph(db)
+        create = client.post(
+            "/api/v1/assignments",
+            json={"chapter_id": chapter.id, "title": "Old", "max_score": 10},
+        )
+        assert create.status_code == 201
+        aid = create.json()["id"]
+        r = client.put(
+            f"/api/v1/assignments/{aid}",
+            json={"title": "Updated", "max_score": 20},
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["title"] == "Updated"
+        assert r.json()["max_score"] == 20
+
+    def test_not_found(self, client: TestClient, db: Session):
+        r = client.put(
+            f"/api/v1/assignments/{uuid.uuid4()}",
+            json={"title": "Nope"},
+        )
+        assert r.status_code == 404
+
+    def test_not_chapter_owner(self, client: TestClient, db: Session):
+        foreign = _seed_foreign_teacher_chapter(db)
+        asg = Assignment(
+            id=uuid.uuid4(),
+            chapter_id=foreign.id,
+            title="Other",
+            max_score=10,
+        )
+        db.add(asg)
+        db.commit()
+        r = client.put(
+            f"/api/v1/assignments/{asg.id}",
+            json={"title": "Stolen"},
+        )
+        assert r.status_code == 403
+
+
+class TestDeleteAssignment:
+    """DELETE /api/v1/assignments/{assignment_id}"""
+
+    def test_happy_path(self, client: TestClient, db: Session):
+        _course, _mod, chapter = _seed_course_graph(db)
+        create = client.post(
+            "/api/v1/assignments",
+            json={"chapter_id": chapter.id, "title": "Tmp", "max_score": 10},
+        )
+        aid = create.json()["id"]
+        r = client.delete(f"/api/v1/assignments/{aid}")
+        assert r.status_code == 204
+        listed = client.get(f"/api/v1/assignments/chapter/{chapter.id}")
+        assert listed.json() == []
+
+    def test_not_found(self, client: TestClient, db: Session):
+        r = client.delete(f"/api/v1/assignments/{uuid.uuid4()}")
+        assert r.status_code == 404
+
+
+class TestListAssignmentSubmissions:
+    """GET /api/v1/assignments/{assignment_id}/submissions"""
+
+    def test_teacher_lists_submissions(
+        self, client: TestClient, student_client: TestClient, db: Session, teacher: User,
+    ):
+        _course, _mod, chapter = _seed_course_graph(db)
+        aid = uuid.uuid4()
+        db.add(
+            Assignment(
+                id=aid,
+                chapter_id=chapter.id,
+                title="Sub test",
+                max_score=10,
+            )
+        )
+        db.commit()
+        sub = student_client.post(
+            f"/api/v1/assignments/{aid}/submit",
+            json={"content": "Here"},
+        )
+        assert sub.status_code == 201, sub.text
+        app.dependency_overrides[get_current_user] = lambda: teacher
+        app.dependency_overrides[get_optional_user] = lambda: teacher
+        r = client.get(f"/api/v1/assignments/{aid}/submissions")
+        assert r.status_code == 200, r.text
+        rows = r.json()
+        assert len(rows) == 1
+        assert rows[0]["content"] == "Here"
+
+    def test_not_found(self, client: TestClient, db: Session):
+        r = client.get(f"/api/v1/assignments/{uuid.uuid4()}/submissions")
+        assert r.status_code == 404
+
+    def test_student_forbidden(self, student_client: TestClient, db: Session):
+        _course, _mod, chapter = _seed_course_graph(db)
+        aid = uuid.uuid4()
+        db.add(Assignment(id=aid, chapter_id=chapter.id, title="T", max_score=10))
+        db.commit()
+        r = student_client.get(f"/api/v1/assignments/{aid}/submissions")
+        assert r.status_code == 403
+
+
+class TestGradeSubmission:
+    """PUT /api/v1/assignments/submissions/{submission_id}/grade"""
+
+    def test_happy_path(
+        self, client: TestClient, student_client: TestClient, db: Session, teacher: User,
+    ):
+        _course, _mod, chapter = _seed_course_graph(db)
+        aid = uuid.uuid4()
+        db.add(
+            Assignment(
+                id=aid,
+                chapter_id=chapter.id,
+                title="Grade me",
+                max_score=10,
+            )
+        )
+        db.commit()
+        sub_resp = student_client.post(
+            f"/api/v1/assignments/{aid}/submit",
+            json={"content": "Answer"},
+        )
+        assert sub_resp.status_code == 201
+        sid = sub_resp.json()["id"]
+        app.dependency_overrides[get_current_user] = lambda: teacher
+        app.dependency_overrides[get_optional_user] = lambda: teacher
+        r = client.put(
+            f"/api/v1/assignments/submissions/{sid}/grade",
+            json={"grade": 8, "feedback": "Nice", "status": "graded"},
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["grade"] == 8
+        assert body["feedback"] == "Nice"
+        assert body["status"] == "graded"
+
+    def test_grade_exceeds_max_score(
+        self, client: TestClient, student_client: TestClient, db: Session, teacher: User,
+    ):
+        _course, _mod, chapter = _seed_course_graph(db)
+        aid = uuid.uuid4()
+        db.add(Assignment(id=aid, chapter_id=chapter.id, title="Cap", max_score=10))
+        db.commit()
+        sub_resp = student_client.post(
+            f"/api/v1/assignments/{aid}/submit",
+            json={"content": "x"},
+        )
+        sid = sub_resp.json()["id"]
+        app.dependency_overrides[get_current_user] = lambda: teacher
+        app.dependency_overrides[get_optional_user] = lambda: teacher
+        r = client.put(
+            f"/api/v1/assignments/submissions/{sid}/grade",
+            json={"grade": 11, "status": "graded"},
+        )
+        assert r.status_code == 422
+
+    def test_submission_not_found(self, client: TestClient, db: Session):
+        r = client.put(
+            f"/api/v1/assignments/submissions/{uuid.uuid4()}/grade",
+            json={"grade": 5, "status": "graded"},
+        )
+        assert r.status_code == 404
 
 
 def test_my_progress_returns_only_completed_course_chapters(student_client: TestClient, db: Session):

@@ -1,14 +1,17 @@
 """Tests for certificate, grade, and teacher-progress endpoints."""
 import uuid
+from datetime import datetime, timezone
 
 import sqlalchemy.types as _sa_types
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.certificate import Certificate
 from app.models.chapter_progress import ChapterProgress
 from app.models.course import Course, Module, Chapter
 from app.models.enrollment import Enrollment
+from app.models.quiz import Quiz, QuizAttempt
 from app.models.student_grade import StudentGrade
 from app.models.user import User, UserRole
 from tests.conftest import TEACHER_ID, STUDENT_ID
@@ -706,6 +709,186 @@ class TestUpsertStudentGrade:
 # =====================================================================
 # PROGRESS — Teacher endpoints
 # =====================================================================
+
+
+def _seed_teacher_progress_dashboard(db: Session) -> tuple[str, uuid.UUID, uuid.UUID, str, str]:
+    """Course with quiz + assignment + reading chapters, one enrolled student with activity."""
+    _ensure_student(db)
+    course_id = "course-dash-prog"
+    course = Course(
+        id=course_id,
+        title="Dashboard Course",
+        description="",
+        status="published",
+        created_by=TEACHER_ID,
+        quiz_weight=30,
+        assignment_weight=50,
+        participation_weight=20,
+    )
+    module = Module(
+        id=f"{course_id}-mod",
+        course_id=course_id,
+        title="Mod 1",
+        order_index=1,
+    )
+    ch_quiz_id = f"{course_id}-quiz"
+    ch_asg_id = f"{course_id}-asg"
+    ch_read_id = f"{course_id}-read"
+    ch_quiz = Chapter(
+        id=ch_quiz_id,
+        module_id=module.id,
+        title="Quiz Chapter",
+        order_index=1,
+        chapter_type="quiz",
+    )
+    ch_asg = Chapter(
+        id=ch_asg_id,
+        module_id=module.id,
+        title="Assignment Chapter",
+        order_index=2,
+        chapter_type="assignment",
+    )
+    ch_read = Chapter(
+        id=ch_read_id,
+        module_id=module.id,
+        title="Reading",
+        order_index=3,
+        chapter_type="reading",
+    )
+    quiz_id = uuid.uuid4()
+    quiz = Quiz(
+        id=quiz_id,
+        chapter_id=ch_quiz_id,
+        title="Unit quiz",
+        description=None,
+    )
+    t0 = datetime(2024, 1, 10, 12, 0, tzinfo=timezone.utc)
+    t1 = datetime(2024, 1, 11, 12, 0, tzinfo=timezone.utc)
+    attempt_low = QuizAttempt(
+        quiz_id=quiz_id,
+        user_id=STUDENT_ID,
+        score=5,
+        max_score=10,
+        passed=False,
+        completed_at=t0,
+    )
+    attempt_best = QuizAttempt(
+        quiz_id=quiz_id,
+        user_id=STUDENT_ID,
+        score=9,
+        max_score=10,
+        passed=True,
+        completed_at=t1,
+    )
+    asg_id = uuid.uuid4()
+    assignment = Assignment(
+        id=asg_id,
+        chapter_id=ch_asg_id,
+        title="Essay",
+        description="Write",
+        max_score=100,
+    )
+    sub = AssignmentSubmission(
+        assignment_id=asg_id,
+        student_id=STUDENT_ID,
+        content="Draft",
+        status="submitted",
+        submitted_at=datetime(2024, 1, 12, 12, 0, tzinfo=timezone.utc),
+    )
+    enrollment = Enrollment(
+        id=f"enroll-{course_id}",
+        user_id=STUDENT_ID,
+        course_id=course_id,
+        progress=40,
+    )
+    cp = ChapterProgress(
+        user_id=STUDENT_ID,
+        chapter_id=ch_asg_id,
+        completed=True,
+        completion_type="self",
+    )
+    db.add_all([course, module, ch_quiz, ch_asg, ch_read])
+    db.flush()
+    db.add_all(
+        [
+            quiz,
+            attempt_low,
+            attempt_best,
+            assignment,
+            sub,
+            enrollment,
+            cp,
+        ]
+    )
+    db.commit()
+    return course_id, quiz_id, asg_id, ch_quiz_id, ch_asg_id, ch_read_id
+
+
+class TestCourseStudentProgress:
+    """GET /api/v1/progress/course/{course_id}/students — teacher dashboard."""
+
+    def test_happy_path_includes_quiz_assignment_and_chapters(self, client: TestClient, db: Session):
+        course_id, quiz_id, asg_id, ch_quiz_id, ch_asg_id, ch_read_id = (
+            _seed_teacher_progress_dashboard(db)
+        )
+        r = client.get(f"/api/v1/progress/course/{course_id}/students")
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["course_id"] == course_id
+        assert body["course_title"] == "Dashboard Course"
+        assert body["total_students"] == 1
+        assert body["total_chapters"] == 2
+        assert len(body["modules"]) == 1
+        assert len(body["students"]) == 1
+        st = body["students"][0]
+        assert st["id"] == str(STUDENT_ID)
+        assert st["email"] == "student@example.com"
+        assert st["progress"] == 40
+        assert st["chapters_completed"] == 1
+        assert st["total_chapters"] == 2
+        assert len(st["quiz_results"]) == 1
+        qr = st["quiz_results"][0]
+        assert qr["chapter_id"] == ch_quiz_id
+        assert qr["quiz_id"] == str(quiz_id)
+        assert qr["score"] == 9
+        assert qr["passed"] is True
+        assert qr["attempts_used"] == 2
+        assert len(st["assignment_results"]) == 1
+        ar = st["assignment_results"][0]
+        assert ar["chapter_id"] == ch_asg_id
+        assert ar["title"] == "Essay"
+        assert ar["status"] == "submitted"
+        assert ar["max_score"] == 100
+        assert st["last_activity"] is not None
+        ch_infos = {c["id"]: c for c in st["chapters"]}
+        assert ch_infos[ch_quiz_id]["quiz_result"]["score"] == 9
+        assert ch_infos[ch_quiz_id]["quiz_result"]["passed"] is True
+        assert ch_infos[ch_asg_id]["assignment_result"]["status"] == "submitted"
+        assert ch_infos[ch_read_id]["quiz_result"] is None
+        assert ch_infos[ch_read_id]["assignment_result"] is None
+
+    def test_empty_enrollments(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-empty-stu")
+        r = client.get("/api/v1/progress/course/course-empty-stu/students")
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["total_students"] == 0
+        assert body["students"] == []
+
+    def test_course_not_found(self, client: TestClient, db: Session):
+        r = client.get("/api/v1/progress/course/does-not-exist/students")
+        assert r.status_code == 404
+
+    def test_not_course_owner(self, client: TestClient, db: Session):
+        _ensure_student(db)
+        _seed_foreign_course(db, course_id="foreign-prog-dash")
+        r = client.get("/api/v1/progress/course/foreign-prog-dash/students")
+        assert r.status_code == 403
+
+    def test_student_forbidden(self, student_client: TestClient, db: Session):
+        _seed_teacher_progress_dashboard(db)
+        r = student_client.get("/api/v1/progress/course/course-dash-prog/students")
+        assert r.status_code == 403
 
 
 class TestTeacherCompleteChapter:
