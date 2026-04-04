@@ -19,7 +19,7 @@ interface CourseMaterial {
   name: string
   path: string
   size?: number
-  created: string
+  created: string | null
 }
 
 function formatDate(dateStr: string) {

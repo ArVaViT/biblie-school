@@ -62,7 +62,7 @@ export const storageService = {
     }
   },
 
-  async listCourseMaterials(courseId: string): Promise<{ name: string; path: string; size: number | undefined; created: string }[]> {
+  async listCourseMaterials(courseId: string): Promise<{ name: string; path: string; size: number | undefined; created: string | null }[]> {
     const { data, error } = await supabase.storage
       .from(COURSE_MATERIALS_BUCKET)
       .list(courseId, { sortBy: { column: "created_at", order: "desc" } })
