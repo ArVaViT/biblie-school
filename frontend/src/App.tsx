@@ -7,20 +7,19 @@ import { usePageTitle } from "./hooks/usePageTitle"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { Toaster } from "./components/ui/toaster"
 import Header from "./components/layout/Header"
-import Login from "./pages/Auth/Login"
-import Register from "./pages/Auth/Register"
-import ForgotPassword from "./pages/Auth/ForgotPassword"
-import ResetPassword from "./pages/Auth/ResetPassword"
-import AuthCallback from "./pages/Auth/AuthCallback"
-import HomePage from "./pages/Home/HomePage"
-// Dashboard merged into HomePage
-import ProfilePage from "./pages/Profile/ProfilePage"
-import CourseDetail from "./pages/Course/CourseDetail"
-import ModuleView from "./pages/Course/ModuleView"
-import TeacherDashboard from "./pages/Teacher/TeacherDashboard"
 import AnnouncementBanner from "./components/announcements/AnnouncementBanner"
 import NotFound from "./pages/NotFound"
 
+const Login = lazy(() => import("./pages/Auth/Login"))
+const Register = lazy(() => import("./pages/Auth/Register"))
+const ForgotPassword = lazy(() => import("./pages/Auth/ForgotPassword"))
+const ResetPassword = lazy(() => import("./pages/Auth/ResetPassword"))
+const AuthCallback = lazy(() => import("./pages/Auth/AuthCallback"))
+const HomePage = lazy(() => import("./pages/Home/HomePage"))
+const ProfilePage = lazy(() => import("./pages/Profile/ProfilePage"))
+const CourseDetail = lazy(() => import("./pages/Course/CourseDetail"))
+const ModuleView = lazy(() => import("./pages/Course/ModuleView"))
+const TeacherDashboard = lazy(() => import("./pages/Teacher/TeacherDashboard"))
 const CertificatesPage = lazy(() => import("./pages/Certificates/CertificatesPage"))
 const CourseEditor = lazy(() => import("./pages/Teacher/CourseEditor"))
 const ModuleEditor = lazy(() => import("./pages/Teacher/ModuleEditor"))
@@ -109,15 +108,17 @@ function AppRoutes() {
   if (isAuthPage) {
     return (
       <ErrorBoundary>
-        <Routes>
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-          <Route path="/auth/reset-password" element={<ResetPassword />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/auth/confirm" element={<AuthCallback />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <Suspense fallback={<RouteSpinner />}>
+          <Routes>
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/confirm" element={<AuthCallback />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Suspense>
       </ErrorBoundary>
     )
   }

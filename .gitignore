@@ -57,6 +57,13 @@ ehthumbs.db
 commit-msg.txt
 *.dump
 
+# Secrets and keys (never commit)
+*.pem
+*.p12
+credentials.json
+serviceAccountKey.json
+secrets/
+
 # Cursor IDE generated images
 assets/c__Users_*
 

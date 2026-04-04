@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, memo } from "react"
 import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -35,7 +35,7 @@ function EnrollmentBadge({ start, end }: { start?: string | null; end?: string |
   )
 }
 
-export default function CourseCard({ course }: CourseCardProps) {
+function CourseCard({ course }: CourseCardProps) {
   const [imgError, setImgError] = useState(false)
 
   return (
@@ -47,6 +47,7 @@ export default function CourseCard({ course }: CourseCardProps) {
             <img
               src={course.image_url}
               alt={course.title}
+              loading="lazy"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               onError={() => setImgError(true)}
             />
@@ -81,3 +82,5 @@ export default function CourseCard({ course }: CourseCardProps) {
     </Card>
   )
 }
+
+export default memo(CourseCard)

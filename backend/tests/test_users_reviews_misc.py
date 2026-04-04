@@ -1,0 +1,989 @@
+"""Comprehensive tests for Users, Reviews, Prerequisites, Analytics,
+Files, Health, Audit, and Modules/Chapters endpoints.
+"""
+
+import uuid
+from unittest.mock import patch, MagicMock
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.main import app
+from app.core.database import get_db
+from app.api.dependencies import get_current_user, get_optional_user, require_admin, require_teacher
+from app.models.user import User, UserRole
+from app.models.course import Course, Module, Chapter
+from app.models.enrollment import Enrollment
+from app.models.certificate import Certificate
+from app.models.review import CourseReview
+from app.models.prerequisite import CoursePrerequisite
+from app.models.audit_log import AuditLog
+from app.models.file import File
+from tests.conftest import TEACHER_ID, STUDENT_ID
+
+ADMIN_ID = uuid.UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _make_admin(db: Session) -> User:
+    admin = User(
+        id=ADMIN_ID,
+        email="admin@example.com",
+        full_name="Test Admin",
+        role=UserRole.ADMIN.value,
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return admin
+
+
+def _seed_course(db: Session, course_id: str = "course-1", *, owner=TEACHER_ID,
+                 status: str = "published", title: str = "Test Course") -> Course:
+    course = Course(
+        id=course_id,
+        title=title,
+        description="A course for testing",
+        status=status,
+        created_by=owner,
+    )
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+def _seed_module(db: Session, course_id: str = "course-1",
+                 module_id: str = "mod-1", title: str = "Module 1") -> Module:
+    module = Module(id=module_id, course_id=course_id, title=title, order_index=0)
+    db.add(module)
+    db.commit()
+    db.refresh(module)
+    return module
+
+
+def _seed_chapter(db: Session, module_id: str = "mod-1",
+                  chapter_id: str = "chap-1", title: str = "Chapter 1") -> Chapter:
+    chapter = Chapter(id=chapter_id, module_id=module_id, title=title, order_index=0)
+    db.add(chapter)
+    db.commit()
+    db.refresh(chapter)
+    return chapter
+
+
+def _seed_enrollment(db: Session, user_id=STUDENT_ID,
+                     course_id: str = "course-1", progress: int = 0) -> Enrollment:
+    enrollment = Enrollment(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        course_id=course_id,
+        progress=progress,
+    )
+    db.add(enrollment)
+    db.commit()
+    db.refresh(enrollment)
+    return enrollment
+
+
+def _seed_certificate(db: Session, user_id=STUDENT_ID,
+                      course_id: str = "course-1", status: str = "approved") -> Certificate:
+    cert = Certificate(
+        user_id=user_id,
+        course_id=course_id,
+        status=status,
+        certificate_number=f"CERT-{uuid.uuid4().hex[:8].upper()}",
+    )
+    db.add(cert)
+    db.commit()
+    db.refresh(cert)
+    return cert
+
+
+def _seed_review(db: Session, user_id=STUDENT_ID,
+                 course_id: str = "course-1", rating: int = 5,
+                 comment: str = "Great course!") -> CourseReview:
+    review = CourseReview(
+        user_id=user_id,
+        course_id=course_id,
+        rating=rating,
+        comment=comment,
+    )
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return review
+
+
+def _seed_audit_log(db: Session, user_id=TEACHER_ID) -> AuditLog:
+    entry = AuditLog(
+        user_id=user_id,
+        action="create",
+        resource_type="course",
+        resource_id="course-1",
+        details={"title": "Test Course"},
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def admin_client(db: Session, teacher: "User") -> TestClient:
+    """TestClient authenticated as an admin user."""
+    admin_user = _make_admin(db)
+
+    def _override_db():
+        yield db
+
+    def _override_user():
+        return admin_user
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_current_user] = _override_user
+    app.dependency_overrides[get_optional_user] = _override_user
+    app.dependency_overrides[require_admin] = _override_user
+    app.dependency_overrides[require_teacher] = _override_user
+
+    with TestClient(app, raise_server_exceptions=False) as tc:
+        yield tc
+
+    app.dependency_overrides.clear()
+
+
+# ===================================================================
+# USERS — GET /api/v1/users/me/courses
+# ===================================================================
+
+class TestGetMyCourses:
+    def test_returns_empty_when_no_enrollments(self, student_client: TestClient):
+        resp = student_client.get("/api/v1/users/me/courses")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_returns_enrolled_courses(self, student_client: TestClient, db: Session):
+        _seed_course(db)
+        _seed_enrollment(db, user_id=STUDENT_ID)
+        resp = student_client.get("/api/v1/users/me/courses")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) >= 1
+        assert data[0]["course_id"] == "course-1"
+
+    def test_anon_gets_401(self, anon_client: TestClient):
+        resp = anon_client.get("/api/v1/users/me/courses")
+        assert resp.status_code in (401, 403)
+
+
+# ===================================================================
+# USERS — GET /api/v1/users/me/export-data
+# ===================================================================
+
+class TestExportData:
+    def test_export_returns_profile(self, client: TestClient):
+        resp = client.get("/api/v1/users/me/export-data")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "profile" in body
+        assert body["profile"]["email"] == "teacher@example.com"
+        assert "exported_at" in body
+
+    def test_export_includes_all_sections(self, client: TestClient):
+        resp = client.get("/api/v1/users/me/export-data")
+        assert resp.status_code == 200
+        body = resp.json()
+        for key in ("enrollments", "quiz_attempts", "assignment_submissions",
+                     "grades", "certificates", "reviews", "notifications",
+                     "chapter_progress"):
+            assert key in body
+
+    def test_export_with_enrollments(self, student_client: TestClient, db: Session):
+        _seed_course(db)
+        _seed_enrollment(db, user_id=STUDENT_ID)
+        resp = student_client.get("/api/v1/users/me/export-data")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body["enrollments"]) >= 1
+
+    def test_anon_gets_401(self, anon_client: TestClient):
+        resp = anon_client.get("/api/v1/users/me/export-data")
+        assert resp.status_code in (401, 403)
+
+
+# ===================================================================
+# USERS — DELETE /api/v1/users/me
+# ===================================================================
+
+class TestDeleteMyAccount:
+    def test_delete_own_account(self, student_client: TestClient, db: Session):
+        _seed_course(db)
+        _seed_enrollment(db, user_id=STUDENT_ID)
+        resp = student_client.request(
+            "DELETE", "/api/v1/users/me", json={"confirm": "DELETE"}
+        )
+        assert resp.status_code == 204
+        assert db.query(User).filter(User.id == STUDENT_ID).first() is None
+
+    def test_wrong_confirm_string(self, student_client: TestClient):
+        resp = student_client.request(
+            "DELETE", "/api/v1/users/me", json={"confirm": "NOPE"}
+        )
+        assert resp.status_code == 400
+
+    def test_missing_confirm(self, student_client: TestClient):
+        resp = student_client.request(
+            "DELETE", "/api/v1/users/me", json={}
+        )
+        assert resp.status_code == 422
+
+    def test_anon_gets_401(self, anon_client: TestClient):
+        resp = anon_client.request(
+            "DELETE", "/api/v1/users/me", json={"confirm": "DELETE"}
+        )
+        assert resp.status_code in (401, 403)
+
+
+# ===================================================================
+# USERS — GET /api/v1/users/admin/users (admin only)
+# ===================================================================
+
+class TestAdminListUsers:
+    def test_admin_can_list_users(self, admin_client: TestClient):
+        resp = admin_client.get("/api/v1/users/admin/users")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) >= 2  # teacher + admin at minimum
+
+    def test_teacher_is_rejected(self, client: TestClient):
+        resp = client.get("/api/v1/users/admin/users")
+        assert resp.status_code == 403
+
+    def test_student_is_rejected(self, student_client: TestClient):
+        resp = student_client.get("/api/v1/users/admin/users")
+        assert resp.status_code == 403
+
+    def test_anon_is_rejected(self, anon_client: TestClient):
+        resp = anon_client.get("/api/v1/users/admin/users")
+        assert resp.status_code in (401, 403)
+
+
+# ===================================================================
+# USERS — PUT /api/v1/users/admin/users/{user_id}/role
+# ===================================================================
+
+class TestAdminUpdateRole:
+    def test_admin_can_change_role(self, admin_client: TestClient, db: Session):
+        resp = admin_client.put(
+            f"/api/v1/users/admin/users/{TEACHER_ID}/role?role=admin"
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["role"] == "admin"
+
+    def test_invalid_role(self, admin_client: TestClient):
+        resp = admin_client.put(
+            f"/api/v1/users/admin/users/{TEACHER_ID}/role?role=superadmin"
+        )
+        assert resp.status_code == 400
+
+    def test_user_not_found(self, admin_client: TestClient):
+        fake_id = uuid.uuid4()
+        resp = admin_client.put(
+            f"/api/v1/users/admin/users/{fake_id}/role?role=student"
+        )
+        assert resp.status_code == 404
+
+    def test_teacher_cannot_change_role(self, client: TestClient):
+        resp = client.put(
+            f"/api/v1/users/admin/users/{STUDENT_ID}/role?role=admin"
+        )
+        assert resp.status_code == 403
+
+    def test_missing_role_query_param(self, admin_client: TestClient):
+        resp = admin_client.put(
+            f"/api/v1/users/admin/users/{TEACHER_ID}/role"
+        )
+        assert resp.status_code == 422
+
+
+# ===================================================================
+# REVIEWS — GET /api/v1/reviews/course/{course_id}
+# ===================================================================
+
+class TestListReviews:
+    def test_list_reviews_empty(self, client: TestClient, db: Session):
+        _seed_course(db)
+        resp = client.get("/api/v1/reviews/course/course-1")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_list_reviews_with_data(self, client: TestClient, db: Session):
+        _seed_course(db)
+        _seed_review(db, user_id=STUDENT_ID, course_id="course-1")
+        resp = client.get("/api/v1/reviews/course/course-1")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["rating"] == 5
+
+    def test_nonexistent_course_returns_empty_list(self, client: TestClient):
+        resp = client.get("/api/v1/reviews/course/no-such-course")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+
+# ===================================================================
+# REVIEWS — POST /api/v1/reviews/course/{course_id}
+# ===================================================================
+
+class TestCreateReview:
+    def test_create_review_with_approved_cert(self, student_client: TestClient, db: Session):
+        _seed_course(db)
+        _seed_certificate(db, user_id=STUDENT_ID, course_id="course-1", status="approved")
+        resp = student_client.post(
+            "/api/v1/reviews/course/course-1",
+            json={"rating": 4, "comment": "Good course"},
+        )
+        assert resp.status_code in (200, 201)
+        body = resp.json()
+        assert body["rating"] == 4
+        assert body["comment"] == "Good course"
+
+    def test_create_review_without_cert_fails(self, student_client: TestClient, db: Session):
+        _seed_course(db)
+        resp = student_client.post(
+            "/api/v1/reviews/course/course-1",
+            json={"rating": 3, "comment": "OK"},
+        )
+        assert resp.status_code == 403
+
+    def test_create_review_with_pending_cert_fails(self, student_client: TestClient, db: Session):
+        _seed_course(db)
+        _seed_certificate(db, user_id=STUDENT_ID, course_id="course-1", status="pending")
+        resp = student_client.post(
+            "/api/v1/reviews/course/course-1",
+            json={"rating": 3, "comment": "Pending"},
+        )
+        assert resp.status_code == 403
+
+    def test_update_existing_review(self, student_client: TestClient, db: Session):
+        _seed_course(db)
+        _seed_certificate(db, user_id=STUDENT_ID, course_id="course-1", status="approved")
+        student_client.post(
+            "/api/v1/reviews/course/course-1",
+            json={"rating": 3, "comment": "First"},
+        )
+        resp = student_client.post(
+            "/api/v1/reviews/course/course-1",
+            json={"rating": 5, "comment": "Updated"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["rating"] == 5
+        assert resp.json()["comment"] == "Updated"
+
+    def test_rating_out_of_range(self, student_client: TestClient, db: Session):
+        _seed_course(db)
+        _seed_certificate(db, user_id=STUDENT_ID, course_id="course-1", status="approved")
+        resp = student_client.post(
+            "/api/v1/reviews/course/course-1",
+            json={"rating": 0},
+        )
+        assert resp.status_code == 422
+
+        resp = student_client.post(
+            "/api/v1/reviews/course/course-1",
+            json={"rating": 6},
+        )
+        assert resp.status_code == 422
+
+    def test_anon_cannot_create_review(self, anon_client: TestClient, db: Session):
+        _seed_course(db)
+        resp = anon_client.post(
+            "/api/v1/reviews/course/course-1",
+            json={"rating": 5},
+        )
+        assert resp.status_code in (401, 403)
+
+
+# ===================================================================
+# REVIEWS — DELETE /api/v1/reviews/{review_id}
+# ===================================================================
+
+class TestDeleteReview:
+    def test_delete_own_review(self, student_client: TestClient, db: Session):
+        _seed_course(db)
+        review = _seed_review(db, user_id=STUDENT_ID, course_id="course-1")
+        resp = student_client.delete(f"/api/v1/reviews/{review.id}")
+        assert resp.status_code == 204
+
+    def test_delete_nonexistent_review(self, student_client: TestClient):
+        fake_id = uuid.uuid4()
+        resp = student_client.delete(f"/api/v1/reviews/{fake_id}")
+        assert resp.status_code == 404
+
+    def test_delete_others_review_forbidden(self, client: TestClient, db: Session):
+        _seed_course(db)
+        review = _seed_review(db, user_id=STUDENT_ID, course_id="course-1")
+        resp = client.delete(f"/api/v1/reviews/{review.id}")
+        assert resp.status_code == 403
+
+    def test_anon_cannot_delete(self, anon_client: TestClient, db: Session):
+        _seed_course(db)
+        review = _seed_review(db, user_id=STUDENT_ID, course_id="course-1")
+        resp = anon_client.delete(f"/api/v1/reviews/{review.id}")
+        assert resp.status_code in (401, 403)
+
+
+# ===================================================================
+# PREREQUISITES — GET /api/v1/prerequisites/course/{course_id}
+# ===================================================================
+
+class TestGetPrerequisites:
+    def test_empty_prerequisites(self, client: TestClient, db: Session):
+        _seed_course(db)
+        resp = client.get("/api/v1/prerequisites/course/course-1")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_with_prerequisite(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1")
+        _seed_course(db, course_id="course-2", title="Prereq Course")
+        prereq = CoursePrerequisite(
+            course_id="course-1", prerequisite_course_id="course-2"
+        )
+        db.add(prereq)
+        db.commit()
+
+        resp = client.get("/api/v1/prerequisites/course/course-1")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["prerequisite_course_id"] == "course-2"
+        assert data[0]["prerequisite_course_title"] == "Prereq Course"
+
+
+# ===================================================================
+# PREREQUISITES — PUT /api/v1/prerequisites/course/{course_id}
+# ===================================================================
+
+class TestSetPrerequisites:
+    def test_set_prerequisites(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1")
+        _seed_course(db, course_id="course-2", title="Prereq")
+        resp = client.put(
+            "/api/v1/prerequisites/course/course-1",
+            json={"prerequisite_course_ids": ["course-2"]},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["prerequisite_course_id"] == "course-2"
+
+    def test_self_prerequisite_rejected(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1")
+        resp = client.put(
+            "/api/v1/prerequisites/course/course-1",
+            json={"prerequisite_course_ids": ["course-1"]},
+        )
+        assert resp.status_code == 400
+
+    def test_nonexistent_prerequisite_course(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1")
+        resp = client.put(
+            "/api/v1/prerequisites/course/course-1",
+            json={"prerequisite_course_ids": ["does-not-exist"]},
+        )
+        assert resp.status_code == 404
+
+    def test_replace_prerequisites(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1")
+        _seed_course(db, course_id="course-2", title="Old prereq")
+        _seed_course(db, course_id="course-3", title="New prereq")
+        client.put(
+            "/api/v1/prerequisites/course/course-1",
+            json={"prerequisite_course_ids": ["course-2"]},
+        )
+        resp = client.put(
+            "/api/v1/prerequisites/course/course-1",
+            json={"prerequisite_course_ids": ["course-3"]},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["prerequisite_course_id"] == "course-3"
+
+    def test_clear_all_prerequisites(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1")
+        _seed_course(db, course_id="course-2", title="Prereq")
+        client.put(
+            "/api/v1/prerequisites/course/course-1",
+            json={"prerequisite_course_ids": ["course-2"]},
+        )
+        resp = client.put(
+            "/api/v1/prerequisites/course/course-1",
+            json={"prerequisite_course_ids": []},
+        )
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_student_cannot_set_prerequisites(self, student_client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1")
+        resp = student_client.put(
+            "/api/v1/prerequisites/course/course-1",
+            json={"prerequisite_course_ids": []},
+        )
+        assert resp.status_code == 403
+
+    def test_non_owner_teacher_rejected(self, client: TestClient, db: Session):
+        other_teacher_id = uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+        other = User(id=other_teacher_id, email="other@example.com",
+                     full_name="Other Teacher", role=UserRole.TEACHER.value)
+        db.add(other)
+        db.commit()
+        _seed_course(db, course_id="course-1", owner=other_teacher_id)
+        resp = client.put(
+            "/api/v1/prerequisites/course/course-1",
+            json={"prerequisite_course_ids": []},
+        )
+        assert resp.status_code == 403
+
+
+# ===================================================================
+# ANALYTICS — GET /api/v1/analytics/course/{course_id}
+# ===================================================================
+
+class TestCourseAnalytics:
+    def test_owner_gets_analytics(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        student = User(id=STUDENT_ID, email="student@example.com",
+                       full_name="Test Student", role=UserRole.STUDENT.value)
+        db.add(student)
+        db.commit()
+        _seed_enrollment(db, user_id=STUDENT_ID, course_id="course-1", progress=50)
+        resp = client.get("/api/v1/analytics/course/course-1")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["course_id"] == "course-1"
+        assert body["total_students"] == 1
+        assert body["avg_progress"] == 50.0
+
+    def test_non_owner_rejected(self, client: TestClient, db: Session):
+        other_id = uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+        other = User(id=other_id, email="other@example.com",
+                     full_name="Other", role=UserRole.TEACHER.value)
+        db.add(other)
+        db.commit()
+        _seed_course(db, course_id="course-1", owner=other_id)
+        resp = client.get("/api/v1/analytics/course/course-1")
+        assert resp.status_code == 403
+
+    def test_student_rejected(self, student_client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        resp = student_client.get("/api/v1/analytics/course/course-1")
+        assert resp.status_code == 403
+
+    def test_course_not_found(self, client: TestClient):
+        resp = client.get("/api/v1/analytics/course/no-such-course")
+        assert resp.status_code == 404
+
+    def test_analytics_empty_course(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        resp = client.get("/api/v1/analytics/course/course-1")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["total_students"] == 0
+        assert body["avg_progress"] == 0.0
+        assert body["completion_count"] == 0
+
+
+# ===================================================================
+# FILES — POST /api/v1/files/upload
+# ===================================================================
+
+class TestFileUpload:
+    def test_upload_pdf(self, client: TestClient, db: Session):
+        fake_meta = MagicMock()
+        fake_meta.id = "file-1"
+        fake_meta.name = "test.pdf"
+        fake_meta.url = "https://storage.example.com/test.pdf"
+        fake_meta.file_type = "application/pdf"
+
+        with patch("app.api.v1.files.upload_file_to_storage", return_value=fake_meta):
+            resp = client.post(
+                "/api/v1/files/upload",
+                files={"file": ("test.pdf", b"%PDF-1.4 test content", "application/pdf")},
+            )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["id"] == "file-1"
+        assert body["name"] == "test.pdf"
+
+    def test_unsupported_mime_type_rejected(self, client: TestClient):
+        resp = client.post(
+            "/api/v1/files/upload",
+            files={"file": ("evil.exe", b"MZ\x00\x00", "application/x-msdownload")},
+        )
+        assert resp.status_code == 415
+
+    def test_upload_image(self, client: TestClient, db: Session):
+        fake_meta = MagicMock()
+        fake_meta.id = "file-2"
+        fake_meta.name = "photo.png"
+        fake_meta.url = "https://storage.example.com/photo.png"
+        fake_meta.file_type = "image/png"
+
+        with patch("app.api.v1.files.upload_file_to_storage", return_value=fake_meta):
+            resp = client.post(
+                "/api/v1/files/upload",
+                files={"file": ("photo.png", b"\x89PNG\r\n", "image/png")},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["file_type"] == "image/png"
+
+    def test_anon_cannot_upload(self, anon_client: TestClient):
+        resp = anon_client.post(
+            "/api/v1/files/upload",
+            files={"file": ("test.pdf", b"test", "application/pdf")},
+        )
+        assert resp.status_code in (401, 403)
+
+
+# ===================================================================
+# HEALTH — GET /api/v1/health/db
+# ===================================================================
+
+class TestHealthDb:
+    def test_db_health_check(self, client: TestClient):
+        resp = client.get("/api/v1/health/db")
+        # SQLite doesn't have information_schema, so the endpoint may return 200
+        # with profiles_table_exists=False, or 503 if the query blows up.
+        # Both are acceptable behaviors since we're testing against SQLite.
+        assert resp.status_code in (200, 503)
+        if resp.status_code == 200:
+            body = resp.json()
+            assert body["status"] == "ok"
+            assert body["database"] == "connected"
+
+
+# ===================================================================
+# AUDIT — GET /api/v1/audit
+# ===================================================================
+
+class TestAuditLog:
+    def test_admin_can_list_audit_logs(self, admin_client: TestClient, db: Session):
+        _seed_audit_log(db, user_id=TEACHER_ID)
+        resp = admin_client.get("/api/v1/audit")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "items" in body
+        assert body["total"] >= 1
+        assert body["page"] == 1
+
+    def test_teacher_rejected(self, client: TestClient):
+        resp = client.get("/api/v1/audit")
+        assert resp.status_code == 403
+
+    def test_student_rejected(self, student_client: TestClient):
+        resp = student_client.get("/api/v1/audit")
+        assert resp.status_code == 403
+
+    def test_pagination(self, admin_client: TestClient, db: Session):
+        for _ in range(5):
+            _seed_audit_log(db, user_id=TEACHER_ID)
+        resp = admin_client.get("/api/v1/audit?page=1&page_size=2")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["page_size"] == 2
+        assert len(body["items"]) == 2
+        assert body["total"] >= 5
+
+    def test_filter_by_action(self, admin_client: TestClient, db: Session):
+        _seed_audit_log(db)
+        resp = admin_client.get("/api/v1/audit?action=create")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["total"] >= 1
+
+    def test_filter_by_resource_type(self, admin_client: TestClient, db: Session):
+        _seed_audit_log(db)
+        resp = admin_client.get("/api/v1/audit?resource_type=course")
+        assert resp.status_code == 200
+        assert resp.json()["total"] >= 1
+
+    def test_anon_rejected(self, anon_client: TestClient):
+        resp = anon_client.get("/api/v1/audit")
+        assert resp.status_code in (401, 403)
+
+
+# ===================================================================
+# COURSES — GET /api/v1/courses/my (teacher's own courses)
+# ===================================================================
+
+class TestListMyCourses:
+    def test_teacher_sees_own_courses(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        resp = client.get("/api/v1/courses/my")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) >= 1
+        assert any(c["id"] == "course-1" for c in data)
+
+    def test_teacher_does_not_see_others(self, client: TestClient, db: Session):
+        other_id = uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+        other = User(id=other_id, email="other@example.com",
+                     full_name="Other", role=UserRole.TEACHER.value)
+        db.add(other)
+        db.commit()
+        _seed_course(db, course_id="other-course", owner=other_id)
+        resp = client.get("/api/v1/courses/my")
+        assert resp.status_code == 200
+        ids = [c["id"] for c in resp.json()]
+        assert "other-course" not in ids
+
+    def test_student_rejected(self, student_client: TestClient):
+        resp = student_client.get("/api/v1/courses/my")
+        assert resp.status_code == 403
+
+
+# ===================================================================
+# MODULES — GET /api/v1/courses/{course_id}/modules/{module_id}
+# ===================================================================
+
+class TestGetModule:
+    def test_get_module_published_course(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", status="published")
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        resp = client.get("/api/v1/courses/course-1/modules/mod-1")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["id"] == "mod-1"
+        assert body["course_id"] == "course-1"
+
+    def test_module_not_found(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1")
+        resp = client.get("/api/v1/courses/course-1/modules/no-such-mod")
+        assert resp.status_code == 404
+
+    def test_course_not_found(self, client: TestClient):
+        resp = client.get("/api/v1/courses/no-course/modules/no-mod")
+        assert resp.status_code == 404
+
+    def test_draft_course_visible_to_owner(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="draft-1", status="draft", owner=TEACHER_ID)
+        _seed_module(db, course_id="draft-1", module_id="mod-draft")
+        resp = client.get("/api/v1/courses/draft-1/modules/mod-draft")
+        assert resp.status_code == 200
+
+
+# ===================================================================
+# MODULES — POST /api/v1/courses/{course_id}/modules
+# ===================================================================
+
+class TestCreateModule:
+    def test_create_module(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        resp = client.post(
+            "/api/v1/courses/course-1/modules",
+            json={"title": "New Module", "order_index": 0},
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["title"] == "New Module"
+        assert body["course_id"] == "course-1"
+
+    def test_create_module_course_not_found(self, client: TestClient):
+        resp = client.post(
+            "/api/v1/courses/no-course/modules",
+            json={"title": "Module", "order_index": 0},
+        )
+        assert resp.status_code == 404
+
+    def test_student_cannot_create_module(self, student_client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        resp = student_client.post(
+            "/api/v1/courses/course-1/modules",
+            json={"title": "Hacker Module", "order_index": 0},
+        )
+        assert resp.status_code == 403
+
+    def test_non_owner_teacher_rejected(self, client: TestClient, db: Session):
+        other_id = uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+        other = User(id=other_id, email="other@example.com",
+                     full_name="Other", role=UserRole.TEACHER.value)
+        db.add(other)
+        db.commit()
+        _seed_course(db, course_id="other-course", owner=other_id)
+        resp = client.post(
+            "/api/v1/courses/other-course/modules",
+            json={"title": "Attempt", "order_index": 0},
+        )
+        assert resp.status_code == 403
+
+
+# ===================================================================
+# MODULES — PUT /api/v1/courses/{course_id}/modules/{module_id}
+# ===================================================================
+
+class TestUpdateModule:
+    def test_update_module(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        resp = client.put(
+            "/api/v1/courses/course-1/modules/mod-1",
+            json={"title": "Updated Module"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["title"] == "Updated Module"
+
+    def test_update_module_not_found(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        resp = client.put(
+            "/api/v1/courses/course-1/modules/no-mod",
+            json={"title": "X"},
+        )
+        assert resp.status_code == 404
+
+
+# ===================================================================
+# MODULES — DELETE /api/v1/courses/{course_id}/modules/{module_id}
+# ===================================================================
+
+class TestDeleteModule:
+    def test_delete_module(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        resp = client.delete("/api/v1/courses/course-1/modules/mod-1")
+        assert resp.status_code == 204
+
+    def test_delete_module_not_found(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        resp = client.delete("/api/v1/courses/course-1/modules/no-mod")
+        assert resp.status_code == 404
+
+    def test_student_cannot_delete(self, student_client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        resp = student_client.delete("/api/v1/courses/course-1/modules/mod-1")
+        assert resp.status_code == 403
+
+
+# ===================================================================
+# CHAPTERS — POST /api/v1/courses/{cid}/modules/{mid}/chapters
+# ===================================================================
+
+class TestCreateChapter:
+    def test_create_chapter(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        resp = client.post(
+            "/api/v1/courses/course-1/modules/mod-1/chapters",
+            json={"title": "Intro Chapter", "order_index": 0},
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["title"] == "Intro Chapter"
+        assert body["module_id"] == "mod-1"
+
+    def test_create_chapter_module_not_found(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        resp = client.post(
+            "/api/v1/courses/course-1/modules/no-mod/chapters",
+            json={"title": "X", "order_index": 0},
+        )
+        assert resp.status_code == 404
+
+    def test_student_cannot_create_chapter(self, student_client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        resp = student_client.post(
+            "/api/v1/courses/course-1/modules/mod-1/chapters",
+            json={"title": "Hack", "order_index": 0},
+        )
+        assert resp.status_code == 403
+
+    def test_create_chapter_with_all_fields(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        resp = client.post(
+            "/api/v1/courses/course-1/modules/mod-1/chapters",
+            json={
+                "title": "Video Chapter",
+                "content": "Watch this video",
+                "video_url": "https://example.com/video.mp4",
+                "order_index": 1,
+                "chapter_type": "video",
+                "requires_completion": True,
+                "is_locked": False,
+            },
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["chapter_type"] == "video"
+        assert body["requires_completion"] is True
+
+
+# ===================================================================
+# CHAPTERS — PUT /{cid}/modules/{mid}/chapters/{chid}
+# ===================================================================
+
+class TestUpdateChapter:
+    def test_update_chapter(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        _seed_chapter(db, module_id="mod-1", chapter_id="chap-1")
+        resp = client.put(
+            "/api/v1/courses/course-1/modules/mod-1/chapters/chap-1",
+            json={"title": "Updated Chapter"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["title"] == "Updated Chapter"
+
+    def test_update_chapter_not_found(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        resp = client.put(
+            "/api/v1/courses/course-1/modules/mod-1/chapters/no-chap",
+            json={"title": "X"},
+        )
+        assert resp.status_code == 404
+
+
+# ===================================================================
+# CHAPTERS — DELETE /{cid}/modules/{mid}/chapters/{chid}
+# ===================================================================
+
+class TestDeleteChapter:
+    def test_delete_chapter(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        _seed_chapter(db, module_id="mod-1", chapter_id="chap-1")
+        resp = client.delete(
+            "/api/v1/courses/course-1/modules/mod-1/chapters/chap-1"
+        )
+        assert resp.status_code == 204
+
+    def test_delete_chapter_not_found(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        resp = client.delete(
+            "/api/v1/courses/course-1/modules/mod-1/chapters/no-chap"
+        )
+        assert resp.status_code == 404
+
+    def test_student_cannot_delete_chapter(self, student_client: TestClient, db: Session):
+        _seed_course(db, course_id="course-1", owner=TEACHER_ID)
+        _seed_module(db, course_id="course-1", module_id="mod-1")
+        _seed_chapter(db, module_id="mod-1", chapter_id="chap-1")
+        resp = student_client.delete(
+            "/api/v1/courses/course-1/modules/mod-1/chapters/chap-1"
+        )
+        assert resp.status_code == 403

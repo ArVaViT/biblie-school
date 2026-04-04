@@ -319,6 +319,7 @@ export default function TeacherDashboard() {
                   <img
                     src={course.image_url}
                     alt=""
+                    loading="lazy"
                     className="w-20 h-20 rounded-lg object-cover shrink-0"
                   />
                 ) : (

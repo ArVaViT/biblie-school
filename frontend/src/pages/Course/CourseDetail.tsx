@@ -243,6 +243,7 @@ export default function CourseDetail() {
             <img
               src={course.image_url}
               alt={course.title}
+              loading="lazy"
               className="w-full h-full object-cover"
               onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none" }}
             />
@@ -399,6 +400,7 @@ export default function CourseDetail() {
             <img
               src={course.image_url}
               alt={course.title}
+              loading="lazy"
               className="w-full h-full object-cover"
               onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none" }}
             />

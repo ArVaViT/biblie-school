@@ -4,20 +4,86 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-check-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  size-check:
+  pr-quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Check PR size
+      # Resolves the PR head for same-repo and forked pull requests (SHA fetch alone can miss fork heads).
+      - name: Fetch pull request head
+        run: git fetch --no-tags origin "pull/${{ github.event.pull_request.number }}/head:refs/heads/pr-head"
+
+      - name: Summarize pull request size
         run: |
-          CHANGED=$(git diff --stat origin/main...HEAD | tail -1)
-          echo "Changes: $CHANGED"
-          FILES=$(git diff --name-only origin/main...HEAD | wc -l)
+          set -euo pipefail
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          echo "Comparing $BASE_SHA..pr-head"
+          git diff --stat "$BASE_SHA"..pr-head | tail -1 || true
+          FILES=$(git diff --name-only "$BASE_SHA" pr-head | wc -l | tr -d ' ')
           echo "Files changed: $FILES"
-          if [ "$FILES" -gt 50 ]; then
-            echo "::warning::Large PR with $FILES files changed. Consider splitting."
+          if [ "${FILES:-0}" -gt 50 ]; then
+            echo "::warning::Large pull request ($FILES files). Consider splitting for easier review."
           fi
+
+      - name: Flag TODO, FIXME, and HACK in changed sources
+        run: |
+          set -euo pipefail
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" pr-head -- '*.py' '*.ts' '*.tsx' '*.js' '*.jsx' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No matching source files in diff."
+            exit 0
+          fi
+          echo "Scanning changed files for TODO / FIXME / HACK..."
+          FOUND=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            [ ! -f "$f" ] && continue
+            MATCHES=$(grep -nE '\b(TODO|FIXME|HACK)\b' "$f" || true)
+            if [ -n "$MATCHES" ]; then
+              echo "::notice file=$f::TODO/FIXME/HACK in this file:"
+              echo "$MATCHES"
+              FOUND=1
+            fi
+          done <<< "$CHANGED_FILES"
+          if [ "$FOUND" -eq 1 ]; then
+            echo "::notice::Found TODO/FIXME/HACK in the diff. Resolve or track before merging if appropriate."
+          fi
+
+      - name: Block secret and environment files in diff
+        run: |
+          set -euo pipefail
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" pr-head || true)
+          FOUND=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            bn=$(basename "$f")
+            case "$bn" in
+              .env|.env.local|.env.production|.env.development|credentials.json|serviceAccountKey.json)
+                echo "::error file=$f::Forbidden file in diff: $f"
+                FOUND=1
+                ;;
+              *.pem|*.key)
+                echo "::error file=$f::Forbidden credential-related file in diff: $f"
+                FOUND=1
+                ;;
+            esac
+          done <<< "$CHANGED_FILES"
+          if [ "$FOUND" -eq 1 ]; then
+            echo "::error::Remove secret or environment files from the pull request."
+            exit 1
+          fi
+          echo "No blocked secret or environment filenames in diff."

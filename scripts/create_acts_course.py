@@ -1,7 +1,7 @@
 """
 Master script: Create the Book of Acts course via Bible School Backend API.
 Director: AI University Director
-Teacher account: arvavitofficial@gmail.com (admin)
+Use a teacher or admin JWT: pass the token as the first CLI argument.
 
 Structure: 4 Modules, ~4.5 hours total
 - Module 1: Introduction & Birth of the Church (Acts 1-5) — easier, intro focus

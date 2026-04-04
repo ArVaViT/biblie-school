@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sa_func
 from app.core.database import get_db
-from app.api.dependencies import get_current_user, get_optional_user, require_teacher
+from app.api.dependencies import get_current_user, get_optional_user, require_teacher, verify_course_owner
 from app.models.user import User
 from app.models.cohort import Cohort
 from app.models.enrollment import Enrollment
@@ -230,17 +230,7 @@ async def create_new_module(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> ModuleResponse:
-    course = get_course(db, course_id)
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Course '{course_id}' not found",
-        )
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit your own courses",
-        )
+    verify_course_owner(db, course_id, teacher.id, allow_admin=False)
     return create_module(db, course_id, data)
 
 
@@ -252,17 +242,7 @@ async def update_existing_module(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> ModuleResponse:
-    course = get_course(db, course_id)
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Course '{course_id}' not found",
-        )
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit your own courses",
-        )
+    verify_course_owner(db, course_id, teacher.id, allow_admin=False)
     module = get_module(db, course_id, module_id)
     if not module:
         raise HTTPException(
@@ -281,17 +261,7 @@ async def remove_module(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> None:
-    course = get_course(db, course_id)
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Course '{course_id}' not found",
-        )
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit your own courses",
-        )
+    verify_course_owner(db, course_id, teacher.id, allow_admin=False)
     module = get_module(db, course_id, module_id)
     if not module:
         raise HTTPException(
@@ -317,17 +287,7 @@ async def create_new_chapter(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> ChapterResponse:
-    course = get_course(db, course_id)
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Course '{course_id}' not found",
-        )
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit your own courses",
-        )
+    verify_course_owner(db, course_id, teacher.id, allow_admin=False)
     module = get_module(db, course_id, module_id)
     if not module:
         raise HTTPException(
@@ -353,17 +313,7 @@ async def update_existing_chapter(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> ChapterResponse:
-    course = get_course(db, course_id)
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Course '{course_id}' not found",
-        )
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit your own courses",
-        )
+    verify_course_owner(db, course_id, teacher.id, allow_admin=False)
     chapter = get_chapter(db, course_id, module_id, chapter_id)
     if not chapter:
         raise HTTPException(
@@ -388,17 +338,7 @@ async def remove_chapter(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> None:
-    course = get_course(db, course_id)
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Course '{course_id}' not found",
-        )
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit your own courses",
-        )
+    verify_course_owner(db, course_id, teacher.id, allow_admin=False)
     chapter = get_chapter(db, course_id, module_id, chapter_id)
     if not chapter:
         raise HTTPException(

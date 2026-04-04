@@ -3,9 +3,11 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
+BLOCK_TYPES = Literal["text", "video", "quiz", "assignment", "file"]
+
 
 class BlockCreate(BaseModel):
-    block_type: Literal["text", "video", "quiz", "assignment", "file"]
+    block_type: BLOCK_TYPES
     order_index: int = 0
     content: str | None = None
     video_url: str | None = None
@@ -15,7 +17,7 @@ class BlockCreate(BaseModel):
 
 
 class BlockUpdate(BaseModel):
-    block_type: str | None = None
+    block_type: BLOCK_TYPES | None = None
     order_index: int | None = None
     content: str | None = None
     video_url: str | None = None
@@ -41,5 +43,5 @@ class BlockResponse(BaseModel):
 
 
 class BlockReorderItem(BaseModel):
-    id: str
+    id: UUID
     order_index: int

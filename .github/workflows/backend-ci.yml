@@ -8,38 +8,66 @@ on:
     branches: [main]
     paths: ['backend/**', '.github/workflows/backend-ci.yml']
 
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint-and-check:
+  lint-and-test:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+    env:
+      # Optional repo variables / secrets override CI-safe defaults (configure in GitHub Settings).
+      SUPABASE_URL: ${{ vars.CI_SUPABASE_URL || 'https://example.supabase.co' }}
+      SUPABASE_KEY: ${{ secrets.CI_SUPABASE_ANON_KEY || 'ci-placeholder-not-real' }}
+      DATABASE_URL: ${{ secrets.CI_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/ci' }}
+      JWT_SECRET_KEY: ${{ secrets.CI_JWT_SECRET_KEY || 'ci-only-jwt-secret-not-for-production-use-min-32' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.14'
-          cache: 'pip'
+          cache: pip
+          cache-dependency-path: backend/requirements-ci.txt
 
-      - run: pip install -r requirements-ci.txt
+      - name: Install dependencies
+        run: pip install -r requirements-ci.txt
 
-      - name: Syntax check
+      - name: Lint with Ruff
+        run: ruff check app/ tests/
+
+      - name: Verify main entrypoint syntax
         run: python -m py_compile app/main.py
 
-      - name: Import check
-        run: 'python -c "from app.main import app; print(''OK: FastAPI app imports successfully'')"'
-        env:
-          SUPABASE_URL: https://example.supabase.co
-          SUPABASE_KEY: placeholder
-          DATABASE_URL: postgresql://user:pass@localhost/db
-          JWT_SECRET_KEY: ci-test-secret-key-not-real
+      - name: Compile all application modules
+        run: python -m compileall app/ -q
 
-      - name: Run tests
-        run: python -m pytest tests/ -vv -s --tb=long
-        env:
-          SUPABASE_URL: https://example.supabase.co
-          SUPABASE_KEY: placeholder
-          DATABASE_URL: postgresql://user:pass@localhost/db
-          JWT_SECRET_KEY: ci-test-secret-key-not-real
+      - name: Verify FastAPI application imports
+        run: 'python -c "from app.main import app; print(''OK: FastAPI app imports successfully'')"'
+
+      - name: Run tests with coverage
+        run: >-
+          python -m pytest tests/
+          -vv
+          --tb=short
+          --cov=app
+          --cov-report=term-missing
+          --cov-report=xml
+          --strict-markers
+
+      - name: Upload coverage XML artifact
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: backend-coverage-xml
+          path: backend/coverage.xml
+          if-no-files-found: warn

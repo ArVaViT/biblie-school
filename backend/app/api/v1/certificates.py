@@ -231,8 +231,8 @@ async def reject_certificate(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Certificate cannot be rejected (current status: {cert.status})",
         )
+    course = db.query(Course).filter(Course.id == cert.course_id).first()
     if current_user.role != "admin":
-        course = db.query(Course).filter(Course.id == cert.course_id).first()
         if not course or str(course.created_by) != str(current_user.id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -240,7 +240,6 @@ async def reject_certificate(
             )
     cert.status = "rejected"
 
-    course = db.query(Course).filter(Course.id == cert.course_id).first()
     course_title = course.title if course else "a course"
     create_notification(
         db,

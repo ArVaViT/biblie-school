@@ -1,3 +1,4 @@
+import logging
 import re
 
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
@@ -6,6 +7,8 @@ from app.core.database import get_db
 from app.api.dependencies import get_current_user
 from app.models.user import User
 from app.services.file_service import upload_file_to_storage
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -62,6 +65,7 @@ async def upload_file(
             "file_type": file_metadata.file_type,
         }
     except Exception:
+        logger.exception("File upload failed for user %s", current_user.id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="File upload failed",

@@ -1,4 +1,5 @@
 import logging
+import uuid as _uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -305,7 +306,11 @@ async def update_user_role(
 ) -> dict:
     if role not in ("admin", "teacher", "pending_teacher", "student"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid role")
-    user = db.query(User).filter(User.id == user_id).first()
+    try:
+        uid = _uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    user = db.query(User).filter(User.id == uid).first()
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
     old_role = user.role

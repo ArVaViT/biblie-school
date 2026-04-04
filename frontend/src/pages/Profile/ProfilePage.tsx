@@ -175,6 +175,7 @@ export default function ProfilePage() {
                   <img
                     src={user.avatar_url}
                     alt={user.full_name ?? "Avatar"}
+                    loading="lazy"
                     className="h-16 w-16 rounded-full object-cover border-2 border-background shadow-sm"
                   />
                 ) : (

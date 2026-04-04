@@ -1,3 +1,6 @@
+# Copy to alembic.ini (ignored by git). The URL below is a placeholder;
+# `alembic/env.py` always uses DATABASE_URL from the environment at runtime.
+
 [alembic]
 script_location = alembic
 prepend_sys_path = .

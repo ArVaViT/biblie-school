@@ -63,6 +63,24 @@ def _reset_tables():
     Base.metadata.drop_all(bind=test_engine)
 
 
+@pytest.fixture(autouse=True)
+def _clear_rate_limit():
+    """Reset in-memory rate-limiter between tests to prevent 429s."""
+    from app.middleware.rate_limit import RateLimitMiddleware
+
+    def _reset(application):
+        stack = getattr(application, "middleware_stack", None)
+        while stack is not None:
+            if isinstance(stack, RateLimitMiddleware):
+                stack._hits.clear()
+                return
+            stack = getattr(stack, "app", None)
+
+    _reset(app)
+    yield
+    _reset(app)
+
+
 # ---------------------------------------------------------------------------
 # Database session
 # ---------------------------------------------------------------------------
