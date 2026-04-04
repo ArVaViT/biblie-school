@@ -22,12 +22,14 @@ router = APIRouter(prefix="/announcements", tags=["announcements"])
 @router.get("", response_model=list[AnnouncementResponse])
 async def list_announcements(
     course_id: str | None = Query(None),
+    skip: int = 0,
+    limit: int = Query(50, le=200),
     db: Session = Depends(get_db),
 ) -> list[AnnouncementResponse]:
     query = db.query(Announcement)
     if course_id is not None:
         query = query.filter(Announcement.course_id == course_id)
-    return query.order_by(Announcement.created_at.desc()).all()
+    return query.order_by(Announcement.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.post("", response_model=AnnouncementResponse, status_code=status.HTTP_201_CREATED)

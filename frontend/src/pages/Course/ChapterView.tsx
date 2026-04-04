@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { useEffect, useState, useCallback, useMemo, memo } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import DOMPurify from "dompurify"
 
@@ -85,13 +85,18 @@ function ChapterTypeBadge({ type }: { type: string }) {
   )
 }
 
-function BlockRenderer({ block, onAssignmentSubmitted }: { block: ChapterBlock; onAssignmentSubmitted?: () => void }) {
+const BlockRenderer = memo(function BlockRenderer({ block, onAssignmentSubmitted }: { block: ChapterBlock; onAssignmentSubmitted?: () => void }) {
+  const sanitizedContent = useMemo(
+    () => (block.content ? sanitize(block.content) : ""),
+    [block.content],
+  )
+
   switch (block.block_type) {
     case "text":
-      return block.content ? (
+      return sanitizedContent ? (
         <div
           className="prose prose-sm dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: sanitize(block.content) }}
+          dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       ) : null
 
@@ -143,7 +148,7 @@ function BlockRenderer({ block, onAssignmentSubmitted }: { block: ChapterBlock; 
     default:
       return null
   }
-}
+})
 
 const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
 
@@ -175,16 +180,13 @@ export default function ChapterView() {
       setLoading(true)
       setError(null)
       try {
-        const m = await coursesService.getModule(courseId, moduleId)
+        const [m, completedChapterIds] = await Promise.all([
+          coursesService.getModule(courseId, moduleId),
+          coursesService.getMyChapterProgress(courseId).catch(() => [] as string[]),
+        ])
         if (cancelled) return
         setMod(m)
-
-        try {
-          const completedChapterIds = await coursesService.getMyChapterProgress(courseId)
-          if (!cancelled) setCompletedIds(new Set(completedChapterIds))
-        } catch {
-          // non-critical
-        }
+        setCompletedIds(new Set(completedChapterIds))
       } catch {
         if (!cancelled) setError("Failed to load chapter. Please try again.")
       } finally {
@@ -213,24 +215,26 @@ export default function ChapterView() {
     setHasAssignments(false)
 
     const contentTypes = ["reading", "content", "video", "audio", "discussion", "mixed"]
-    if (contentTypes.includes(chapter.chapter_type || "reading")) {
-      setLoadingBlocks(true)
-      coursesService
-        .getChapterBlocks(chapter.id)
-        .then((blocks) => {
-          if (!cancelled)
-            setChapterBlocks(blocks.sort((a: ChapterBlock, b: ChapterBlock) => a.order_index - b.order_index))
-        })
-        .catch(() => { if (!cancelled) setChapterBlocks([]) })
-        .finally(() => { if (!cancelled) setLoadingBlocks(false) })
-    } else {
-      setChapterBlocks([])
-    }
+    const needsBlocks = contentTypes.includes(chapter.chapter_type || "reading")
 
-    coursesService
+    if (needsBlocks) setLoadingBlocks(true)
+    else setChapterBlocks([])
+
+    const blocksPromise = needsBlocks
+      ? coursesService.getChapterBlocks(chapter.id).catch(() => [] as ChapterBlock[])
+      : Promise.resolve(null)
+    const assignmentsPromise = coursesService
       .getChapterAssignments(chapter.id)
-      .then((a) => { if (!cancelled) setHasAssignments(a.length > 0) })
-      .catch(() => { if (!cancelled) setHasAssignments(false) })
+      .catch(() => [] as { id: string }[])
+
+    Promise.all([blocksPromise, assignmentsPromise]).then(([blocks, assignments]) => {
+      if (cancelled) return
+      if (blocks !== null) {
+        setChapterBlocks(blocks.sort((a: ChapterBlock, b: ChapterBlock) => a.order_index - b.order_index))
+      }
+      setHasAssignments(assignments.length > 0)
+      setLoadingBlocks(false)
+    })
 
     return () => { cancelled = true }
   }, [chapter])
@@ -281,6 +285,11 @@ export default function ChapterView() {
       </div>
     )
   }
+
+  const sanitizedChapterContent = useMemo(
+    () => (chapter.content ? sanitize(chapter.content) : ""),
+    [chapter.content],
+  )
 
   const locked = isChapterLocked(chapter, currentIdx)
   const isCompleted = completedIds.has(chapter.id)
@@ -346,10 +355,10 @@ export default function ChapterView() {
                 <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
               ))}
             </div>
-          ) : chapter.content ? (
+          ) : sanitizedChapterContent ? (
             <div
               className="prose dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
+              dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">No content has been added to this chapter yet.</p>
@@ -382,10 +391,10 @@ export default function ChapterView() {
                   <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
                 ))}
               </div>
-            ) : chapter.content ? (
+            ) : sanitizedChapterContent ? (
               <div
                 className="prose dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
+                dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
               />
             ) : null}
           </>
@@ -414,12 +423,12 @@ export default function ChapterView() {
                   <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
                 ))}
               </div>
-            ) : chapter.content ? (
+            ) : sanitizedChapterContent ? (
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Transcript</h3>
                 <div
                   className="prose dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
+                  dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
                 />
               </div>
             ) : null}
@@ -444,7 +453,7 @@ export default function ChapterView() {
                 </div>
                 <div
                   className="prose dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
+                  dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
                 />
               </div>
             )}
@@ -508,10 +517,10 @@ export default function ChapterView() {
                     </div>
                   ) : null
                 })()}
-                {chapter.content && (
+                {sanitizedChapterContent && (
                   <div
                     className="prose dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
+                    dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
                   />
                 )}
                 <QuizTaker chapterId={chapter.id} />
@@ -522,10 +531,10 @@ export default function ChapterView() {
         )}
 
         {/* Fallback for unrecognised types that have content */}
-        {!["reading", "content", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"].includes(chapterType) && chapter.content && (
+        {!["reading", "content", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"].includes(chapterType) && sanitizedChapterContent && (
           <div
             className="prose dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: sanitize(chapter.content) }}
+            dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
           />
         )}
       </div>

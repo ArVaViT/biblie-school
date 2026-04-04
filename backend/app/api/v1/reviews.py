@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
@@ -16,12 +16,16 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 @router.get("/course/{course_id}", response_model=list[ReviewResponse])
 async def list_course_reviews(
     course_id: str,
+    skip: int = 0,
+    limit: int = Query(50, le=200),
     db: Session = Depends(get_db),
 ):
     return (
         db.query(CourseReview)
         .filter(CourseReview.course_id == course_id)
         .order_by(CourseReview.created_at.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 

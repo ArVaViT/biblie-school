@@ -258,7 +258,7 @@ def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrol
 def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Course:
     """Deep-clone a course and all nested content. Returns the new Course.
 
-    Copies: Course → Modules → Chapters → ChapterBlocks, Quizzes
+    Copies: Course -> Modules -> Chapters -> ChapterBlocks, Quizzes
     (with questions + options), Assignments.
     ChapterBlock.quiz_id / assignment_id are remapped to the cloned entities.
     Enrollments, progress, grades, submissions, and certificates are NOT copied.
@@ -271,6 +271,54 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
     )
     if original is None:
         return None
+
+    all_chapter_ids = [
+        ch.id for mod in original.modules for ch in mod.chapters
+    ]
+    if not all_chapter_ids:
+        all_quizzes: list[Quiz] = []
+        all_questions: list[QuizQuestion] = []
+        all_options: list[QuizOption] = []
+        all_assignments: list[Assignment] = []
+        all_blocks: list[ChapterBlock] = []
+    else:
+        all_quizzes = db.query(Quiz).filter(Quiz.chapter_id.in_(all_chapter_ids)).all()
+        all_quiz_ids = [q.id for q in all_quizzes]
+
+        all_questions = (
+            db.query(QuizQuestion).filter(QuizQuestion.quiz_id.in_(all_quiz_ids)).all()
+            if all_quiz_ids else []
+        )
+        all_question_ids = [q.id for q in all_questions]
+
+        all_options = (
+            db.query(QuizOption).filter(QuizOption.question_id.in_(all_question_ids)).all()
+            if all_question_ids else []
+        )
+
+        all_assignments = db.query(Assignment).filter(Assignment.chapter_id.in_(all_chapter_ids)).all()
+        all_blocks = db.query(ChapterBlock).filter(ChapterBlock.chapter_id.in_(all_chapter_ids)).all()
+
+    from collections import defaultdict
+    quizzes_by_chapter: dict[str, list[Quiz]] = defaultdict(list)
+    for q in all_quizzes:
+        quizzes_by_chapter[q.chapter_id].append(q)
+
+    questions_by_quiz: dict[str, list[QuizQuestion]] = defaultdict(list)
+    for q in all_questions:
+        questions_by_quiz[str(q.quiz_id)].append(q)
+
+    options_by_question: dict[str, list[QuizOption]] = defaultdict(list)
+    for o in all_options:
+        options_by_question[str(o.question_id)].append(o)
+
+    assignments_by_chapter: dict[str, list[Assignment]] = defaultdict(list)
+    for a in all_assignments:
+        assignments_by_chapter[a.chapter_id].append(a)
+
+    blocks_by_chapter: dict[str, list[ChapterBlock]] = defaultdict(list)
+    for b in all_blocks:
+        blocks_by_chapter[b.chapter_id].append(b)
 
     new_course_id = str(uuid.uuid4())
     new_course = Course(
@@ -315,11 +363,10 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
             quiz_id_map: dict[str, uuid.UUID] = {}
             assignment_id_map: dict[str, uuid.UUID] = {}
 
-            quizzes = db.query(Quiz).filter(Quiz.chapter_id == chapter.id).all()
-            for quiz in quizzes:
+            for quiz in quizzes_by_chapter.get(chapter.id, []):
                 new_quiz_id = uuid.uuid4()
                 quiz_id_map[str(quiz.id)] = new_quiz_id
-                new_quiz = Quiz(
+                db.add(Quiz(
                     id=new_quiz_id,
                     chapter_id=new_chapter_id,
                     title=quiz.title,
@@ -327,65 +374,48 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
                     quiz_type=getattr(quiz, "quiz_type", "quiz") or "quiz",
                     max_attempts=getattr(quiz, "max_attempts", None),
                     passing_score=quiz.passing_score,
-                )
-                db.add(new_quiz)
+                ))
 
-                questions = (
-                    db.query(QuizQuestion)
-                    .filter(QuizQuestion.quiz_id == quiz.id)
-                    .order_by(QuizQuestion.order_index)
-                    .all()
-                )
-                for question in questions:
+                for question in sorted(
+                    questions_by_quiz.get(str(quiz.id), []),
+                    key=lambda q: q.order_index,
+                ):
                     new_question_id = uuid.uuid4()
-                    new_question = QuizQuestion(
+                    db.add(QuizQuestion(
                         id=new_question_id,
                         quiz_id=new_quiz_id,
                         question_text=question.question_text,
                         question_type=question.question_type,
                         order_index=question.order_index,
                         points=question.points,
-                    )
-                    db.add(new_question)
+                    ))
 
-                    options = (
-                        db.query(QuizOption)
-                        .filter(QuizOption.question_id == question.id)
-                        .order_by(QuizOption.order_index)
-                        .all()
-                    )
-                    for option in options:
-                        new_option = QuizOption(
+                    for option in sorted(
+                        options_by_question.get(str(question.id), []),
+                        key=lambda o: o.order_index,
+                    ):
+                        db.add(QuizOption(
                             id=uuid.uuid4(),
                             question_id=new_question_id,
                             option_text=option.option_text,
                             is_correct=option.is_correct,
                             order_index=option.order_index,
-                        )
-                        db.add(new_option)
+                        ))
 
-            assignments = db.query(Assignment).filter(Assignment.chapter_id == chapter.id).all()
-            for assignment in assignments:
+            for assignment in assignments_by_chapter.get(chapter.id, []):
                 new_assignment_id = uuid.uuid4()
                 assignment_id_map[str(assignment.id)] = new_assignment_id
-                new_assignment = Assignment(
+                db.add(Assignment(
                     id=new_assignment_id,
                     chapter_id=new_chapter_id,
                     title=assignment.title,
                     description=assignment.description,
                     max_score=assignment.max_score,
                     due_date=None,
-                )
-                db.add(new_assignment)
+                ))
 
-            blocks = (
-                db.query(ChapterBlock)
-                .filter(ChapterBlock.chapter_id == chapter.id)
-                .order_by(ChapterBlock.order_index)
-                .all()
-            )
-            for block in blocks:
-                new_block = ChapterBlock(
+            for block in sorted(blocks_by_chapter.get(chapter.id, []), key=lambda b: b.order_index):
+                db.add(ChapterBlock(
                     id=uuid.uuid4(),
                     chapter_id=new_chapter_id,
                     block_type=block.block_type,
@@ -395,8 +425,7 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
                     quiz_id=quiz_id_map.get(str(block.quiz_id)) if block.quiz_id else None,
                     assignment_id=assignment_id_map.get(str(block.assignment_id)) if block.assignment_id else None,
                     file_url=block.file_url,
-                )
-                db.add(new_block)
+                ))
 
     db.commit()
 

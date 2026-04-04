@@ -86,15 +86,16 @@ async def reorder_blocks(
     db: Session = Depends(get_db),
 ):
     verify_chapter_owner(db, chapter_id, teacher.id)
+    block_ids = [item.id for item in items]
+    blocks_by_id = {
+        b.id: b
+        for b in db.query(ChapterBlock).filter(
+            ChapterBlock.id.in_(block_ids),
+            ChapterBlock.chapter_id == chapter_id,
+        ).all()
+    }
     for item in items:
-        block = (
-            db.query(ChapterBlock)
-            .filter(
-                ChapterBlock.id == item.id,
-                ChapterBlock.chapter_id == chapter_id,
-            )
-            .first()
-        )
+        block = blocks_by_id.get(item.id)
         if block:
             block.order_index = item.order_index
     db.commit()

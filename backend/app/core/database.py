@@ -65,9 +65,10 @@ def _get_engine() -> Engine:
         else:
             pool_kwargs.update(
                 {
-                    "pool_size": 2,
-                    "max_overflow": 3,
+                    "pool_size": 5,
+                    "max_overflow": 10,
                     "pool_recycle": 300,
+                    "pool_timeout": 20,
                 }
             )
 
@@ -95,48 +96,29 @@ def reset_engine() -> None:
     _SessionLocal = None
 
 
-_MAX_SESSION_RETRIES = 2
-
-
 def get_db() -> Generator[Session, None, None]:
-    """FastAPI dependency that yields a database session."""
+    """FastAPI dependency that yields a database session.
+
+    pool_pre_ping on the engine already validates connections,
+    so we skip a manual SELECT 1 here.
+    """
     from fastapi import HTTPException, status
 
-    db: Session | None = None
-    last_err: Exception | None = None
-
-    for attempt in range(_MAX_SESSION_RETRIES):
-        try:
-            _get_engine()
-        except RuntimeError:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Database connection error",
-            ) from None
-
-        if _SessionLocal is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Database session factory not initialized",
-            )
-
-        try:
-            db = _SessionLocal()
-            db.execute(__import__("sqlalchemy").text("SELECT 1"))
-            break
-        except Exception as e:
-            last_err = e
-            logger.warning("DB session attempt %d failed: %s", attempt + 1, e)
-            reset_engine()
-            db = None
-
-    if db is None:
-        logger.error("All DB session attempts failed: %s", last_err)
+    try:
+        _get_engine()
+    except RuntimeError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Database temporarily unavailable",
+            detail="Database connection error",
+        ) from None
+
+    if _SessionLocal is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database session factory not initialized",
         )
 
+    db = _SessionLocal()
     try:
         yield db
     except SQLAlchemyError as e:

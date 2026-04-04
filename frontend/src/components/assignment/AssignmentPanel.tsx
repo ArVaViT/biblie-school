@@ -25,6 +25,7 @@ interface AssignmentPanelProps {
 
 export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPanelProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [submissionsMap, setSubmissionsMap] = useState<Record<string, AssignmentSubmission | null>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,7 +34,20 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
       setLoading(true)
       try {
         const data = await coursesService.getChapterAssignments(chapterId)
-        if (!cancelled) setAssignments(data)
+        if (cancelled) return
+        setAssignments(data)
+
+        if (data.length > 0) {
+          const subResults = await Promise.all(
+            data.map((a) => coursesService.getMySubmissions(a.id).catch(() => [] as AssignmentSubmission[]))
+          )
+          if (cancelled) return
+          const map: Record<string, AssignmentSubmission | null> = {}
+          data.forEach((a, i) => {
+            map[a.id] = subResults[i].length > 0 ? subResults[i][0] : null
+          })
+          setSubmissionsMap(map)
+        }
       } catch {
         // Non-critical
       } finally {
@@ -56,36 +70,26 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
   return (
     <div className="space-y-4 mt-6">
       {assignments.map((assignment) => (
-        <SingleAssignment key={assignment.id} assignment={assignment} onSubmitted={onSubmitted} />
+        <SingleAssignment
+          key={assignment.id}
+          assignment={assignment}
+          initialSubmission={submissionsMap[assignment.id] ?? null}
+          onSubmitted={onSubmitted}
+        />
       ))}
     </div>
   )
 }
 
-function SingleAssignment({ assignment, onSubmitted }: { assignment: Assignment; onSubmitted?: () => void }) {
-  const [submission, setSubmission] = useState<AssignmentSubmission | null>(null)
-  const [loadingSub, setLoadingSub] = useState(true)
+function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assignment: Assignment; initialSubmission: AssignmentSubmission | null; onSubmitted?: () => void }) {
+  const [submission, setSubmission] = useState<AssignmentSubmission | null>(initialSubmission)
   const [content, setContent] = useState("")
   const [fileUrl, setFileUrl] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
-        const subs = await coursesService.getMySubmissions(assignment.id)
-        if (!cancelled && subs.length > 0) {
-          setSubmission(subs[0])
-        }
-      } catch {
-        // Non-critical when no submission exists yet
-      } finally {
-        if (!cancelled) setLoadingSub(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [assignment.id])
+    setSubmission(initialSubmission)
+  }, [initialSubmission])
 
   const handleSubmit = async () => {
     if (!content.trim() && !fileUrl.trim()) return
@@ -155,90 +159,82 @@ function SingleAssignment({ assignment, onSubmitted }: { assignment: Assignment;
       </div>
 
       <div className="p-5">
-        {loadingSub ? (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        {submission && (
+          <div className="mb-4 space-y-3">
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${statusConfig[submission.status]?.color ?? ""}`}>
+              {statusConfig[submission.status]?.icon}
+              <span className="font-medium">{statusConfig[submission.status]?.label}</span>
+            </div>
+
+            {submission.status === "graded" && submission.grade !== null && (
+              <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-muted/50 text-sm">
+                <span className="font-semibold text-lg">
+                  {submission.grade}/{assignment.max_score}
+                </span>
+                <span className="text-muted-foreground">points</span>
+              </div>
+            )}
+
+            {submission.feedback && (
+              <div className="rounded-md border bg-muted/30 p-3">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
+                  <MessageSquare className="h-3 w-3" />
+                  Instructor Feedback
+                </div>
+                <p className="text-sm">{submission.feedback}</p>
+              </div>
+            )}
+
+            {submission.content && (
+              <div className="rounded-md border bg-muted/30 p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Your Submission</p>
+                <p className="text-sm whitespace-pre-wrap">{submission.content}</p>
+              </div>
+            )}
           </div>
-        ) : (
-          <>
-            {submission && (
-              <div className="mb-4 space-y-3">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${statusConfig[submission.status]?.color ?? ""}`}>
-                  {statusConfig[submission.status]?.icon}
-                  <span className="font-medium">{statusConfig[submission.status]?.label}</span>
-                </div>
+        )}
 
-                {submission.status === "graded" && submission.grade !== null && (
-                  <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-muted/50 text-sm">
-                    <span className="font-semibold text-lg">
-                      {submission.grade}/{assignment.max_score}
-                    </span>
-                    <span className="text-muted-foreground">points</span>
-                  </div>
-                )}
-
-                {submission.feedback && (
-                  <div className="rounded-md border bg-muted/30 p-3">
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
-                      <MessageSquare className="h-3 w-3" />
-                      Instructor Feedback
-                    </div>
-                    <p className="text-sm">{submission.feedback}</p>
-                  </div>
-                )}
-
-                {submission.content && (
-                  <div className="rounded-md border bg-muted/30 p-3">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Your Submission</p>
-                    <p className="text-sm whitespace-pre-wrap">{submission.content}</p>
-                  </div>
-                )}
-              </div>
+        {showForm && (
+          <div className="space-y-3">
+            {canResubmit && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                Your instructor has returned this assignment. Please revise and resubmit.
+              </p>
             )}
-
-            {showForm && (
-              <div className="space-y-3">
-                {canResubmit && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                    Your instructor has returned this assignment. Please revise and resubmit.
-                  </p>
-                )}
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Your Response</Label>
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Write your assignment response here..."
-                    className="w-full min-h-[120px] p-3 text-sm bg-background border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs flex items-center gap-1.5">
-                    <LinkIcon className="h-3 w-3" />
-                    File Link (optional)
-                  </Label>
-                  <Input
-                    value={fileUrl}
-                    onChange={(e) => setFileUrl(e.target.value)}
-                    placeholder="https://drive.google.com/..."
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  onClick={handleSubmit}
-                  disabled={submitting || (!content.trim() && !fileUrl.trim())}
-                >
-                  {submitting ? (
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  ) : (
-                    <Send className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  {submitting ? "Submitting..." : canResubmit ? "Resubmit" : "Submit"}
-                </Button>
-              </div>
-            )}
-          </>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Your Response</Label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Write your assignment response here..."
+                className="w-full min-h-[120px] p-3 text-sm bg-background border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1.5">
+                <LinkIcon className="h-3 w-3" />
+                File Link (optional)
+              </Label>
+              <Input
+                value={fileUrl}
+                onChange={(e) => setFileUrl(e.target.value)}
+                placeholder="https://drive.google.com/..."
+                className="h-8 text-sm"
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={submitting || (!content.trim() && !fileUrl.trim())}
+            >
+              {submitting ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              {submitting ? "Submitting..." : canResubmit ? "Resubmit" : "Submit"}
+            </Button>
+          </div>
         )}
       </div>
     </div>

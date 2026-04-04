@@ -10,11 +10,19 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 })
 
-api.interceptors.request.use(async (config) => {
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+let _cachedToken: string | null = null
+
+supabase.auth.getSession().then(({ data }) => {
+  _cachedToken = data.session?.access_token ?? null
+})
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  _cachedToken = session?.access_token ?? null
+})
+
+api.interceptors.request.use((config) => {
+  if (_cachedToken) {
+    config.headers.Authorization = `Bearer ${_cachedToken}`
   }
   return config
 })
@@ -23,6 +31,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error: unknown) => {
     if (isAxiosError(error) && error.response?.status === 401) {
+      _cachedToken = null
       await supabase.auth.signOut()
     }
     return Promise.reject(error)

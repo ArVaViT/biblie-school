@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -94,6 +94,8 @@ async def get_course_certificate(
 
 @router.get("/my", response_model=list[CertificateResponse])
 async def list_my_certificates(
+    skip: int = 0,
+    limit: int = Query(50, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -101,12 +103,16 @@ async def list_my_certificates(
         db.query(Certificate)
         .filter(Certificate.user_id == current_user.id)
         .order_by(Certificate.requested_at.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 
 
 @router.get("/pending", response_model=list[CertificateResponse])
 async def list_pending_certificates(
+    skip: int = 0,
+    limit: int = Query(50, le=200),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
@@ -121,12 +127,16 @@ async def list_pending_certificates(
             Certificate.status == "pending",
         )
         .order_by(Certificate.requested_at.asc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 
 
 @router.get("/admin/pending", response_model=list[CertificateResponse])
 async def list_admin_pending_certificates(
+    skip: int = 0,
+    limit: int = Query(50, le=200),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -135,6 +145,8 @@ async def list_admin_pending_certificates(
         db.query(Certificate)
         .filter(Certificate.status == "teacher_approved")
         .order_by(Certificate.teacher_approved_at.asc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 

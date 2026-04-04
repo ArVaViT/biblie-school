@@ -156,6 +156,8 @@ async def get_grade_summary(
 
 @router.get("/my", response_model=list[GradeResponse])
 async def list_my_grades(
+    skip: int = 0,
+    limit: int = Query(100, le=500),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[GradeResponse]:
@@ -163,6 +165,8 @@ async def list_my_grades(
         db.query(StudentGrade)
         .filter(StudentGrade.student_id == current_user.id)
         .order_by(StudentGrade.graded_at.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 
@@ -193,6 +197,8 @@ async def get_my_grade_for_course(
 async def list_course_grades(
     course_id: str,
     cohort_id: str | None = Query(None),
+    skip: int = 0,
+    limit: int = Query(100, le=500),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> list[GradeResponse]:
@@ -200,7 +206,7 @@ async def list_course_grades(
     query = db.query(StudentGrade).filter(StudentGrade.course_id == course_id)
     if cohort_id is not None:
         query = query.filter(StudentGrade.cohort_id == cohort_id)
-    return query.order_by(StudentGrade.graded_at.desc()).all()
+    return query.order_by(StudentGrade.graded_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.get("/course/{course_id}/student/{student_id}", response_model=GradeResponse)

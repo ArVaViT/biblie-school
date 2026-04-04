@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import (
@@ -146,6 +146,8 @@ async def submit_assignment(
 @router.get("/{assignment_id}/submissions", response_model=list[SubmissionResponse])
 async def list_submissions(
     assignment_id: UUID,
+    skip: int = 0,
+    limit: int = Query(100, le=500),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
@@ -157,6 +159,8 @@ async def list_submissions(
         db.query(AssignmentSubmission)
         .filter(AssignmentSubmission.assignment_id == assignment_id)
         .order_by(AssignmentSubmission.submitted_at.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 
