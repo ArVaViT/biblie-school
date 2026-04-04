@@ -333,7 +333,14 @@ async def get_quiz_attempts(
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     _verify_quiz_owner(db, quiz, teacher.id)
-    return db.query(QuizAttempt).filter(QuizAttempt.quiz_id == quiz_id).order_by(QuizAttempt.started_at.desc()).offset(skip).limit(limit).all()
+    return (
+        db.query(QuizAttempt)
+        .filter(QuizAttempt.quiz_id == quiz_id)
+        .order_by(QuizAttempt.started_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 @router.get("/{quiz_id}/my-attempts", response_model=list[QuizAttemptResponse])

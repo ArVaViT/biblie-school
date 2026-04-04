@@ -89,10 +89,12 @@ async def reorder_blocks(
     block_ids = [item.id for item in items]
     blocks_by_id = {
         b.id: b
-        for b in db.query(ChapterBlock).filter(
+        for b in db.query(ChapterBlock)
+        .filter(
             ChapterBlock.id.in_(block_ids),
             ChapterBlock.chapter_id == chapter_id,
-        ).all()
+        )
+        .all()
     }
     for item in items:
         block = blocks_by_id.get(item.id)

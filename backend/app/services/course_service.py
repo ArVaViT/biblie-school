@@ -272,9 +272,7 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
     if original is None:
         return None
 
-    all_chapter_ids = [
-        ch.id for mod in original.modules for ch in mod.chapters
-    ]
+    all_chapter_ids = [ch.id for mod in original.modules for ch in mod.chapters]
     if not all_chapter_ids:
         all_quizzes: list[Quiz] = []
         all_questions: list[QuizQuestion] = []
@@ -286,20 +284,19 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
         all_quiz_ids = [q.id for q in all_quizzes]
 
         all_questions = (
-            db.query(QuizQuestion).filter(QuizQuestion.quiz_id.in_(all_quiz_ids)).all()
-            if all_quiz_ids else []
+            db.query(QuizQuestion).filter(QuizQuestion.quiz_id.in_(all_quiz_ids)).all() if all_quiz_ids else []
         )
         all_question_ids = [q.id for q in all_questions]
 
         all_options = (
-            db.query(QuizOption).filter(QuizOption.question_id.in_(all_question_ids)).all()
-            if all_question_ids else []
+            db.query(QuizOption).filter(QuizOption.question_id.in_(all_question_ids)).all() if all_question_ids else []
         )
 
         all_assignments = db.query(Assignment).filter(Assignment.chapter_id.in_(all_chapter_ids)).all()
         all_blocks = db.query(ChapterBlock).filter(ChapterBlock.chapter_id.in_(all_chapter_ids)).all()
 
     from collections import defaultdict
+
     quizzes_by_chapter: dict[str, list[Quiz]] = defaultdict(list)
     for q in all_quizzes:
         quizzes_by_chapter[q.chapter_id].append(q)
@@ -366,66 +363,76 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
             for quiz in quizzes_by_chapter.get(chapter.id, []):
                 new_quiz_id = uuid.uuid4()
                 quiz_id_map[str(quiz.id)] = new_quiz_id
-                db.add(Quiz(
-                    id=new_quiz_id,
-                    chapter_id=new_chapter_id,
-                    title=quiz.title,
-                    description=quiz.description,
-                    quiz_type=getattr(quiz, "quiz_type", "quiz") or "quiz",
-                    max_attempts=getattr(quiz, "max_attempts", None),
-                    passing_score=quiz.passing_score,
-                ))
+                db.add(
+                    Quiz(
+                        id=new_quiz_id,
+                        chapter_id=new_chapter_id,
+                        title=quiz.title,
+                        description=quiz.description,
+                        quiz_type=getattr(quiz, "quiz_type", "quiz") or "quiz",
+                        max_attempts=getattr(quiz, "max_attempts", None),
+                        passing_score=quiz.passing_score,
+                    )
+                )
 
                 for question in sorted(
                     questions_by_quiz.get(str(quiz.id), []),
                     key=lambda q: q.order_index,
                 ):
                     new_question_id = uuid.uuid4()
-                    db.add(QuizQuestion(
-                        id=new_question_id,
-                        quiz_id=new_quiz_id,
-                        question_text=question.question_text,
-                        question_type=question.question_type,
-                        order_index=question.order_index,
-                        points=question.points,
-                    ))
+                    db.add(
+                        QuizQuestion(
+                            id=new_question_id,
+                            quiz_id=new_quiz_id,
+                            question_text=question.question_text,
+                            question_type=question.question_type,
+                            order_index=question.order_index,
+                            points=question.points,
+                        )
+                    )
 
                     for option in sorted(
                         options_by_question.get(str(question.id), []),
                         key=lambda o: o.order_index,
                     ):
-                        db.add(QuizOption(
-                            id=uuid.uuid4(),
-                            question_id=new_question_id,
-                            option_text=option.option_text,
-                            is_correct=option.is_correct,
-                            order_index=option.order_index,
-                        ))
+                        db.add(
+                            QuizOption(
+                                id=uuid.uuid4(),
+                                question_id=new_question_id,
+                                option_text=option.option_text,
+                                is_correct=option.is_correct,
+                                order_index=option.order_index,
+                            )
+                        )
 
             for assignment in assignments_by_chapter.get(chapter.id, []):
                 new_assignment_id = uuid.uuid4()
                 assignment_id_map[str(assignment.id)] = new_assignment_id
-                db.add(Assignment(
-                    id=new_assignment_id,
-                    chapter_id=new_chapter_id,
-                    title=assignment.title,
-                    description=assignment.description,
-                    max_score=assignment.max_score,
-                    due_date=None,
-                ))
+                db.add(
+                    Assignment(
+                        id=new_assignment_id,
+                        chapter_id=new_chapter_id,
+                        title=assignment.title,
+                        description=assignment.description,
+                        max_score=assignment.max_score,
+                        due_date=None,
+                    )
+                )
 
             for block in sorted(blocks_by_chapter.get(chapter.id, []), key=lambda b: b.order_index):
-                db.add(ChapterBlock(
-                    id=uuid.uuid4(),
-                    chapter_id=new_chapter_id,
-                    block_type=block.block_type,
-                    order_index=block.order_index,
-                    content=block.content,
-                    video_url=block.video_url,
-                    quiz_id=quiz_id_map.get(str(block.quiz_id)) if block.quiz_id else None,
-                    assignment_id=assignment_id_map.get(str(block.assignment_id)) if block.assignment_id else None,
-                    file_url=block.file_url,
-                ))
+                db.add(
+                    ChapterBlock(
+                        id=uuid.uuid4(),
+                        chapter_id=new_chapter_id,
+                        block_type=block.block_type,
+                        order_index=block.order_index,
+                        content=block.content,
+                        video_url=block.video_url,
+                        quiz_id=quiz_id_map.get(str(block.quiz_id)) if block.quiz_id else None,
+                        assignment_id=assignment_id_map.get(str(block.assignment_id)) if block.assignment_id else None,
+                        file_url=block.file_url,
+                    )
+                )
 
     db.commit()
 
