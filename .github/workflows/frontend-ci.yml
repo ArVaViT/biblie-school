@@ -35,11 +35,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Verify npm version
-        run: npm --version
-
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Run ESLint (zero warnings)
         run: npx eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0
