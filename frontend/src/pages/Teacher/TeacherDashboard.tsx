@@ -468,7 +468,7 @@ export default function TeacherDashboard() {
       {/* Trash Section */}
       <div className="mt-12 border-t pt-8">
         <button
-          onClick={() => { setShowTrash(!showTrash); if (!showTrash && trashedCourses.length === 0) loadTrash() }}
+          onClick={() => { const willShow = !showTrash; setShowTrash(willShow); if (willShow) loadTrash() }}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <Archive className="h-4 w-4" />

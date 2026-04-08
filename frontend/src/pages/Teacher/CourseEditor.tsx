@@ -351,9 +351,10 @@ export default function CourseEditor() {
     </div>
   )
   const modules = [...(course.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
+  const [reorderingModules, setReorderingModules] = useState(false)
 
   const handleModuleDragEnd = useCallback(async (result: DropResult) => {
-    if (!result.destination || !courseId) return
+    if (!result.destination || !courseId || reorderingModules) return
     const from = result.source.index
     const to = result.destination.index
     if (from === to) return
@@ -370,6 +371,7 @@ export default function CourseEditor() {
       }
     })
 
+    setReorderingModules(true)
     try {
       await Promise.all(
         reordered.map((m, i) =>
@@ -381,8 +383,10 @@ export default function CourseEditor() {
     } catch {
       toast({ title: "Failed to save module order", variant: "destructive" })
       load()
+    } finally {
+      setReorderingModules(false)
     }
-  }, [modules, courseId, load])
+  }, [modules, courseId, load, reorderingModules])
   const pub = course.status === "published"
 
   return (

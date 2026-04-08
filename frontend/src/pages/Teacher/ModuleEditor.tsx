@@ -170,8 +170,10 @@ export default function ModuleEditor() {
     }
   }
 
+  const [reorderingChapters, setReorderingChapters] = useState(false)
+
   const handleChapterDragEnd = useCallback(async (result: DropResult) => {
-    if (!result.destination || !courseId || !moduleId) return
+    if (!result.destination || !courseId || !moduleId || reorderingChapters) return
     const from = result.source.index
     const to = result.destination.index
     if (from === to) return
@@ -186,6 +188,7 @@ export default function ModuleEditor() {
       return { ...prev, chapters: reordered.map((c, i) => ({ ...c, order_index: i })) }
     })
 
+    setReorderingChapters(true)
     try {
       await Promise.all(
         reordered.map((c, i) =>
@@ -197,8 +200,10 @@ export default function ModuleEditor() {
     } catch {
       toast({ title: "Failed to save chapter order", variant: "destructive" })
       load()
+    } finally {
+      setReorderingChapters(false)
     }
-  }, [mod, courseId, moduleId, load])
+  }, [mod, courseId, moduleId, load, reorderingChapters])
 
   if (loading) {
     return (

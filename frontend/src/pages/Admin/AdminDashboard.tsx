@@ -170,8 +170,18 @@ export default function AdminDashboard() {
     }
   }
 
+  const filteredIds = useMemo(() => new Set(filtered.map((u) => u.id)), [filtered])
+
+  useEffect(() => {
+    setSelectedIds(prev => {
+      const narrowed = new Set([...prev].filter(id => filteredIds.has(id)))
+      return narrowed.size === prev.size ? prev : narrowed
+    })
+  }, [filteredIds])
+
   const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) {
+    const allFilteredSelected = filtered.length > 0 && filtered.every(u => selectedIds.has(u.id))
+    if (allFilteredSelected) {
       setSelectedIds(new Set())
     } else {
       setSelectedIds(new Set(filtered.map((u) => u.id)))
@@ -566,7 +576,7 @@ export default function AdminDashboard() {
                     <th className="px-3 py-3 w-10">
                       <input
                         type="checkbox"
-                        checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                        checked={filtered.length > 0 && filtered.every(u => selectedIds.has(u.id))}
                         onChange={toggleSelectAll}
                         className="rounded border-gray-300"
                         aria-label="Select all users"

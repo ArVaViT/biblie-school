@@ -273,7 +273,8 @@ export default function TeacherGradebook() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `grades_${courseTitle || courseId}.csv`
+      const safeTitle = (courseTitle || courseId || "export").replace(/[\\/:*?"<>|]/g, "_").slice(0, 50).trim()
+      a.download = `grades_${safeTitle}.csv`
       a.click()
       URL.revokeObjectURL(url)
     } catch {
