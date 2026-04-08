@@ -224,6 +224,7 @@ async def submit_quiz(
 
     answer_results: list[QuizAnswerResult] = []
     answered_question_ids: set[UUID] = set()
+    show_correct = quiz.quiz_type != "exam"
 
     for ans in data.answers:
         question = questions_map.get(ans.question_id)
@@ -259,7 +260,7 @@ async def submit_quiz(
                 text_answer=ans.text_answer,
                 is_correct=is_correct,
                 points_earned=points_earned,
-                correct_option_id=correct_option_map.get(str(ans.question_id)),
+                correct_option_id=correct_option_map.get(str(ans.question_id)) if show_correct else None,
             )
         )
 
@@ -281,7 +282,7 @@ async def submit_quiz(
                     text_answer=None,
                     is_correct=False,
                     points_earned=0,
-                    correct_option_id=correct_option_map.get(str(q.id)),
+                    correct_option_id=correct_option_map.get(str(q.id)) if show_correct else None,
                 )
             )
 
@@ -371,6 +372,13 @@ async def grant_extra_attempts(
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     _verify_quiz_owner(db, quiz, teacher.id)
+
+    course_id = resolve_chapter_course_id(db, quiz.chapter_id)
+    enrolled = db.query(Enrollment).filter(
+        Enrollment.user_id == data.user_id, Enrollment.course_id == course_id
+    ).first()
+    if not enrolled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student is not enrolled in this course")
 
     existing = (
         db.query(QuizExtraAttempt)

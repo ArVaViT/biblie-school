@@ -171,7 +171,7 @@ export default function CourseDetail() {
     setDownloadingPath(path)
     try {
       const url = await storageService.getSignedMaterialUrl(path)
-      window.open(url, "_blank")
+      window.open(url, "_blank", "noopener,noreferrer")
     } catch {
       toast({ title: "Failed to download file", variant: "destructive" })
     } finally {

@@ -264,7 +264,7 @@ function AssignmentItem({
 
   return (
     <Card>
-      <div className="flex items-center gap-2 p-3 cursor-pointer select-none" onClick={toggleExpand}>
+      <div role="button" tabIndex={0} className="flex items-center gap-2 p-3 cursor-pointer select-none" onClick={toggleExpand} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleExpand() } }}>
         {expanded ? (
           <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
         ) : (

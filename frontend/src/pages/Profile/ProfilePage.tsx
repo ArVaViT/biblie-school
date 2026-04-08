@@ -40,6 +40,9 @@ export default function ProfilePage() {
   const [certificateCount, setCertificateCount] = useState(0)
   const [completedCount, setCompletedCount] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => () => { clearTimeout(saveTimerRef.current) }, [])
 
   const [exporting, setExporting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -76,7 +79,7 @@ export default function ProfilePage() {
       await usersService.updateProfile({ full_name: result.data.full_name })
       await refreshUser()
       setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      saveTimerRef.current = setTimeout(() => setSaved(false), 2000)
     } catch {
       setError("Failed to update profile")
     } finally {

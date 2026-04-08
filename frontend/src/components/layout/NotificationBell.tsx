@@ -188,7 +188,10 @@ export default function NotificationBell() {
                 return (
                   <div
                     key={n.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleNotificationClick(n)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNotificationClick(n) } }}
                     className={cn(
                       "flex gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/50 group border-b border-border/50 last:border-0",
                       !n.is_read && "bg-primary/[0.03]",

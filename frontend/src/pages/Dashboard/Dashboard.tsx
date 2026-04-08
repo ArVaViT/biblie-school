@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -238,12 +238,15 @@ function CertificateItem({
   courseTitle?: string
 }) {
   const [copied, setCopied] = useState(false)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => () => { clearTimeout(copyTimerRef.current) }, [])
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(certificate.certificate_number).then(
       () => {
         setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+        copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
       },
       () => undefined,
     )

@@ -255,6 +255,13 @@ async def upsert_student_grade(
     db: Session = Depends(get_db),
 ) -> GradeResponse:
     verify_course_owner(db, course_id, teacher.id)
+
+    enrolled = db.query(Enrollment).filter(
+        Enrollment.user_id == student_id, Enrollment.course_id == course_id
+    ).first()
+    if not enrolled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student is not enrolled in this course")
+
     query = db.query(StudentGrade).filter(
         StudentGrade.student_id == student_id,
         StudentGrade.course_id == course_id,

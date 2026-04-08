@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
     SUPABASE_URL: str
     SUPABASE_KEY: str | None = Field(default=None, description="Supabase anon key")
@@ -15,7 +15,6 @@ class Settings(BaseSettings):
 
     JWT_SECRET_KEY: str | None = Field(default=None, description="JWT secret key")
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30 * 24 * 60  # 30 days
 
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,https://biblie-school-frontend.vercel.app"
 

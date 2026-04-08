@@ -200,7 +200,7 @@ export default function CourseEditor() {
   }
 
   const dlMat = async (m: MaterialFile) => {
-    try { window.open(await storageService.getSignedMaterialUrl(m.path), "_blank") }
+    try { window.open(await storageService.getSignedMaterialUrl(m.path), "_blank", "noopener,noreferrer") }
     catch { toast({ title: "Download failed", variant: "destructive" }) }
   }
 

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
+from app.models.course import Course
 from app.models.user import User
 from app.services.file_service import upload_file_to_storage
 
@@ -81,6 +82,13 @@ async def upload_file(
         )
 
     await file.seek(0)
+
+    if course_id:
+        course = db.query(Course).filter(Course.id == course_id).first()
+        if not course:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+        if str(course.created_by) != str(current_user.id) and current_user.role not in ("teacher", "admin"):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to upload to this course")
 
     try:
         file_metadata = upload_file_to_storage(

@@ -707,7 +707,7 @@ class TestUpsertStudentGrade:
     """PUT /api/v1/grades/course/{cid}/student/{sid}"""
 
     def test_create(self, client: TestClient, db: Session):
-        _seed_course(db)
+        _seed_enrolled_course(db)
         r = client.put(
             f"/api/v1/grades/course/course-1/student/{STUDENT_ID}",
             json={"grade": "B+", "comment": "Nice work"},

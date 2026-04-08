@@ -9,6 +9,7 @@ from app.models.chapter_block import ChapterBlock
 from app.models.course import Chapter, Course, Module
 from app.models.enrollment import Enrollment
 from app.models.quiz import Quiz, QuizAttempt, QuizOption, QuizQuestion
+from app.models.user import User, UserRole
 from tests.conftest import STUDENT_ID, TEACHER_ID
 
 # ---------------------------------------------------------------------------
@@ -45,6 +46,10 @@ def _seed_course(db: Session):
 def _seed_course_with_enrollment(db: Session):
     """Create a published course -> module -> chapter with student enrollment."""
     course, module, chapter = _seed_course(db)
+    existing = db.query(User).filter(User.id == STUDENT_ID).first()
+    if not existing:
+        db.add(User(id=STUDENT_ID, email="student@example.com", full_name="Test Student", role=UserRole.STUDENT.value))
+        db.commit()
     enrollment = Enrollment(
         id="enroll-1",
         user_id=STUDENT_ID,
@@ -902,7 +907,7 @@ def test_get_my_attempts_anon_unauthorized(anon_client: TestClient):
 
 
 def test_grant_extra_attempts_success(client: TestClient, db: Session):
-    _seed_course(db)
+    _seed_course_with_enrollment(db)
     quiz, _, _ = _seed_quiz_with_questions(db)
 
     resp = client.post(
@@ -920,7 +925,7 @@ def test_grant_extra_attempts_success(client: TestClient, db: Session):
 
 
 def test_grant_extra_attempts_updates_existing(client: TestClient, db: Session):
-    _seed_course(db)
+    _seed_course_with_enrollment(db)
     quiz, _, _ = _seed_quiz_with_questions(db)
 
     client.post(
@@ -981,7 +986,7 @@ def test_grant_extra_attempts_anon_unauthorized(anon_client: TestClient):
 
 
 def test_list_extra_attempts_success(client: TestClient, db: Session):
-    _seed_course(db)
+    _seed_course_with_enrollment(db)
     quiz, _, _ = _seed_quiz_with_questions(db)
 
     client.post(
