@@ -35,7 +35,8 @@ def get_courses(db: Session, *, skip: int = 0, limit: int = 100, search: str | N
     if search:
         ts_query = func.plainto_tsquery("russian", search)
         ts_query_en = func.plainto_tsquery("english", search)
-        term = f"%{search}%"
+        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        term = f"%{escaped}%"
         query = query.filter(
             or_(
                 Course.search_vector.op("@@")(ts_query),
@@ -114,6 +115,11 @@ def restore_course(db: Session, course: Course) -> Course:
 
 
 def permanently_delete_course(db: Session, course: Course) -> None:
+    from app.models.file import File
+
+    db.query(File).filter(File.course_id == course.id).update(
+        {File.course_id: None}, synchronize_session=False
+    )
     db.delete(course)
     db.commit()
 
@@ -264,7 +270,12 @@ def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrol
     total_gradable = (
         db.query(func.count(Chapter.id))
         .join(Module, Chapter.module_id == Module.id)
-        .filter(Module.course_id == course_id, Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES))
+        .filter(
+            Module.course_id == course_id,
+            Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES),
+            Module.deleted_at.is_(None),
+            Chapter.deleted_at.is_(None),
+        )
         .scalar()
     ) or 0
 
@@ -275,6 +286,8 @@ def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrol
         .filter(
             Module.course_id == course_id,
             Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES),
+            Module.deleted_at.is_(None),
+            Chapter.deleted_at.is_(None),
             ChapterProgress.user_id == user_id,
             ChapterProgress.completed.is_(True),
         )

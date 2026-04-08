@@ -31,6 +31,8 @@ async def get_my_chapter_progress(
         .join(Module, Module.id == Chapter.module_id)
         .filter(
             Module.course_id == course_id,
+            Module.deleted_at.is_(None),
+            Chapter.deleted_at.is_(None),
             ChapterProgress.user_id == current_user.id,
             ChapterProgress.completed == True,
         )
@@ -47,13 +49,22 @@ async def get_course_student_progress(
 ):
     course = verify_course_owner(db, course_id, teacher.id)
 
-    modules = db.query(Module).filter(Module.course_id == course_id).order_by(Module.order_index).all()
+    modules = (
+        db.query(Module)
+        .filter(Module.course_id == course_id, Module.deleted_at.is_(None))
+        .order_by(Module.order_index)
+        .all()
+    )
     module_map = {m.id: {"id": m.id, "title": m.title, "order_index": m.order_index} for m in modules}
 
     chapters = (
         db.query(Chapter)
         .join(Module, Chapter.module_id == Module.id)
-        .filter(Module.course_id == course_id)
+        .filter(
+            Module.course_id == course_id,
+            Module.deleted_at.is_(None),
+            Chapter.deleted_at.is_(None),
+        )
         .order_by(Module.order_index, Chapter.order_index)
         .all()
     )

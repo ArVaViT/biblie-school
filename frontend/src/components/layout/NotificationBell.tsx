@@ -44,6 +44,7 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -60,6 +61,7 @@ export default function NotificationBell() {
 
   const fetchNotifications = useCallback(async (pageNum: number, signal?: { cancelled: boolean }) => {
     if (pageNum === 1) setLoading(true)
+    else setLoadingMore(true)
     try {
       const res = await coursesService.getNotifications(pageNum)
       if (!signal?.cancelled) {
@@ -74,7 +76,10 @@ export default function NotificationBell() {
     } catch {
       // Keep existing notifications on fetch failure
     } finally {
-      if (!signal?.cancelled && pageNum === 1) setLoading(false)
+      if (!signal?.cancelled) {
+        if (pageNum === 1) setLoading(false)
+        else setLoadingMore(false)
+      }
     }
   }, [])
 
@@ -90,6 +95,7 @@ export default function NotificationBell() {
       setNotifications([])
       setPage(1)
       setHasMore(false)
+      setLoadingMore(false)
       return
     }
     const signal = { cancelled: false }
@@ -247,9 +253,10 @@ export default function NotificationBell() {
                       variant="ghost"
                       size="sm"
                       className="w-full text-xs"
+                      disabled={loadingMore}
                       onClick={() => void fetchNotifications(page + 1)}
                     >
-                      Load more
+                      {loadingMore ? "Loading..." : "Load more"}
                     </Button>
                   </div>
                 )}

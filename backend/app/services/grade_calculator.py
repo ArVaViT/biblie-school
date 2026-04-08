@@ -30,11 +30,16 @@ def score_to_letter(score: float) -> str:
 
 
 def _get_course_chapter_ids(db: Session, course_id: str) -> list[str]:
-    """Get chapter IDs for gradable chapters (quiz/exam/assignment) in a course."""
+    """Get chapter IDs for gradable chapters (quiz/exam/assignment) in a course, excluding soft-deleted."""
     rows = (
         db.query(Chapter.id)
         .join(Module, Module.id == Chapter.module_id)
-        .filter(Module.course_id == course_id, Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES))
+        .filter(
+            Module.course_id == course_id,
+            Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES),
+            Module.deleted_at.is_(None),
+            Chapter.deleted_at.is_(None),
+        )
         .all()
     )
     return [r[0] for r in rows]

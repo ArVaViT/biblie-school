@@ -3,6 +3,7 @@ import io
 import logging
 import uuid
 from datetime import UTC, datetime
+from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -180,6 +181,7 @@ async def export_grades_csv(
     results = calculate_all_student_grades(db, course)
 
     buf = io.StringIO()
+    buf.write("\ufeff")
     writer = csv.writer(buf)
     writer.writerow([
         "Student Name",
@@ -212,12 +214,20 @@ async def export_grades_csv(
 
     buf.seek(0)
     safe_title = "".join(c for c in course.title if c.isalnum() or c in " -_")[:50].strip()
-    filename = f"grades_{safe_title}.csv"
+    if not safe_title:
+        safe_title = str(course_id)[:8]
+    ascii_filename = f"grades_{safe_title}.csv"
+    utf8_filename = quote(f"grades_{course.title[:50].strip()}.csv", safe="")
 
     return StreamingResponse(
         iter([buf.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{ascii_filename}"; '
+                f"filename*=UTF-8''{utf8_filename}"
+            ),
+        },
     )
 
 

@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { Callout, type CalloutVariant } from "./CalloutExtension";
 import { YoutubeEmbed } from "./YoutubeExtension";
 import { storageService } from "@/services/storage";
+import { toast } from "@/hooks/use-toast";
 
 interface RichTextEditorProps {
   content: string;
@@ -146,7 +147,9 @@ export default function RichTextEditor({
               view.dispatch(tr);
             }
           })
-          .catch(() => {})
+          .catch(() => {
+            toast({ title: "Image upload failed", variant: "destructive" });
+          })
           .finally(() => setUploading(false));
         return true;
       },
@@ -167,7 +170,9 @@ export default function RichTextEditor({
                 const tr = view.state.tr.replaceSelectionWith(node);
                 view.dispatch(tr);
               })
-              .catch(() => {})
+              .catch(() => {
+                toast({ title: "Image upload failed", variant: "destructive" });
+              })
               .finally(() => setUploading(false));
             return true;
           }
