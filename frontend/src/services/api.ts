@@ -11,9 +11,8 @@ const api = axios.create({
 })
 
 let _cachedToken: string | null = null
-let _tokenReady: Promise<void>
 
-_tokenReady = supabase.auth.getSession().then(({ data }) => {
+supabase.auth.getSession().then(({ data }) => {
   _cachedToken = data.session?.access_token ?? null
 }).catch(() => {
   _cachedToken = null
@@ -23,8 +22,7 @@ supabase.auth.onAuthStateChange((_event, session) => {
   _cachedToken = session?.access_token ?? null
 })
 
-api.interceptors.request.use(async (config) => {
-  await _tokenReady
+api.interceptors.request.use((config) => {
   if (_cachedToken) {
     config.headers.Authorization = `Bearer ${_cachedToken}`
   }
