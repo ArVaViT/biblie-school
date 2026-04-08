@@ -4,6 +4,10 @@ const AVATARS_BUCKET = "avatars"
 const COURSE_ASSETS_BUCKET = "course-assets"
 const COURSE_MATERIALS_BUCKET = "course-materials"
 
+function sanitizeFileName(name: string): string {
+  return name.replace(/[/\\:*?"<>|]/g, "_").replace(/\s+/g, "_").slice(0, 100)
+}
+
 function getPublicUrl(bucket: string, path: string): string {
   const { data } = supabase.storage.from(bucket).getPublicUrl(path)
   return data.publicUrl
@@ -39,7 +43,8 @@ export const storageService = {
     file: File,
   ): Promise<{ url: string; name: string; type: string }> {
     const timestamp = Date.now()
-    const path = `${courseId}/${timestamp}-${file.name}`
+    const safeName = sanitizeFileName(file.name)
+    const path = `${courseId}/${timestamp}-${safeName}`
 
     const { error } = await supabase.storage
       .from(COURSE_MATERIALS_BUCKET)

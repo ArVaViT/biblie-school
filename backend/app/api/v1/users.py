@@ -359,6 +359,9 @@ async def update_user_role(
         uid = _uuid.UUID(user_id)
     except ValueError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found") from None
+    admin_uuid = admin.id if isinstance(admin.id, _uuid.UUID) else _uuid.UUID(str(admin.id))
+    if uid == admin_uuid:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cannot change your own role")
     user = db.query(User).filter(User.id == uid).first()
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")

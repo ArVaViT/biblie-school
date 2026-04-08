@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class GradeUpsert(BaseModel):
-    grade: str | None = Field(None, max_length=20)
+    grade: str | None = Field(None, max_length=10)
     comment: str | None = Field(None, max_length=5000)
 
 

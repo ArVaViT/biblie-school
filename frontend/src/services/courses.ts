@@ -159,10 +159,12 @@ export const coursesService = {
   async permanentlyDeleteCourse(id: string): Promise<void> {
     await api.delete(`/courses/${id}/permanent`)
     cacheInvalidate(`courses:detail:${id}`)
+    cacheInvalidatePrefix("courses:list:")
   },
 
   async cloneCourse(id: string): Promise<Course> {
     const response = await api.post<Course>(`/courses/${id}/clone`)
+    cacheInvalidatePrefix("courses:list:")
     return response.data
   },
 
@@ -172,6 +174,7 @@ export const coursesService = {
     data: { title: string; description?: string; order_index?: number },
   ): Promise<Module> {
     const response = await api.post<Module>(`/courses/${courseId}/modules`, data)
+    cacheInvalidate(`courses:detail:${courseId}`)
     return response.data
   },
 
@@ -181,11 +184,13 @@ export const coursesService = {
     data: { title?: string; description?: string; order_index?: number; due_date?: string | null },
   ): Promise<Module> {
     const response = await api.put<Module>(`/courses/${courseId}/modules/${moduleId}`, data)
+    cacheInvalidate(`courses:detail:${courseId}`)
     return response.data
   },
 
   async deleteModule(courseId: string, moduleId: string): Promise<void> {
     await api.delete(`/courses/${courseId}/modules/${moduleId}`)
+    cacheInvalidate(`courses:detail:${courseId}`)
   },
 
   // Teacher CRUD — Chapters
@@ -198,6 +203,7 @@ export const coursesService = {
       `/courses/${courseId}/modules/${moduleId}/chapters`,
       data,
     )
+    cacheInvalidate(`courses:detail:${courseId}`)
     return response.data
   },
 
@@ -211,6 +217,7 @@ export const coursesService = {
       `/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}`,
       data,
     )
+    cacheInvalidate(`courses:detail:${courseId}`)
     return response.data
   },
 
@@ -220,6 +227,7 @@ export const coursesService = {
     chapterId: string,
   ): Promise<void> {
     await api.delete(`/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}`)
+    cacheInvalidate(`courses:detail:${courseId}`)
   },
 
   // Announcements
