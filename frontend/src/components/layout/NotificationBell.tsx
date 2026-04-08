@@ -44,6 +44,8 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -56,15 +58,23 @@ export default function NotificationBell() {
     }
   }, [])
 
-  const fetchNotifications = useCallback(async (signal?: { cancelled: boolean }) => {
-    setLoading(true)
+  const fetchNotifications = useCallback(async (pageNum: number, signal?: { cancelled: boolean }) => {
+    if (pageNum === 1) setLoading(true)
     try {
-      const res = await coursesService.getNotifications()
-      if (!signal?.cancelled) setNotifications(res.items)
+      const res = await coursesService.getNotifications(pageNum)
+      if (!signal?.cancelled) {
+        if (pageNum === 1) {
+          setNotifications(res.items)
+        } else {
+          setNotifications(prev => [...prev, ...res.items])
+        }
+        setPage(pageNum)
+        setHasMore(pageNum * res.page_size < res.total)
+      }
     } catch {
       // Keep existing notifications on fetch failure
     } finally {
-      if (!signal?.cancelled) setLoading(false)
+      if (!signal?.cancelled && pageNum === 1) setLoading(false)
     }
   }, [])
 
@@ -76,9 +86,14 @@ export default function NotificationBell() {
   }, [fetchUnreadCount])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setNotifications([])
+      setPage(1)
+      setHasMore(false)
+      return
+    }
     const signal = { cancelled: false }
-    fetchNotifications(signal)
+    fetchNotifications(1, signal)
     return () => { signal.cancelled = true }
   }, [open, fetchNotifications])
 
@@ -182,48 +197,63 @@ export default function NotificationBell() {
                 <p className="text-sm">No notifications yet</p>
               </div>
             ) : (
-              notifications.map(n => {
-                const Icon = NOTIFICATION_ICONS[n.type] ?? Bell
-                const color = NOTIFICATION_COLORS[n.type] ?? "text-muted-foreground"
-                return (
-                  <div
-                    key={n.id}
-                    className={cn(
-                      "flex gap-3 px-4 py-3 transition-colors hover:bg-muted/50 group border-b border-border/50 last:border-0",
-                      !n.is_read && "bg-primary/[0.03]",
-                    )}
-                  >
-                    <button
-                      onClick={() => handleNotificationClick(n)}
-                      className="flex gap-3 flex-1 min-w-0 text-left cursor-pointer bg-transparent border-0 p-0"
-                      aria-label={n.title}
+              <>
+                {notifications.map(n => {
+                  const Icon = NOTIFICATION_ICONS[n.type] ?? Bell
+                  const color = NOTIFICATION_COLORS[n.type] ?? "text-muted-foreground"
+                  return (
+                    <div
+                      key={n.id}
+                      className={cn(
+                        "flex gap-3 px-4 py-3 transition-colors hover:bg-muted/50 group border-b border-border/50 last:border-0",
+                        !n.is_read && "bg-primary/[0.03]",
+                      )}
                     >
-                      <div className={cn("mt-0.5 shrink-0", color)}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className={cn("text-sm leading-snug", !n.is_read ? "font-medium text-foreground" : "text-muted-foreground")}>
-                            {n.title}
-                          </p>
-                          {!n.is_read && (
-                            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                          )}
+                      <button
+                        onClick={() => handleNotificationClick(n)}
+                        className="flex gap-3 flex-1 min-w-0 text-left cursor-pointer bg-transparent border-0 p-0"
+                        aria-label={n.title}
+                      >
+                        <div className={cn("mt-0.5 shrink-0", color)}>
+                          <Icon className="h-4 w-4" />
                         </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{n.message}</p>
-                        <p className="mt-1 text-[11px] text-muted-foreground/70">{timeAgo(n.created_at)}</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(e, n.id)}
-                      className="mt-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                      aria-label="Delete notification"
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className={cn("text-sm leading-snug", !n.is_read ? "font-medium text-foreground" : "text-muted-foreground")}>
+                              {n.title}
+                            </p>
+                            {!n.is_read && (
+                              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+                          <p className="mt-1 text-[11px] text-muted-foreground/70">{timeAgo(n.created_at)}</p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, n.id)}
+                        className="mt-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                        aria-label="Delete notification"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )
+                })}
+                {hasMore && (
+                  <div className="border-t border-border/50 p-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={() => void fetchNotifications(page + 1)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                      Load more
+                    </Button>
                   </div>
-                )
-              })
+                )}
+              </>
             )}
           </div>
         </div>

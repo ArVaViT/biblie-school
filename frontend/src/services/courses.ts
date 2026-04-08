@@ -112,6 +112,11 @@ export const coursesService = {
     await api.put(`/users/admin/users/${userId}/role`, null, { params: { role } })
   },
 
+  async bulkUpdateUserRoles(userIds: string[], role: string): Promise<{ updated: number; role: string }> {
+    const response = await api.put<{ updated: number; role: string }>("/users/admin/users/bulk-role", { user_ids: userIds, role })
+    return response.data
+  },
+
   // Teacher CRUD — Courses
   async getTeacherCourses(): Promise<Course[]> {
     const response = await api.get<Course[]>("/courses/my")
@@ -138,6 +143,22 @@ export const coursesService = {
     await api.delete(`/courses/${id}`)
     cacheInvalidate(`courses:detail:${id}`)
     cacheInvalidatePrefix("courses:list:")
+  },
+
+  async getTrashedCourses(): Promise<Course[]> {
+    const response = await api.get<Course[]>("/courses/my/trash")
+    return response.data
+  },
+
+  async restoreCourse(id: string): Promise<Course> {
+    const response = await api.post<Course>(`/courses/${id}/restore`)
+    cacheInvalidatePrefix("courses:list:")
+    return response.data
+  },
+
+  async permanentlyDeleteCourse(id: string): Promise<void> {
+    await api.delete(`/courses/${id}/permanent`)
+    cacheInvalidate(`courses:detail:${id}`)
   },
 
   async cloneCourse(id: string): Promise<Course> {
@@ -239,6 +260,11 @@ export const coursesService = {
 
   async getGradeSummary(courseId: string): Promise<GradeSummaryResponse> {
     const response = await api.get<GradeSummaryResponse>(`/grades/course/${courseId}/summary`)
+    return response.data
+  },
+
+  async exportGradesCSV(courseId: string): Promise<Blob> {
+    const response = await api.get(`/grades/course/${courseId}/export-csv`, { responseType: "blob" })
     return response.data
   },
 

@@ -54,6 +54,9 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkRole, setBulkRole] = useState<UserRole>("student")
+  const [bulkUpdating, setBulkUpdating] = useState(false)
   const [adminCerts, setAdminCerts] = useState<(Certificate & { student_name?: string; course_title?: string; approved_by_name?: string; approved_at?: string })[]>([])
   const [certActionId, setCertActionId] = useState<string | null>(null)
 
@@ -164,6 +167,42 @@ export default function AdminDashboard() {
       toast({ title: "Failed to update role", variant: "destructive" })
     } finally {
       setUpdatingId(null)
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filtered.map((u) => u.id)))
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleBulkRoleChange = async () => {
+    const ids = [...selectedIds].filter((id) => id !== user?.id)
+    if (ids.length === 0) return
+    if (!confirm(`Change role of ${ids.length} user(s) to ${bulkRole}?`)) return
+    setBulkUpdating(true)
+    try {
+      const result = await coursesService.bulkUpdateUserRoles(ids, bulkRole)
+      setUsers((prev) =>
+        prev.map((u) => (ids.includes(u.id) ? { ...u, role: bulkRole } : u)),
+      )
+      setSelectedIds(new Set())
+      toast({ title: `Updated ${result.updated} user(s) to ${bulkRole}`, variant: "success" })
+    } catch (err) {
+      toast({ title: getErrorDetail(err, "Bulk update failed"), variant: "destructive" })
+    } finally {
+      setBulkUpdating(false)
     }
   }
 
@@ -472,16 +511,39 @@ export default function AdminDashboard() {
 
       {/* Users Table */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between gap-4 space-y-0">
+        <CardHeader className="flex-row items-center justify-between gap-4 space-y-0 flex-wrap">
           <CardTitle className="text-xl">Users</CardTitle>
-          <div className="relative w-full max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or email…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+          <div className="flex items-center gap-3 flex-wrap">
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5">
+                <span className="text-xs font-medium">{selectedIds.size} selected</span>
+                <select
+                  value={bulkRole}
+                  onChange={(e) => setBulkRole(e.target.value as UserRole)}
+                  className="h-7 rounded border border-input bg-background px-2 text-xs"
+                >
+                  <option value="student">Student</option>
+                  <option value="pending_teacher">Pending Teacher</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <Button size="sm" className="h-7 text-xs" onClick={handleBulkRoleChange} disabled={bulkUpdating}>
+                  {bulkUpdating ? "Updating..." : "Apply"}
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                  Clear
+                </Button>
+              </div>
+            )}
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -501,6 +563,15 @@ export default function AdminDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left">
+                    <th className="px-3 py-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-300"
+                        aria-label="Select all users"
+                      />
+                    </th>
                     <th className="px-6 py-3 font-medium text-muted-foreground">Name</th>
                     <th className="px-6 py-3 font-medium text-muted-foreground">Email</th>
                     <th className="px-6 py-3 font-medium text-muted-foreground">Role</th>
@@ -509,7 +580,16 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y">
                   {filtered.map((u) => (
-                    <tr key={u.id} className="hover:bg-muted/50 transition-colors">
+                    <tr key={u.id} className={`hover:bg-muted/50 transition-colors ${selectedIds.has(u.id) ? "bg-primary/[0.03]" : ""}`}>
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(u.id)}
+                          onChange={() => toggleSelect(u.id)}
+                          className="rounded border-gray-300"
+                          aria-label={`Select ${u.full_name || u.email}`}
+                        />
+                      </td>
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-3">
                           {u.avatar_url ? (

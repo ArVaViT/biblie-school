@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
@@ -29,31 +30,44 @@ def get_courses(db: Session, *, skip: int = 0, limit: int = 100, search: str | N
     query = (
         db.query(Course)
         .options(selectinload(Course.modules).selectinload(Module.chapters))
-        .filter(Course.status == "published")
+        .filter(Course.status == "published", Course.deleted_at.is_(None))
     )
     if search:
+        ts_query = func.plainto_tsquery("russian", search)
+        ts_query_en = func.plainto_tsquery("english", search)
         term = f"%{search}%"
-        query = query.filter(or_(Course.title.ilike(term), Course.description.ilike(term)))
+        query = query.filter(
+            or_(
+                Course.search_vector.op("@@")(ts_query),
+                Course.search_vector.op("@@")(ts_query_en),
+                Course.title.ilike(term),
+                Course.description.ilike(term),
+            )
+        )
     return query.order_by(Course.created_at.desc()).offset(skip).limit(limit).all()
 
 
-def get_course(db: Session, course_id: str) -> Course | None:
-    return (
+def get_course(db: Session, course_id: str, include_deleted: bool = False) -> Course | None:
+    query = (
         db.query(Course)
         .options(joinedload(Course.modules).joinedload(Module.chapters))
         .filter(Course.id == course_id)
-        .first()
     )
+    if not include_deleted:
+        query = query.filter(Course.deleted_at.is_(None))
+    return query.first()
 
 
-def get_teacher_courses(db: Session, teacher_id: str) -> list[Course]:
-    return (
+def get_teacher_courses(
+    db: Session, teacher_id: str, *, deleted_only: bool = False
+) -> list[Course]:
+    query = (
         db.query(Course)
         .options(joinedload(Course.modules).joinedload(Module.chapters))
         .filter(Course.created_by == teacher_id)
-        .order_by(Course.created_at.desc())
-        .all()
     )
+    query = query.filter(Course.deleted_at.isnot(None)) if deleted_only else query.filter(Course.deleted_at.is_(None))
+    return query.order_by(Course.created_at.desc()).all()
 
 
 def create_course(db: Session, data: CourseCreate, user_id: str) -> Course:
@@ -79,6 +93,27 @@ def update_course(db: Session, course: Course, data: CourseUpdate) -> Course:
 
 
 def delete_course(db: Session, course: Course) -> None:
+    now = datetime.now(UTC)
+    course.deleted_at = now
+    for module in course.modules:
+        module.deleted_at = now
+        for chapter in module.chapters:
+            chapter.deleted_at = now
+    db.commit()
+
+
+def restore_course(db: Session, course: Course) -> Course:
+    course.deleted_at = None
+    for module in course.modules:
+        module.deleted_at = None
+        for chapter in module.chapters:
+            chapter.deleted_at = None
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+def permanently_delete_course(db: Session, course: Course) -> None:
     db.delete(course)
     db.commit()
 
@@ -92,7 +127,7 @@ def get_module(db: Session, course_id: str, module_id: str) -> Module | None:
     return (
         db.query(Module)
         .options(joinedload(Module.chapters))
-        .filter(Module.id == module_id, Module.course_id == course_id)
+        .filter(Module.id == module_id, Module.course_id == course_id, Module.deleted_at.is_(None))
         .first()
     )
 
@@ -121,7 +156,10 @@ def update_module(db: Session, module: Module, data: ModuleUpdate) -> Module:
 
 
 def delete_module(db: Session, module: Module) -> None:
-    db.delete(module)
+    now = datetime.now(UTC)
+    module.deleted_at = now
+    for chapter in module.chapters:
+        chapter.deleted_at = now
     db.commit()
 
 
@@ -138,6 +176,8 @@ def get_chapter(db: Session, course_id: str, module_id: str, chapter_id: str) ->
             Chapter.id == chapter_id,
             Chapter.module_id == module_id,
             Module.course_id == course_id,
+            Chapter.deleted_at.is_(None),
+            Module.deleted_at.is_(None),
         )
         .first()
     )
@@ -170,7 +210,7 @@ def update_chapter(db: Session, chapter: Chapter, data: ChapterUpdate) -> Chapte
 
 
 def delete_chapter(db: Session, chapter: Chapter) -> None:
-    db.delete(chapter)
+    chapter.deleted_at = datetime.now(UTC)
     db.commit()
 
 

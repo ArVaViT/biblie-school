@@ -8,7 +8,7 @@ import { coursesService } from "@/services/courses"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
 import type { Course, Certificate } from "@/types"
 import { toast } from "@/hooks/use-toast"
-import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users, Clock, CheckCircle, XCircle, Award, Search, Copy } from "lucide-react"
+import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users, Clock, CheckCircle, XCircle, Award, Search, Copy, RotateCcw, Archive } from "lucide-react"
 import { getErrorDetail } from "@/lib/errorDetail"
 
 export default function TeacherDashboard() {
@@ -23,6 +23,10 @@ export default function TeacherDashboard() {
   const [cloningId, setCloningId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
+  const [trashedCourses, setTrashedCourses] = useState<Course[]>([])
+  const [showTrash, setShowTrash] = useState(false)
+  const [trashLoading, setTrashLoading] = useState(false)
+  const [restoringId, setRestoringId] = useState<string | null>(null)
   const [pendingCerts, setPendingCerts] = useState<(Certificate & { student_name?: string; course_title?: string })[]>([])
   const [certActionId, setCertActionId] = useState<string | null>(null)
 
@@ -124,11 +128,48 @@ export default function TeacherDashboard() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm("This will permanently delete this course and all its modules, chapters, and student data. This action cannot be undone.\n\nAre you sure?")) return
+    if (!confirm("Move this course to trash? You can restore it later.")) return
     try {
       await coursesService.deleteCourse(id)
       setCourses((prev) => prev.filter((c) => c.id !== id))
-      toast({ title: "Course deleted", variant: "success" })
+      toast({ title: "Course moved to trash", variant: "success" })
+    } catch (err) {
+      toast({ title: getErrorDetail(err, "Failed to delete course"), variant: "destructive" })
+    }
+  }
+
+  const loadTrash = async () => {
+    setTrashLoading(true)
+    try {
+      const data = await coursesService.getTrashedCourses()
+      setTrashedCourses(data)
+    } catch {
+      toast({ title: "Failed to load trash", variant: "destructive" })
+    } finally {
+      setTrashLoading(false)
+    }
+  }
+
+  const handleRestore = async (id: string) => {
+    setRestoringId(id)
+    try {
+      const restored = await coursesService.restoreCourse(id)
+      setTrashedCourses((prev) => prev.filter((c) => c.id !== id))
+      setCourses((prev) => [restored, ...prev])
+      toast({ title: "Course restored", variant: "success" })
+    } catch (err) {
+      toast({ title: getErrorDetail(err, "Failed to restore course"), variant: "destructive" })
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  const handlePermanentDelete = async (id: string) => {
+    if (!confirm("This will PERMANENTLY delete this course and all its data. This action cannot be undone.\n\nAre you sure?")) return
+    try {
+      await coursesService.permanentlyDeleteCourse(id)
+      setTrashedCourses((prev) => prev.filter((c) => c.id !== id))
+      toast({ title: "Course permanently deleted" })
     } catch (err) {
       toast({ title: getErrorDetail(err, "Failed to delete course"), variant: "destructive" })
     }
@@ -423,6 +464,65 @@ export default function TeacherDashboard() {
         </div>
         </>
       )}
+
+      {/* Trash Section */}
+      <div className="mt-12 border-t pt-8">
+        <button
+          onClick={() => { setShowTrash(!showTrash); if (!showTrash && trashedCourses.length === 0) loadTrash() }}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Archive className="h-4 w-4" />
+          {showTrash ? "Hide Trash" : "Show Trash"}
+        </button>
+
+        {showTrash && (
+          <div className="mt-4">
+            {trashLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : trashedCourses.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Trash is empty.</p>
+            ) : (
+              <div className="space-y-3">
+                {trashedCourses.map((course) => (
+                  <Card key={course.id} className="opacity-70 border-dashed">
+                    <div className="flex items-center gap-4 p-4">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-medium truncate">{course.title}</h4>
+                        {course.deleted_at && (
+                          <p className="text-xs text-muted-foreground">
+                            Deleted {new Date(course.deleted_at).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRestore(course.id)}
+                          disabled={restoringId === course.id}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                          Restore
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handlePermanentDelete(course.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          Delete Forever
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

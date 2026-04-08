@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -29,10 +30,13 @@ class Course(Base):
     end_date = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     quiz_weight = Column(Integer, nullable=False, default=30, server_default="30")
     assignment_weight = Column(Integer, nullable=False, default=50, server_default="50")
     participation_weight = Column(Integer, nullable=False, default=20, server_default="20")
+
+    search_vector = Column(TSVECTOR, nullable=True)
 
     modules = relationship("Module", back_populates="course", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="course", cascade="all, delete-orphan")
@@ -51,6 +55,7 @@ class Module(Base):
     description = Column(String, nullable=True)
     order_index = Column(Integer, default=0, nullable=False)
     due_date = Column(DateTime(timezone=True), nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     course = relationship("Course", back_populates="modules")
     chapters = relationship("Chapter", back_populates="module", cascade="all, delete-orphan")
@@ -72,6 +77,7 @@ class Chapter(Base):
     chapter_type = Column(String, default="reading", nullable=False)
     requires_completion = Column(Boolean, default=False, nullable=False)
     is_locked = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     module = relationship("Module", back_populates="chapters")
 

@@ -96,6 +96,7 @@ class CourseResponse(CourseBase):
     created_by: UUID | None = None
     created_at: datetime
     updated_at: datetime | None = None
+    deleted_at: datetime | None = None
     enrollment_start: datetime | None = None
     enrollment_end: datetime | None = None
     start_date: datetime | None = None

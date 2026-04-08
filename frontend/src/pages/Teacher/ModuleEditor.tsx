@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,8 +10,8 @@ import type { Module, Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
 import {
-  ArrowUp, ArrowDown, Plus, Trash2, ChevronRight,
-  Loader2, Pencil, CalendarDays, Lock, Unlock,
+  Plus, Trash2, ChevronRight,
+  Loader2, Pencil, CalendarDays, Lock, Unlock, GripVertical,
 } from "lucide-react"
 
 const CHAPTER_TYPE_BADGES: Record<string, string> = {
@@ -169,29 +170,35 @@ export default function ModuleEditor() {
     }
   }
 
-  const moveChapter = async (ch: Chapter, currentIdx: number, direction: number) => {
-    const newIdx = currentIdx + direction
-    if (newIdx < 0 || newIdx >= chapters.length) return
-    const other = chapters[newIdx]
+  const handleChapterDragEnd = useCallback(async (result: DropResult) => {
+    if (!result.destination || !courseId || !moduleId) return
+    const from = result.source.index
+    const to = result.destination.index
+    if (from === to) return
 
-    const updates = chapters.map((c) => {
-      if (c.id === ch.id) return { ...c, order_index: other.order_index }
-      if (c.id === other.id) return { ...c, order_index: ch.order_index }
-      return c
+    const sorted = [...(mod?.chapters ?? [])].sort((a, b) => a.order_index - b.order_index)
+    const reordered = Array.from(sorted)
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(to, 0, moved)
+
+    setMod(prev => {
+      if (!prev) return prev
+      return { ...prev, chapters: reordered.map((c, i) => ({ ...c, order_index: i })) }
     })
 
-    setMod((prev) => (prev ? { ...prev, chapters: updates } : prev))
-
     try {
-      await Promise.all([
-        coursesService.updateChapter(courseId!, moduleId!, ch.id, { order_index: other.order_index }),
-        coursesService.updateChapter(courseId!, moduleId!, other.id, { order_index: ch.order_index }),
-      ])
+      await Promise.all(
+        reordered.map((c, i) =>
+          c.order_index !== i
+            ? coursesService.updateChapter(courseId, moduleId, c.id, { order_index: i })
+            : null
+        ).filter(Boolean)
+      )
     } catch {
-      toast({ title: "Failed to reorder", variant: "destructive" })
+      toast({ title: "Failed to save chapter order", variant: "destructive" })
       load()
     }
-  }
+  }, [mod, courseId, moduleId, load])
 
   if (loading) {
     return (
@@ -300,83 +307,84 @@ export default function ModuleEditor() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3 mb-6">
-          {chapters.map((ch, idx) => {
-            const type = ch.chapter_type || "reading"
+        <DragDropContext onDragEnd={handleChapterDragEnd}>
+          <Droppable droppableId="chapters">
+            {(provided) => (
+              <div className="space-y-3 mb-6" ref={provided.innerRef} {...provided.droppableProps}>
+                {chapters.map((ch, idx) => {
+                  const type = ch.chapter_type || "reading"
 
-            return (
-              <Card key={ch.id} className="border-border/60">
-                <div className="flex items-center gap-3 p-4">
-                  <Input
-                    value={ch.title}
-                    onChange={(e) => updateChapterLocal(ch.id, { title: e.target.value })}
-                    onBlur={(e) => renameChapter(ch, e.target.value)}
-                    className="font-medium border-none shadow-none focus-visible:ring-1 h-8 text-sm flex-1"
-                  />
+                  return (
+                    <Draggable key={ch.id} draggableId={ch.id} index={idx}>
+                      {(dragProvided, snapshot) => (
+                        <Card
+                          ref={dragProvided.innerRef}
+                          {...dragProvided.draggableProps}
+                          className={`border-border/60 ${snapshot.isDragging ? "shadow-lg ring-2 ring-primary/20" : ""}`}
+                        >
+                          <div className="flex items-center gap-3 p-4">
+                            <div
+                              {...dragProvided.dragHandleProps}
+                              className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground shrink-0 transition-colors"
+                            >
+                              <GripVertical className="h-4 w-4" />
+                            </div>
 
-                  <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 capitalize ${chapterTypeBadge(type)}`}
-                  >
-                    {type}
-                  </span>
+                            <Input
+                              value={ch.title}
+                              onChange={(e) => updateChapterLocal(ch.id, { title: e.target.value })}
+                              onBlur={(e) => renameChapter(ch, e.target.value)}
+                              className="font-medium border-none shadow-none focus-visible:ring-1 h-8 text-sm flex-1"
+                            />
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`shrink-0 h-8 w-8 p-0 ${ch.is_locked ? "text-amber-600 hover:text-amber-700" : "text-muted-foreground"}`}
-                    onClick={() => toggleLock(ch)}
-                    title={ch.is_locked ? "Unlock chapter" : "Lock chapter"}
-                  >
-                    {ch.is_locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-                  </Button>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 capitalize ${chapterTypeBadge(type)}`}
+                            >
+                              {type}
+                            </span>
 
-                  <div className="flex flex-col shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      disabled={idx === 0}
-                      onClick={() => moveChapter(ch, idx, -1)}
-                    >
-                      <ArrowUp className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      disabled={idx === chapters.length - 1}
-                      onClick={() => moveChapter(ch, idx, 1)}
-                    >
-                      <ArrowDown className="h-3 w-3" />
-                    </Button>
-                  </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={`shrink-0 h-8 w-8 p-0 ${ch.is_locked ? "text-amber-600 hover:text-amber-700" : "text-muted-foreground"}`}
+                              onClick={() => toggleLock(ch)}
+                              title={ch.is_locked ? "Unlock chapter" : "Lock chapter"}
+                            >
+                              {ch.is_locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                            </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 h-8 w-8 p-0"
-                    onClick={() =>
-                      navigate(
-                        `/teacher/courses/${courseId}/modules/${moduleId}/chapters/${ch.id}/edit`,
-                      )
-                    }
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0 h-8 w-8 p-0"
+                              onClick={() =>
+                                navigate(
+                                  `/teacher/courses/${courseId}/modules/${moduleId}/chapters/${ch.id}/edit`,
+                                )
+                              }
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    onClick={() => deleteChapter(ch.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0 h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              onClick={() => deleteChapter(ch.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </Card>
+                      )}
+                    </Draggable>
+                  )
+                })}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       )}
 
       {/* Add Chapter */}

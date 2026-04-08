@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +12,7 @@ import { toast } from "@/hooks/use-toast"
 import {
   Pencil, Calendar, Megaphone, Plus, Trash2,
   Layers, Save, Upload, Image, Loader2, X, Eye, EyeOff, BookOpen, ChevronRight,
-  Download, Paperclip, Users, CheckCircle, CalendarDays,
+  Download, Paperclip, Users, CheckCircle, CalendarDays, GripVertical,
 } from "lucide-react"
 
 interface MaterialFile { name: string; path: string; size?: number }
@@ -349,12 +350,39 @@ export default function CourseEditor() {
       <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/teacher")}>Back to courses</Button>
     </div>
   )
-  const modules = [...(course.modules ?? [])].sort((a, b) => {
-    const da = a.due_date ? new Date(a.due_date).getTime() : Infinity
-    const db = b.due_date ? new Date(b.due_date).getTime() : Infinity
-    if (da !== db) return da - db
-    return a.order_index - b.order_index
-  })
+  const modules = [...(course.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
+
+  const handleModuleDragEnd = useCallback(async (result: DropResult) => {
+    if (!result.destination || !courseId) return
+    const from = result.source.index
+    const to = result.destination.index
+    if (from === to) return
+
+    const reordered = Array.from(modules)
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(to, 0, moved)
+
+    setCourse(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        modules: reordered.map((m, i) => ({ ...m, order_index: i })),
+      }
+    })
+
+    try {
+      await Promise.all(
+        reordered.map((m, i) =>
+          m.order_index !== i
+            ? coursesService.updateModule(courseId, m.id, { order_index: i })
+            : null
+        ).filter(Boolean)
+      )
+    } catch {
+      toast({ title: "Failed to save module order", variant: "destructive" })
+      load()
+    }
+  }, [modules, courseId, load])
   const pub = course.status === "published"
 
   return (
@@ -408,18 +436,42 @@ export default function CourseEditor() {
           <Layers className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" /><p>No modules yet. Add your first module to start building.</p>
         </Card>
       ) : (
-        <div className="space-y-2">{modules.map((mod, i) => (
-          <Card key={mod.id} className="group flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors cursor-pointer"
-            onClick={() => navigate(`/teacher/courses/${courseId}/modules/${mod.id}/edit`)}>
-            <span className="text-xs font-mono text-muted-foreground/50 w-6 text-right shrink-0">{i + 1}</span>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{mod.title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{mod.chapters?.length ?? 0} chapter{(mod.chapters?.length ?? 0) !== 1 ? "s" : ""}</p>
-            </div>
-            <Button variant="ghost" size="sm" className="opacity-60 group-hover:opacity-100 text-destructive hover:text-destructive shrink-0 transition-opacity"
-              onClick={e => { e.stopPropagation(); removeModule(mod.id) }}><Trash2 className="h-3.5 w-3.5" /></Button>
-          </Card>
-        ))}</div>
+        <DragDropContext onDragEnd={handleModuleDragEnd}>
+          <Droppable droppableId="modules">
+            {(provided) => (
+              <div className="space-y-2" ref={provided.innerRef} {...provided.droppableProps}>
+                {modules.map((mod, i) => (
+                  <Draggable key={mod.id} draggableId={mod.id} index={i}>
+                    {(dragProvided, snapshot) => (
+                      <Card
+                        ref={dragProvided.innerRef}
+                        {...dragProvided.draggableProps}
+                        className={`group flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors cursor-pointer ${snapshot.isDragging ? "shadow-lg ring-2 ring-primary/20" : ""}`}
+                        onClick={() => navigate(`/teacher/courses/${courseId}/modules/${mod.id}/edit`)}
+                      >
+                        <div
+                          {...dragProvided.dragHandleProps}
+                          className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground shrink-0 transition-colors"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                        <span className="text-xs font-mono text-muted-foreground/50 w-6 text-right shrink-0">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{mod.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{mod.chapters?.length ?? 0} chapter{(mod.chapters?.length ?? 0) !== 1 ? "s" : ""}</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="opacity-60 group-hover:opacity-100 text-destructive hover:text-destructive shrink-0 transition-opacity"
+                          onClick={e => { e.stopPropagation(); removeModule(mod.id) }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </Card>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       )}
 
       {/* Edit Details Modal */}

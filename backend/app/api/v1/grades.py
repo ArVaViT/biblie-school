@@ -1,9 +1,12 @@
+import csv
+import io
 import logging
 import uuid
 from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
@@ -162,6 +165,60 @@ async def get_grade_summary(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Grade calculation failed",
         ) from None
+
+
+# ── CSV Export ────────────────────────────────────────────────────
+
+
+@router.get("/course/{course_id}/export-csv")
+async def export_grades_csv(
+    course_id: str,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    course = verify_course_owner(db, course_id, teacher.id)
+    results = calculate_all_student_grades(db, course)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "Student Name",
+        "Email",
+        "Quiz Avg (%)",
+        "Quiz Weighted",
+        "Assignment Avg (%)",
+        "Assignment Weighted",
+        "Participation (%)",
+        "Participation Weighted",
+        "Final Score",
+        "Letter Grade",
+        "Manual Grade",
+    ])
+    for r in results:
+        b = r["breakdown"]
+        writer.writerow([
+            r["student_name"] or "",
+            r["student_email"],
+            b.quiz_avg,
+            b.quiz_weighted,
+            b.assignment_avg,
+            b.assignment_weighted,
+            b.participation_pct,
+            b.participation_weighted,
+            b.final_score,
+            b.letter_grade,
+            r["manual_grade"] or "",
+        ])
+
+    buf.seek(0)
+    safe_title = "".join(c for c in course.title if c.isalnum() or c in " -_")[:50].strip()
+    filename = f"grades_{safe_title}.csv"
+
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ── Existing Manual Grade Endpoints ───────────────────────────────

@@ -38,6 +38,8 @@ from app.services.course_service import (
     get_courses,
     get_module,
     get_teacher_courses,
+    permanently_delete_course,
+    restore_course,
     update_chapter,
     update_course,
     update_module,
@@ -72,6 +74,14 @@ async def list_my_courses(
     db: Session = Depends(get_db),
 ) -> list[CourseResponse]:
     return get_teacher_courses(db, current_user.id)
+
+
+@router.get("/my/trash", response_model=list[CourseResponse])
+async def list_my_trashed_courses(
+    current_user: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> list[CourseResponse]:
+    return get_teacher_courses(db, current_user.id, deleted_only=True)
 
 
 @router.get("/{course_id}", response_model=CourseResponse)
@@ -439,3 +449,48 @@ async def enroll_course(
         request=request,
     )
     return enrollment
+
+
+# ---------------------------------------------------------------------------
+# Soft delete: restore & permanent delete
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{course_id}/restore", response_model=CourseResponse)
+async def restore_deleted_course(
+    course_id: str,
+    request: Request,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> CourseResponse:
+    course = get_course(db, course_id, include_deleted=True)
+    if not course:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    if course.deleted_at is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Course is not deleted")
+    if str(course.created_by) != str(teacher.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only restore your own courses")
+    result = restore_course(db, course)
+    log_action(db, teacher.id, "restore", "course", course_id, request=request)
+    return result
+
+
+@router.delete("/{course_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)
+async def permanently_remove_course(
+    course_id: str,
+    request: Request,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> None:
+    course = get_course(db, course_id, include_deleted=True)
+    if not course:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    if str(course.created_by) != str(teacher.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own courses")
+    if course.deleted_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Course must be soft-deleted before permanent deletion",
+        )
+    log_action(db, teacher.id, "permanent_delete", "course", course_id, details={"title": course.title}, request=request)
+    permanently_delete_course(db, course)

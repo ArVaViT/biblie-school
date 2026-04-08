@@ -129,6 +129,51 @@ export default function RichTextEditor({
         class:
           "prose prose-sm sm:prose-base max-w-none min-h-[200px] px-4 py-3 focus:outline-none",
       },
+      handleDrop: (view, event, _slice, moved) => {
+        if (moved || !event.dataTransfer?.files?.length) return false;
+        const file = event.dataTransfer.files[0];
+        if (!file.type.startsWith("image/")) return false;
+        event.preventDefault();
+        setUploading(true);
+        storageService
+          .uploadContentImage(file)
+          .then((url) => {
+            const { schema } = view.state;
+            const node = schema.nodes.image.create({ src: url });
+            const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+            if (pos) {
+              const tr = view.state.tr.insert(pos.pos, node);
+              view.dispatch(tr);
+            }
+          })
+          .catch(() => {})
+          .finally(() => setUploading(false));
+        return true;
+      },
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of items) {
+          if (item.type.startsWith("image/")) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (!file) return false;
+            setUploading(true);
+            storageService
+              .uploadContentImage(file)
+              .then((url) => {
+                const { schema } = view.state;
+                const node = schema.nodes.image.create({ src: url });
+                const tr = view.state.tr.replaceSelectionWith(node);
+                view.dispatch(tr);
+              })
+              .catch(() => {})
+              .finally(() => setUploading(false));
+            return true;
+          }
+        }
+        return false;
+      },
     },
   });
 

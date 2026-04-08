@@ -13,6 +13,7 @@ import {
   ArrowUpDown, ArrowUp, ArrowDown, Calculator,
   CheckCircle2, Circle, BookOpen, ClipboardList,
   HelpCircle, GraduationCap, FileText, LayoutGrid,
+  Download,
 } from "lucide-react"
 
 // ── Types ───────────────────────────────────────────────────────────
@@ -260,6 +261,28 @@ export default function TeacherGradebook() {
     return list
   }, [summary, sortField, sortDir])
 
+  // ── CSV Export ──────────────────────────────────────────────────
+
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportCSV = async () => {
+    if (!courseId) return
+    setExporting(true)
+    try {
+      const blob = await coursesService.exportGradesCSV(courseId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `grades_${courseTitle || courseId}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast({ title: "Failed to export grades", variant: "destructive" })
+    } finally {
+      setExporting(false)
+    }
+  }
+
   // ── Stats ───────────────────────────────────────────────────────
 
   const classAvg = summary?.class_average ?? 0
@@ -364,12 +387,20 @@ export default function TeacherGradebook() {
         <span className="text-foreground font-medium">Gradebook</span>
       </div>
 
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Award className="h-7 w-7 text-primary" />
-          Gradebook
-        </h1>
-        {courseTitle && <p className="text-muted-foreground mt-1">{courseTitle}</p>}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Award className="h-7 w-7 text-primary" />
+            Gradebook
+          </h1>
+          {courseTitle && <p className="text-muted-foreground mt-1">{courseTitle}</p>}
+        </div>
+        {studentCount > 0 && (
+          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={exporting}>
+            <Download className="h-4 w-4 mr-1.5" />
+            {exporting ? "Exporting..." : "Export CSV"}
+          </Button>
+        )}
       </div>
 
       {/* Stats row */}

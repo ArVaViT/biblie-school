@@ -295,6 +295,56 @@ async def list_all_users(
     ]
 
 
+class BulkRoleUpdate(BaseModel):
+    user_ids: list[str]
+    role: str
+
+
+@router.put("/admin/users/bulk-role")
+async def bulk_update_user_roles(
+    body: BulkRoleUpdate,
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    if body.role not in ("admin", "teacher", "pending_teacher", "student"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid role")
+    if len(body.user_ids) > 100:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Maximum 100 users per batch")
+
+    valid_uuids = []
+    for uid_str in body.user_ids:
+        try:
+            valid_uuids.append(_uuid.UUID(uid_str))
+        except ValueError:
+            continue
+
+    if not valid_uuids:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No valid user IDs provided")
+
+    admin_uuid = admin.id if isinstance(admin.id, _uuid.UUID) else _uuid.UUID(str(admin.id))
+    safe_uuids = [u for u in valid_uuids if u != admin_uuid]
+
+    updated = (
+        db.query(User)
+        .filter(User.id.in_(safe_uuids))
+        .update({User.role: body.role}, synchronize_session="fetch")
+    )
+    db.commit()
+
+    log_action(
+        db,
+        admin.id,
+        "bulk_role_update",
+        "user",
+        ",".join(str(u) for u in safe_uuids[:10]),
+        details={"new_role": body.role, "count": updated},
+        request=request,
+    )
+
+    return {"updated": updated, "role": body.role}
+
+
 @router.put("/admin/users/{user_id}/role")
 async def update_user_role(
     user_id: str,

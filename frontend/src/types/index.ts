@@ -19,6 +19,7 @@ export interface Course {
   created_by: string
   created_at: string
   updated_at: string
+  deleted_at: string | null
   enrollment_start: string | null
   enrollment_end: string | null
   start_date: string | null
