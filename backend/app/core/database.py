@@ -1,4 +1,3 @@
-import contextlib
 import logging
 import os
 from collections.abc import Generator
@@ -85,15 +84,6 @@ def _get_engine() -> Engine:
 
     return _engine
 
-
-def reset_engine() -> None:
-    """Dispose and reset the cached engine so the next call recreates it."""
-    global _engine, _SessionLocal
-    if _engine is not None:
-        with contextlib.suppress(Exception):
-            _engine.dispose()
-    _engine = None
-    _SessionLocal = None
 
 
 def get_db() -> Generator[Session, None, None]:

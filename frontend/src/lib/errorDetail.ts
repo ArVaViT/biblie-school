@@ -14,8 +14,3 @@ export function getErrorDetail(err: unknown, fallback = "An error occurred"): st
   if (err instanceof Error) return err.message
   return fallback
 }
-
-export function getErrorStatus(err: unknown): number | undefined {
-  if (isAxiosError(err)) return err.response?.status
-  return undefined
-}

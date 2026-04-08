@@ -30,7 +30,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return self.calls, self.window
 
     def _cleanup_stale_buckets(self, now: float) -> None:
-        if now - self._last_cleanup < CLEANUP_INTERVAL:
+        if now - self._last_cleanup < CLEANUP_INTERVAL and len(self._hits) < MAX_BUCKETS:
             return
         self._last_cleanup = now
         max_window = max(w for _, w in ENDPOINT_LIMITS.values()) if ENDPOINT_LIMITS else self.window

@@ -17,7 +17,7 @@ if (!hookRegistered) {
   hookRegistered = true
 }
 
-export const SANITIZE_CONFIG = {
+const SANITIZE_CONFIG = {
   ADD_TAGS: ["iframe"],
   ADD_ATTR: [
     "allow", "allowfullscreen", "frameborder", "src", "loading",
