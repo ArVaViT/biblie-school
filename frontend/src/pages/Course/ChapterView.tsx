@@ -237,6 +237,11 @@ export default function ChapterView() {
     }
   }, [chapter, courseId])
 
+  const sanitizedChapterContent = useMemo(
+    () => (chapter?.content ? sanitize(chapter.content) : ""),
+    [chapter?.content],
+  )
+
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -262,11 +267,6 @@ export default function ChapterView() {
       </div>
     )
   }
-
-  const sanitizedChapterContent = useMemo(
-    () => (chapter.content ? sanitize(chapter.content) : ""),
-    [chapter.content],
-  )
 
   const locked = isChapterLocked(chapter, currentIdx)
   const isCompleted = completedIds.has(chapter.id)
