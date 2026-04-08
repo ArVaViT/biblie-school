@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
@@ -19,6 +19,11 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
   const { user } = useAuth()
   const [requesting, setRequesting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const copyTimer = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    return () => clearTimeout(copyTimer.current)
+  }, [])
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewHover, setReviewHover] = useState(0)
   const [reviewComment, setReviewComment] = useState("")
@@ -64,7 +69,8 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
     try {
       await navigator.clipboard.writeText(certificate.certificate_number)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      clearTimeout(copyTimer.current)
+      copyTimer.current = setTimeout(() => setCopied(false), 2000)
     } catch {
       toast({ title: "Failed to copy", variant: "destructive" })
     }

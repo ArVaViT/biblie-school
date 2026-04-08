@@ -8,6 +8,8 @@ export default function AuthCallback() {
   const [timedOut, setTimedOut] = useState(false)
 
   useEffect(() => {
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined
+
     const go = (path: string) => {
       if (handled.current) return
       handled.current = true
@@ -16,7 +18,7 @@ export default function AuthCallback() {
 
     const timeout = setTimeout(() => {
       setTimedOut(true)
-      setTimeout(() => go("/login?error=oauth_timeout"), 3000)
+      redirectTimer = setTimeout(() => go("/login?error=oauth_timeout"), 3000)
     }, 15000)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -33,6 +35,7 @@ export default function AuthCallback() {
 
     return () => {
       clearTimeout(timeout)
+      clearTimeout(redirectTimer)
       subscription.unsubscribe()
     }
   }, [navigate])

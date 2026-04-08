@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import require_teacher, verify_course_owner
+from app.api.dependencies import get_optional_user, require_teacher, verify_course_owner
 from app.core.database import get_db
 from app.models.cohort import Cohort
+from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.student_grade import StudentGrade
 from app.models.user import User
@@ -42,8 +43,15 @@ def _get_cohort_or_404(db: Session, cohort_id: str) -> Cohort:
 @router.get("/course/{course_id}", response_model=list[CohortResponse])
 async def list_cohorts(
     course_id: str,
+    current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
 ) -> list[CohortResponse]:
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    if course.status != "published":
+        if not current_user or (str(course.created_by) != str(current_user.id) and current_user.role != "admin"):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     cohorts = db.query(Cohort).filter(Cohort.course_id == course_id).order_by(Cohort.start_date.desc()).all()
     if not cohorts:
         return []

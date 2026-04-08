@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 from fastapi import FastAPI, Request, Response
@@ -17,6 +18,8 @@ setup_logging()
 
 logger = logging.getLogger("api")
 
+_IS_PRODUCTION = bool(os.environ.get("VERCEL") or os.environ.get("PRODUCTION"))
+
 app = FastAPI(
     title="Bible School API",
     description=(
@@ -25,8 +28,8 @@ app = FastAPI(
         "progress tracking, and file uploads."
     ),
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url=None if _IS_PRODUCTION else "/docs",
+    redoc_url=None if _IS_PRODUCTION else "/redoc",
 )
 
 cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"]

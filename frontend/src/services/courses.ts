@@ -242,7 +242,21 @@ export const coursesService = {
     return response.data
   },
 
-  async getCourseAnalyticsAPI(courseId: string): Promise<unknown> {
+  async getCourseAnalyticsAPI(courseId: string): Promise<{
+    course_id: string
+    course_title: string
+    total_students: number
+    avg_progress: number
+    completion_count: number
+    enrollments: Array<{
+      enrollment_id: string
+      user_id: string
+      full_name: string | null
+      email: string
+      progress: number
+      enrolled_at: string | null
+    }>
+  }> {
     const response = await api.get(`/analytics/course/${courseId}`)
     return response.data
   },

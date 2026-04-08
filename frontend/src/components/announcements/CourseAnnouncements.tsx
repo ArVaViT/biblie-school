@@ -16,7 +16,9 @@ export default function CourseAnnouncements({ courseId }: Props) {
     setLoaded(false)
     coursesService.getAnnouncements(courseId).then((data) => {
       if (!cancelled) setAnnouncements(data)
-    }).catch(() => {}).finally(() => {
+    }).catch(() => {
+      if (!cancelled) setAnnouncements([])
+    }).finally(() => {
       if (!cancelled) setLoaded(true)
     })
     return () => { cancelled = true }

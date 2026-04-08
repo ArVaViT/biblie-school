@@ -13,7 +13,9 @@ export default function AnnouncementBanner() {
       if (cancelled) return
       const systemWide = list.find((a) => !a.course_id)
       if (systemWide) setAnnouncement(systemWide)
-    }).catch(() => {})
+    }).catch(() => {
+      // Announcements are non-critical UI; gracefully degrade to no banner
+    })
     return () => { cancelled = true }
   }, [])
 

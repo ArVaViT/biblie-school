@@ -4,12 +4,13 @@ Revision ID: 006_add_quiz_extra_attempts
 Revises: 005_add_audit_notifications
 Create Date: 2026-03-13
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
+from alembic import op
 
 revision: str = "006_add_quiz_extra_attempts"
 down_revision: Union[str, None] = "005_add_audit_notifications"

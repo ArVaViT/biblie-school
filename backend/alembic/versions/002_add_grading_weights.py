@@ -5,10 +5,12 @@ Revises: 001_initial
 Create Date: 2026-03-12
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
+
+import sqlalchemy as sa
 
 from alembic import op
-import sqlalchemy as sa
 
 revision: str = "002_grading_weights"
 down_revision: Union[str, None] = "001_initial"

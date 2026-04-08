@@ -10,8 +10,9 @@ from __future__ import annotations
 import os
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+from alembic import context
 
 config = context.config
 
@@ -38,8 +39,8 @@ def _get_database_url() -> str:
 
 # These imports MUST come after _get_database_url is defined because they
 # trigger module-level side effects (engine creation, model registration).
-from app.core.database import Base  # noqa: E402
 import app.models as _models  # noqa: E402
+from app.core.database import Base  # noqa: E402
 
 _ = _models  # ensure the import is not flagged as unused
 

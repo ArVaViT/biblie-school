@@ -5,11 +5,13 @@ Revises:
 Create Date: 2026-03-12
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision: str = "001_initial"
 down_revision: Union[str, None] = None

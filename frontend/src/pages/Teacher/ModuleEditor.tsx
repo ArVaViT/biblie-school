@@ -128,12 +128,14 @@ export default function ModuleEditor() {
 
   const renameChapter = async (ch: Chapter, newTitle: string) => {
     if (!courseId || !moduleId || !newTitle.trim()) return
+    const previousTitle = ch.title
     updateChapterLocal(ch.id, { title: newTitle.trim() })
     try {
       await coursesService.updateChapter(courseId, moduleId, ch.id, {
         title: newTitle.trim(),
       })
     } catch {
+      updateChapterLocal(ch.id, { title: previousTitle })
       toast({ title: "Failed to rename chapter", variant: "destructive" })
     }
   }

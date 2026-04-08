@@ -35,6 +35,8 @@ const CHAPTER_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText
   mixed: { label: "Mixed", icon: Layers, color: "bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400" },
 }
 
+const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
+
 function ChapterTypeBadge({ type }: { type: string }) {
   const config = CHAPTER_TYPE_CONFIG[type] ?? CHAPTER_TYPE_CONFIG.content
   const Icon = config.icon
@@ -89,7 +91,6 @@ export default function ModuleView() {
     [module],
   )
 
-  const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
   const gradableChapters = sortedChapters.filter((c) => GRADABLE_TYPES.has(c.chapter_type ?? ""))
   const allComplete = gradableChapters.length > 0 && gradableChapters.every((c) => completedIds.has(c.id))
 

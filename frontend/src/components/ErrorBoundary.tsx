@@ -21,7 +21,13 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("ErrorBoundary caught:", error, info.componentStack)
+    if (import.meta.env.DEV) {
+      console.error("ErrorBoundary caught:", error, info.componentStack)
+    }
+  }
+
+  private handleReset = () => {
+    this.setState({ hasError: false, error: null })
   }
 
   render() {
@@ -38,14 +44,22 @@ export default class ErrorBoundary extends Component<Props, State> {
           </div>
           <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md">
-            An unexpected error occurred. Please try refreshing the page.
+            An unexpected error occurred. Please try again.
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Refresh Page
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={this.handleReset}
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
         </div>
       )
     }

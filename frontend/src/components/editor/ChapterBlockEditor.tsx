@@ -46,6 +46,7 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const editContentRef = useRef("")
+  const mountedRef = useRef(true)
 
   const loadBlocks = useCallback(async (signal?: { cancelled: boolean }) => {
     try {
@@ -112,13 +113,18 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
     const blockId = block.id
     const snapshot = editContentRef.current
     autoSaveTimer.current = setTimeout(async () => {
+      if (!mountedRef.current) return
       setAutoSaveStatus("saving")
       try {
         const updated = await coursesService.updateBlock(blockId, { content: snapshot })
+        if (!mountedRef.current) return
         setBlocks((prev) => prev.map((b) => (b.id === blockId ? updated : b)))
         setAutoSaveStatus("saved")
-        savedResetTimer.current = setTimeout(() => setAutoSaveStatus("idle"), 2000)
+        savedResetTimer.current = setTimeout(() => {
+          if (mountedRef.current) setAutoSaveStatus("idle")
+        }, 2000)
       } catch {
+        if (!mountedRef.current) return
         setAutoSaveStatus("idle")
         toast({ title: "Auto-save failed", variant: "destructive" })
       }
@@ -126,7 +132,9 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
   }, [])
 
   useEffect(() => {
+    mountedRef.current = true
     return () => {
+      mountedRef.current = false
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
       if (savedResetTimer.current) clearTimeout(savedResetTimer.current)
     }

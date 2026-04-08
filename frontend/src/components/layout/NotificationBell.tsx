@@ -51,7 +51,9 @@ export default function NotificationBell() {
     try {
       const count = await coursesService.getUnreadCount()
       if (!signal?.cancelled) setUnreadCount(count)
-    } catch { /* silent */ }
+    } catch {
+      // Polling failure is non-critical; will retry on next interval
+    }
   }, [])
 
   const fetchNotifications = useCallback(async (signal?: { cancelled: boolean }) => {
@@ -59,8 +61,11 @@ export default function NotificationBell() {
     try {
       const res = await coursesService.getNotifications()
       if (!signal?.cancelled) setNotifications(res.items)
-    } catch { /* silent */ }
-    if (!signal?.cancelled) setLoading(false)
+    } catch {
+      // Keep existing notifications on fetch failure
+    } finally {
+      if (!signal?.cancelled) setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -96,7 +101,9 @@ export default function NotificationBell() {
         await coursesService.markAsRead(n.id)
         setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x))
         setUnreadCount(prev => Math.max(0, prev - 1))
-      } catch { /* silent */ }
+      } catch {
+        // Optimistic UI: still navigate even if mark-read fails
+      }
     }
     setOpen(false)
     if (n.link) navigate(n.link)
@@ -107,7 +114,9 @@ export default function NotificationBell() {
       await coursesService.markAllAsRead()
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
       setUnreadCount(0)
-    } catch { /* silent */ }
+    } catch {
+      // Mark-all best effort; badge will correct on next poll
+    }
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -117,7 +126,9 @@ export default function NotificationBell() {
       const removed = notifications.find(n => n.id === id)
       setNotifications(prev => prev.filter(n => n.id !== id))
       if (removed && !removed.is_read) setUnreadCount(prev => Math.max(0, prev - 1))
-    } catch { /* silent */ }
+    } catch {
+      // Delete failed; notification remains in the list
+    }
   }
 
   return (

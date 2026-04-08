@@ -14,6 +14,8 @@ let _cachedToken: string | null = null
 
 supabase.auth.getSession().then(({ data }) => {
   _cachedToken = data.session?.access_token ?? null
+}).catch(() => {
+  _cachedToken = null
 })
 
 supabase.auth.onAuthStateChange((_event, session) => {

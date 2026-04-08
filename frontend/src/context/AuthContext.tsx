@@ -30,20 +30,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .select("*")
       .eq("id", userId)
       .single()
-      .then(({ data }) => {
-        if (!mounted.current || !data) return
-        if (activeUserId.current !== userId) return
-        setUser({
-          id: data.id,
-          email: data.email || email,
-          full_name: data.full_name,
-          avatar_url: data.avatar_url ?? null,
-          role: data.role,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-        })
-      })
-      .then(() => {}, () => {})
+      .then(
+        ({ data }) => {
+          if (!mounted.current || !data) return
+          if (activeUserId.current !== userId) return
+          setUser({
+            id: data.id,
+            email: data.email || email,
+            full_name: data.full_name,
+            avatar_url: data.avatar_url ?? null,
+            role: data.role,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+          })
+        },
+        () => {
+          if (mounted.current && activeUserId.current === userId) {
+            setLoading(false)
+          }
+        },
+      )
   }, [])
 
   useEffect(() => {

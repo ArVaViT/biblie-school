@@ -5,11 +5,13 @@ Revises: 002_grading_weights
 Create Date: 2026-03-12
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
+
+from alembic import op
 
 revision: str = "003_calendar_system"
 down_revision: Union[str, None] = "002_grading_weights"
