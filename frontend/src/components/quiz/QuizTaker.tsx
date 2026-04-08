@@ -23,6 +23,7 @@ interface QuizTakerProps {
 export default function QuizTaker({ chapterId }: QuizTakerProps) {
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
   const [answers, setAnswers] = useState<Record<string, { selected_option_id?: string; text_answer?: string }>>({})
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<QuizAttempt | null>(null)
@@ -32,6 +33,7 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setFetchError(false)
     setAnswers({})
     setResult(null)
     setShowResults(false)
@@ -48,7 +50,7 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
           if (!cancelled) setAttempts(att)
         }
       } catch {
-        // quiz fetch failed — component will show "no quiz" state
+        if (!cancelled) setFetchError(true)
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -64,6 +66,9 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
       </div>
     )
   }
+  if (fetchError) return (
+    <p className="text-sm text-destructive py-4 text-center">Failed to load quiz. Please try refreshing the page.</p>
+  )
   if (!quiz || (quiz.questions ?? []).length === 0) return null
 
   const sortedQuestions = [...(quiz.questions ?? [])].sort((a, b) => a.order_index - b.order_index)

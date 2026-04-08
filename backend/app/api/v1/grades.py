@@ -1,6 +1,7 @@
 import logging
 import uuid
 from datetime import UTC, datetime
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -46,14 +47,14 @@ async def get_grading_config(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
 
     is_owner = str(course.created_by) == str(current_user.id)
-    is_privileged = current_user.role in ("teacher", "admin")
+    is_admin = current_user.role == "admin"
     is_enrolled = (
         db.query(Enrollment)
         .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
         .first()
         is not None
     )
-    if not (is_owner or is_privileged or is_enrolled):
+    if not (is_owner or is_admin or is_enrolled):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     return GradingConfigResponse(
@@ -92,20 +93,20 @@ async def update_grading_config(
 )
 async def get_calculated_grade(
     course_id: str,
-    student_id: str,
+    student_id: UUID,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
     course = verify_course_owner(db, course_id, teacher.id)
 
-    enrolled = db.query(Enrollment).filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id).first()
+    enrolled = db.query(Enrollment).filter(Enrollment.user_id == str(student_id), Enrollment.course_id == course_id).first()
     if not enrolled:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Student not enrolled in this course",
         )
 
-    user = db.query(User).filter(User.id == student_id).first()
+    user = db.query(User).filter(User.id == str(student_id)).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
@@ -113,16 +114,16 @@ async def get_calculated_grade(
     quiz_ids = _get_quiz_ids_for_chapters(db, chapter_ids)
     assignment_ids = _get_assignment_ids_for_chapters(db, chapter_ids)
 
-    breakdown = calculate_student_grade(db, course, uuid.UUID(student_id), chapter_ids, quiz_ids, assignment_ids)
+    breakdown = calculate_student_grade(db, course, student_id, chapter_ids, quiz_ids, assignment_ids)
 
     manual = (
         db.query(StudentGrade.grade)
-        .filter(StudentGrade.course_id == course_id, StudentGrade.student_id == student_id)
+        .filter(StudentGrade.course_id == course_id, StudentGrade.student_id == str(student_id))
         .scalar()
     )
 
     return StudentCalculatedGrade(
-        student_id=student_id,
+        student_id=str(student_id),
         student_name=user.full_name,
         student_email=user.email,
         breakdown=breakdown,
@@ -168,8 +169,8 @@ async def get_grade_summary(
 
 @router.get("/my", response_model=list[GradeResponse])
 async def list_my_grades(
-    skip: int = 0,
-    limit: int = Query(100, le=500),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[GradeResponse]:
@@ -209,8 +210,8 @@ async def get_my_grade_for_course(
 async def list_course_grades(
     course_id: str,
     cohort_id: str | None = Query(None),
-    skip: int = 0,
-    limit: int = Query(100, le=500),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> list[GradeResponse]:

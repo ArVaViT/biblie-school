@@ -22,8 +22,8 @@ router = APIRouter(prefix="/announcements", tags=["announcements"])
 @router.get("", response_model=list[AnnouncementResponse])
 async def list_announcements(
     course_id: str | None = Query(None),
-    skip: int = 0,
-    limit: int = Query(50, le=200),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> list[AnnouncementResponse]:
     query = db.query(Announcement)

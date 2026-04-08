@@ -137,8 +137,8 @@ async def submit_assignment(
         progress.completed_at = datetime.now(UTC)
         progress.completion_type = "self"
 
-    db.commit()
     sync_enrollment_progress(db, current_user.id, course_id)
+    db.commit()
     db.refresh(submission)
     return submission
 
@@ -146,8 +146,8 @@ async def submit_assignment(
 @router.get("/{assignment_id}/submissions", response_model=list[SubmissionResponse])
 async def list_submissions(
     assignment_id: UUID,
-    skip: int = 0,
-    limit: int = Query(100, le=500),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
@@ -174,6 +174,13 @@ async def list_my_submissions(
     assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
+
+    course_id = resolve_chapter_course_id(db, assignment.chapter_id)
+    enrolled = db.query(Enrollment).filter(
+        Enrollment.user_id == current_user.id, Enrollment.course_id == course_id
+    ).first()
+    if not enrolled and current_user.role not in ("teacher", "admin"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enrolled in this course")
 
     return (
         db.query(AssignmentSubmission)

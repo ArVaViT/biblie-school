@@ -228,9 +228,8 @@ SUPABASE_URL=<your-supabase-project-url>
 SUPABASE_KEY=<your-supabase-service-role-key>
 SUPABASE_STORAGE_BUCKET=files
 DATABASE_URL=<your-supabase-connection-pooler-url>
-JWT_SECRET_KEY=<your-jwt-secret>
+JWT_SECRET_KEY=<your-supabase-jwt-secret>
 JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=43200
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
@@ -296,7 +295,7 @@ JSON API routes are mounted at **`/api/v1`**. The app also exposes **`GET /`**, 
 
 There are **95** HTTP operations under `/api/v1`, grouped into **19** OpenAPI tag modules (each table below lists paths relative to `/api/v1`).
 
-Interactive schemas: run the backend and open **`/docs`** (Swagger UI) or **`/redoc`**.
+Interactive schemas: run the backend **locally** and open **`/docs`** (Swagger UI) or **`/redoc`** (disabled in production).
 
 ### Summary by module
 

@@ -263,7 +263,7 @@ function CertificateItem({
           <code className="font-mono text-xs text-muted-foreground select-all">
             {certificate.certificate_number}
           </code>
-          <button onClick={handleCopy} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={handleCopy} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Copy certificate number">
             {copied ? (
               <CheckCircle className="h-3 w-3 text-emerald-500" />
             ) : (

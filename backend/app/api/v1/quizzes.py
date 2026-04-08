@@ -305,8 +305,8 @@ async def submit_quiz(
         cp.completed_at = datetime.now(UTC)
         cp.completion_type = "quiz"
 
-    db.commit()
     sync_enrollment_progress(db, current_user.id, course_id)
+    db.commit()
     db.refresh(attempt)
 
     return QuizAttemptResponse(
@@ -325,8 +325,8 @@ async def submit_quiz(
 @router.get("/{quiz_id}/attempts", response_model=list[QuizAttemptResponse])
 async def get_quiz_attempts(
     quiz_id: UUID,
-    skip: int = 0,
-    limit: int = Query(100, le=500),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):

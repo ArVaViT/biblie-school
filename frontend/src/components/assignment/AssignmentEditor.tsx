@@ -29,6 +29,7 @@ interface AssignmentEditorProps {
 export default function AssignmentEditor({ chapterId, onAssignmentCreated }: AssignmentEditorProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
 
   const [newTitle, setNewTitle] = useState("")
   const [newDesc, setNewDesc] = useState("")
@@ -41,11 +42,12 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
     let cancelled = false
     const load = async () => {
       setLoading(true)
+      setFetchError(false)
       try {
         const data = await coursesService.getChapterAssignments(chapterId)
         if (!cancelled) setAssignments(data)
       } catch {
-        // Non-critical
+        if (!cancelled) setFetchError(true)
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -100,6 +102,10 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     )
+  }
+
+  if (fetchError) {
+    return <p className="text-sm text-destructive py-4 text-center">Failed to load assignments. Please try refreshing.</p>
   }
 
   return (

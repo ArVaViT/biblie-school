@@ -211,6 +211,7 @@ export default function CalendarPage() {
               value={filterCourseId}
               onChange={(e) => setFilterCourseId(e.target.value)}
               className="text-sm border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Filter by course"
             >
               <option value="">All Courses</option>
               {enrollments.map((e) => (
@@ -233,13 +234,13 @@ export default function CalendarPage() {
                   {MONTH_NAMES[month]} {year}
                 </CardTitle>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={prevMonth}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={prevMonth} aria-label="Previous month">
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button variant="outline" size="sm" className="h-8 text-xs" onClick={goToday}>
                     Today
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={nextMonth}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={nextMonth} aria-label="Next month">
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -257,7 +258,7 @@ export default function CalendarPage() {
 
               {/* Day cells */}
               <div className="grid grid-cols-7 border-t border-l">
-                {calendarDays.map(({ date, inMonth }, idx) => {
+                {calendarDays.map(({ date, inMonth }) => {
                   const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
                   const dayEvents = eventsByDate.get(key) ?? []
                   const isToday = isSameDay(date, today)
@@ -265,7 +266,7 @@ export default function CalendarPage() {
 
                   return (
                     <button
-                      key={idx}
+                      key={key}
                       onClick={() => setSelectedDay(date)}
                       className={`
                         relative min-h-[72px] sm:min-h-[80px] p-1 border-r border-b text-left transition-colors

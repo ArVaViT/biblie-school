@@ -214,17 +214,9 @@ def get_user_courses(db: Session, user_id: str) -> list[Enrollment]:
     )
 
 
-def update_enrollment_progress(db: Session, user_id: str, course_id: str, progress: int) -> Enrollment | None:
-    enrollment = db.query(Enrollment).filter(Enrollment.user_id == user_id, Enrollment.course_id == course_id).first()
-    if not enrollment:
-        return None
-    enrollment.progress = max(0, min(100, progress))
-    db.commit()
-    db.refresh(enrollment)
-    return enrollment
-
 
 def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrollment | None:
+    db.flush()
     enrollment = db.query(Enrollment).filter(Enrollment.user_id == user_id, Enrollment.course_id == course_id).first()
     if not enrollment:
         return None
@@ -253,8 +245,7 @@ def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrol
         enrollment.progress = 0
     else:
         enrollment.progress = round((completed_gradable / total_gradable) * 100)
-    db.commit()
-    db.refresh(enrollment)
+    db.flush()
     return enrollment
 
 
@@ -263,7 +254,7 @@ def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrol
 # ---------------------------------------------------------------------------
 
 
-def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Course:
+def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Course | None:
     """Deep-clone a course and all nested content. Returns the new Course.
 
     Copies: Course -> Modules -> Chapters -> ChapterBlocks, Quizzes

@@ -293,8 +293,8 @@ async def teacher_complete_chapter(
     progress.completed_at = datetime.now(UTC)
     progress.completed_by = teacher.id
     progress.completion_type = "teacher"
-    db.commit()
     sync_enrollment_progress(db, student_id, course_id)
+    db.commit()
     return {"message": "Chapter marked as complete by teacher", "chapter_id": chapter_id, "student_id": str(student_id)}
 
 
@@ -328,6 +328,6 @@ async def teacher_uncomplete_chapter(
     progress.completed_at = None
     progress.completed_by = None
     progress.completion_type = "self"
-    db.commit()
     sync_enrollment_progress(db, student_id, course_id)
+    db.commit()
     return {"message": "Chapter completion removed", "chapter_id": chapter_id, "student_id": str(student_id)}

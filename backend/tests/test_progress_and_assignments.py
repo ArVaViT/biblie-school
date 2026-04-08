@@ -429,6 +429,7 @@ def test_student_can_fetch_own_assignment_submissions(student_client: TestClient
     assert progress is not None
     assert progress.completed is True
 
+    db.expire_all()
     enrollment = (
         db.query(Enrollment).filter(Enrollment.user_id == STUDENT_ID, Enrollment.course_id == course.id).first()
     )
@@ -469,5 +470,6 @@ def test_content_chapter_does_not_affect_progress(student_client: TestClient, db
     from app.services.course_service import sync_enrollment_progress
 
     sync_enrollment_progress(db, STUDENT_ID, course.id)
+    db.commit()
     db.refresh(enrollment)
     assert enrollment.progress == 100

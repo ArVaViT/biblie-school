@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import TYPE_CHECKING, BinaryIO
 
@@ -9,6 +10,8 @@ from app.models.file import File
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
     from supabase import Client
+
+logger = logging.getLogger(__name__)
 
 
 def get_supabase_client() -> Client:
@@ -34,15 +37,14 @@ def upload_file_to_storage(
     file_content = file.read()
     file_path = unique_filename
 
-    client.storage.from_(settings.SUPABASE_STORAGE_BUCKET).upload(
+    bucket = client.storage.from_(settings.SUPABASE_STORAGE_BUCKET)
+    bucket.upload(
         file_path,
         file_content,
         file_options={"content-type": file_type},
     )
 
-    file_url = client.storage.from_(settings.SUPABASE_STORAGE_BUCKET).get_public_url(
-        file_path,
-    )
+    file_url = bucket.get_public_url(file_path)
 
     file_metadata = File(
         id=file_id,
@@ -53,7 +55,15 @@ def upload_file_to_storage(
         user_id=user_id,
     )
     db.add(file_metadata)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        try:
+            bucket.remove([file_path])
+        except Exception:
+            logger.warning("Failed to clean up orphan storage object: %s", file_path)
+        raise
     db.refresh(file_metadata)
 
     return file_metadata

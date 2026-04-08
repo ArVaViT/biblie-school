@@ -318,7 +318,7 @@ export default function TeacherDashboard() {
                 {course.image_url ? (
                   <img
                     src={course.image_url}
-                    alt=""
+                    alt={`${course.title} thumbnail`}
                     loading="lazy"
                     className="w-20 h-20 rounded-lg object-cover shrink-0"
                   />
@@ -403,7 +403,7 @@ export default function TeacherDashboard() {
                     <span className="sr-only">Clone</span>
                   </Button>
                   <Link to={`/teacher/courses/${course.id}`}>
-                    <Button variant="ghost" size="sm" title="Edit">
+                    <Button variant="ghost" size="sm" aria-label="Edit course">
                       <Pencil className="h-4 w-4" />
                       <span className="hidden sm:inline">Edit</span>
                     </Button>

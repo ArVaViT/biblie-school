@@ -17,8 +17,8 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 @router.get("/course/{course_id}", response_model=list[ReviewResponse])
 async def list_course_reviews(
     course_id: str,
-    skip: int = 0,
-    limit: int = Query(50, le=200),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
     return (

@@ -28,7 +28,6 @@ MAGIC_BYTES = {
     b"\x89PNG": "image/",
     b"\xff\xd8\xff": "image/",
     b"GIF8": "image/",
-    b"RIFF": "image/",  # webp
     b"%PDF": "application/pdf",
     b"\xd0\xcf\x11\xe0": "application/msword",
     b"PK\x03\x04": "application/vnd.openxmlformats",  # docx/xlsx/pptx
@@ -47,6 +46,15 @@ def _mime_allowed(content_type: str) -> bool:
 def _validate_magic_bytes(header: bytes, declared_type: str) -> bool:
     """Verify that the file's magic bytes are consistent with the declared MIME type."""
     if not header:
+        return False
+    if header[:4] == b"RIFF" and len(header) >= 12:
+        subtype = header[8:12]
+        if subtype == b"WEBP":
+            return declared_type.startswith("image/")
+        if subtype == b"WAVE":
+            return declared_type.startswith("audio/")
+        if subtype == b"AVI ":
+            return declared_type.startswith("video/")
         return False
     for magic, expected_prefix in MAGIC_BYTES.items():
         if header[: len(magic)] == magic:

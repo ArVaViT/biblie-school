@@ -73,28 +73,33 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
     let cancelled = false
     const load = async () => {
       setLoading(true)
-      const q = await coursesService.getChapterQuiz(chapterId)
-      if (cancelled) return
-      if (q) {
-        setExistingQuiz(q)
-        setTitle(q.title)
-        setDescription(q.description ?? "")
-        setPassingScore(q.passing_score)
-        setMaxAttempts(q.max_attempts ?? 1)
-        setQuestions(
-          q.questions
-            .sort((a, b) => a.order_index - b.order_index)
-            .map((qu) => ({
-              ...qu,
-              options: qu.options
-                .sort((a, b) => a.order_index - b.order_index)
-                .map((o) => ({ ...o, is_correct: !!o.is_correct })),
-            })),
-        )
-      } else {
-        setMaxAttempts(chapterType === "exam" ? 1 : 3)
+      try {
+        const q = await coursesService.getChapterQuiz(chapterId)
+        if (cancelled) return
+        if (q) {
+          setExistingQuiz(q)
+          setTitle(q.title)
+          setDescription(q.description ?? "")
+          setPassingScore(q.passing_score)
+          setMaxAttempts(q.max_attempts ?? 1)
+          setQuestions(
+            q.questions
+              .sort((a, b) => a.order_index - b.order_index)
+              .map((qu) => ({
+                ...qu,
+                options: qu.options
+                  .sort((a, b) => a.order_index - b.order_index)
+                  .map((o) => ({ ...o, is_correct: !!o.is_correct })),
+              })),
+          )
+        } else {
+          setMaxAttempts(chapterType === "exam" ? 1 : 3)
+        }
+      } catch {
+        if (!cancelled) setQuestions([])
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      setLoading(false)
     }
     load()
     return () => { cancelled = true }

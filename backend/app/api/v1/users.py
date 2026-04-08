@@ -276,12 +276,12 @@ async def delete_my_account(
 
 @router.get("/admin/users")
 async def list_all_users(
-    skip: int = 0,
-    limit: int = 200,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(200, ge=1, le=500),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> list[dict]:
-    users = db.query(User).order_by(User.created_at.desc()).offset(skip).limit(min(limit, 500)).all()
+    users = db.query(User).order_by(User.created_at.desc()).offset(skip).limit(limit).all()
     return [
         {
             "id": str(u.id),

@@ -15,6 +15,7 @@ function MyCoursesSection() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [grades, setGrades] = useState<StudentGrade[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -27,7 +28,10 @@ function MyCoursesSection() {
         if (cancelled) return
         setEnrollments(enrollData)
         setGrades(gradeData)
-      } catch { /* non-critical */ }
+        setFetchError(false)
+      } catch {
+        if (!cancelled) setFetchError(true)
+      }
       finally { if (!cancelled) setLoading(false) }
     }
     load()
@@ -55,6 +59,22 @@ function MyCoursesSection() {
       </Card>
     )
   }
+
+  if (fetchError) return (
+    <Card className="mb-10">
+      <CardHeader>
+        <CardTitle className="font-serif text-lg flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-accent" />
+          My Courses
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-destructive py-4 text-center">
+          Could not load your courses. Please try refreshing the page.
+        </p>
+      </CardContent>
+    </Card>
+  )
 
   if (filtered.length === 0) return (
     <Card className="mb-10">
@@ -197,6 +217,7 @@ export default function HomePage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search courses..."
             className="pl-9 rounded-md"
+            aria-label="Search courses"
           />
         </div>
       </div>

@@ -187,6 +187,7 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
                       size="sm"
                       className="h-7 w-7 p-0 text-amber-600 hover:text-amber-700 dark:text-amber-400"
                       onClick={handleCopy}
+                      aria-label="Copy certificate number"
                     >
                       {copied ? (
                         <CheckCircle className="h-3.5 w-3.5" />
@@ -228,6 +229,7 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
                     onMouseEnter={() => setReviewHover(value)}
                     onMouseLeave={() => setReviewHover(0)}
                     className="focus:outline-none transition-transform hover:scale-110"
+                    aria-label={`Rate ${value} out of 5`}
                   >
                     <Star
                       className={`h-6 w-6 transition-colors ${

@@ -27,11 +27,13 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [submissionsMap, setSubmissionsMap] = useState<Record<string, AssignmentSubmission | null>>({})
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       setLoading(true)
+      setFetchError(false)
       try {
         const data = await coursesService.getChapterAssignments(chapterId)
         if (cancelled) return
@@ -49,7 +51,7 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
           setSubmissionsMap(map)
         }
       } catch {
-        // Non-critical
+        if (!cancelled) setFetchError(true)
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -65,6 +67,9 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
       </div>
     )
   }
+  if (fetchError) return (
+    <p className="text-sm text-destructive py-4 text-center">Failed to load assignments. Please try refreshing.</p>
+  )
   if (assignments.length === 0) return null
 
   return (

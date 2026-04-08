@@ -94,8 +94,8 @@ async def get_course_certificate(
 
 @router.get("/my", response_model=list[CertificateResponse])
 async def list_my_certificates(
-    skip: int = 0,
-    limit: int = Query(50, le=200),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -111,8 +111,8 @@ async def list_my_certificates(
 
 @router.get("/pending", response_model=list[CertificateResponse])
 async def list_pending_certificates(
-    skip: int = 0,
-    limit: int = Query(50, le=200),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
@@ -135,8 +135,8 @@ async def list_pending_certificates(
 
 @router.get("/admin/pending", response_model=list[CertificateResponse])
 async def list_admin_pending_certificates(
-    skip: int = 0,
-    limit: int = Query(50, le=200),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
