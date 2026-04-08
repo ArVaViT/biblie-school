@@ -60,8 +60,8 @@ class QuizQuestionStudentResponse(BaseModel):
 
 class QuizCreate(BaseModel):
     chapter_id: str
-    title: str
-    description: str | None = None
+    title: str = Field(..., min_length=1, max_length=300)
+    description: str | None = Field(None, max_length=5000)
     quiz_type: Literal["quiz", "exam"] = "quiz"
     max_attempts: int | None = Field(None, ge=1, le=10)
     passing_score: int = Field(70, ge=0, le=100)

@@ -163,7 +163,7 @@ async def submit_quiz(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).with_for_update().first()
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
 

@@ -2,13 +2,13 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ChapterBase(BaseModel):
-    title: str
-    content: str | None = None
-    video_url: str | None = None
+    title: str = Field(..., min_length=1, max_length=300)
+    content: str | None = Field(None, max_length=500_000)
+    video_url: str | None = Field(None, max_length=2048)
     order_index: int = 0
     chapter_type: Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"] = "reading"
     requires_completion: bool = False
@@ -20,9 +20,9 @@ class ChapterCreate(ChapterBase):
 
 
 class ChapterUpdate(BaseModel):
-    title: str | None = None
-    content: str | None = None
-    video_url: str | None = None
+    title: str | None = Field(None, min_length=1, max_length=300)
+    content: str | None = Field(None, max_length=500_000)
+    video_url: str | None = Field(None, max_length=2048)
     order_index: int | None = None
     chapter_type: Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"] | None = (
         None
@@ -42,8 +42,8 @@ class ChapterResponse(ChapterBase):
 
 
 class ModuleBase(BaseModel):
-    title: str
-    description: str | None = None
+    title: str = Field(..., min_length=1, max_length=300)
+    description: str | None = Field(None, max_length=5000)
     order_index: int = 0
     due_date: datetime | None = None
 
@@ -53,8 +53,8 @@ class ModuleCreate(ModuleBase):
 
 
 class ModuleUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
+    title: str | None = Field(None, min_length=1, max_length=300)
+    description: str | None = Field(None, max_length=5000)
     order_index: int | None = None
     due_date: datetime | None = None
 
@@ -68,9 +68,9 @@ class ModuleResponse(ModuleBase):
 
 
 class CourseBase(BaseModel):
-    title: str
-    description: str | None = None
-    image_url: str | None = None
+    title: str = Field(..., min_length=1, max_length=300)
+    description: str | None = Field(None, max_length=10_000)
+    image_url: str | None = Field(None, max_length=2048)
 
 
 class CourseCreate(CourseBase):
@@ -78,9 +78,9 @@ class CourseCreate(CourseBase):
 
 
 class CourseUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    image_url: str | None = None
+    title: str | None = Field(None, min_length=1, max_length=300)
+    description: str | None = Field(None, max_length=10_000)
+    image_url: str | None = Field(None, max_length=2048)
     status: Literal["draft", "published"] | None = None
     enrollment_start: datetime | None = None
     enrollment_end: datetime | None = None

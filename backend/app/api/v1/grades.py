@@ -44,6 +44,18 @@ async def get_grading_config(
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+
+    is_owner = str(course.created_by) == str(current_user.id)
+    is_privileged = current_user.role in ("teacher", "admin")
+    is_enrolled = (
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
+        .first()
+        is not None
+    )
+    if not (is_owner or is_privileged or is_enrolled):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
     return GradingConfigResponse(
         quiz_weight=course.quiz_weight,
         assignment_weight=course.assignment_weight,

@@ -23,9 +23,34 @@ ALLOWED_MIME_PATTERNS = [
     re.compile(r"^application/vnd\.openxmlformats-officedocument\."),
 ]
 
+MAGIC_BYTES = {
+    b"\x89PNG": "image/",
+    b"\xff\xd8\xff": "image/",
+    b"GIF8": "image/",
+    b"RIFF": "image/",  # webp
+    b"%PDF": "application/pdf",
+    b"\xd0\xcf\x11\xe0": "application/msword",
+    b"PK\x03\x04": "application/vnd.openxmlformats",  # docx/xlsx/pptx
+    b"ID3": "audio/",
+    b"\xff\xfb": "audio/",
+    b"\xff\xf3": "audio/",
+    b"OggS": "audio/",
+    b"fLaC": "audio/",
+}
+
 
 def _mime_allowed(content_type: str) -> bool:
     return any(p.match(content_type) for p in ALLOWED_MIME_PATTERNS)
+
+
+def _validate_magic_bytes(header: bytes, declared_type: str) -> bool:
+    """Verify that the file's magic bytes are consistent with the declared MIME type."""
+    if not header:
+        return False
+    for magic, expected_prefix in MAGIC_BYTES.items():
+        if header[: len(magic)] == magic:
+            return declared_type.startswith(expected_prefix)
+    return False
 
 
 @router.post("/upload")
@@ -48,6 +73,13 @@ async def upload_file(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"File exceeds maximum size of {MAX_FILE_SIZE // (1024 * 1024)} MB",
         )
+
+    if not _validate_magic_bytes(contents[:8], content_type):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="File content does not match its declared type",
+        )
+
     await file.seek(0)
 
     try:

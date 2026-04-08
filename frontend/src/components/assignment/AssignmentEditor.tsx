@@ -223,7 +223,7 @@ function AssignmentItem({
         const subs = await coursesService.getSubmissions(assignment.id)
         setSubmissions(subs)
       } catch {
-        // error
+        setSubmissions([])
       } finally {
         setLoadingSubs(false)
       }

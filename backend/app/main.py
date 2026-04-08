@@ -32,7 +32,10 @@ app = FastAPI(
     redoc_url=None if _IS_PRODUCTION else "/redoc",
 )
 
-cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"]
+cors_origins = settings.cors_origins_list or [
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
 
 # credentials=True is not allowed with origin "*"
 allow_credentials = "*" not in cors_origins
@@ -83,7 +86,7 @@ app.add_middleware(
         "Access-Control-Request-Method",
         "Access-Control-Request-Headers",
     ],
-    expose_headers=["*"],
+    expose_headers=["Content-Disposition", "X-Request-Id"],
     max_age=3600,
 )
 

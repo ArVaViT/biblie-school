@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
@@ -74,7 +75,23 @@ async def create_or_update_review(
         comment=data.comment,
     )
     db.add(review)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = (
+            db.query(CourseReview)
+            .filter(CourseReview.user_id == current_user.id, CourseReview.course_id == course_id)
+            .first()
+        )
+        if existing:
+            existing.rating = data.rating
+            existing.comment = data.comment
+            db.commit()
+            db.refresh(existing)
+            response.status_code = status.HTTP_200_OK
+            return existing
+        raise
     db.refresh(review)
     response.status_code = status.HTTP_201_CREATED
     return review

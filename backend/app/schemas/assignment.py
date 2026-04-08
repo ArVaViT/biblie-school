@@ -34,8 +34,8 @@ class AssignmentResponse(BaseModel):
 
 
 class SubmissionCreate(BaseModel):
-    content: str | None = None
-    file_url: str | None = None
+    content: str | None = Field(None, max_length=50_000)
+    file_url: str | None = Field(None, max_length=2048)
 
 
 class SubmissionResponse(BaseModel):
@@ -56,5 +56,5 @@ class SubmissionResponse(BaseModel):
 
 class GradeSubmissionRequest(BaseModel):
     grade: int = Field(..., ge=0)
-    feedback: str | None = None
+    feedback: str | None = Field(None, max_length=5000)
     status: Literal["graded", "pending"] = "graded"

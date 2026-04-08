@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.constants import GRADABLE_CHAPTER_TYPES
@@ -191,7 +192,14 @@ def enroll_user_in_course(db: Session, user_id: str, course_id: str, cohort_id: 
         progress=0,
     )
     db.add(enrollment)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = db.query(Enrollment).filter(Enrollment.user_id == user_id, Enrollment.course_id == course_id).first()
+        if existing:
+            return existing
+        raise
     db.refresh(enrollment)
     return enrollment
 

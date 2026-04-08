@@ -398,6 +398,7 @@ async def enroll_course(
                 Cohort.id == body.cohort_id,
                 Cohort.course_id == course_id,
             )
+            .with_for_update()
             .first()
         )
         if not cohort:
