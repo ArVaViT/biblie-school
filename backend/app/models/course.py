@@ -1,10 +1,24 @@
-from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import TypeDecorator
 
 from app.core.database import Base
+
+
+class TSVector(TypeDecorator):
+    """PostgreSQL TSVECTOR that falls back to TEXT on non-PG dialects (SQLite)."""
+
+    impl = Text
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import TSVECTOR
+
+            return dialect.type_descriptor(TSVECTOR())
+        return dialect.type_descriptor(Text())
 
 
 class Course(Base):
@@ -36,7 +50,7 @@ class Course(Base):
     assignment_weight = Column(Integer, nullable=False, default=50, server_default="50")
     participation_weight = Column(Integer, nullable=False, default=20, server_default="20")
 
-    search_vector = Column(TSVECTOR, nullable=True)
+    search_vector = Column(TSVector(), nullable=True)
 
     modules = relationship("Module", back_populates="course", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="course", cascade="all, delete-orphan")

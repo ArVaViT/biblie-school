@@ -28,11 +28,19 @@ async def list_announcements(
     db: Session = Depends(get_db),
 ) -> list[AnnouncementResponse]:
     query = db.query(Announcement)
-    if course_id is not None:
+    if current_user.role in (UserRole.ADMIN.value, "admin"):
+        if course_id is not None:
+            query = query.filter(Announcement.course_id == course_id)
+    elif course_id is not None:
         query = query.filter(Announcement.course_id == course_id)
     else:
-        enrolled_course_ids = db.query(Enrollment.course_id).filter(Enrollment.user_id == current_user.id).subquery()
-        query = query.filter(Announcement.course_id.in_(enrolled_course_ids) | Announcement.course_id.is_(None))
+        enrolled_ids = db.query(Enrollment.course_id).filter(Enrollment.user_id == current_user.id).scalar_subquery()
+        owned_ids = db.query(Course.id).filter(Course.created_by == current_user.id).scalar_subquery()
+        query = query.filter(
+            Announcement.course_id.in_(enrolled_ids)
+            | Announcement.course_id.in_(owned_ids)
+            | Announcement.course_id.is_(None)
+        )
     return query.order_by(Announcement.created_at.desc()).offset(skip).limit(limit).all()
 
 

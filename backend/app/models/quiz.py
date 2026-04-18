@@ -80,6 +80,8 @@ class QuizAttempt(Base):
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True))
 
+    answers = relationship("QuizAnswer", back_populates="attempt", cascade="all, delete-orphan")
+
 
 class QuizExtraAttempt(Base):
     __tablename__ = "quiz_extra_attempts"
@@ -107,3 +109,5 @@ class QuizAnswer(Base):
     text_answer = Column(Text)
     is_correct = Column(Boolean)
     points_earned = Column(Integer, nullable=False, default=0)
+
+    attempt = relationship("QuizAttempt", back_populates="answers")

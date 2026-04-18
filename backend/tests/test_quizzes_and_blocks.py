@@ -685,15 +685,12 @@ def test_submit_quiz_all_wrong(student_client: TestClient, db: Session):
     assert body["passed"] is False
 
 
-def test_submit_quiz_empty_answers(student_client: TestClient, db: Session):
+def test_submit_quiz_empty_answers_rejected(student_client: TestClient, db: Session):
     _seed_course_with_enrollment(db)
     quiz, _, _ = _seed_quiz_with_questions(db)
 
     resp = student_client.post(f"/api/v1/quizzes/{quiz.id}/submit", json={"answers": []})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["score"] == 0
-    assert body["max_score"] == 2
+    assert resp.status_code == 422
 
 
 def test_submit_quiz_partial_answers(student_client: TestClient, db: Session):
@@ -733,7 +730,11 @@ def test_submit_quiz_not_enrolled(client: TestClient, db: Session):
 
 
 def test_submit_quiz_not_found(student_client: TestClient, db: Session):
-    resp = student_client.post(f"/api/v1/quizzes/{uuid.uuid4()}/submit", json={"answers": []})
+    fake_qid = uuid.uuid4()
+    resp = student_client.post(
+        f"/api/v1/quizzes/{fake_qid}/submit",
+        json={"answers": [{"question_id": str(uuid.uuid4()), "selected_option_id": str(uuid.uuid4())}]},
+    )
     assert resp.status_code == 404
 
 
