@@ -5,6 +5,7 @@ Revises: 002_grading_weights
 Create Date: 2026-03-12
 
 """
+
 from collections.abc import Sequence
 from typing import Union
 

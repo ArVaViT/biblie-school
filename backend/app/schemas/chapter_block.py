@@ -2,29 +2,29 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 BLOCK_TYPES = Literal["text", "video", "quiz", "assignment", "file"]
 
 
 class BlockCreate(BaseModel):
     block_type: BLOCK_TYPES
-    order_index: int = 0
-    content: str | None = None
-    video_url: str | None = None
-    quiz_id: str | None = None
-    assignment_id: str | None = None
-    file_url: str | None = None
+    order_index: int = Field(0, ge=0)
+    content: str | None = Field(None, max_length=500_000)
+    video_url: str | None = Field(None, max_length=2048)
+    quiz_id: str | None = Field(None, max_length=36)
+    assignment_id: str | None = Field(None, max_length=36)
+    file_url: str | None = Field(None, max_length=2048)
 
 
 class BlockUpdate(BaseModel):
     block_type: BLOCK_TYPES | None = None
-    order_index: int | None = None
-    content: str | None = None
-    video_url: str | None = None
-    quiz_id: str | None = None
-    assignment_id: str | None = None
-    file_url: str | None = None
+    order_index: int | None = Field(None, ge=0)
+    content: str | None = Field(None, max_length=500_000)
+    video_url: str | None = Field(None, max_length=2048)
+    quiz_id: str | None = Field(None, max_length=36)
+    assignment_id: str | None = Field(None, max_length=36)
+    file_url: str | None = Field(None, max_length=2048)
 
 
 class BlockResponse(BaseModel):

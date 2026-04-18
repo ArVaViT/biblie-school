@@ -46,7 +46,8 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
           if (cancelled) return
           const map: Record<string, AssignmentSubmission | null> = {}
           data.forEach((a, i) => {
-            map[a.id] = subResults[i].length > 0 ? subResults[i][0] : null
+            const subs = subResults[i] ?? []
+            map[a.id] = subs.length > 0 ? (subs[0] ?? null) : null
           })
           setSubmissionsMap(map)
         }

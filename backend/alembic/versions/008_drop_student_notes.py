@@ -4,6 +4,7 @@ Revision ID: 008_drop_student_notes
 Revises: 007_add_certificate_unique_constraint
 Create Date: 2026-03-31
 """
+
 from collections.abc import Sequence
 from typing import Union
 

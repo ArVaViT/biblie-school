@@ -21,15 +21,9 @@ if config.config_file_name is not None:
 
 
 def _get_database_url() -> str:
-    url = (
-        os.getenv("DATABASE_URL")
-        or os.getenv("POSTGRES_URL")
-        or os.getenv("POSTGRES_PRISMA_URL")
-    )
+    url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("POSTGRES_PRISMA_URL")
     if not url:
-        raise RuntimeError(
-            "No database URL found. Set DATABASE_URL or POSTGRES_URL."
-        )
+        raise RuntimeError("No database URL found. Set DATABASE_URL or POSTGRES_URL.")
     url = url.strip()
     if "sslmode" not in url:
         separator = "&" if "?" in url else "?"

@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import (
     get_current_user,
@@ -39,7 +39,12 @@ async def get_chapter_quiz(
     db: Session = Depends(get_db),
 ):
     verify_chapter_access(db, chapter_id, current_user)
-    quiz = db.query(Quiz).filter(Quiz.chapter_id == chapter_id).first()
+    quiz = (
+        db.query(Quiz)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
+        .filter(Quiz.chapter_id == chapter_id)
+        .first()
+    )
     if not quiz:
         return None
 
@@ -65,7 +70,12 @@ async def get_quiz_detail(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    quiz = (
+        db.query(Quiz)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
+        .filter(Quiz.id == quiz_id)
+        .first()
+    )
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     _verify_quiz_owner(db, quiz, teacher.id)
@@ -115,7 +125,12 @@ async def create_quiz(
             db.add(option)
 
     db.commit()
-    db.refresh(quiz)
+    quiz = (
+        db.query(Quiz)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
+        .filter(Quiz.id == quiz.id)
+        .first()
+    )
     return quiz
 
 
@@ -138,7 +153,12 @@ async def update_quiz(
         quiz.max_attempts = 1
 
     db.commit()
-    db.refresh(quiz)
+    quiz = (
+        db.query(Quiz)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
+        .filter(Quiz.id == quiz.id)
+        .first()
+    )
     return quiz
 
 
@@ -163,7 +183,13 @@ async def submit_quiz(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).with_for_update().first()
+    quiz = (
+        db.query(Quiz)
+        .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
+        .filter(Quiz.id == quiz_id)
+        .with_for_update()
+        .first()
+    )
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
 
@@ -336,6 +362,7 @@ async def get_quiz_attempts(
     _verify_quiz_owner(db, quiz, teacher.id)
     return (
         db.query(QuizAttempt)
+        .options(selectinload(QuizAttempt.answers))
         .filter(QuizAttempt.quiz_id == quiz_id)
         .order_by(QuizAttempt.started_at.desc())
         .offset(skip)
@@ -350,8 +377,14 @@ async def get_my_quiz_attempts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    if not quiz:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    verify_chapter_access(db, quiz.chapter_id, current_user)
+
     return (
         db.query(QuizAttempt)
+        .options(selectinload(QuizAttempt.answers))
         .filter(
             QuizAttempt.quiz_id == quiz_id,
             QuizAttempt.user_id == current_user.id,
@@ -374,9 +407,9 @@ async def grant_extra_attempts(
     _verify_quiz_owner(db, quiz, teacher.id)
 
     course_id = resolve_chapter_course_id(db, quiz.chapter_id)
-    enrolled = db.query(Enrollment).filter(
-        Enrollment.user_id == data.user_id, Enrollment.course_id == course_id
-    ).first()
+    enrolled = (
+        db.query(Enrollment).filter(Enrollment.user_id == data.user_id, Enrollment.course_id == course_id).first()
+    )
     if not enrolled:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student is not enrolled in this course")
 

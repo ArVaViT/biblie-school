@@ -4,9 +4,11 @@ Revision ID: 010_add_soft_delete
 Revises: 009_add_performance_indexes
 Create Date: 2026-04-08
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "010_add_soft_delete"
@@ -20,9 +22,15 @@ def upgrade() -> None:
     op.add_column("modules", sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column("chapters", sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True))
 
-    op.create_index("ix_courses_deleted_at", "courses", ["deleted_at"], postgresql_where=sa.text("deleted_at IS NOT NULL"))
-    op.create_index("ix_modules_deleted_at", "modules", ["deleted_at"], postgresql_where=sa.text("deleted_at IS NOT NULL"))
-    op.create_index("ix_chapters_deleted_at", "chapters", ["deleted_at"], postgresql_where=sa.text("deleted_at IS NOT NULL"))
+    op.create_index(
+        "ix_courses_deleted_at", "courses", ["deleted_at"], postgresql_where=sa.text("deleted_at IS NOT NULL")
+    )
+    op.create_index(
+        "ix_modules_deleted_at", "modules", ["deleted_at"], postgresql_where=sa.text("deleted_at IS NOT NULL")
+    )
+    op.create_index(
+        "ix_chapters_deleted_at", "chapters", ["deleted_at"], postgresql_where=sa.text("deleted_at IS NOT NULL")
+    )
 
 
 def downgrade() -> None:

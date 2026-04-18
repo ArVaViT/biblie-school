@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import require_teacher
+from app.api.dependencies import get_current_user, require_teacher
 from app.core.database import get_db
 from app.models.announcement import Announcement
 from app.models.course import Course
@@ -24,11 +24,15 @@ async def list_announcements(
     course_id: str | None = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[AnnouncementResponse]:
     query = db.query(Announcement)
     if course_id is not None:
         query = query.filter(Announcement.course_id == course_id)
+    else:
+        enrolled_course_ids = db.query(Enrollment.course_id).filter(Enrollment.user_id == current_user.id).subquery()
+        query = query.filter(Announcement.course_id.in_(enrolled_course_ids) | Announcement.course_id.is_(None))
     return query.order_by(Announcement.created_at.desc()).offset(skip).limit(limit).all()
 
 

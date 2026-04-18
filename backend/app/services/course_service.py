@@ -50,18 +50,14 @@ def get_courses(db: Session, *, skip: int = 0, limit: int = 100, search: str | N
 
 def get_course(db: Session, course_id: str, include_deleted: bool = False) -> Course | None:
     query = (
-        db.query(Course)
-        .options(joinedload(Course.modules).joinedload(Module.chapters))
-        .filter(Course.id == course_id)
+        db.query(Course).options(joinedload(Course.modules).joinedload(Module.chapters)).filter(Course.id == course_id)
     )
     if not include_deleted:
         query = query.filter(Course.deleted_at.is_(None))
     return query.first()
 
 
-def get_teacher_courses(
-    db: Session, teacher_id: str, *, deleted_only: bool = False
-) -> list[Course]:
+def get_teacher_courses(db: Session, teacher_id: str, *, deleted_only: bool = False) -> list[Course]:
     query = (
         db.query(Course)
         .options(joinedload(Course.modules).joinedload(Module.chapters))
@@ -117,9 +113,7 @@ def restore_course(db: Session, course: Course) -> Course:
 def permanently_delete_course(db: Session, course: Course) -> None:
     from app.models.file import File
 
-    db.query(File).filter(File.course_id == course.id).update(
-        {File.course_id: None}, synchronize_session=False
-    )
+    db.query(File).filter(File.course_id == course.id).update({File.course_id: None}, synchronize_session=False)
     db.delete(course)
     db.commit()
 
@@ -258,7 +252,6 @@ def get_user_courses(db: Session, user_id: str) -> list[Enrollment]:
         .order_by(Enrollment.enrolled_at.desc())
         .all()
     )
-
 
 
 def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrollment | None:

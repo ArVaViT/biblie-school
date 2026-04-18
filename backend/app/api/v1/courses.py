@@ -492,5 +492,7 @@ async def permanently_remove_course(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Course must be soft-deleted before permanent deletion",
         )
-    log_action(db, teacher.id, "permanent_delete", "course", course_id, details={"title": course.title}, request=request)
+    log_action(
+        db, teacher.id, "permanent_delete", "course", course_id, details={"title": course.title}, request=request
+    )
     permanently_delete_course(db, course)

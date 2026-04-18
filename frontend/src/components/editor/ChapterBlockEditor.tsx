@@ -190,6 +190,7 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
     }
     const reordered = [...blocks]
     const [moved] = reordered.splice(dragIdx, 1)
+    if (!moved) return
     reordered.splice(targetIdx, 0, moved)
     const updated = reordered.map((b, i) => ({ ...b, order_index: i }))
     setBlocks(updated)

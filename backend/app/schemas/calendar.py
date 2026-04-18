@@ -2,21 +2,21 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 EventType = Literal["deadline", "live_session", "exam", "other"]
 
 
 class CourseEventCreate(BaseModel):
-    title: str
-    description: str | None = None
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=5000)
     event_type: EventType = "other"
     event_date: datetime
 
 
 class CourseEventUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
+    title: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=5000)
     event_type: EventType | None = None
     event_date: datetime | None = None
 

@@ -176,9 +176,9 @@ async def list_my_submissions(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
 
     course_id = resolve_chapter_course_id(db, assignment.chapter_id)
-    enrolled = db.query(Enrollment).filter(
-        Enrollment.user_id == current_user.id, Enrollment.course_id == course_id
-    ).first()
+    enrolled = (
+        db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
+    )
     if not enrolled and current_user.role not in ("teacher", "admin"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enrolled in this course")
 

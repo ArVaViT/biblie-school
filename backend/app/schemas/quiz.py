@@ -29,11 +29,11 @@ class QuizOptionStudentResponse(BaseModel):
 
 
 class QuizQuestionCreate(BaseModel):
-    question_text: str = Field(..., max_length=1000)
-    question_type: str = "multiple_choice"
-    order_index: int = 0
-    points: int = Field(1, ge=1)
-    options: list[QuizOptionCreate] = []
+    question_text: str = Field(..., min_length=1, max_length=1000)
+    question_type: Literal["multiple_choice", "true_false", "short_answer"] = "multiple_choice"
+    order_index: int = Field(0, ge=0)
+    points: int = Field(1, ge=1, le=100)
+    options: list[QuizOptionCreate] = Field(default=[], max_length=20)
 
 
 class QuizQuestionResponse(BaseModel):
@@ -65,12 +65,12 @@ class QuizCreate(BaseModel):
     quiz_type: Literal["quiz", "exam"] = "quiz"
     max_attempts: int | None = Field(None, ge=1, le=10)
     passing_score: int = Field(70, ge=0, le=100)
-    questions: list[QuizQuestionCreate] = []
+    questions: list[QuizQuestionCreate] = Field(default=[], max_length=100)
 
 
 class QuizUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=300)
-    description: str | None = None
+    description: str | None = Field(None, max_length=5000)
     quiz_type: Literal["quiz", "exam"] | None = None
     max_attempts: int | None = Field(None, ge=1, le=10)
     passing_score: int | None = Field(None, ge=0, le=100)
@@ -107,11 +107,11 @@ class QuizStudentResponse(BaseModel):
 class QuizSubmitAnswer(BaseModel):
     question_id: UUID
     selected_option_id: UUID | None = None
-    text_answer: str | None = None
+    text_answer: str | None = Field(None, max_length=10_000)
 
 
 class QuizSubmitRequest(BaseModel):
-    answers: list[QuizSubmitAnswer]
+    answers: list[QuizSubmitAnswer] = Field(..., min_length=1, max_length=200)
 
 
 class QuizAnswerResult(BaseModel):

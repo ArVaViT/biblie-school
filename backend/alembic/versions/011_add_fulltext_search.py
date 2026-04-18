@@ -4,9 +4,9 @@ Revision ID: 011_add_fulltext_search
 Revises: 010_add_soft_delete
 Create Date: 2026-04-08
 """
+
 from collections.abc import Sequence
 
-import sqlalchemy as sa
 from alembic import op
 
 revision: str = "011_add_fulltext_search"
@@ -28,9 +28,7 @@ def upgrade() -> None:
         """
     )
 
-    op.execute(
-        "CREATE INDEX ix_courses_search_vector ON courses USING GIN(search_vector)"
-    )
+    op.execute("CREATE INDEX ix_courses_search_vector ON courses USING GIN(search_vector)")
 
     op.execute(
         """

@@ -5,9 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class AnnouncementCreate(BaseModel):
-    title: str = Field(..., max_length=200)
-    content: str = Field(..., max_length=5000)
-    course_id: str | None = None
+    title: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=1, max_length=5000)
+    course_id: str | None = Field(None, max_length=36)
 
 
 class AnnouncementUpdate(BaseModel):

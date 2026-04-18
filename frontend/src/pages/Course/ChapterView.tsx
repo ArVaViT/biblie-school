@@ -34,7 +34,7 @@ function extractYouTubeId(url: string): string | null {
   ]
   for (const pattern of patterns) {
     const match = url.match(pattern)
-    if (match) return match[1]
+    if (match) return match[1] ?? null
   }
   return null
 }
@@ -51,8 +51,10 @@ const CHAPTER_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText
   mixed: { label: "Mixed", icon: Layers, color: "bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400" },
 }
 
+const FALLBACK_CHAPTER_CONFIG = { label: "Reading", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" }
+
 function ChapterTypeBadge({ type }: { type: string }) {
-  const config = CHAPTER_TYPE_CONFIG[type] ?? CHAPTER_TYPE_CONFIG.reading
+  const config = CHAPTER_TYPE_CONFIG[type] ?? FALLBACK_CHAPTER_CONFIG
   const Icon = config.icon
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${config.color}`}>
@@ -221,7 +223,7 @@ export default function ChapterView() {
       if (!ch.is_locked) return false
       if (idx === 0) return false
       const prev = sortedChapters[idx - 1]
-      if (!GRADABLE_TYPES.has(prev.chapter_type ?? "")) return false
+      if (!prev || !GRADABLE_TYPES.has(prev.chapter_type ?? "")) return false
       return !completedIds.has(prev.id)
     },
     [sortedChapters, completedIds],

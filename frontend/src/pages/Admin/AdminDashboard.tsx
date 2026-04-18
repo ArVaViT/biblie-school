@@ -151,6 +151,15 @@ export default function AdminDashboard() {
   }, [users])
   const totalAuditPages = Math.max(1, Math.ceil(auditTotal / auditPageSize))
 
+  const filteredIds = useMemo(() => new Set(filtered.map((u) => u.id)), [filtered])
+
+  useEffect(() => {
+    setSelectedIds(prev => {
+      const narrowed = new Set([...prev].filter(id => filteredIds.has(id)))
+      return narrowed.size === prev.size ? prev : narrowed
+    })
+  }, [filteredIds])
+
   if (user?.role !== "admin") {
     return <Navigate to="/" replace />
   }
@@ -169,15 +178,6 @@ export default function AdminDashboard() {
       setUpdatingId(null)
     }
   }
-
-  const filteredIds = useMemo(() => new Set(filtered.map((u) => u.id)), [filtered])
-
-  useEffect(() => {
-    setSelectedIds(prev => {
-      const narrowed = new Set([...prev].filter(id => filteredIds.has(id)))
-      return narrowed.size === prev.size ? prev : narrowed
-    })
-  }, [filteredIds])
 
   const toggleSelectAll = () => {
     const allFilteredSelected = filtered.length > 0 && filtered.every(u => selectedIds.has(u.id))
@@ -407,7 +407,7 @@ export default function AdminDashboard() {
                       <img src={u.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
                     ) : (
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">
-                        {(u.full_name?.[0] ?? u.email[0]).toUpperCase()}
+                        {(u.full_name?.[0] ?? u.email[0] ?? "?").toUpperCase()}
                       </div>
                     )}
                     <div className="min-w-0">
@@ -610,7 +610,7 @@ export default function AdminDashboard() {
                             />
                           ) : (
                             <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
-                              {(u.full_name?.[0] ?? u.email[0]).toUpperCase()}
+                              {(u.full_name?.[0] ?? u.email[0] ?? "?").toUpperCase()}
                             </div>
                           )}
                           <span className="font-medium">{u.full_name || "—"}</span>

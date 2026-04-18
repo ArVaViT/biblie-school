@@ -53,9 +53,7 @@ async def get_grading_config(
     is_owner = str(course.created_by) == str(current_user.id)
     is_admin = current_user.role == "admin"
     is_enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
-        .first()
+        db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
         is not None
     )
     if not (is_owner or is_admin or is_enrolled):
@@ -103,7 +101,9 @@ async def get_calculated_grade(
 ):
     course = verify_course_owner(db, course_id, teacher.id)
 
-    enrolled = db.query(Enrollment).filter(Enrollment.user_id == str(student_id), Enrollment.course_id == course_id).first()
+    enrolled = (
+        db.query(Enrollment).filter(Enrollment.user_id == str(student_id), Enrollment.course_id == course_id).first()
+    )
     if not enrolled:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -183,34 +183,38 @@ async def export_grades_csv(
     buf = io.StringIO()
     buf.write("\ufeff")
     writer = csv.writer(buf)
-    writer.writerow([
-        "Student Name",
-        "Email",
-        "Quiz Avg (%)",
-        "Quiz Weighted",
-        "Assignment Avg (%)",
-        "Assignment Weighted",
-        "Participation (%)",
-        "Participation Weighted",
-        "Final Score",
-        "Letter Grade",
-        "Manual Grade",
-    ])
+    writer.writerow(
+        [
+            "Student Name",
+            "Email",
+            "Quiz Avg (%)",
+            "Quiz Weighted",
+            "Assignment Avg (%)",
+            "Assignment Weighted",
+            "Participation (%)",
+            "Participation Weighted",
+            "Final Score",
+            "Letter Grade",
+            "Manual Grade",
+        ]
+    )
     for r in results:
         b = r["breakdown"]
-        writer.writerow([
-            r["student_name"] or "",
-            r["student_email"],
-            b.quiz_avg,
-            b.quiz_weighted,
-            b.assignment_avg,
-            b.assignment_weighted,
-            b.participation_pct,
-            b.participation_weighted,
-            b.final_score,
-            b.letter_grade,
-            r["manual_grade"] or "",
-        ])
+        writer.writerow(
+            [
+                r["student_name"] or "",
+                r["student_email"],
+                b.quiz_avg,
+                b.quiz_weighted,
+                b.assignment_avg,
+                b.assignment_weighted,
+                b.participation_pct,
+                b.participation_weighted,
+                b.final_score,
+                b.letter_grade,
+                r["manual_grade"] or "",
+            ]
+        )
 
     buf.seek(0)
     safe_title = "".join(c for c in course.title if c.isalnum() or c in " -_")[:50].strip()
@@ -223,10 +227,7 @@ async def export_grades_csv(
         iter([buf.getvalue()]),
         media_type="text/csv; charset=utf-8",
         headers={
-            "Content-Disposition": (
-                f'attachment; filename="{ascii_filename}"; '
-                f"filename*=UTF-8''{utf8_filename}"
-            ),
+            "Content-Disposition": (f"attachment; filename=\"{ascii_filename}\"; filename*=UTF-8''{utf8_filename}"),
         },
     )
 
@@ -324,9 +325,7 @@ async def upsert_student_grade(
 ) -> GradeResponse:
     verify_course_owner(db, course_id, teacher.id)
 
-    enrolled = db.query(Enrollment).filter(
-        Enrollment.user_id == student_id, Enrollment.course_id == course_id
-    ).first()
+    enrolled = db.query(Enrollment).filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id).first()
     if not enrolled:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student is not enrolled in this course")
 

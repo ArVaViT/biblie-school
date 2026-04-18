@@ -6,16 +6,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class AssignmentCreate(BaseModel):
-    chapter_id: str
+    chapter_id: str = Field(..., max_length=36)
     title: str = Field(..., min_length=1, max_length=300)
-    description: str | None = None
+    description: str | None = Field(None, max_length=50_000)
     max_score: int = Field(100, ge=1, le=10000)
     due_date: datetime | None = None
 
 
 class AssignmentUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=300)
-    description: str | None = None
+    description: str | None = Field(None, max_length=50_000)
     max_score: int | None = Field(None, ge=1, le=10000)
     due_date: datetime | None = None
 

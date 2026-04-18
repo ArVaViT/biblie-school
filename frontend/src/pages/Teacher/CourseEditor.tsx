@@ -320,6 +320,45 @@ export default function CourseEditor() {
     } catch { toast({ title: "Failed", variant: "destructive" }) }
   }
 
+  const modules = [...(course?.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
+  const [reorderingModules, setReorderingModules] = useState(false)
+
+  const handleModuleDragEnd = useCallback(async (result: DropResult) => {
+    if (!result.destination || !courseId || reorderingModules) return
+    const from = result.source.index
+    const to = result.destination.index
+    if (from === to) return
+
+    const reordered = Array.from(modules)
+    const [moved] = reordered.splice(from, 1)
+    if (!moved) return
+    reordered.splice(to, 0, moved)
+
+    setCourse(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        modules: reordered.map((m, i) => ({ ...m, order_index: i })),
+      }
+    })
+
+    setReorderingModules(true)
+    try {
+      await Promise.all(
+        reordered.map((m, i) =>
+          m.order_index !== i
+            ? coursesService.updateModule(courseId, m.id, { order_index: i })
+            : null
+        ).filter(Boolean)
+      )
+    } catch {
+      toast({ title: "Failed to save module order", variant: "destructive" })
+      load()
+    } finally {
+      setReorderingModules(false)
+    }
+  }, [modules, courseId, load, reorderingModules])
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -350,43 +389,6 @@ export default function CourseEditor() {
       <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/teacher")}>Back to courses</Button>
     </div>
   )
-  const modules = [...(course.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
-  const [reorderingModules, setReorderingModules] = useState(false)
-
-  const handleModuleDragEnd = useCallback(async (result: DropResult) => {
-    if (!result.destination || !courseId || reorderingModules) return
-    const from = result.source.index
-    const to = result.destination.index
-    if (from === to) return
-
-    const reordered = Array.from(modules)
-    const [moved] = reordered.splice(from, 1)
-    reordered.splice(to, 0, moved)
-
-    setCourse(prev => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        modules: reordered.map((m, i) => ({ ...m, order_index: i })),
-      }
-    })
-
-    setReorderingModules(true)
-    try {
-      await Promise.all(
-        reordered.map((m, i) =>
-          m.order_index !== i
-            ? coursesService.updateModule(courseId, m.id, { order_index: i })
-            : null
-        ).filter(Boolean)
-      )
-    } catch {
-      toast({ title: "Failed to save module order", variant: "destructive" })
-      load()
-    } finally {
-      setReorderingModules(false)
-    }
-  }, [modules, courseId, load, reorderingModules])
   const pub = course.status === "published"
 
   return (

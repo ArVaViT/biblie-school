@@ -42,8 +42,10 @@ const EVENT_COLORS: Record<string, { dot: string; bg: string; text: string; bord
   },
 }
 
+const FALLBACK_EVENT_COLOR = { dot: "bg-gray-400", bg: "bg-gray-50 dark:bg-gray-900/30", text: "text-gray-700 dark:text-gray-400", border: "border-gray-200 dark:border-gray-700" }
+
 function getEventColor(type: string) {
-  return EVENT_COLORS[type] ?? EVENT_COLORS.other
+  return EVENT_COLORS[type] ?? FALLBACK_EVENT_COLOR
 }
 
 const MONTH_NAMES = [

@@ -325,11 +325,7 @@ async def bulk_update_user_roles(
     admin_uuid = admin.id if isinstance(admin.id, _uuid.UUID) else _uuid.UUID(str(admin.id))
     safe_uuids = [u for u in valid_uuids if u != admin_uuid]
 
-    updated = (
-        db.query(User)
-        .filter(User.id.in_(safe_uuids))
-        .update({User.role: body.role}, synchronize_session="fetch")
-    )
+    updated = db.query(User).filter(User.id.in_(safe_uuids)).update({User.role: body.role}, synchronize_session="fetch")
     db.commit()
 
     log_action(

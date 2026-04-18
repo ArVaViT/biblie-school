@@ -20,17 +20,15 @@ export default class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    if (import.meta.env.DEV) {
-      console.error("ErrorBoundary caught:", error, info.componentStack)
-    }
+  override componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error("ErrorBoundary caught:", error, info.componentStack)
   }
 
   private handleReset = () => {
     this.setState({ hasError: false, error: null })
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback
       return (

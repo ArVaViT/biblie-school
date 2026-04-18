@@ -135,9 +135,11 @@ export default function CourseDetail() {
     if (enrollableCohorts.length === 0) {
       doEnroll(undefined)
     } else if (enrollableCohorts.length === 1) {
-      doEnroll(enrollableCohorts[0].id)
+      const first = enrollableCohorts[0]
+      if (first) doEnroll(first.id)
     } else {
-      setSelectedCohortId(enrollableCohorts[0].id)
+      const first = enrollableCohorts[0]
+      if (first) setSelectedCohortId(first.id)
       setCohortSelectModal(true)
     }
   }
@@ -508,6 +510,7 @@ export default function CourseDetail() {
               const isLocked = (() => {
                 if (idx === 0) return false
                 const prevModule = sortedModules[idx - 1]
+                if (!prevModule) return false
                 const prevChapters = (prevModule.chapters ?? []).filter((ch) => GRADABLE_TYPES.has(ch.chapter_type ?? ""))
                 if (prevChapters.length === 0) return false
                 return !prevChapters.every((ch) => completedChapterIds.has(ch.id))

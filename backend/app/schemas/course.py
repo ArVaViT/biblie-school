@@ -31,12 +31,15 @@ class ChapterUpdate(BaseModel):
     is_locked: bool | None = None
 
 
+CHAPTER_TYPES = Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"]
+
+
 class ChapterResponse(ChapterBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     module_id: str
-    chapter_type: str = "reading"
+    chapter_type: CHAPTER_TYPES = "reading"
     requires_completion: bool = False
     is_locked: bool = False
 

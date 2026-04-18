@@ -25,6 +25,15 @@ async def get_my_chapter_progress(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    enrolled = (
+        db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
+    )
+    if not enrolled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enrolled in this course",
+        )
+
     completed = (
         db.query(ChapterProgress.chapter_id)
         .join(Chapter, Chapter.id == ChapterProgress.chapter_id)

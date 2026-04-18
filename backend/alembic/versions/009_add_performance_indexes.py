@@ -4,6 +4,7 @@ Revision ID: 009_add_performance_indexes
 Revises: 008_drop_student_notes
 Create Date: 2026-04-04
 """
+
 from collections.abc import Sequence
 
 from alembic import op

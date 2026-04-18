@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-03-12
 
 """
+
 from collections.abc import Sequence
 from typing import Union
 
@@ -179,7 +180,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["cohort_id"], ["cohorts.id"], ondelete="SET NULL"),
     )
     op.create_index("ix_student_grades_student_course", "student_grades", ["student_id", "course_id"])
-    op.create_index("ix_student_grades_student_course_cohort", "student_grades", ["student_id", "course_id", "cohort_id"])
+    op.create_index(
+        "ix_student_grades_student_course_cohort", "student_grades", ["student_id", "course_id", "cohort_id"]
+    )
 
     # ── quizzes ───────────────────────────────────────────────────────
     op.create_table(

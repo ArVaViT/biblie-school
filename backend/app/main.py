@@ -104,6 +104,15 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     )
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled error on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start = time.time()

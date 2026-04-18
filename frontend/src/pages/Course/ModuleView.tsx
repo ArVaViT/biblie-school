@@ -37,8 +37,10 @@ const CHAPTER_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText
 
 const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
 
+const FALLBACK_CHAPTER_CONFIG = { label: "Content", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" }
+
 function ChapterTypeBadge({ type }: { type: string }) {
-  const config = CHAPTER_TYPE_CONFIG[type] ?? CHAPTER_TYPE_CONFIG.content
+  const config = CHAPTER_TYPE_CONFIG[type] ?? FALLBACK_CHAPTER_CONFIG
   const Icon = config.icon
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${config.color}`}>

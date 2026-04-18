@@ -181,6 +181,7 @@ export default function ModuleEditor() {
     const sorted = [...(mod?.chapters ?? [])].sort((a, b) => a.order_index - b.order_index)
     const reordered = Array.from(sorted)
     const [moved] = reordered.splice(from, 1)
+    if (!moved) return
     reordered.splice(to, 0, moved)
 
     setMod(prev => {

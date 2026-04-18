@@ -85,7 +85,6 @@ def _get_engine() -> Engine:
     return _engine
 
 
-
 def get_db() -> Generator[Session, None, None]:
     """FastAPI dependency that yields a database session.
 

@@ -118,7 +118,11 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
       const next = [...prev]
       const targetIdx = direction === "up" ? idx - 1 : idx + 1
       if (targetIdx < 0 || targetIdx >= next.length) return prev
-      ;[next[idx], next[targetIdx]] = [next[targetIdx], next[idx]]
+      const a = next[idx]
+      const b = next[targetIdx]
+      if (!a || !b) return prev
+      next[idx] = b
+      next[targetIdx] = a
       return next.map((q, i) => ({ ...q, order_index: i }))
     })
   }

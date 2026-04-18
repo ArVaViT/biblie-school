@@ -4,6 +4,7 @@ Revision ID: 006_add_quiz_extra_attempts
 Revises: 005_add_audit_notifications
 Create Date: 2026-03-13
 """
+
 from collections.abc import Sequence
 from typing import Union
 

@@ -91,6 +91,12 @@ export default function RichTextEditor({
   const [showCalloutMenu, setShowCalloutMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
   const calloutMenuRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -132,15 +138,18 @@ export default function RichTextEditor({
       },
       handleDrop: (view, event, _slice, moved) => {
         if (moved || !event.dataTransfer?.files?.length) return false;
-        const file = event.dataTransfer.files[0];
-        if (!file.type.startsWith("image/")) return false;
+        const file = event.dataTransfer.files[0] as File | undefined;
+        if (!file || !file.type.startsWith("image/")) return false;
         event.preventDefault();
         setUploading(true);
         storageService
           .uploadContentImage(file)
           .then((url) => {
+            if (!mountedRef.current) return;
             const { schema } = view.state;
-            const node = schema.nodes.image.create({ src: url });
+            const imageNode = schema.nodes.image;
+            if (!imageNode) return;
+            const node = imageNode.create({ src: url });
             const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
             if (pos) {
               const tr = view.state.tr.insert(pos.pos, node);
@@ -148,9 +157,9 @@ export default function RichTextEditor({
             }
           })
           .catch(() => {
-            toast({ title: "Image upload failed", variant: "destructive" });
+            if (mountedRef.current) toast({ title: "Image upload failed", variant: "destructive" });
           })
-          .finally(() => setUploading(false));
+          .finally(() => { if (mountedRef.current) setUploading(false); });
         return true;
       },
       handlePaste: (view, event) => {
@@ -165,15 +174,18 @@ export default function RichTextEditor({
             storageService
               .uploadContentImage(file)
               .then((url) => {
+                if (!mountedRef.current) return;
                 const { schema } = view.state;
-                const node = schema.nodes.image.create({ src: url });
+                const imageNode = schema.nodes.image;
+                if (!imageNode) return;
+                const node = imageNode.create({ src: url });
                 const tr = view.state.tr.replaceSelectionWith(node);
                 view.dispatch(tr);
               })
               .catch(() => {
-                toast({ title: "Image upload failed", variant: "destructive" });
+                if (mountedRef.current) toast({ title: "Image upload failed", variant: "destructive" });
               })
-              .finally(() => setUploading(false));
+              .finally(() => { if (mountedRef.current) setUploading(false); });
             return true;
           }
         }

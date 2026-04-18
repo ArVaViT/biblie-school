@@ -4,6 +4,7 @@ Revision ID: 005_add_audit_notifications
 Revises: 004_add_exam_support
 Create Date: 2026-03-13
 """
+
 from collections.abc import Sequence
 from typing import Union
 
@@ -64,9 +65,7 @@ def upgrade() -> None:
         ),
     )
     op.create_index("ix_notifications_user_id", "notifications", ["user_id"])
-    op.create_index(
-        "ix_notifications_user_id_is_read", "notifications", ["user_id", "is_read"]
-    )
+    op.create_index("ix_notifications_user_id_is_read", "notifications", ["user_id", "is_read"])
 
 
 def downgrade() -> None:
