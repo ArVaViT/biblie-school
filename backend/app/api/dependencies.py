@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -16,7 +18,9 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
-    payload = decode_access_token(credentials.credentials)
+    # decode_access_token may fall back to a blocking HTTP call against
+    # Supabase; run on the threadpool so the event loop stays responsive.
+    payload = await asyncio.to_thread(decode_access_token, credentials.credentials)
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,7 +50,7 @@ async def get_optional_user(
 ) -> User | None:
     if credentials is None:
         return None
-    payload = decode_access_token(credentials.credentials)
+    payload = await asyncio.to_thread(decode_access_token, credentials.credentials)
     if payload is None:
         return None
     user_id: str | None = payload.get("sub")

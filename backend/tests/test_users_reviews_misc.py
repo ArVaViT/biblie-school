@@ -332,10 +332,14 @@ class TestListReviews:
         assert len(data) == 1
         assert data[0]["rating"] == 5
 
-    def test_nonexistent_course_returns_empty_list(self, client: TestClient):
+    def test_nonexistent_course_returns_404(self, client: TestClient):
         resp = client.get("/api/v1/reviews/course/no-such-course")
-        assert resp.status_code == 200
-        assert resp.json() == []
+        assert resp.status_code == 404
+
+    def test_unpublished_course_reviews_hidden(self, client: TestClient, db: Session):
+        _seed_course(db, course_id="course-draft", status="draft")
+        resp = client.get("/api/v1/reviews/course/course-draft")
+        assert resp.status_code == 404
 
 
 # ===================================================================

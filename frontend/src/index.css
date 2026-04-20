@@ -77,6 +77,35 @@
   }
 }
 
+/* ===== Prose Typography =====
+   Tailwind's Preflight resets lists and headings. We don't ship
+   @tailwindcss/typography, so re-establish the bits we actually use
+   in rendered chapter content. */
+.prose h1 { @apply text-2xl font-serif font-bold mt-6 mb-3; }
+.prose h2 { @apply text-xl font-serif font-bold mt-6 mb-3; }
+.prose h3 { @apply text-lg font-semibold mt-5 mb-2; }
+.prose h4 { @apply text-base font-semibold mt-4 mb-2; }
+.prose p { @apply my-3 leading-relaxed; }
+.prose ul { @apply my-3 pl-6; list-style: disc outside; }
+.prose ol { @apply my-3 pl-6; list-style: decimal outside; }
+.prose li { @apply my-1; }
+.prose li > p { @apply my-1; }
+.prose li::marker { @apply text-muted-foreground; }
+.prose strong { @apply font-semibold text-foreground; }
+.prose em { @apply italic; }
+.prose blockquote {
+  @apply my-3 pl-4 italic text-muted-foreground border-l-2 border-border;
+}
+.prose a {
+  @apply text-accent underline underline-offset-2 hover:opacity-80;
+}
+.prose hr { @apply my-6 border-border; }
+.prose code {
+  @apply px-1 py-0.5 rounded bg-muted text-sm font-mono;
+}
+.prose > *:first-child { @apply mt-0; }
+.prose > *:last-child { @apply mb-0; }
+
 /* ===== Callout Blocks ===== */
 .callout {
   @apply relative rounded-lg border-l-4 px-5 py-4 my-4;
@@ -97,25 +126,25 @@
   @apply border-l-red-500 bg-red-50 dark:bg-red-950/30;
 }
 
-/* Icons via ::before */
+/* Small icon accent before first content element; the inner <h3>
+   already labels the section in the content's native language. */
 .callout::before {
-  @apply block text-sm font-semibold mb-2;
+  @apply inline-block text-lg leading-none mr-2 align-middle;
 }
-.callout-info::before {
-  content: "ℹ️ Information";
-  @apply text-blue-700 dark:text-blue-400;
+.callout-info::before { content: "ℹ️"; }
+.callout-verse::before { content: "📖"; }
+.callout-takeaway::before { content: "💡"; }
+.callout-warning::before { content: "⚠️"; }
+
+/* Make the inner heading render on the same line as the icon so the
+   callout reads as "icon + section title" instead of two stacked labels. */
+.callout > h3:first-child,
+.callout > h4:first-child {
+  @apply inline; font-weight: 600;
 }
-.callout-verse::before {
-  content: "📖 Bible Verse";
-  @apply text-amber-700 dark:text-amber-400;
-}
-.callout-takeaway::before {
-  content: "💡 Key Takeaway";
-  @apply text-emerald-700 dark:text-emerald-400;
-}
-.callout-warning::before {
-  content: "⚠️ Warning";
-  @apply text-red-700 dark:text-red-400;
+.callout > h3:first-child + *,
+.callout > h4:first-child + * {
+  @apply mt-3;
 }
 
 /* ===== YouTube Embed ===== */

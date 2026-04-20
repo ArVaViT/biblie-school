@@ -1,4 +1,5 @@
 import logging
+import time
 
 import httpx
 import jwt
@@ -7,6 +8,30 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Small in-process cache so a single user refreshing a page does not
+# fan out into N external calls when their token is Supabase-signed.
+# Keyed by token; stores (expires_at_monotonic, payload_dict).
+_supabase_cache: dict[str, tuple[float, dict]] = {}
+_SUPABASE_CACHE_TTL_SECONDS = 60.0
+_SUPABASE_CACHE_MAX_ENTRIES = 512
+
+
+def _cache_get(token: str) -> dict | None:
+    entry = _supabase_cache.get(token)
+    if entry is None:
+        return None
+    expires_at, payload = entry
+    if time.monotonic() > expires_at:
+        _supabase_cache.pop(token, None)
+        return None
+    return payload
+
+
+def _cache_put(token: str, payload: dict) -> None:
+    if len(_supabase_cache) >= _SUPABASE_CACHE_MAX_ENTRIES:
+        _supabase_cache.pop(next(iter(_supabase_cache)), None)
+    _supabase_cache[token] = (time.monotonic() + _SUPABASE_CACHE_TTL_SECONDS, payload)
+
 
 def _validate_via_supabase(token: str) -> dict | None:
     """Fallback: validate a Supabase-issued token by calling GET /auth/v1/user.
@@ -14,7 +39,13 @@ def _validate_via_supabase(token: str) -> dict | None:
     Used when the local JWT secret does not match the Supabase project's
     signing secret (e.g. after key rotation or in environments where the
     secret is not configured). Returns a payload-shaped dict on success.
+
+    The call is synchronous but FastAPI dispatches non-async dependencies on
+    a threadpool, so this will not block the event loop.
     """
+    cached = _cache_get(token)
+    if cached is not None:
+        return cached
     supabase_url = getattr(settings, "SUPABASE_URL", None)
     if not supabase_url:
         return None
@@ -33,12 +64,14 @@ def _validate_via_supabase(token: str) -> dict | None:
     if resp.status_code != 200:
         return None
     data = resp.json()
-    return {
+    payload = {
         "sub": data.get("id"),
         "email": data.get("email"),
         "aud": data.get("aud", "authenticated"),
         "role": data.get("role", "authenticated"),
     }
+    _cache_put(token, payload)
+    return payload
 
 
 def decode_access_token(token: str) -> dict | None:

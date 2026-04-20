@@ -36,7 +36,7 @@ function MyCoursesSection() {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [user?.id])
 
   const filtered = enrollments.filter((e) => e.course?.created_by !== user?.id)
 

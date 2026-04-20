@@ -93,9 +93,18 @@ export default function Header() {
               <>
                 <Link to="/" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Courses</Link>
                 <Link to="/calendar" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Calendar</Link>
+                <Link to="/certificates" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Certificates</Link>
                 {isTeacher && <Link to="/teacher" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Manage Courses</Link>}
                 {user.role === "admin" && <Link to="/admin" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Admin Panel</Link>}
                 <div className="px-3 py-1"><NotificationBell /></div>
+                <button
+                  type="button"
+                  onClick={() => { toggleTheme(); setMobileOpen(false) }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted text-left"
+                >
+                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                </button>
                 <Link to="/profile" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Profile & Settings</Link>
               </>
             ) : (

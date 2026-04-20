@@ -33,8 +33,8 @@ export default function ForgotPassword() {
       await resetPassword(trimmed)
       setSent(true)
     } catch (err: unknown) {
-      const supaErr = err as { message?: string }
-      setError(supaErr.message || "Failed to send reset email.")
+      if (import.meta.env.DEV) console.error("resetPassword failed", err)
+      setError("Failed to send reset email. Please try again in a moment.")
     } finally {
       setLoading(false)
     }

@@ -238,7 +238,12 @@ async def submit_quiz(
     total_score = 0
 
     questions_map: dict[UUID, QuizQuestion] = {q.id: q for q in quiz.questions}
-    max_score = sum(q.points for q in quiz.questions)
+    # Auto-graded questions only contribute to the on-submit score.
+    # short_answer / essay questions are graded by the teacher afterwards
+    # and tracked via the assignment flow, so exclude them from max_score
+    # here to keep the pass/fail threshold honest.
+    auto_graded_types = ("multiple_choice", "true_false")
+    max_score = sum(q.points for q in quiz.questions if q.question_type in auto_graded_types)
 
     all_options = db.query(QuizOption).join(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).all()
     options_by_id = {str(o.id): o for o in all_options}
@@ -255,7 +260,10 @@ async def submit_quiz(
     for ans in data.answers:
         question = questions_map.get(ans.question_id)
         if not question:
-            continue
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown question_id: {ans.question_id}",
+            )
 
         answered_question_ids.add(question.id)
         is_correct = False
@@ -326,12 +334,16 @@ async def submit_quiz(
     if not cp:
         cp = ChapterProgress(user_id=current_user.id, chapter_id=str(quiz.chapter_id))
         db.add(cp)
-    if not cp.completed:
+    # Only mark chapter complete when the attempt actually passes so a
+    # failed exam does not inflate course progress. The student can
+    # retake the quiz and will trigger completion on a passing attempt.
+    if attempt.passed and not cp.completed:
         cp.completed = True
         cp.completed_at = datetime.now(UTC)
         cp.completion_type = "quiz"
 
-    sync_enrollment_progress(db, current_user.id, course_id)
+    if attempt.passed:
+        sync_enrollment_progress(db, current_user.id, course_id)
     db.commit()
     db.refresh(attempt)
 

@@ -260,7 +260,7 @@ export default function ModuleView() {
                             <Circle className="h-5 w-5 text-muted-foreground/40 shrink-0" />
                           )
                         ) : null}
-                        <span className={isCompleted ? "line-through text-muted-foreground" : ""}>
+                        <span className={isCompleted ? "text-muted-foreground" : ""}>
                           {chapter.title}
                         </span>
                         {chapter.chapter_type && (
