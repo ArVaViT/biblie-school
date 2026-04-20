@@ -1,0 +1,14 @@
+target-version = "py312"
+line-length = 120
+
+[lint]
+ignore = [
+  "E402",  # late imports are needed to add backend to sys.path first
+  "RUF001",  # ambiguous Cyrillic characters — the course content is in Russian
+  "RUF002",  # ambiguous Cyrillic characters in docstrings
+  "RUF003",  # ambiguous Cyrillic characters in comments
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"
