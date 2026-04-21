@@ -181,25 +181,20 @@ jobs:
 
       - name: Apply Alembic migrations (upgrade head)
         run: |
-          set -o pipefail
-          # Run one revision at a time so a failure surfaces which migration
-          # broke; the default `alembic upgrade head` rolls up all revisions
-          # and only reports the last statement's error.
-          alembic history --verbose 2>&1 | head -40 || true
-          echo "--- running upgrade one step at a time ---"
-          while :; do
-            current=$(alembic current 2>/dev/null | tail -1 | awk '{print $1}' || true)
-            echo "Current head: ${current:-<none>}"
-            if ! alembic upgrade +1 2>&1; then
-              echo "=== upgrade failed at ${current:-<none>} -> +1 ==="
-              exit 1
-            fi
-            new=$(alembic current 2>/dev/null | tail -1 | awk '{print $1}' || true)
-            if [ "$new" = "$current" ]; then
-              echo "Reached head at ${new}"
-              break
-            fi
-          done
+          set +e
+          alembic upgrade head > /tmp/alembic.log 2>&1
+          rc=$?
+          cat /tmp/alembic.log || true
+          if [ $rc -ne 0 ]; then
+            # Emit the last 30 lines of the failure as an annotation so it's
+            # visible via the public check-runs API even without log access.
+            echo "::group::alembic failure tail"
+            tail -n 30 /tmp/alembic.log || true
+            echo "::endgroup::"
+            TAIL=$(tail -n 30 /tmp/alembic.log | tr '\n' '%' | sed 's/%/%0A/g' | head -c 4000)
+            echo "::error title=Alembic upgrade head failed::${TAIL}"
+            exit $rc
+          fi
 
       - name: Round-trip Alembic migrations (downgrade → upgrade)
         run: |
