@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import String, engine_from_config, pool
+from sqlalchemy import String, engine_from_config, pool, text
 
 from alembic import context
 
@@ -18,6 +18,29 @@ from alembic import context
 # alembic_version.version_num (e.g. "007_add_certificate_unique_constraint"
 # is 36 chars). Widen the column so alembic can record every revision.
 _VERSION_COLUMN_TYPE = String(length=255)
+
+
+def _ensure_wide_version_table(connection) -> None:
+    """Guarantee alembic_version.version_num can hold long revision ids.
+
+    ``version_table_column_type`` on ``context.configure`` is only honored
+    when Alembic creates the table itself; an existing ``alembic_version``
+    with VARCHAR(32) is left untouched. Pre-create / widen the column here
+    so we work on fresh CI DBs and already-migrated production DBs alike.
+    Postgres-only; other dialects keep Alembic's default behavior.
+    """
+    if connection.dialect.name != "postgresql":
+        return
+    connection.execute(
+        text(
+            "CREATE TABLE IF NOT EXISTS alembic_version ("
+            "version_num VARCHAR(255) NOT NULL, "
+            "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+        )
+    )
+    connection.execute(
+        text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)")
+    )
 
 config = context.config
 
@@ -72,6 +95,8 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        _ensure_wide_version_table(connection)
+        connection.commit()
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
