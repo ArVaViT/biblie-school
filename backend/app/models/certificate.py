@@ -26,3 +26,4 @@ class Certificate(Base):
     teacher_approved_by = Column(UUID(as_uuid=True), nullable=True)
     admin_approved_at = Column(DateTime(timezone=True), nullable=True)
     admin_approved_by = Column(UUID(as_uuid=True), nullable=True)
+    cohort_id = Column(UUID(as_uuid=True), nullable=True)

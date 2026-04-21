@@ -18,7 +18,7 @@ class Notification(Base):
     link = Column(String, nullable=True)
     is_read = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    meta = Column("metadata", JSON, nullable=True)
+    meta = Column(JSON, nullable=True)
 
     __table_args__ = (
         Index("ix_notifications_user_id", "user_id"),

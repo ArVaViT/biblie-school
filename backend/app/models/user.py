@@ -24,6 +24,7 @@ class User(Base):
     role = Column(String, default=UserRole.STUDENT.value, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    avatar_url = Column(String, nullable=True)
 
     enrollments = relationship("Enrollment", back_populates="user", cascade="all, delete-orphan")
 
