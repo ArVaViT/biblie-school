@@ -12,4 +12,4 @@ alembic==1.18.4
 supabase>=2.0.0,<3.0.0
 httpx==0.28.1
 bleach==6.1.0
-sentry-sdk[fastapi,sqlalchemy]==2.44.0
+sentry-sdk[fastapi,sqlalchemy]==2.58.0
