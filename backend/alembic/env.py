@@ -10,9 +10,14 @@ from __future__ import annotations
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import String, engine_from_config, pool
 
 from alembic import context
+
+# Revision ids in this project exceed Alembic's default VARCHAR(32) for
+# alembic_version.version_num (e.g. "007_add_certificate_unique_constraint"
+# is 36 chars). Widen the column so alembic can record every revision.
+_VERSION_COLUMN_TYPE = String(length=255)
 
 config = context.config
 
@@ -49,6 +54,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        version_table_column_type=_VERSION_COLUMN_TYPE,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -69,6 +75,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            version_table_column_type=_VERSION_COLUMN_TYPE,
         )
         with context.begin_transaction():
             context.run_migrations()
