@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, memo } from "react"
+import { useEffect, useState, useCallback, useMemo, memo, type ReactNode } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { sanitizeHtml as sanitize } from "@/lib/sanitize"
 import PageSpinner from "@/components/ui/PageSpinner"
@@ -12,20 +12,21 @@ import {
   CheckCircle,
   Circle,
   Lock,
-  FileText,
-  HelpCircle,
-  GraduationCap,
-  ClipboardList,
   PlayCircle,
   Headphones,
   MessageSquare,
-  Layers,
   Download,
   File,
   Info,
 } from "lucide-react"
 import QuizTaker from "@/components/quiz/QuizTaker"
 import AssignmentPanel from "@/components/assignment/AssignmentPanel"
+import {
+  BLOCK_BASED_CHAPTER_TYPES,
+  getChapterTypeMeta,
+  isGradableChapterType,
+  normalizeChapterType,
+} from "@/lib/chapterTypes"
 
 function extractYouTubeId(url: string): string | null {
   const patterns = [
@@ -40,32 +41,40 @@ function extractYouTubeId(url: string): string | null {
   return null
 }
 
-const CHAPTER_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText; color: string }> = {
-  reading: { label: "Reading", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  content: { label: "Reading", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  video: { label: "Video", icon: PlayCircle, color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
-  audio: { label: "Audio", icon: Headphones, color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
-  quiz: { label: "Quiz", icon: HelpCircle, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
-  exam: { label: "Exam", icon: GraduationCap, color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-  assignment: { label: "Assignment", icon: ClipboardList, color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
-  discussion: { label: "Discussion", icon: MessageSquare, color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" },
-  mixed: { label: "Mixed", icon: Layers, color: "bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400" },
+function YouTubeEmbed({ url, title }: { url: string; title: string }) {
+  const videoId = extractYouTubeId(url)
+  if (!videoId) return null
+  return (
+    <div className="relative w-full overflow-hidden rounded-xl shadow-sm" style={{ paddingBottom: "56.25%" }}>
+      <iframe
+        className="absolute inset-0 h-full w-full"
+        src={`https://www.youtube.com/embed/${videoId}`}
+        title={title}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+    </div>
+  )
 }
 
-const FALLBACK_CHAPTER_CONFIG = { label: "Reading", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" }
-
 function ChapterTypeBadge({ type }: { type: string }) {
-  const config = CHAPTER_TYPE_CONFIG[type] ?? FALLBACK_CHAPTER_CONFIG
-  const Icon = config.icon
+  const meta = getChapterTypeMeta(type)
+  const Icon = meta.icon
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${config.color}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${meta.color}`}>
       <Icon className="h-3.5 w-3.5" />
-      {config.label}
+      {meta.label}
     </span>
   )
 }
 
-const BlockRenderer = memo(function BlockRenderer({ block, onProgressChanged }: { block: ChapterBlock; onProgressChanged?: () => void }) {
+const BlockRenderer = memo(function BlockRenderer({
+  block,
+  onProgressChanged,
+}: {
+  block: ChapterBlock
+  onProgressChanged?: () => void
+}) {
   const sanitizedContent = useMemo(
     () => (block.content ? sanitize(block.content) : ""),
     [block.content],
@@ -81,35 +90,37 @@ const BlockRenderer = memo(function BlockRenderer({ block, onProgressChanged }: 
       ) : null
 
     case "video": {
-      const videoId = block.video_url ? extractYouTubeId(block.video_url) : null
-      if (videoId) {
-        return (
-          <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: "56.25%" }}>
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src={`https://www.youtube.com/embed/${videoId}`}
-              title="Video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        )
-      }
-      if (block.video_url) {
-        return (
-          <a href={block.video_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-            <PlayCircle className="h-4 w-4" /> Open video in new tab
-          </a>
-        )
-      }
-      return null
+      if (!block.video_url) return null
+      const embed = <YouTubeEmbed url={block.video_url} title="Video" />
+      if (embed) return embed
+      return (
+        <a
+          href={block.video_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-sm text-primary hover:underline"
+        >
+          <PlayCircle className="h-4 w-4" /> Open video in new tab
+        </a>
+      )
     }
 
     case "quiz":
-      return block.quiz_id ? <QuizTaker chapterId={block.chapter_id} onSubmitted={onProgressChanged} /> : null
+      return block.quiz_id ? (
+        <QuizTaker chapterId={block.chapter_id} quizId={block.quiz_id} onSubmitted={onProgressChanged} />
+      ) : null
 
     case "assignment":
-      return block.assignment_id ? <AssignmentPanel chapterId={block.chapter_id} onSubmitted={onProgressChanged} /> : null
+      return block.assignment_id ? (
+        <AssignmentPanel
+          chapterId={block.chapter_id}
+          assignmentId={block.assignment_id}
+          onSubmitted={onProgressChanged}
+        />
+      ) : null
+    // NOTE: ``quizId``/``assignmentId`` above let the block render a specific
+    // quiz/assignment instead of falling back to the chapter-level default.
+    // Support is added on the child components in this commit.
 
     case "file":
       return block.file_url ? (
@@ -130,7 +141,102 @@ const BlockRenderer = memo(function BlockRenderer({ block, onProgressChanged }: 
   }
 })
 
-const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
+/**
+ * Renders the shared "show custom blocks if the chapter has them, otherwise
+ * fall back to a static per-type view" pattern. Every content-carrying chapter
+ * type (reading, video, audio, discussion, mixed) needs this exact handling,
+ * so centralising it cuts out ~60 lines of duplication.
+ */
+function ChapterBodyBlocks({
+  loading,
+  blocks,
+  fallback,
+  onProgressChanged,
+}: {
+  loading: boolean
+  blocks: ChapterBlock[]
+  fallback: ReactNode
+  onProgressChanged?: () => void
+}) {
+  if (loading) return <PageSpinner variant="section" />
+  if (blocks.length > 0) {
+    return (
+      <div className="space-y-6">
+        {blocks.map((block) => (
+          <BlockRenderer key={block.id} block={block} onProgressChanged={onProgressChanged} />
+        ))}
+      </div>
+    )
+  }
+  return <>{fallback}</>
+}
+
+function ChapterNav({
+  prevChapter,
+  nextChapter,
+  currentIdx,
+  total,
+  courseId,
+  moduleId,
+  isNextLocked,
+}: {
+  prevChapter: Chapter | null
+  nextChapter: Chapter | null
+  currentIdx: number
+  total: number
+  courseId?: string
+  moduleId?: string
+  isNextLocked: boolean
+}) {
+  const navigate = useNavigate()
+
+  return (
+    <div className="mt-8 pt-6 border-t flex items-center justify-between">
+      {prevChapter ? (
+        <Button
+          variant="outline"
+          onClick={() => navigate(`/courses/${courseId}/modules/${moduleId}/chapters/${prevChapter.id}`)}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Previous Chapter
+        </Button>
+      ) : (
+        <Button variant="outline" disabled className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Previous Chapter
+        </Button>
+      )}
+
+      <span className="text-xs text-muted-foreground">
+        {currentIdx + 1}/{total}
+      </span>
+
+      {nextChapter ? (
+        isNextLocked ? (
+          <Button variant="outline" disabled className="gap-2">
+            <Lock className="h-4 w-4" />
+            Next Chapter
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/courses/${courseId}/modules/${moduleId}/chapters/${nextChapter.id}`)}
+            className="gap-2"
+          >
+            Next Chapter
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        )
+      ) : (
+        <Button variant="outline" disabled className="gap-2">
+          Next Chapter
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  )
+}
 
 export default function ChapterView() {
   const { courseId, moduleId, chapterId } = useParams<{
@@ -138,7 +244,6 @@ export default function ChapterView() {
     moduleId: string
     chapterId: string
   }>()
-  const navigate = useNavigate()
 
   const [mod, setMod] = useState<Module | null>(null)
   const [loading, setLoading] = useState(true)
@@ -184,8 +289,8 @@ export default function ChapterView() {
 
   const currentIdx = sortedChapters.findIndex((c) => c.id === chapterId)
   const chapter = currentIdx >= 0 ? sortedChapters[currentIdx] : null
-  const prevChapter = currentIdx > 0 ? sortedChapters[currentIdx - 1] : null
-  const nextChapter = currentIdx < sortedChapters.length - 1 ? sortedChapters[currentIdx + 1] : null
+  const prevChapter = currentIdx > 0 ? sortedChapters[currentIdx - 1] ?? null : null
+  const nextChapter = currentIdx < sortedChapters.length - 1 ? sortedChapters[currentIdx + 1] ?? null : null
 
   useEffect(() => {
     if (!chapter) return
@@ -194,8 +299,7 @@ export default function ChapterView() {
     setDiscussionResponse("")
     setHasAssignments(false)
 
-    const contentTypes = ["reading", "content", "video", "audio", "discussion", "mixed"]
-    const needsBlocks = contentTypes.includes(chapter.chapter_type || "reading")
+    const needsBlocks = BLOCK_BASED_CHAPTER_TYPES.has(normalizeChapterType(chapter.chapter_type))
 
     if (needsBlocks) setLoadingBlocks(true)
     else setChapterBlocks([])
@@ -224,7 +328,7 @@ export default function ChapterView() {
       if (!ch.is_locked) return false
       if (idx === 0) return false
       const prev = sortedChapters[idx - 1]
-      if (!prev || !GRADABLE_TYPES.has(prev.chapter_type ?? "")) return false
+      if (!prev || !isGradableChapterType(prev.chapter_type)) return false
       return !completedIds.has(prev.id)
     },
     [sortedChapters, completedIds],
@@ -294,16 +398,19 @@ export default function ChapterView() {
     )
   }
 
-  // "content" is an older/alternative alias for "reading" used by some
-  // migrated chapters. The type union no longer permits it, but the DB may
-  // still return it, so collapse it via a string compare before the switch so
-  // the reading branch renders blocks/prose instead of falling through.
-  const rawChapterType: string = chapter.chapter_type || "reading"
-  const chapterType = rawChapterType === "content" ? "reading" : rawChapterType
+  // ``chapter_type`` may legitimately be ``"content"`` on legacy rows — the
+  // normaliser collapses that (and any unknown value) back to ``"reading"``.
+  const chapterType = normalizeChapterType(chapter.chapter_type)
+
+  const proseFallback = sanitizedChapterContent ? (
+    <div
+      className="prose dark:prose-invert max-w-none"
+      dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
+    />
+  ) : null
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-3xl">
-      {/* Back button */}
       <Link to={`/courses/${courseId}/modules/${moduleId}`}>
         <Button variant="ghost" size="sm" className="mb-6 h-8 text-xs">
           <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
@@ -311,7 +418,6 @@ export default function ChapterView() {
         </Button>
       </Link>
 
-      {/* Chapter header */}
       <div className="mb-8">
         <div className="mb-3">
           <ChapterTypeBadge type={chapterType} />
@@ -323,57 +429,31 @@ export default function ChapterView() {
         </p>
       </div>
 
-      {/* Content area based on chapter type */}
       <div className="mb-8 space-y-6">
         {chapterType === "reading" && (
-          loadingBlocks ? (
-            <PageSpinner variant="section" />
-          ) : chapterBlocks.length > 0 ? (
-            <div className="space-y-6">
-              {chapterBlocks.map((block) => (
-                <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
-              ))}
-            </div>
-          ) : sanitizedChapterContent ? (
-            <div
-              className="prose dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
-            />
-          ) : (
-            <p className="text-muted-foreground text-center py-8">No content has been added to this chapter yet.</p>
-          )
+          <ChapterBodyBlocks
+            loading={loadingBlocks}
+            blocks={chapterBlocks}
+            onProgressChanged={refreshCompletion}
+            fallback={
+              proseFallback ?? (
+                <p className="text-muted-foreground text-center py-8">
+                  No content has been added to this chapter yet.
+                </p>
+              )
+            }
+          />
         )}
 
         {chapterType === "video" && (
           <>
-            {chapter.video_url && (() => {
-              const videoId = extractYouTubeId(chapter.video_url!)
-              return videoId ? (
-                <div className="relative w-full overflow-hidden rounded-xl shadow-sm" style={{ paddingBottom: "56.25%" }}>
-                  <iframe
-                    className="absolute inset-0 h-full w-full"
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    title={chapter.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              ) : null
-            })()}
-            {loadingBlocks ? (
-              <PageSpinner variant="section" />
-            ) : chapterBlocks.length > 0 ? (
-              <div className="space-y-6">
-                {chapterBlocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
-                ))}
-              </div>
-            ) : sanitizedChapterContent ? (
-              <div
-                className="prose dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
-              />
-            ) : null}
+            {chapter.video_url && <YouTubeEmbed url={chapter.video_url} title={chapter.title} />}
+            <ChapterBodyBlocks
+              loading={loadingBlocks}
+              blocks={chapterBlocks}
+              onProgressChanged={refreshCompletion}
+              fallback={proseFallback}
+            />
           </>
         )}
 
@@ -390,23 +470,24 @@ export default function ChapterView() {
                 </audio>
               </div>
             )}
-            {loadingBlocks ? (
-              <PageSpinner variant="section" />
-            ) : chapterBlocks.length > 0 ? (
-              <div className="space-y-6">
-                {chapterBlocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
-                ))}
-              </div>
-            ) : sanitizedChapterContent ? (
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Transcript</h3>
-                <div
-                  className="prose dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
-                />
-              </div>
-            ) : null}
+            <ChapterBodyBlocks
+              loading={loadingBlocks}
+              blocks={chapterBlocks}
+              onProgressChanged={refreshCompletion}
+              fallback={
+                sanitizedChapterContent ? (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                      Transcript
+                    </h3>
+                    <div
+                      className="prose dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
+                    />
+                  </div>
+                ) : null
+              }
+            />
           </>
         )}
 
@@ -432,15 +513,12 @@ export default function ChapterView() {
                 />
               </div>
             )}
-            {loadingBlocks ? (
-              <PageSpinner variant="section" />
-            ) : chapterBlocks.length > 0 ? (
-              <div className="space-y-6">
-                {chapterBlocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
-                ))}
-              </div>
-            ) : null}
+            <ChapterBodyBlocks
+              loading={loadingBlocks}
+              blocks={chapterBlocks}
+              onProgressChanged={refreshCompletion}
+              fallback={null}
+            />
             <div>
               <label htmlFor="discussion-response" className="text-sm font-medium mb-2 block">
                 Your Response
@@ -463,54 +541,22 @@ export default function ChapterView() {
         )}
 
         {chapterType === "mixed" && (
-          <>
-            {loadingBlocks ? (
-              <PageSpinner variant="section" />
-            ) : chapterBlocks.length > 0 ? (
-              <div className="space-y-6">
-                {chapterBlocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
-                ))}
-              </div>
-            ) : (
+          <ChapterBodyBlocks
+            loading={loadingBlocks}
+            blocks={chapterBlocks}
+            onProgressChanged={refreshCompletion}
+            fallback={
               <>
-                {chapter.video_url && (() => {
-                  const videoId = extractYouTubeId(chapter.video_url!)
-                  return videoId ? (
-                    <div className="relative w-full overflow-hidden rounded-xl shadow-sm" style={{ paddingBottom: "56.25%" }}>
-                      <iframe
-                        className="absolute inset-0 h-full w-full"
-                        src={`https://www.youtube.com/embed/${videoId}`}
-                        title={chapter.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                  ) : null
-                })()}
-                {sanitizedChapterContent && (
-                  <div
-                    className="prose dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
-                  />
-                )}
+                {chapter.video_url && <YouTubeEmbed url={chapter.video_url} title={chapter.title} />}
+                {proseFallback}
                 <QuizTaker chapterId={chapter.id} onSubmitted={refreshCompletion} />
                 <AssignmentPanel chapterId={chapter.id} onSubmitted={refreshCompletion} />
               </>
-            )}
-          </>
-        )}
-
-        {/* Fallback for unrecognised types that have content */}
-        {!["reading", "content", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"].includes(chapterType) && sanitizedChapterContent && (
-          <div
-            className="prose dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
+            }
           />
         )}
       </div>
 
-      {/* Completion status for graded chapters */}
       {hasAssignments && (
         <div className="mt-6 pt-4 border-t">
           {isCompleted ? (
@@ -527,51 +573,15 @@ export default function ChapterView() {
         </div>
       )}
 
-      {/* Navigation arrows */}
-      <div className="mt-8 pt-6 border-t flex items-center justify-between">
-        {prevChapter ? (
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/courses/${courseId}/modules/${moduleId}/chapters/${prevChapter.id}`)}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Previous Chapter
-          </Button>
-        ) : (
-          <Button variant="outline" disabled className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Previous Chapter
-          </Button>
-        )}
-
-        <span className="text-xs text-muted-foreground">
-          {currentIdx + 1}/{sortedChapters.length}
-        </span>
-
-        {nextChapter ? (
-          isChapterLocked(nextChapter, currentIdx + 1) ? (
-            <Button variant="outline" disabled className="gap-2">
-              <Lock className="h-4 w-4" />
-              Next Chapter
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/courses/${courseId}/modules/${moduleId}/chapters/${nextChapter.id}`)}
-              className="gap-2"
-            >
-              Next Chapter
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          )
-        ) : (
-          <Button variant="outline" disabled className="gap-2">
-            Next Chapter
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+      <ChapterNav
+        prevChapter={prevChapter}
+        nextChapter={nextChapter}
+        currentIdx={currentIdx}
+        total={sortedChapters.length}
+        courseId={courseId}
+        moduleId={moduleId}
+        isNextLocked={nextChapter ? isChapterLocked(nextChapter, currentIdx + 1) : false}
+      />
     </div>
   )
 }

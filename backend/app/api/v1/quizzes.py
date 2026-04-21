@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -185,6 +186,160 @@ def delete_quiz(
     db.commit()
 
 
+# Question types that contribute to the auto-graded ``max_score`` on submit.
+# ``short_answer`` is scored by the teacher afterwards.
+AUTO_GRADED_QUESTION_TYPES = ("multiple_choice", "true_false")
+
+
+def _ensure_attempts_available(db: Session, quiz: Quiz, user_id: UUID) -> None:
+    """Raise 403 if the student has used every allowed attempt on this quiz."""
+    if quiz.max_attempts is None:
+        return
+    used_attempts = (
+        db.query(QuizAttempt)
+        .filter(
+            QuizAttempt.quiz_id == quiz.id,
+            QuizAttempt.user_id == user_id,
+            QuizAttempt.completed_at.isnot(None),
+        )
+        .count()
+    )
+    extra = (
+        db.query(QuizExtraAttempt)
+        .filter(QuizExtraAttempt.quiz_id == quiz.id, QuizExtraAttempt.user_id == user_id)
+        .first()
+    )
+    total_allowed = quiz.max_attempts + (extra.extra_attempts if extra else 0)
+    if used_attempts >= total_allowed:
+        detail = "Exam attempts limit reached" if quiz.quiz_type == "exam" else "Maximum attempts reached"
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+
+
+def _index_quiz_options(quiz: Quiz) -> tuple[dict[str, QuizOption], dict[str, UUID]]:
+    """Build ``{option_id: option}`` and ``{question_id: correct_option_id}`` maps.
+
+    Options were already eager-loaded on the quiz, so this is just a fan-out.
+    """
+    options_by_id: dict[str, QuizOption] = {}
+    correct_option_map: dict[str, UUID] = {}
+    for q in quiz.questions:
+        for o in q.options:
+            options_by_id[str(o.id)] = o
+            if o.is_correct:
+                correct_option_map[str(o.question_id)] = o.id
+    return options_by_id, correct_option_map
+
+
+def _grade_single_answer(
+    question: QuizQuestion,
+    selected_option_id: UUID | None,
+    options_by_id: dict[str, QuizOption],
+) -> tuple[bool, int]:
+    """Return ``(is_correct, points_earned)`` for an auto-gradable answer."""
+    if question.question_type not in AUTO_GRADED_QUESTION_TYPES or not selected_option_id:
+        return False, 0
+    option = options_by_id.get(str(selected_option_id))
+    if option and option.question_id == question.id and option.is_correct:
+        return True, int(question.points)
+    return False, 0
+
+
+def _persist_answers(
+    db: Session,
+    attempt: QuizAttempt,
+    quiz: Quiz,
+    submitted: list,
+    questions_map: dict[UUID, QuizQuestion],
+    options_by_id: dict[str, QuizOption],
+    correct_option_map: dict[str, UUID],
+) -> tuple[int, list[QuizAnswerResult]]:
+    """Write ``QuizAnswer`` rows for submitted AND unanswered questions.
+
+    Returns ``(total_score, answer_results)``. Exam attempts do not leak the
+    correct option back to the student.
+    """
+    show_correct = quiz.quiz_type != "exam"
+    total_score = 0
+    answer_results: list[QuizAnswerResult] = []
+    answered: set[Any] = set()
+
+    for ans in submitted:
+        question = questions_map.get(ans.question_id)
+        if not question:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown question_id: {ans.question_id}",
+            )
+        answered.add(question.id)
+        is_correct, points_earned = _grade_single_answer(question, ans.selected_option_id, options_by_id)
+        total_score += points_earned
+
+        db.add(
+            QuizAnswer(
+                attempt_id=attempt.id,
+                question_id=ans.question_id,
+                selected_option_id=ans.selected_option_id,
+                text_answer=ans.text_answer,
+                is_correct=is_correct,
+                points_earned=points_earned,
+            )
+        )
+        answer_results.append(
+            QuizAnswerResult(
+                question_id=ans.question_id,
+                selected_option_id=ans.selected_option_id,
+                text_answer=ans.text_answer,
+                is_correct=is_correct,
+                points_earned=points_earned,
+                correct_option_id=correct_option_map.get(str(ans.question_id)) if show_correct else None,
+            )
+        )
+
+    # Record a zeroed answer for every question the student skipped. This is
+    # what keeps ``max_score`` honest and makes the results screen render
+    # every row, not just the ones the student touched.
+    for q in quiz.questions:
+        if q.id in answered:
+            continue
+        db.add(
+            QuizAnswer(
+                attempt_id=attempt.id,
+                question_id=q.id,
+                selected_option_id=None,
+                text_answer=None,
+                is_correct=False,
+                points_earned=0,
+            )
+        )
+        answer_results.append(
+            QuizAnswerResult(
+                question_id=q.id,
+                selected_option_id=None,
+                text_answer=None,
+                is_correct=False,
+                points_earned=0,
+                correct_option_id=correct_option_map.get(str(q.id)) if show_correct else None,
+            )
+        )
+    return total_score, answer_results
+
+
+def _upsert_passed_chapter_progress(db: Session, user_id: UUID, chapter_id: str) -> None:
+    """Mark the chapter as ``quiz``-completed for the student (idempotent)."""
+    cp = (
+        db.query(ChapterProgress)
+        .filter(ChapterProgress.user_id == user_id, ChapterProgress.chapter_id == chapter_id)
+        .first()
+    )
+    if not cp:
+        cp = ChapterProgress(user_id=user_id, chapter_id=chapter_id)
+        db.add(cp)
+    if not cp.completed:
+        cp.completed = True
+        cp.completed_at = datetime.now(UTC)
+        cp.completion_type = "quiz"
+
+
 @router.post("/{quiz_id}/submit", response_model=QuizAttemptResponse)
 def submit_quiz(
     quiz_id: UUID,
@@ -204,7 +359,9 @@ def submit_quiz(
 
     course_id = resolve_chapter_course_id(db, quiz.chapter_id)
     enrolled = (
-        db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
+        db.query(Enrollment)
+        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
+        .first()
     )
     if not enrolled:
         raise HTTPException(
@@ -212,156 +369,36 @@ def submit_quiz(
             detail="You must be enrolled in this course to submit quizzes",
         )
 
-    if quiz.max_attempts is not None:
-        used_attempts = (
-            db.query(QuizAttempt)
-            .filter(
-                QuizAttempt.quiz_id == quiz_id,
-                QuizAttempt.user_id == current_user.id,
-                QuizAttempt.completed_at.isnot(None),
-            )
-            .count()
-        )
-        extra = (
-            db.query(QuizExtraAttempt)
-            .filter(
-                QuizExtraAttempt.quiz_id == quiz_id,
-                QuizExtraAttempt.user_id == current_user.id,
-            )
-            .first()
-        )
-        total_allowed = quiz.max_attempts + (extra.extra_attempts if extra else 0)
-        if used_attempts >= total_allowed:
-            detail = "Maximum attempts reached"
-            if quiz.quiz_type == "exam":
-                detail = "Exam attempts limit reached"
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+    _ensure_attempts_available(db, quiz, current_user.id)
 
-    attempt = QuizAttempt(
-        quiz_id=quiz_id,
-        user_id=current_user.id,
-    )
+    attempt = QuizAttempt(quiz_id=quiz_id, user_id=current_user.id)
     db.add(attempt)
     db.flush()
 
-    total_score = 0
-
     questions_map: dict[UUID, QuizQuestion] = {q.id: q for q in quiz.questions}
-    # Auto-graded questions only contribute to the on-submit score.
-    # short_answer / essay questions are graded by the teacher afterwards
-    # and tracked via the assignment flow, so exclude them from max_score
-    # here to keep the pass/fail threshold honest.
-    auto_graded_types = ("multiple_choice", "true_false")
-    max_score = sum(q.points for q in quiz.questions if q.question_type in auto_graded_types)
+    options_by_id, correct_option_map = _index_quiz_options(quiz)
+    # Auto-graded questions only contribute to the on-submit score. Open-ended
+    # (``short_answer`` / ``essay``) questions are graded later by the teacher.
+    max_score = sum(q.points for q in quiz.questions if q.question_type in AUTO_GRADED_QUESTION_TYPES)
 
-    # Options were already fetched via selectinload(Quiz.questions → options)
-    # on the quiz load above; re-querying them here duplicates the work on
-    # every submit.
-    options_by_id: dict[str, QuizOption] = {}
-    correct_option_map: dict[str, UUID | None] = {}
-    for q in quiz.questions:
-        for o in q.options:
-            options_by_id[str(o.id)] = o
-            if o.is_correct:
-                correct_option_map[str(o.question_id)] = o.id
-
-    answer_results: list[QuizAnswerResult] = []
-    answered_question_ids: set[UUID] = set()
-    show_correct = quiz.quiz_type != "exam"
-
-    for ans in data.answers:
-        question = questions_map.get(ans.question_id)
-        if not question:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unknown question_id: {ans.question_id}",
-            )
-
-        answered_question_ids.add(question.id)
-        is_correct = False
-        points_earned = 0
-
-        if question.question_type in ("multiple_choice", "true_false") and ans.selected_option_id:
-            option = options_by_id.get(str(ans.selected_option_id))
-            if option and option.question_id == question.id and option.is_correct:
-                is_correct = True
-                points_earned = question.points
-
-        total_score += points_earned
-
-        db_answer = QuizAnswer(
-            attempt_id=attempt.id,
-            question_id=ans.question_id,
-            selected_option_id=ans.selected_option_id,
-            text_answer=ans.text_answer,
-            is_correct=is_correct,
-            points_earned=points_earned,
-        )
-        db.add(db_answer)
-
-        answer_results.append(
-            QuizAnswerResult(
-                question_id=ans.question_id,
-                selected_option_id=ans.selected_option_id,
-                text_answer=ans.text_answer,
-                is_correct=is_correct,
-                points_earned=points_earned,
-                correct_option_id=correct_option_map.get(str(ans.question_id)) if show_correct else None,
-            )
-        )
-
-    for q in quiz.questions:
-        if q.id not in answered_question_ids:
-            db_answer = QuizAnswer(
-                attempt_id=attempt.id,
-                question_id=q.id,
-                selected_option_id=None,
-                text_answer=None,
-                is_correct=False,
-                points_earned=0,
-            )
-            db.add(db_answer)
-            answer_results.append(
-                QuizAnswerResult(
-                    question_id=q.id,
-                    selected_option_id=None,
-                    text_answer=None,
-                    is_correct=False,
-                    points_earned=0,
-                    correct_option_id=correct_option_map.get(str(q.id)) if show_correct else None,
-                )
-            )
+    total_score, answer_results = _persist_answers(
+        db, attempt, quiz, data.answers, questions_map, options_by_id, correct_option_map
+    )
 
     attempt.score = total_score
     attempt.max_score = max_score
     percentage = (total_score / max_score * 100) if max_score > 0 else 0
     # A quiz built entirely out of ``short_answer`` questions has
-    # ``max_score == 0``. The old code would then report ``passed = True``
-    # whenever ``passing_score`` was also 0, so chapters could auto-complete
-    # without the teacher ever reviewing the open-ended answer. Treat any
-    # all-manual quiz as "not auto-passable" — the teacher flow will mark
-    # completion if/when they grade the submission.
+    # ``max_score == 0``. Without this guard ``percentage >= passing_score``
+    # would trivially match (both are 0) and auto-complete the chapter before
+    # the teacher ever reviewed the open-ended answers.
     attempt.passed = max_score > 0 and percentage >= quiz.passing_score
     attempt.completed_at = datetime.now(UTC)
 
-    cp = (
-        db.query(ChapterProgress)
-        .filter(ChapterProgress.user_id == current_user.id, ChapterProgress.chapter_id == str(quiz.chapter_id))
-        .first()
-    )
-    if not cp:
-        cp = ChapterProgress(user_id=current_user.id, chapter_id=str(quiz.chapter_id))
-        db.add(cp)
-    # Only mark chapter complete when the attempt actually passes so a
-    # failed exam does not inflate course progress. The student can
-    # retake the quiz and will trigger completion on a passing attempt.
-    if attempt.passed and not cp.completed:
-        cp.completed = True
-        cp.completed_at = datetime.now(UTC)
-        cp.completion_type = "quiz"
-
     if attempt.passed:
+        _upsert_passed_chapter_progress(db, current_user.id, str(quiz.chapter_id))
         sync_enrollment_progress(db, current_user.id, course_id)
+
     db.commit()
     db.refresh(attempt)
 

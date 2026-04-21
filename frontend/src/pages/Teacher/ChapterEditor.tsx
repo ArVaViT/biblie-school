@@ -16,23 +16,26 @@ import { toast } from "@/hooks/use-toast"
 import { chapterSchema } from "@/lib/validations/course"
 import { useConfirm } from "@/components/ui/alert-dialog"
 import {
-  ChevronRight, Save, FileText, PlayCircle, Headphones,
-  HelpCircle, ClipboardList, MessageSquare, Puzzle, Loader2, GraduationCap,
-  ArrowLeft,
+  ChevronRight, Save, PlayCircle, Headphones, Loader2, ArrowLeft,
 } from "lucide-react"
+import {
+  CHAPTER_TYPES,
+  CHAPTER_TYPE_META,
+  normalizeChapterType,
+  type ChapterType,
+} from "@/lib/chapterTypes"
 
-const CHAPTER_TYPES = [
-  { value: "reading", label: "Reading", icon: FileText, desc: "Text lesson with rich formatting" },
-  { value: "video", label: "Video", icon: PlayCircle, desc: "Video lesson with optional notes" },
-  { value: "audio", label: "Audio", icon: Headphones, desc: "Audio lesson with transcript" },
-  { value: "quiz", label: "Quiz", icon: HelpCircle, desc: "Test student knowledge" },
-  { value: "exam", label: "Exam", icon: GraduationCap, desc: "Final assessment with attempts limit" },
-  { value: "assignment", label: "Assignment", icon: ClipboardList, desc: "Submit work for grading" },
-  { value: "discussion", label: "Discussion", icon: MessageSquare, desc: "Student discussion prompt" },
-  { value: "mixed", label: "Mixed", icon: Puzzle, desc: "Combine multiple content types" },
-] as const
+/** Teacher-editor-only mapping (shows a puzzle icon for ``mixed``, etc.). */
+const EDITOR_OPTIONS = CHAPTER_TYPES.map((value) => {
+  const meta = CHAPTER_TYPE_META[value]
+  return {
+    value,
+    label: meta.label,
+    desc: meta.description,
+    icon: meta.editorIcon ?? meta.icon,
+  }
+})
 
-type ChapterType = (typeof CHAPTER_TYPES)[number]["value"]
 type ChapterUpdatePayload = Parameters<typeof coursesService.updateChapter>[3]
 
 export default function ChapterEditor() {
@@ -70,8 +73,7 @@ export default function ChapterEditor() {
       }
       setChapter(ch)
       setTitle(ch.title)
-      const type = (ch.chapter_type || "reading") as ChapterType
-      const resolvedType = CHAPTER_TYPES.some((t) => t.value === type) ? type : "reading"
+      const resolvedType = normalizeChapterType(ch.chapter_type)
       setChapterType(resolvedType)
       setContent(ch.content ?? "")
       setVideoUrl(ch.video_url ?? "")
@@ -260,7 +262,7 @@ export default function ChapterEditor() {
       <div className="mb-6">
         <Label className="text-sm font-semibold mb-3 block">Chapter Type</Label>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {CHAPTER_TYPES.map((ct) => {
+          {EDITOR_OPTIONS.map((ct) => {
             const Icon = ct.icon
             const selected = chapterType === ct.value
             return (

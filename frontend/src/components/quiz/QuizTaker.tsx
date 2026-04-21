@@ -19,6 +19,12 @@ import PageSpinner from "@/components/ui/PageSpinner"
 
 interface QuizTakerProps {
   chapterId: string
+  /**
+   * When rendered from a ``ChapterBlock`` that points at a specific quiz, pass
+   * ``block.quiz_id`` so we only surface that quiz. Otherwise the chapter-level
+   * fallback is used (``GET /quizzes/chapter/{id}`` returns the first quiz).
+   */
+  quizId?: string
   // Called after a successful submit regardless of pass/fail so the parent
   // can re-fetch chapter progress. Without this, a passing attempt would
   // complete the chapter on the server but the next chapter in the UI
@@ -26,7 +32,7 @@ interface QuizTakerProps {
   onSubmitted?: () => void
 }
 
-export default function QuizTaker({ chapterId, onSubmitted }: QuizTakerProps) {
+export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerProps) {
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
@@ -50,9 +56,15 @@ export default function QuizTaker({ chapterId, onSubmitted }: QuizTakerProps) {
       try {
         const q = await coursesService.getChapterQuiz(chapterId)
         if (cancelled) return
-        setQuiz(q)
-        if (q) {
-          const att = await coursesService.getMyQuizAttempts(q.id).catch(() => [] as QuizAttempt[])
+        // If the caller pinned a specific quiz (e.g. from a ``ChapterBlock``),
+        // only accept that one. Currently a chapter carries a single quiz so
+        // this is mostly defensive, but it future-proofs the UI against a
+        // chapter having multiple quizzes where ``getChapterQuiz`` would
+        // return an arbitrary first hit.
+        const resolved = quizId && q && q.id !== quizId ? null : q
+        setQuiz(resolved)
+        if (resolved) {
+          const att = await coursesService.getMyQuizAttempts(resolved.id).catch(() => [] as QuizAttempt[])
           if (!cancelled) setAttempts(att)
         }
       } catch {
@@ -63,7 +75,7 @@ export default function QuizTaker({ chapterId, onSubmitted }: QuizTakerProps) {
     }
     load()
     return () => { cancelled = true }
-  }, [chapterId])
+  }, [chapterId, quizId])
 
   if (loading) {
     return <PageSpinner variant="section" />
@@ -112,7 +124,15 @@ export default function QuizTaker({ chapterId, onSubmitted }: QuizTakerProps) {
     }
   }
 
-  const maxScore = sortedQuestions.reduce((sum, q) => sum + q.points, 0)
+  // Mirrors the backend: only MCQ / true-false questions contribute to the
+  // auto-graded score. Open-ended answers are scored by the teacher later.
+  const autoMaxScore = sortedQuestions
+    .filter((q) => q.question_type === "multiple_choice" || q.question_type === "true_false")
+    .reduce((sum, q) => sum + q.points, 0)
+  const manualMaxScore = sortedQuestions
+    .filter((q) => q.question_type === "short_answer")
+    .reduce((sum, q) => sum + q.points, 0)
+  const totalMaxScore = autoMaxScore + manualMaxScore
 
   return (
     <div className="border rounded-lg bg-card mt-6">
@@ -126,7 +146,12 @@ export default function QuizTaker({ chapterId, onSubmitted }: QuizTakerProps) {
         )}
         <div className="flex items-center gap-4 ml-7 mt-2 text-xs text-muted-foreground">
           <span>{sortedQuestions.length} question{sortedQuestions.length !== 1 ? "s" : ""}</span>
-          <span>{maxScore} point{maxScore !== 1 ? "s" : ""}</span>
+          <span>
+            {totalMaxScore} point{totalMaxScore !== 1 ? "s" : ""}
+            {manualMaxScore > 0 && autoMaxScore > 0 && (
+              <> ({autoMaxScore} auto + {manualMaxScore} review)</>
+            )}
+          </span>
           <span>Passing: {quiz.passing_score}%</span>
           {maxAttempts !== null && <span>Attempts: {attemptsUsed}/{maxAttempts}</span>}
         </div>
@@ -223,7 +248,7 @@ export default function QuizTaker({ chapterId, onSubmitted }: QuizTakerProps) {
                       <XCircle className="h-4 w-4 text-red-600" />
                     )}
                     <span>
-                      {att.score ?? 0}/{att.max_score ?? maxScore} points
+                      {att.score ?? 0}/{att.max_score ?? autoMaxScore} points
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">

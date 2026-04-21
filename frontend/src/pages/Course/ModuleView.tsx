@@ -11,41 +11,18 @@ import {
   Circle,
   ChevronRight,
   Lock,
-  FileText,
-  HelpCircle,
-  GraduationCap,
-  ClipboardList,
-  PlayCircle,
-  Headphones,
-  MessageSquare,
-  Layers,
   CalendarDays,
   AlertTriangle,
 } from "lucide-react"
-
-const CHAPTER_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText; color: string }> = {
-  reading: { label: "Reading", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  content: { label: "Content", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  video: { label: "Video", icon: PlayCircle, color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
-  audio: { label: "Audio", icon: Headphones, color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
-  quiz: { label: "Quiz", icon: HelpCircle, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
-  exam: { label: "Exam", icon: GraduationCap, color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-  assignment: { label: "Assignment", icon: ClipboardList, color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
-  discussion: { label: "Discussion", icon: MessageSquare, color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" },
-  mixed: { label: "Mixed", icon: Layers, color: "bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400" },
-}
-
-const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
-
-const FALLBACK_CHAPTER_CONFIG = { label: "Content", icon: FileText, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" }
+import { getChapterTypeMeta, isGradableChapterType } from "@/lib/chapterTypes"
 
 function ChapterTypeBadge({ type }: { type: string }) {
-  const config = CHAPTER_TYPE_CONFIG[type] ?? FALLBACK_CHAPTER_CONFIG
-  const Icon = config.icon
+  const meta = getChapterTypeMeta(type)
+  const Icon = meta.icon
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${config.color}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.color}`}>
       <Icon className="h-3 w-3" />
-      {config.label}
+      {meta.label}
     </span>
   )
 }
@@ -93,7 +70,7 @@ export default function ModuleView() {
     [module],
   )
 
-  const gradableChapters = sortedChapters.filter((c) => GRADABLE_TYPES.has(c.chapter_type ?? ""))
+  const gradableChapters = sortedChapters.filter((c) => isGradableChapterType(c.chapter_type))
   const allComplete = gradableChapters.length > 0 && gradableChapters.every((c) => completedIds.has(c.id))
 
   if (loading) {
@@ -211,11 +188,11 @@ export default function ModuleView() {
         {sortedChapters.length > 0 ? (
           <div className="space-y-3">
             {sortedChapters.map((chapter, idx) => {
-              const isGradable = GRADABLE_TYPES.has(chapter.chapter_type ?? "")
+              const isGradable = isGradableChapterType(chapter.chapter_type)
               const isCompleted = isGradable && completedIds.has(chapter.id)
               const requiresTeacher = chapter.requires_completion
               const prevChapter = idx > 0 ? sortedChapters[idx - 1] : null
-              const prevIsGradable = prevChapter ? GRADABLE_TYPES.has(prevChapter.chapter_type ?? "") : false
+              const prevIsGradable = prevChapter ? isGradableChapterType(prevChapter.chapter_type) : false
               const isLocked = chapter.is_locked && prevChapter != null && prevIsGradable && !completedIds.has(prevChapter.id)
 
               if (isLocked) {

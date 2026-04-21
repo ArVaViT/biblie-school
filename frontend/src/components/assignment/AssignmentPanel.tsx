@@ -22,10 +22,16 @@ import {
 
 interface AssignmentPanelProps {
   chapterId: string
+  /**
+   * When rendered from a ``ChapterBlock`` linked to a specific assignment,
+   * pass ``block.assignment_id`` so the panel only shows that one. Otherwise
+   * every assignment in the chapter is listed.
+   */
+  assignmentId?: string
   onSubmitted?: () => void
 }
 
-export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPanelProps) {
+export default function AssignmentPanel({ chapterId, assignmentId, onSubmitted }: AssignmentPanelProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [submissionsMap, setSubmissionsMap] = useState<Record<string, AssignmentSubmission | null>>({})
   const [loading, setLoading] = useState(true)
@@ -37,8 +43,9 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
       setLoading(true)
       setFetchError(false)
       try {
-        const data = await coursesService.getChapterAssignments(chapterId)
+        const all = await coursesService.getChapterAssignments(chapterId)
         if (cancelled) return
+        const data = assignmentId ? all.filter((a) => a.id === assignmentId) : all
         setAssignments(data)
 
         if (data.length > 0) {
@@ -61,7 +68,7 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
     }
     load()
     return () => { cancelled = true }
-  }, [chapterId])
+  }, [chapterId, assignmentId])
 
   if (loading) {
     return <PageSpinner variant="section" />

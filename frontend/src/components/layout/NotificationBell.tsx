@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
-import { Bell, CheckCheck, Award, XCircle, ClipboardCheck, Megaphone, BookOpen, UserCheck, Trash2 } from "lucide-react"
+import { AlertCircle, Bell, CheckCheck, Award, XCircle, ClipboardCheck, Megaphone, BookOpen, UserCheck, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import type { Notification, NotificationType } from "@/types"
@@ -48,6 +48,7 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -63,8 +64,12 @@ export default function NotificationBell() {
   }, [])
 
   const fetchNotifications = useCallback(async (pageNum: number, signal?: { cancelled: boolean }) => {
-    if (pageNum === 1) setLoading(true)
-    else setLoadingMore(true)
+    if (pageNum === 1) {
+      setLoading(true)
+      setLoadError(false)
+    } else {
+      setLoadingMore(true)
+    }
     try {
       const res = await coursesService.getNotifications(pageNum)
       if (!signal?.cancelled) {
@@ -77,7 +82,10 @@ export default function NotificationBell() {
         setHasMore(pageNum * res.page_size < res.total)
       }
     } catch {
-      // Keep existing notifications on fetch failure
+      // On the first page treat this as an error state so the user isn't
+      // silently shown the empty "No notifications yet" placeholder; on
+      // subsequent pages leave the already-rendered list alone.
+      if (!signal?.cancelled && pageNum === 1) setLoadError(true)
     } finally {
       if (!signal?.cancelled) {
         if (pageNum === 1) setLoading(false)
@@ -101,6 +109,7 @@ export default function NotificationBell() {
       setPage(1)
       setHasMore(false)
       setLoadingMore(false)
+      setLoadError(false)
       if (loadMoreSignalRef.current) loadMoreSignalRef.current.cancelled = true
       return
     }
@@ -211,6 +220,17 @@ export default function NotificationBell() {
           <div className="max-h-[400px] overflow-y-auto">
             {loading ? (
               <PageSpinner variant="section" />
+            ) : loadError ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
+                <AlertCircle className="h-8 w-8 text-destructive/70" />
+                <p className="text-sm text-destructive">Failed to load notifications.</p>
+                <button
+                  onClick={() => fetchNotifications(1)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Try again
+                </button>
+              </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
                 <Bell className="h-8 w-8 opacity-30" />

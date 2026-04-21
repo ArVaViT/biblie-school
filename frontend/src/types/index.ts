@@ -1,3 +1,5 @@
+import type { ChapterType } from '@/lib/chapterTypes'
+
 export type UserRole = 'admin' | 'teacher' | 'pending_teacher' | 'student'
 
 export interface User {
@@ -37,17 +39,10 @@ export interface Module {
   chapters?: Chapter[]
 }
 
-// Keep in sync with CHAPTER_TYPES in backend/app/schemas/course.py and
-// frontend/src/lib/validations/course.ts — both are authoritative sources.
-export type ChapterType =
-  | 'reading'
-  | 'video'
-  | 'audio'
-  | 'quiz'
-  | 'exam'
-  | 'assignment'
-  | 'discussion'
-  | 'mixed'
+// ``ChapterType`` is defined in ``@/lib/chapterTypes`` alongside the rest of
+// the chapter-type metadata (labels, icons, colours); re-exported here because
+// most domain consumers import from ``@/types``.
+export type { ChapterType }
 
 export interface Chapter {
   id: string
