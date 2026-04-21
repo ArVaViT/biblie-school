@@ -68,8 +68,10 @@ assets/c__Users_*
 
 .vercel
 
-# Database config (may contain credentials)
-alembic.ini
-
 # Local agent tooling scratchpad (MCP/automation helpers)
 agent-tools/
+
+# Note: backend/alembic.ini is tracked — it contains only a placeholder URL
+# (driver://user:pass@localhost/dbname). The real connection string is always
+# read from the DATABASE_URL env var by alembic/env.py, so the committed
+# alembic.ini is safe and required for CI to find script_location.
