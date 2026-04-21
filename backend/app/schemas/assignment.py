@@ -57,4 +57,8 @@ class SubmissionResponse(BaseModel):
 class GradeSubmissionRequest(BaseModel):
     grade: int = Field(..., ge=0)
     feedback: str | None = Field(None, max_length=5000)
-    status: Literal["graded", "pending"] = "graded"
+    # Must stay a subset of the DB CHECK on ``assignment_submissions.status``
+    # (``submitted|graded|returned``). ``pending`` used to be accepted here
+    # but writing it would trip the CHECK on Postgres and return a 409 to the
+    # teacher. ``returned`` is what the UI sends for "return for revision".
+    status: Literal["graded", "returned"] = "graded"

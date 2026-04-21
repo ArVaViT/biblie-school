@@ -418,7 +418,10 @@ def teacher_uncomplete_chapter(
     progress.completed = False
     progress.completed_at = None
     progress.completed_by = None
-    progress.completion_type = "self"
+    # Preserve whatever ``completion_type`` the row already had; the column
+    # is NOT NULL in Postgres so we cannot clear it, and rewriting it to
+    # ``"self"`` unconditionally destroyed the signal of how the chapter
+    # was originally completed (quiz/teacher/self).
     sync_enrollment_progress(db, student_id, course_id)
     db.commit()
     return {"message": "Chapter completion removed", "chapter_id": chapter_id, "student_id": str(student_id)}

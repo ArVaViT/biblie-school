@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
+import { getErrorDetail } from "@/lib/errorDetail"
 import { toast } from "@/hooks/use-toast"
 import type { Assignment, AssignmentSubmission } from "@/types"
 import PageSpinner from "@/components/ui/PageSpinner"
@@ -106,8 +107,9 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
       setContent("")
       setFileUrl("")
       onSubmitted?.()
-    } catch {
-      toast({ title: "Failed to submit assignment", variant: "destructive" })
+    } catch (error: unknown) {
+      const detail = getErrorDetail(error)
+      toast({ title: detail || "Failed to submit assignment", variant: "destructive" })
     } finally {
       setSubmitting(false)
     }

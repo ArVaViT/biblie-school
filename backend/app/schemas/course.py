@@ -4,13 +4,21 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# Mirrors the ``chapters_chapter_type_check`` CHECK in Postgres. ``content``
+# is a legacy alias some seeded chapters already use on prod — leaving it out
+# of the schema blocked PATCHes on those rows with a 422 even though the DB
+# accepts them.
+CHAPTER_TYPES = Literal[
+    "reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed", "content"
+]
+
 
 class ChapterBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)
     content: str | None = Field(None, max_length=500_000)
     video_url: str | None = Field(None, max_length=2048)
     order_index: int = 0
-    chapter_type: Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"] = "reading"
+    chapter_type: CHAPTER_TYPES = "reading"
     requires_completion: bool = False
     is_locked: bool = False
 
@@ -24,14 +32,9 @@ class ChapterUpdate(BaseModel):
     content: str | None = Field(None, max_length=500_000)
     video_url: str | None = Field(None, max_length=2048)
     order_index: int | None = None
-    chapter_type: Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"] | None = (
-        None
-    )
+    chapter_type: CHAPTER_TYPES | None = None
     requires_completion: bool | None = None
     is_locked: bool | None = None
-
-
-CHAPTER_TYPES = Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed"]
 
 
 class ChapterResponse(ChapterBase):

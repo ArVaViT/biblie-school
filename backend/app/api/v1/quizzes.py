@@ -335,7 +335,13 @@ def submit_quiz(
     attempt.score = total_score
     attempt.max_score = max_score
     percentage = (total_score / max_score * 100) if max_score > 0 else 0
-    attempt.passed = percentage >= quiz.passing_score
+    # A quiz built entirely out of ``short_answer`` questions has
+    # ``max_score == 0``. The old code would then report ``passed = True``
+    # whenever ``passing_score`` was also 0, so chapters could auto-complete
+    # without the teacher ever reviewing the open-ended answer. Treat any
+    # all-manual quiz as "not auto-passable" — the teacher flow will mark
+    # completion if/when they grade the submission.
+    attempt.passed = max_score > 0 and percentage >= quiz.passing_score
     attempt.completed_at = datetime.now(UTC)
 
     cp = (

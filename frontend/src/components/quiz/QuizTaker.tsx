@@ -19,9 +19,14 @@ import PageSpinner from "@/components/ui/PageSpinner"
 
 interface QuizTakerProps {
   chapterId: string
+  // Called after a successful submit regardless of pass/fail so the parent
+  // can re-fetch chapter progress. Without this, a passing attempt would
+  // complete the chapter on the server but the next chapter in the UI
+  // stayed locked until a full page refresh (completedIds was stale).
+  onSubmitted?: () => void
 }
 
-export default function QuizTaker({ chapterId }: QuizTakerProps) {
+export default function QuizTaker({ chapterId, onSubmitted }: QuizTakerProps) {
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
@@ -98,6 +103,7 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
       setResult(attempt)
       setShowResults(true)
       setAttempts((prev) => [attempt, ...prev])
+      onSubmitted?.()
     } catch (error: unknown) {
       const detail = getErrorDetail(error)
       toast({ title: detail || `Failed to submit ${assessmentLabel.toLowerCase()}`, variant: "destructive" })
@@ -194,32 +200,40 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
             Previous Attempts
           </h4>
           <div className="space-y-2">
-            {attempts.map((att) => (
-              <div
-                key={att.id}
-                className={`flex items-center justify-between px-3 py-2 rounded-md text-sm ${
-                  att.passed
-                    ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800"
-                    : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {att.passed ? (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-red-600" />
-                  )}
-                  <span>
-                    {att.score ?? 0}/{att.max_score ?? maxScore} points
+            {attempts.map((att) => {
+              // An in-progress attempt has ``completed_at === null`` and
+              // ``passed === null`` — don't paint it as a failed attempt.
+              const inProgress = !att.completed_at
+              const style = inProgress
+                ? "bg-muted/30 border border-border"
+                : att.passed
+                  ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800"
+                  : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
+              return (
+                <div
+                  key={att.id}
+                  className={`flex items-center justify-between px-3 py-2 rounded-md text-sm ${style}`}
+                >
+                  <div className="flex items-center gap-2">
+                    {inProgress ? (
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    ) : att.passed ? (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-600" />
+                    )}
+                    <span>
+                      {att.score ?? 0}/{att.max_score ?? maxScore} points
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {att.completed_at
+                      ? new Date(att.completed_at).toLocaleDateString()
+                      : "In progress"}
                   </span>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {att.completed_at
-                    ? new Date(att.completed_at).toLocaleDateString()
-                    : "In progress"}
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

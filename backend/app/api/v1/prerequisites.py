@@ -70,21 +70,25 @@ def set_prerequisites(
 ):
     verify_course_owner(db, course_id, teacher.id)
 
+    # Dedupe while preserving the order the teacher submitted. Without this
+    # a client that accidentally sent the same prerequisite twice would
+    # insert duplicate rows with the same ``(course_id, prereq_id)`` pair,
+    # tripping the composite PK on commit and surfacing as a generic 409.
+    prereq_ids: list[str] = list(dict.fromkeys(data.prerequisite_course_ids))
+
     # Prevent circular: a course cannot be its own prerequisite
-    if course_id in data.prerequisite_course_ids:
+    if course_id in prereq_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="A course cannot be its own prerequisite",
         )
 
-    if data.prerequisite_course_ids:
+    if prereq_ids:
         # Require every prerequisite to be a live (non-trashed) course so
         # teachers can't wire deleted content back into an active course.
-        existing_courses = (
-            db.query(Course).filter(Course.id.in_(data.prerequisite_course_ids), Course.deleted_at.is_(None)).all()
-        )
+        existing_courses = db.query(Course).filter(Course.id.in_(prereq_ids), Course.deleted_at.is_(None)).all()
         existing_ids = {str(c.id) for c in existing_courses}
-        for pid in data.prerequisite_course_ids:
+        for pid in prereq_ids:
             if pid not in existing_ids:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -94,7 +98,7 @@ def set_prerequisites(
     db.query(CoursePrerequisite).filter(CoursePrerequisite.course_id == course_id).delete()
 
     new_prereqs = []
-    for pid in data.prerequisite_course_ids:
+    for pid in prereq_ids:
         prereq = CoursePrerequisite(course_id=course_id, prerequisite_course_id=pid)
         db.add(prereq)
         new_prereqs.append(prereq)

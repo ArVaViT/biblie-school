@@ -65,7 +65,7 @@ function ChapterTypeBadge({ type }: { type: string }) {
   )
 }
 
-const BlockRenderer = memo(function BlockRenderer({ block, onAssignmentSubmitted }: { block: ChapterBlock; onAssignmentSubmitted?: () => void }) {
+const BlockRenderer = memo(function BlockRenderer({ block, onProgressChanged }: { block: ChapterBlock; onProgressChanged?: () => void }) {
   const sanitizedContent = useMemo(
     () => (block.content ? sanitize(block.content) : ""),
     [block.content],
@@ -106,10 +106,10 @@ const BlockRenderer = memo(function BlockRenderer({ block, onAssignmentSubmitted
     }
 
     case "quiz":
-      return block.quiz_id ? <QuizTaker chapterId={block.chapter_id} /> : null
+      return block.quiz_id ? <QuizTaker chapterId={block.chapter_id} onSubmitted={onProgressChanged} /> : null
 
     case "assignment":
-      return block.assignment_id ? <AssignmentPanel chapterId={block.chapter_id} onSubmitted={onAssignmentSubmitted} /> : null
+      return block.assignment_id ? <AssignmentPanel chapterId={block.chapter_id} onSubmitted={onProgressChanged} /> : null
 
     case "file":
       return block.file_url ? (
@@ -331,7 +331,7 @@ export default function ChapterView() {
           ) : chapterBlocks.length > 0 ? (
             <div className="space-y-6">
               {chapterBlocks.map((block) => (
-                <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
+                <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
               ))}
             </div>
           ) : sanitizedChapterContent ? (
@@ -365,7 +365,7 @@ export default function ChapterView() {
             ) : chapterBlocks.length > 0 ? (
               <div className="space-y-6">
                 {chapterBlocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
+                  <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
                 ))}
               </div>
             ) : sanitizedChapterContent ? (
@@ -395,7 +395,7 @@ export default function ChapterView() {
             ) : chapterBlocks.length > 0 ? (
               <div className="space-y-6">
                 {chapterBlocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
+                  <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
                 ))}
               </div>
             ) : sanitizedChapterContent ? (
@@ -411,7 +411,7 @@ export default function ChapterView() {
         )}
 
         {(chapterType === "quiz" || chapterType === "exam") && (
-          <QuizTaker chapterId={chapter.id} />
+          <QuizTaker chapterId={chapter.id} onSubmitted={refreshCompletion} />
         )}
 
         {chapterType === "assignment" && (
@@ -437,7 +437,7 @@ export default function ChapterView() {
             ) : chapterBlocks.length > 0 ? (
               <div className="space-y-6">
                 {chapterBlocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
+                  <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
                 ))}
               </div>
             ) : null}
@@ -469,7 +469,7 @@ export default function ChapterView() {
             ) : chapterBlocks.length > 0 ? (
               <div className="space-y-6">
                 {chapterBlocks.map((block) => (
-                  <BlockRenderer key={block.id} block={block} onAssignmentSubmitted={refreshCompletion} />
+                  <BlockRenderer key={block.id} block={block} onProgressChanged={refreshCompletion} />
                 ))}
               </div>
             ) : (
@@ -494,7 +494,7 @@ export default function ChapterView() {
                     dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
                   />
                 )}
-                <QuizTaker chapterId={chapter.id} />
+                <QuizTaker chapterId={chapter.id} onSubmitted={refreshCompletion} />
                 <AssignmentPanel chapterId={chapter.id} onSubmitted={refreshCompletion} />
               </>
             )}
