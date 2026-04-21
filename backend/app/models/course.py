@@ -52,7 +52,16 @@ class Course(Base):
 
     search_vector = Column(TSVector(), nullable=True)
 
-    modules = relationship("Module", back_populates="course", cascade="all, delete-orphan")
+    # ``order_by`` guarantees deterministic ordering whenever the relationship is
+    # accessed, including via ``joinedload`` in ``get_course``. Without it
+    # Postgres returns rows in whatever order the query plan chose, which
+    # surfaced on prod as chapters shown in reverse (see PLATFORM_ISSUES #2).
+    modules = relationship(
+        "Module",
+        back_populates="course",
+        cascade="all, delete-orphan",
+        order_by="Module.order_index",
+    )
     enrollments = relationship("Enrollment", back_populates="course", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
@@ -72,7 +81,12 @@ class Module(Base):
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     course = relationship("Course", back_populates="modules")
-    chapters = relationship("Chapter", back_populates="module", cascade="all, delete-orphan")
+    chapters = relationship(
+        "Chapter",
+        back_populates="module",
+        cascade="all, delete-orphan",
+        order_by="Chapter.order_index",
+    )
 
     def __repr__(self) -> str:
         return f"<Module id={self.id!r} title={self.title!r} course_id={self.course_id!r}>"

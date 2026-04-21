@@ -1,5 +1,6 @@
 import logging
 import re
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -64,7 +65,10 @@ def _validate_magic_bytes(header: bytes, declared_type: str) -> bool:
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    course_id: str | None = None,
+    # Typed as UUID so FastAPI 422s on malformed input instead of letting
+    # ``verify_course_owner``/SQLAlchemy bubble up opaque DB errors.
+    # See PLATFORM_ISSUES #7.
+    course_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -90,11 +94,15 @@ async def upload_file(
 
     await file.seek(0)
 
-    if course_id:
+    # ``Course.id`` is stored as String in the DB, so the UUID is serialised
+    # back to string once FastAPI has validated its shape.
+    course_id_str = str(course_id) if course_id is not None else None
+
+    if course_id_str:
         # Only the course owner (or an admin) may upload files scoped to a course.
         # Previously the check allowed any teacher/admin through, enabling cross-
         # tenant uploads; see audit P0.3.
-        verify_course_owner(db, course_id, current_user.id, allow_admin=True)
+        verify_course_owner(db, course_id_str, current_user.id, allow_admin=True)
 
     try:
         file_metadata = upload_file_to_storage(
@@ -102,7 +110,7 @@ async def upload_file(
             file=file.file,
             filename=file.filename,
             file_type=content_type,
-            course_id=course_id,
+            course_id=course_id_str,
             user_id=current_user.id,
         )
         return {

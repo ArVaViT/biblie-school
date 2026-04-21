@@ -29,7 +29,10 @@ class QuizOptionStudentResponse(BaseModel):
 
 
 class QuizQuestionCreate(BaseModel):
-    question_text: str = Field(..., min_length=1, max_length=1000)
+    # 4000 chars keeps room for full essay prompts (rubrics, reading refs,
+    # formatting requirements). Old 1000-char cap blocked long-form essay
+    # exam questions — see PLATFORM_ISSUES #3.
+    question_text: str = Field(..., min_length=1, max_length=4000)
     question_type: Literal["multiple_choice", "true_false", "short_answer"] = "multiple_choice"
     order_index: int = Field(0, ge=0)
     points: int = Field(1, ge=1, le=100)
