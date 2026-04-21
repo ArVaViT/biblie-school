@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, require_teacher, verify_chapter_access, verify_chapter_owner
@@ -41,7 +42,17 @@ def create_block(
         file_url=data.file_url,
     )
     db.add(block)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        # quiz_id / assignment_id are FKs — a stale client can pass an id
+        # that was just deleted, tripping the FK constraint. Surface a 409
+        # instead of letting SQLAlchemy raise a 500.
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Referenced quiz or assignment no longer exists",
+        ) from exc
     db.refresh(block)
     return block
 
@@ -59,7 +70,14 @@ def update_block(
     verify_chapter_owner(db, block.chapter_id, teacher.id)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(block, field, value)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Referenced quiz or assignment no longer exists",
+        ) from exc
     db.refresh(block)
     return block
 

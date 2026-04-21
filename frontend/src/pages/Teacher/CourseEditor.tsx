@@ -553,7 +553,11 @@ export default function CourseEditor() {
       </Modal>
 
       {/* Announcements Modal */}
-      <Modal open={modal === "announce"} onClose={() => setModal(null)} title="Announcements">
+      <Modal
+        open={modal === "announce"}
+        onClose={() => { setModal(null); setAnnTitle(""); setAnnContent("") }}
+        title="Announcements"
+      >
         <div className="space-y-4">
           <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
             <Input value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder="Title" />

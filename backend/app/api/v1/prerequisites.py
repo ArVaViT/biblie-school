@@ -29,8 +29,9 @@ def get_prerequisites(
 ):
     # Requires auth and that the course is visible to the caller. Previously
     # this endpoint was public and would happily leak draft-course
-    # relationships to anonymous callers (audit P1.4).
-    course = db.query(Course).filter(Course.id == course_id).first()
+    # relationships to anonymous callers (audit P1.4). Trashed courses are
+    # treated as not found so deleted prerequisites don't leak either.
+    course = db.query(Course).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
 
@@ -43,7 +44,11 @@ def get_prerequisites(
     prereqs = db.query(CoursePrerequisite).filter(CoursePrerequisite.course_id == course_id).all()
 
     prereq_ids = [p.prerequisite_course_id for p in prereqs]
-    courses = db.query(Course).filter(Course.id.in_(prereq_ids)).all() if prereq_ids else []
+    # Hide trashed prerequisite targets — they should not appear as
+    # "required" courses when they've been removed from the catalog.
+    courses = (
+        db.query(Course).filter(Course.id.in_(prereq_ids), Course.deleted_at.is_(None)).all() if prereq_ids else []
+    )
     title_map = {str(c.id): c.title for c in courses}
 
     return [
@@ -73,7 +78,11 @@ def set_prerequisites(
         )
 
     if data.prerequisite_course_ids:
-        existing_courses = db.query(Course).filter(Course.id.in_(data.prerequisite_course_ids)).all()
+        # Require every prerequisite to be a live (non-trashed) course so
+        # teachers can't wire deleted content back into an active course.
+        existing_courses = (
+            db.query(Course).filter(Course.id.in_(data.prerequisite_course_ids), Course.deleted_at.is_(None)).all()
+        )
         existing_ids = {str(c.id) for c in existing_courses}
         for pid in data.prerequisite_course_ids:
             if pid not in existing_ids:

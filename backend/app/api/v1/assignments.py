@@ -15,7 +15,7 @@ from app.core.database import get_db
 from app.models.assignment import Assignment, AssignmentSubmission
 from app.models.chapter_progress import ChapterProgress
 from app.models.enrollment import Enrollment
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.assignment import (
     AssignmentCreate,
     AssignmentResponse,
@@ -168,6 +168,8 @@ def list_submissions(
 @router.get("/{assignment_id}/my-submissions", response_model=list[SubmissionResponse])
 def list_my_submissions(
     assignment_id: UUID,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -179,9 +181,11 @@ def list_my_submissions(
     enrolled = (
         db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
     )
-    if not enrolled and current_user.role not in ("teacher", "admin"):
+    if not enrolled and current_user.role not in (UserRole.TEACHER.value, UserRole.ADMIN.value):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enrolled in this course")
 
+    # Same pagination envelope as the teacher-facing list above so
+    # unbounded resubmission history cannot balloon the response.
     return (
         db.query(AssignmentSubmission)
         .filter(
@@ -189,6 +193,8 @@ def list_my_submissions(
             AssignmentSubmission.student_id == current_user.id,
         )
         .order_by(AssignmentSubmission.submitted_at.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 

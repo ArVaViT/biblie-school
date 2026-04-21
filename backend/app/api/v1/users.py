@@ -264,13 +264,13 @@ def delete_my_account(
         db.query(User).filter(User.id == uid).delete(synchronize_session=False)
 
         db.commit()
-    except Exception:
+    except Exception as exc:
         db.rollback()
         logger.exception("Account deletion failed for user %s", uid)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Account deletion failed. Please try again or contact support.",
-        ) from None
+        ) from exc
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

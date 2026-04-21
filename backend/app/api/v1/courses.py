@@ -10,7 +10,7 @@ from app.core.database import get_db
 from app.core.sanitize import sanitize_string
 from app.models.cohort import Cohort
 from app.models.enrollment import Enrollment
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.course import (
     ChapterCreate,
     ChapterResponse,
@@ -134,7 +134,9 @@ def get_course_detail(
             detail=f"Course '{course_id}' not found",
         )
     if course.status != "published":
-        if not current_user or (str(course.created_by) != str(current_user.id) and current_user.role != "admin"):
+        if not current_user or (
+            str(course.created_by) != str(current_user.id) and current_user.role != UserRole.ADMIN.value
+        ):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Course '{course_id}' not found",
@@ -156,7 +158,9 @@ def get_module_detail(
             detail=f"Course '{course_id}' not found",
         )
     if course.status != "published":
-        if not current_user or (str(course.created_by) != str(current_user.id) and current_user.role != "admin"):
+        if not current_user or (
+            str(course.created_by) != str(current_user.id) and current_user.role != UserRole.ADMIN.value
+        ):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Course '{course_id}' not found",

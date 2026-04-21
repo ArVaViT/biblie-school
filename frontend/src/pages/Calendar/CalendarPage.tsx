@@ -143,7 +143,9 @@ export default function CalendarPage() {
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()
     for (const evt of events) {
+      if (!evt.event_date) continue
       const d = new Date(evt.event_date)
+      if (Number.isNaN(d.getTime())) continue
       const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(evt)
@@ -161,7 +163,9 @@ export default function CalendarPage() {
     const now = new Date()
     const twoWeeks = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
     return events.filter((e) => {
+      if (!e.event_date) return false
       const d = new Date(e.event_date)
+      if (Number.isNaN(d.getTime())) return false
       return d >= now && d <= twoWeeks
     })
   }, [events])

@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import (
@@ -125,13 +126,19 @@ def create_quiz(
             db.add(option)
 
     db.commit()
-    quiz = (
+    quiz_id = quiz.id
+    reloaded = (
         db.query(Quiz)
         .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
-        .filter(Quiz.id == quiz.id)
+        .filter(Quiz.id == quiz_id)
         .first()
     )
-    return quiz
+    if reloaded is None:
+        # Row was just committed but vanished before reload (extremely rare
+        # race, e.g. concurrent admin purge). Fail cleanly instead of
+        # letting the response-model validator crash with ``None``.
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    return reloaded
 
 
 @router.put("/{quiz_id}", response_model=QuizResponse)
@@ -153,13 +160,15 @@ def update_quiz(
         quiz.max_attempts = 1
 
     db.commit()
-    quiz = (
+    reloaded = (
         db.query(Quiz)
         .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
         .filter(Quiz.id == quiz.id)
         .first()
     )
-    return quiz
+    if reloaded is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    return reloaded
 
 
 @router.delete("/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -442,7 +451,26 @@ def grant_extra_attempts(
         )
         db.add(existing)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Concurrent POST inserted the same ``(quiz_id, user_id)`` row between
+        # our check and commit. Recover by updating the winner row instead of
+        # surfacing a 500.
+        db.rollback()
+        existing = (
+            db.query(QuizExtraAttempt)
+            .filter(QuizExtraAttempt.quiz_id == quiz_id, QuizExtraAttempt.user_id == data.user_id)
+            .first()
+        )
+        if existing is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Could not grant extra attempts — please retry",
+            ) from None
+        existing.extra_attempts = data.extra_attempts
+        existing.granted_by = teacher.id
+        db.commit()
     db.refresh(existing)
     return existing
 

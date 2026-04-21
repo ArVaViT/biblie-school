@@ -82,7 +82,11 @@ async def require_admin(
 
 
 def verify_course_owner(db: Session, course_id: str, teacher_id, *, allow_admin: bool = True) -> Course:
-    course = db.query(Course).filter(Course.id == course_id).first()
+    # Soft-deleted courses are treated as "not found" for ownership checks
+    # so deleted courses cannot be edited / enrolled into / have modules
+    # created in them until explicitly restored. Admin recovery flows that
+    # need deleted rows query the ORM directly with include_deleted.
+    course = db.query(Course).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     if str(course.created_by) != str(teacher_id):
@@ -98,11 +102,19 @@ def verify_course_owner(db: Session, course_id: str, teacher_id, *, allow_admin:
 
 
 def _resolve_chapter(db: Session, chapter_id: str) -> tuple[Chapter, Module, Course]:
+    # Hide soft-deleted chapters/modules/courses across every chapter-scoped
+    # route (blocks, quizzes, assignments, progress). Before this filter,
+    # content deleted via the teacher UI was still reachable via chapter_id.
     row = (
         db.query(Chapter, Module, Course)
         .join(Module, Chapter.module_id == Module.id)
         .join(Course, Module.course_id == Course.id)
-        .filter(Chapter.id == chapter_id)
+        .filter(
+            Chapter.id == chapter_id,
+            Chapter.deleted_at.is_(None),
+            Module.deleted_at.is_(None),
+            Course.deleted_at.is_(None),
+        )
         .first()
     )
     if not row:
@@ -149,7 +161,13 @@ def resolve_chapter_course_id(db: Session, chapter_id: str) -> str:
     row = (
         db.query(Module.course_id)
         .join(Chapter, Chapter.module_id == Module.id)
-        .filter(Chapter.id == chapter_id)
+        .join(Course, Module.course_id == Course.id)
+        .filter(
+            Chapter.id == chapter_id,
+            Chapter.deleted_at.is_(None),
+            Module.deleted_at.is_(None),
+            Course.deleted_at.is_(None),
+        )
         .first()
     )
     if not row:

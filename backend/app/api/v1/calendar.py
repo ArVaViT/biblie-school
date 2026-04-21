@@ -7,7 +7,7 @@ from app.models.assignment import Assignment
 from app.models.course import Chapter, Course, Module
 from app.models.course_event import CourseEvent
 from app.models.enrollment import Enrollment
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.calendar import (
     CalendarEvent,
     CourseEventCreate,
@@ -32,10 +32,18 @@ def get_calendar_events(
     if not enrolled_course_ids:
         return []
 
+    # Drop trashed courses — users may still have enrollments pointing to
+    # deleted courses, but their calendar should not advertise deadlines
+    # from content that has been removed from the catalog.
     course_titles: dict[str, str] = {}
-    courses = db.query(Course.id, Course.title).filter(Course.id.in_(enrolled_course_ids)).all()
+    courses = (
+        db.query(Course.id, Course.title).filter(Course.id.in_(enrolled_course_ids), Course.deleted_at.is_(None)).all()
+    )
     for cid, ctitle in courses:
         course_titles[cid] = ctitle
+    enrolled_course_ids = list(course_titles.keys())
+    if not enrolled_course_ids:
+        return []
 
     events: list[CalendarEvent] = []
 
@@ -159,7 +167,7 @@ def list_course_events(
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     is_owner = str(course.created_by) == str(current_user.id)
-    is_admin = current_user.role == "admin"
+    is_admin = current_user.role == UserRole.ADMIN.value
     if not is_owner and not is_admin:
         enrolled = (
             db.query(Enrollment)

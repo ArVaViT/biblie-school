@@ -91,7 +91,7 @@ export default function StudentProgress() {
     }
     list = [...list].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1
-      if (sortBy === "name") return a.full_name.localeCompare(b.full_name) * dir
+      if (sortBy === "name") return (a.full_name ?? "").localeCompare(b.full_name ?? "") * dir
       if (sortBy === "progress") return (a.progress - b.progress) * dir
       if (sortBy === "last_activity") {
         const da = a.last_activity ? new Date(a.last_activity).getTime() : 0

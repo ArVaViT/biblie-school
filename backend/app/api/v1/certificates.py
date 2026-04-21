@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.models.certificate import Certificate
 from app.models.course import Course
 from app.models.enrollment import Enrollment
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.certificate import CertificateResponse, CertificateVerifyResponse
 from app.services.audit_service import log_action
 from app.services.notification_service import create_notification
@@ -33,7 +33,8 @@ def request_certificate(
     db: Session = Depends(get_db),
 ):
     """Request a certificate (creates a pending request)."""
-    course = db.query(Course).filter(Course.id == course_id).first()
+    # Soft-deleted courses must not accept new certificate requests.
+    course = db.query(Course).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
 
@@ -63,7 +64,7 @@ def request_certificate(
     db.add(cert)
     try:
         db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
         existing = (
             db.query(Certificate)
@@ -72,7 +73,7 @@ def request_certificate(
         )
         if existing:
             return existing
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Certificate already requested") from None
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Certificate already requested") from exc
     db.refresh(cert)
     return cert
 
@@ -117,7 +118,11 @@ def list_pending_certificates(
     db: Session = Depends(get_db),
 ):
     """Teacher: list pending certificates for courses they teach."""
-    teacher_course_ids = [c.id for c in db.query(Course).filter(Course.created_by == teacher.id).all()]
+    # Exclude trashed courses from the pending worklist — requests for
+    # deleted courses should not show up as actionable items.
+    teacher_course_ids = [
+        c.id for c in db.query(Course).filter(Course.created_by == teacher.id, Course.deleted_at.is_(None)).all()
+    ]
     if not teacher_course_ids:
         return []
     return (
@@ -237,7 +242,7 @@ def reject_certificate(
             detail=f"Certificate cannot be rejected (current status: {cert.status})",
         )
     course = db.query(Course).filter(Course.id == cert.course_id).first()
-    if current_user.role != "admin":
+    if current_user.role != UserRole.ADMIN.value:
         if not course or str(course.created_by) != str(current_user.id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

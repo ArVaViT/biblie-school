@@ -42,8 +42,14 @@ def create_notifications_bulk(
     # Bulk-insert one identical notification row per recipient. Used for fan-out
     # cases like course announcements where a per-row ``create_notification`` +
     # ``flush`` would cost one round-trip per enrolled student.
+    #
+    # ``bulk_insert_mappings`` bypasses the ORM ``default=uuid.uuid4`` on the
+    # ``id`` column and ``notifications.id`` has no server-side default in the
+    # migration (``005_add_audit_notifications``). Generate the UUIDs in
+    # Python so the insert does not fail with a NOT NULL violation.
     payloads = [
         {
+            "id": uuid.uuid4(),
             "user_id": uid,
             "type": type,
             "title": title,

@@ -16,7 +16,7 @@ from app.core.database import get_db
 from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.student_grade import StudentGrade
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.grade import (
     GradeResponse,
     GradeSummaryResponse,
@@ -52,7 +52,7 @@ def get_grading_config(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
 
     is_owner = str(course.created_by) == str(current_user.id)
-    is_admin = current_user.role == "admin"
+    is_admin = current_user.role == UserRole.ADMIN.value
     is_enrolled = (
         db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
         is not None
@@ -161,12 +161,12 @@ def get_grade_summary(
         )
     except HTTPException:
         raise
-    except SQLAlchemyError:
+    except SQLAlchemyError as exc:
         logger.exception("Grade summary DB error for course %s", course_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Grade calculation failed",
-        ) from None
+        ) from exc
 
 
 # ── CSV Export ────────────────────────────────────────────────────

@@ -26,8 +26,10 @@ const NOTIFICATION_COLORS: Record<NotificationType, string> = {
 }
 
 function timeAgo(dateStr: string): string {
+  const parsed = new Date(dateStr).getTime()
+  if (Number.isNaN(parsed)) return "—"
   const now = Date.now()
-  const diff = now - new Date(dateStr).getTime()
+  const diff = now - parsed
   const seconds = Math.floor(diff / 1000)
   if (seconds < 60) return "just now"
   const minutes = Math.floor(seconds / 60)
@@ -91,18 +93,31 @@ export default function NotificationBell() {
     return () => { signal.cancelled = true; clearInterval(interval) }
   }, [fetchUnreadCount])
 
+  const loadMoreSignalRef = useRef<{ cancelled: boolean } | null>(null)
+
   useEffect(() => {
     if (!open) {
       setNotifications([])
       setPage(1)
       setHasMore(false)
       setLoadingMore(false)
+      if (loadMoreSignalRef.current) loadMoreSignalRef.current.cancelled = true
       return
     }
     const signal = { cancelled: false }
     fetchNotifications(1, signal)
-    return () => { signal.cancelled = true }
+    return () => {
+      signal.cancelled = true
+      if (loadMoreSignalRef.current) loadMoreSignalRef.current.cancelled = true
+    }
   }, [open, fetchNotifications])
+
+  const handleLoadMore = useCallback(() => {
+    if (loadMoreSignalRef.current) loadMoreSignalRef.current.cancelled = true
+    const signal = { cancelled: false }
+    loadMoreSignalRef.current = signal
+    void fetchNotifications(page + 1, signal)
+  }, [fetchNotifications, page])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -253,7 +268,7 @@ export default function NotificationBell() {
                       size="sm"
                       className="w-full text-xs"
                       disabled={loadingMore}
-                      onClick={() => void fetchNotifications(page + 1)}
+                      onClick={handleLoadMore}
                     >
                       {loadingMore ? "Loading..." : "Load more"}
                     </Button>

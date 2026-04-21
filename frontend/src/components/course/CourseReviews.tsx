@@ -17,6 +17,7 @@ export default function CourseReviews({ courseId }: Props) {
   const [reviews, setReviews] = useState<CourseReview[]>([])
   const [loading, setLoading] = useState(true)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const loadReviews = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoading(true)
@@ -43,6 +44,8 @@ export default function CourseReviews({ courseId }: Props) {
       : 0
 
   const handleDelete = async (reviewId: string) => {
+    if (deletingId) return
+    setDeletingId(reviewId)
     try {
       await coursesService.deleteReview(reviewId)
       setReviews((prev) => prev.filter((r) => r.id !== reviewId))
@@ -50,6 +53,8 @@ export default function CourseReviews({ courseId }: Props) {
       toast({ title: "Review deleted", variant: "success" })
     } catch {
       toast({ title: "Failed to delete review", variant: "destructive" })
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -105,14 +110,16 @@ export default function CourseReviews({ courseId }: Props) {
                             variant="ghost"
                             size="sm"
                             className="h-6 px-2 text-xs text-destructive hover:text-destructive"
+                            disabled={deletingId === review.id}
                             onClick={() => handleDelete(review.id)}
                           >
-                            Yes
+                            {deletingId === review.id ? "…" : "Yes"}
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-6 px-2 text-xs"
+                            disabled={deletingId === review.id}
                             onClick={() => setConfirmDeleteId(null)}
                           >
                             No

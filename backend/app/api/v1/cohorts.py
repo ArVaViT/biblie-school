@@ -8,7 +8,7 @@ from app.models.cohort import Cohort
 from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.student_grade import StudentGrade
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.cohort import CohortCreate, CohortResponse, CohortUpdate
 
 router = APIRouter(prefix="/cohorts", tags=["cohorts"])
@@ -46,11 +46,13 @@ def list_cohorts(
     current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
 ) -> list[CohortResponse]:
-    course = db.query(Course).filter(Course.id == course_id).first()
+    course = db.query(Course).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     if course.status != "published":
-        if not current_user or (str(course.created_by) != str(current_user.id) and current_user.role != "admin"):
+        if not current_user or (
+            str(course.created_by) != str(current_user.id) and current_user.role != UserRole.ADMIN.value
+        ):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     cohorts = db.query(Cohort).filter(Cohort.course_id == course_id).order_by(Cohort.start_date.desc()).all()
     if not cohorts:

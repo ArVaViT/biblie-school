@@ -22,7 +22,7 @@ def list_course_reviews(
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    course = db.query(Course).filter(Course.id == course_id).first()
+    course = db.query(Course).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
     if not course or course.status != "published":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     return (

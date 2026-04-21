@@ -438,7 +438,11 @@ export default function CourseDetail() {
       {calendarEvents.length > 0 && (() => {
         const now = new Date()
         const upcoming = calendarEvents
-          .filter((e) => new Date(e.event_date).getTime() > now.getTime() - 24 * 60 * 60 * 1000)
+          .filter((e) => {
+            if (!e.event_date) return false
+            const t = new Date(e.event_date).getTime()
+            return !Number.isNaN(t) && t > now.getTime() - 24 * 60 * 60 * 1000
+          })
           .slice(0, 5)
         if (upcoming.length === 0) return null
         return (

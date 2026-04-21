@@ -345,10 +345,12 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
     ChapterBlock.quiz_id / assignment_id are remapped to the cloned entities.
     Enrollments, progress, grades, submissions, and certificates are NOT copied.
     """
+    # Only clone live courses. Attempting to clone a trashed course should
+    # 404 (mirrors the API-level visibility rules in get_course()).
     original = (
         db.query(Course)
         .options(joinedload(Course.modules).joinedload(Module.chapters))
-        .filter(Course.id == course_id)
+        .filter(Course.id == course_id, Course.deleted_at.is_(None))
         .first()
     )
     if original is None:
