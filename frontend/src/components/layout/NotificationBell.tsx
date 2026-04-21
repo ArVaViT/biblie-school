@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import type { Notification, NotificationType } from "@/types"
 import { cn } from "@/lib/utils"
+import PageSpinner from "@/components/ui/PageSpinner"
 
 const NOTIFICATION_ICONS: Record<NotificationType, typeof Bell> = {
   certificate_approved: Award,
@@ -194,9 +195,7 @@ export default function NotificationBell() {
 
           <div className="max-h-[400px] overflow-y-auto">
             {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
+              <PageSpinner variant="section" />
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
                 <Bell className="h-8 w-8 opacity-30" />

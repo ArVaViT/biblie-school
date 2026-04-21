@@ -320,11 +320,9 @@ export default function ChapterView() {
 
       {/* Content area based on chapter type */}
       <div className="mb-8 space-y-6">
-        {(chapterType === "reading" || chapterType === "content") && (
+        {chapterType === "reading" && (
           loadingBlocks ? (
-            <div className="flex justify-center py-8">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
+            <PageSpinner variant="section" />
           ) : chapterBlocks.length > 0 ? (
             <div className="space-y-6">
               {chapterBlocks.map((block) => (
@@ -358,9 +356,7 @@ export default function ChapterView() {
               ) : null
             })()}
             {loadingBlocks ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
+              <PageSpinner variant="section" />
             ) : chapterBlocks.length > 0 ? (
               <div className="space-y-6">
                 {chapterBlocks.map((block) => (
@@ -390,9 +386,7 @@ export default function ChapterView() {
               </div>
             )}
             {loadingBlocks ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
+              <PageSpinner variant="section" />
             ) : chapterBlocks.length > 0 ? (
               <div className="space-y-6">
                 {chapterBlocks.map((block) => (
@@ -434,9 +428,7 @@ export default function ChapterView() {
               </div>
             )}
             {loadingBlocks ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
+              <PageSpinner variant="section" />
             ) : chapterBlocks.length > 0 ? (
               <div className="space-y-6">
                 {chapterBlocks.map((block) => (
@@ -468,9 +460,7 @@ export default function ChapterView() {
         {chapterType === "mixed" && (
           <>
             {loadingBlocks ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
+              <PageSpinner variant="section" />
             ) : chapterBlocks.length > 0 ? (
               <div className="space-y-6">
                 {chapterBlocks.map((block) => (

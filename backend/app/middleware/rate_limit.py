@@ -39,6 +39,8 @@ from collections import defaultdict
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.core.http import get_client_ip
+
 ENDPOINT_LIMITS: dict[str, tuple[int, int]] = {
     "/api/v1/auth/": (10, 60),
     "/api/v1/files": (20, 60),
@@ -46,27 +48,6 @@ ENDPOINT_LIMITS: dict[str, tuple[int, int]] = {
 
 MAX_BUCKETS = 10_000
 CLEANUP_INTERVAL = 300
-
-
-def _client_ip(request: Request) -> str:
-    """Resolve the real client IP, honoring standard forwarding headers.
-
-    Vercel always sets `x-forwarded-for` to `<client>, <proxy>, <proxy>…`
-    (left-to-right). Reading `request.client.host` on Vercel yields the
-    Vercel worker IP, which is shared across many users and completely
-    breaks per-client rate limiting. The fallback to `request.client.host`
-    is only used in local development where no proxy is in front.
-    """
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        # First IP is the original client; anything after is a proxy chain.
-        return forwarded.split(",")[0].strip()
-
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip.strip()
-
-    return request.client.host if request.client else "unknown"
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -100,7 +81,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        client_ip = _client_ip(request)
+        client_ip = get_client_ip(request, fallback="unknown") or "unknown"
         path = request.url.path
         max_calls, window = self._resolve_limit(path)
 

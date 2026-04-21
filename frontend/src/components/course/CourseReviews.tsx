@@ -6,6 +6,7 @@ import { useAuth } from "@/context/useAuth"
 import { toast } from "@/hooks/use-toast"
 import type { CourseReview } from "@/types"
 import { Star, Trash2, MessageSquare } from "lucide-react"
+import PageSpinner from "@/components/ui/PageSpinner"
 
 interface Props {
   courseId: string
@@ -76,9 +77,7 @@ export default function CourseReviews({ courseId }: Props) {
       </CardHeader>
       <CardContent className="space-y-6">
         {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
+          <PageSpinner variant="section" />
         ) : reviews.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             No reviews yet.

@@ -4,6 +4,7 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING
 
+from app.core.http import get_client_ip
 from app.models.audit_log import AuditLog
 
 if TYPE_CHECKING:
@@ -31,14 +32,7 @@ def log_action(
         ip_address: str | None = None
         user_agent: str | None = None
         if request is not None:
-            # Prefer x-forwarded-for because request.client.host on Vercel is
-            # the Vercel worker IP, not the real user. Take the first IP in
-            # the chain (left-to-right) since subsequent hops are proxies.
-            forwarded = request.headers.get("x-forwarded-for")
-            if forwarded:
-                ip_address = forwarded.split(",")[0].strip() or None
-            else:
-                ip_address = request.headers.get("x-real-ip") or (request.client.host if request.client else None)
+            ip_address = get_client_ip(request)
             user_agent = request.headers.get("user-agent", "")[:500]
 
         nested = db.begin_nested()

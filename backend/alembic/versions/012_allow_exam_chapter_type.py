@@ -21,17 +21,11 @@ ALLOWED = ("reading", "video", "audio", "quiz", "exam", "assignment", "discussio
 def upgrade() -> None:
     op.execute("ALTER TABLE chapters DROP CONSTRAINT IF EXISTS chapters_chapter_type_check")
     values = ", ".join(f"'{v}'" for v in ALLOWED)
-    op.execute(
-        f"ALTER TABLE chapters ADD CONSTRAINT chapters_chapter_type_check "
-        f"CHECK (chapter_type IN ({values}))"
-    )
+    op.execute(f"ALTER TABLE chapters ADD CONSTRAINT chapters_chapter_type_check CHECK (chapter_type IN ({values}))")
 
 
 def downgrade() -> None:
     op.execute("ALTER TABLE chapters DROP CONSTRAINT IF EXISTS chapters_chapter_type_check")
     old = ("reading", "video", "audio", "quiz", "assignment", "discussion", "mixed", "content")
     values = ", ".join(f"'{v}'" for v in old)
-    op.execute(
-        f"ALTER TABLE chapters ADD CONSTRAINT chapters_chapter_type_check "
-        f"CHECK (chapter_type IN ({values}))"
-    )
+    op.execute(f"ALTER TABLE chapters ADD CONSTRAINT chapters_chapter_type_check CHECK (chapter_type IN ({values}))")

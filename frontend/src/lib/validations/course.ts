@@ -13,6 +13,8 @@ const optionalString = (max: number) =>
     .optional()
     .or(z.literal(""))
 
+// Kept in sync with backend/app/schemas/course.py CHAPTER_TYPES and
+// frontend/src/types/index.ts ChapterType. Used by Zod to validate form input.
 export const CHAPTER_TYPES = [
   "reading",
   "video",
@@ -23,7 +25,6 @@ export const CHAPTER_TYPES = [
   "discussion",
   "mixed",
 ] as const
-export type ChapterType = (typeof CHAPTER_TYPES)[number]
 
 export const courseSchema = z.object({
   title: z

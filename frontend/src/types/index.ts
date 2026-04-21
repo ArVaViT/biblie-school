@@ -37,7 +37,17 @@ export interface Module {
   chapters?: Chapter[]
 }
 
-export type ChapterType = 'reading' | 'content' | 'video' | 'audio' | 'quiz' | 'exam' | 'assignment' | 'discussion' | 'mixed'
+// Keep in sync with CHAPTER_TYPES in backend/app/schemas/course.py and
+// frontend/src/lib/validations/course.ts — both are authoritative sources.
+export type ChapterType =
+  | 'reading'
+  | 'video'
+  | 'audio'
+  | 'quiz'
+  | 'exam'
+  | 'assignment'
+  | 'discussion'
+  | 'mixed'
 
 export interface Chapter {
   id: string

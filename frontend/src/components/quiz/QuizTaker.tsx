@@ -15,6 +15,7 @@ import {
   BookOpen,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import PageSpinner from "@/components/ui/PageSpinner"
 
 interface QuizTakerProps {
   chapterId: string
@@ -60,11 +61,7 @@ export default function QuizTaker({ chapterId }: QuizTakerProps) {
   }, [chapterId])
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    )
+    return <PageSpinner variant="section" />
   }
   if (fetchError) return (
     <p className="text-sm text-destructive py-4 text-center">Failed to load quiz. Please try refreshing the page.</p>

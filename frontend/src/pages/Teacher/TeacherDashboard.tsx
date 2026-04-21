@@ -493,9 +493,7 @@ export default function TeacherDashboard() {
         {showTrash && (
           <div className="mt-4">
             {trashLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
+              <PageSpinner variant="section" />
             ) : trashedCourses.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">Trash is empty.</p>
             ) : (

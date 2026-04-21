@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/hooks/use-toast"
 import type { Assignment, AssignmentSubmission } from "@/types"
+import PageSpinner from "@/components/ui/PageSpinner"
 import {
   FileText,
   Calendar,
@@ -62,11 +63,7 @@ export default function AssignmentPanel({ chapterId, onSubmitted }: AssignmentPa
   }, [chapterId])
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-6">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    )
+    return <PageSpinner variant="section" />
   }
   if (fetchError) return (
     <p className="text-sm text-destructive py-4 text-center">Failed to load assignments. Please try refreshing.</p>
