@@ -54,7 +54,7 @@ def _validate_via_supabase(token: str) -> dict | None:
             f"{supabase_url}/auth/v1/user",
             headers={
                 "Authorization": f"Bearer {token}",
-                "apikey": settings.SUPABASE_KEY or "",
+                "apikey": settings.SUPABASE_SERVICE_ROLE_KEY or "",
             },
             timeout=5.0,
         )

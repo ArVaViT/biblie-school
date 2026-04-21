@@ -1,7 +1,6 @@
 import logging
 import os
 from collections.abc import Generator
-from contextlib import contextmanager
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -120,25 +119,3 @@ def get_db() -> Generator[Session, None, None]:
         raise
     finally:
         db.close()
-
-
-@contextmanager
-def atomic(db: Session) -> Generator[Session, None, None]:
-    """Standardized transaction helper for multi-step writes.
-
-    Usage:
-        with atomic(db):
-            db.add(a)
-            db.add(b)
-            # commit happens on successful exit; rollback on any exception.
-
-    This is the preferred pattern for endpoints that need several mutations to
-    succeed or fail together. Nested use is safe because ``get_db`` will still
-    roll back the outer session on any unhandled exception.
-    """
-    try:
-        yield db
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise

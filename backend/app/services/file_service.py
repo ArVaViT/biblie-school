@@ -20,11 +20,9 @@ def get_supabase_client() -> Client:
     # Server-side uploads need the service-role key so they bypass storage
     # RLS policies. Never fall back to the anon key here — it would silently
     # fail uploads for any RLS-protected bucket.
-    key = settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_KEY
+    key = settings.SUPABASE_SERVICE_ROLE_KEY
     if not key:
-        raise RuntimeError(
-            "SUPABASE_SERVICE_ROLE_KEY (or legacy SUPABASE_KEY) is not configured",
-        )
+        raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY is not configured")
     return create_client(settings.SUPABASE_URL, key)
 
 

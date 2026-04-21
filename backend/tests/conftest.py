@@ -8,7 +8,7 @@ automatically via SQLAlchemy 2.x dialect fallback.
 import os
 
 os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
-os.environ.setdefault("SUPABASE_KEY", "test-key")
+os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-key")
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/testdb")
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-testing-only")
 

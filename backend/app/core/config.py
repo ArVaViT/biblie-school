@@ -11,12 +11,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
     SUPABASE_URL: str
-    # Preferred env var for server-side Supabase work (storage uploads, admin
-    # queries). Keep SUPABASE_KEY as a legacy alias so existing deployments
-    # keep working — but new deployments should set SUPABASE_SERVICE_ROLE_KEY
-    # explicitly to make the key's scope obvious.
+    # Server-side Supabase key (storage uploads, admin queries). Also read
+    # from the legacy SUPABASE_KEY env var for backwards compatibility with
+    # early deployments — see load_alternative_env_vars() below.
     SUPABASE_SERVICE_ROLE_KEY: str | None = Field(default=None, description="Supabase service-role key (server-only)")
-    SUPABASE_KEY: str | None = Field(default=None, description="DEPRECATED: alias for SUPABASE_SERVICE_ROLE_KEY")
     SUPABASE_STORAGE_BUCKET: str = "files"
 
     DATABASE_URL: str | None = Field(default=None, description="Database connection URL")
@@ -35,27 +33,12 @@ class Settings(BaseSettings):
     def load_alternative_env_vars(self):
         """Support alternative env var names from Vercel/Supabase integration."""
         if not self.SUPABASE_SERVICE_ROLE_KEY:
-            self.SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-        if not self.SUPABASE_KEY:
-            # Fall back to the service role key, then to legacy / anon-key
-            # env names. We intentionally DO NOT accept the anon key as a
-            # service-side secret in new deployments.
-            self.SUPABASE_KEY = (
-                self.SUPABASE_SERVICE_ROLE_KEY
-                or os.getenv("SUPABASE_KEY")
-                or os.getenv("SUPABASE_ANON_KEY")
-                or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-            )
-
-        # Keep the service-role slot populated even when callers only set the
-        # legacy SUPABASE_KEY — server-side uploads need the elevated key.
-        if not self.SUPABASE_SERVICE_ROLE_KEY and self.SUPABASE_KEY:
-            self.SUPABASE_SERVICE_ROLE_KEY = self.SUPABASE_KEY
-            if os.getenv("SUPABASE_KEY") and not os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
-                logger.warning(
-                    "SUPABASE_KEY is deprecated; set SUPABASE_SERVICE_ROLE_KEY explicitly",
-                )
+            # Accept the legacy SUPABASE_KEY name from older deployments.
+            # Anon keys are NEVER accepted as a server-side secret.
+            legacy = os.getenv("SUPABASE_KEY")
+            if legacy:
+                logger.warning("SUPABASE_KEY is deprecated; set SUPABASE_SERVICE_ROLE_KEY explicitly")
+                self.SUPABASE_SERVICE_ROLE_KEY = legacy
 
         if not self.DATABASE_URL:
             self.DATABASE_URL = (
