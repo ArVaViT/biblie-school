@@ -265,6 +265,33 @@ def _storage_signed_url(
     return f"{supabase_url}/storage/v1/{signed_path}"
 
 
+def _coalesce_text_blocks(blocks: list[dict]) -> list[dict]:
+    """Merge runs of consecutive text blocks into a single block.
+
+    The content file separates each reading chapter into semantic pieces
+    (opening callouts, prose body, closing callouts). Rendered as
+    separate blocks these become three visually distinct "cards"; merging
+    them produces one continuous flow. Non-text blocks (video, file,
+    quiz) are left as-is and act as separators.
+    """
+    merged: list[dict] = []
+    buffer: list[str] = []
+
+    def flush() -> None:
+        if buffer:
+            merged.append({"block_type": "text", "content": "\n\n".join(buffer)})
+            buffer.clear()
+
+    for b in blocks:
+        if b.get("block_type") == "text" and b.get("content"):
+            buffer.append(b["content"].strip())
+        else:
+            flush()
+            merged.append(b)
+    flush()
+    return merged
+
+
 def _api(client: httpx.Client, method: str, path: str, **kwargs: Any) -> Any:
     resp = client.request(method, path, **kwargs)
     if resp.status_code >= 400:
@@ -349,7 +376,14 @@ def _create_modules_and_content(
             )
             chapter_ids[chapter_key] = chapter_id
 
-            for idx, block in enumerate(chapter_data.get("content_blocks", [])):
+            raw_blocks = chapter_data.get("content_blocks", [])
+            # Coalesce consecutive text blocks into a single HTML block so
+            # the student sees one continuous lesson instead of three
+            # "cards" (intro callouts -> prose -> takeaway). The content
+            # file keeps the three author-friendly pieces separate; this
+            # step is purely a rendering policy for the student side.
+            blocks = _coalesce_text_blocks(raw_blocks)
+            for idx, block in enumerate(blocks):
                 file_url = block.get("file_url")
                 if file_url == SOURCES_FILE_URL_PLACEHOLDER:
                     file_url = sources_url

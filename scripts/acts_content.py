@@ -13,6 +13,12 @@ Pedagogical structure (applied to every reading chapter):
      callouts) with h2 section headings;
   5. one closing takeaway card with three to four discussion questions.
 
+The three text pieces (2+3, 4, 5) are kept as separate entries in this
+file so that the author can edit each section cleanly. The seed script
+coalesces all consecutive text blocks in the same chapter into a single
+HTML block before uploading — students see one continuous lesson
+instead of three separate "cards".
+
 Auxiliary material (per-lesson homework, glossary, bibliography,
 exam preparation, essay rules, reading plan) is collected in a single
 "Приложение: материалы курса" chapter at the end of Module 4, so the
