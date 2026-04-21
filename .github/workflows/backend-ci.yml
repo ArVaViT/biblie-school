@@ -151,41 +151,33 @@ jobs:
       # `auth` schema, the `auth.uid()` / `auth.role()` helpers, and the
       # `authenticated` / `anon` / `service_role` roles preconfigured. The
       # stock `postgres:15` service container has none of that, so CREATE
-      # POLICY ... TO authenticated fails with `role does not exist`. This
-      # step stands in the minimum Supabase surface the migrations depend on
-      # so upgrade head can run end-to-end.
+      # POLICY ... TO authenticated fails with `role does not exist`. We
+      # stand up the minimum Supabase surface the migrations depend on here
+      # so `alembic upgrade head` can run end-to-end. We use SQLAlchemy (a
+      # CI dependency) instead of `psql`, which isn't guaranteed to be on
+      # the runner's PATH.
       - name: Bootstrap Supabase compatibility primitives
-        env:
-          PGPASSWORD: ci
         run: |
-          psql -h localhost -U ci -d ci -v ON_ERROR_STOP=1 <<'SQL'
-          DO $$
-          BEGIN
-            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-              CREATE ROLE authenticated NOLOGIN;
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-              CREATE ROLE anon NOLOGIN;
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
-              CREATE ROLE service_role NOLOGIN BYPASSRLS;
-            END IF;
-          END
-          $$;
+          python - <<'PY'
+          from sqlalchemy import create_engine, text
 
-          CREATE SCHEMA IF NOT EXISTS auth;
-          GRANT USAGE ON SCHEMA auth TO authenticated, anon, service_role;
-
-          CREATE OR REPLACE FUNCTION auth.uid()
-            RETURNS uuid
-            LANGUAGE sql STABLE
-            AS $fn$ SELECT NULL::uuid $fn$;
-
-          CREATE OR REPLACE FUNCTION auth.role()
-            RETURNS text
-            LANGUAGE sql STABLE
-            AS $fn$ SELECT NULL::text $fn$;
-          SQL
+          engine = create_engine("postgresql://ci:ci@localhost:5432/ci?sslmode=disable", isolation_level="AUTOCOMMIT")
+          statements = [
+              "DO $ROLES$ BEGIN "
+              "IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF; "
+              "IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF; "
+              "IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN BYPASSRLS; END IF; "
+              "END $ROLES$;",
+              "CREATE SCHEMA IF NOT EXISTS auth",
+              "GRANT USAGE ON SCHEMA auth TO authenticated, anon, service_role",
+              "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $FN$ SELECT NULL::uuid $FN$",
+              "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $FN$ SELECT NULL::text $FN$",
+          ]
+          with engine.begin() as conn:
+              for stmt in statements:
+                  conn.execute(text(stmt))
+          print("OK: bootstrapped Supabase primitives (auth schema, auth.uid/role, authenticated/anon/service_role roles)")
+          PY
 
       - name: Apply Alembic migrations (upgrade head)
         run: alembic upgrade head

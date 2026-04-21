@@ -35,10 +35,9 @@ jobs:
         with:
           # jsdom@>=28 and vitest@>=4 declare engines ^20.19.0 || ^22.12.0 || >=24.0.0,
           # so we need 22.12+ specifically (not just "22" which resolves to 22.0.0).
-          # Pin to the current LTS satisfying that constraint. Keep in sync with
-          # package.json "engines".
-          node-version: '22.x'
-          check-latest: true
+          # Pin to a concrete 22.x release that satisfies the constraint.
+          # Keep in sync with package.json "engines".
+          node-version: '22.18.0'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
