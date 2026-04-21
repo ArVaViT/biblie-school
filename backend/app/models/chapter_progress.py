@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -11,6 +11,14 @@ class ChapterProgress(Base):
     __tablename__ = "chapter_progress"
     __table_args__ = (
         UniqueConstraint("user_id", "chapter_id", name="uq_progress_user_chapter"),
+        # Mirrors production CHECK. Keeping it declarative in the model means
+        # fresh Alembic-bootstrapped environments (and the SQLite test DB) also
+        # reject invalid values, so a regression like completion_type="quiz" is
+        # caught without having to go through the prod DB to find out.
+        CheckConstraint(
+            "completion_type IN ('self', 'teacher', 'quiz')",
+            name="chapter_progress_completion_type_check",
+        ),
         Index("ix_chapter_progress_user_id", "user_id"),
         Index("ix_chapter_progress_chapter_id", "chapter_id"),
     )

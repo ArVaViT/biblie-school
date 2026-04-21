@@ -113,7 +113,21 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
     # conflicts with current state — not that the database is down. Surfacing
     # these as 503 hid real client-side bugs (duplicate keys, stale refs)
     # behind a generic outage message.
-    logger.warning("Integrity error on %s %s: %s", request.method, request.url.path, exc)
+    # We pull the pgcode and constraint name off ``exc.orig`` so log search can
+    # jump straight to the offending constraint instead of fishing through the
+    # full rendered SQL statement.
+    orig = getattr(exc, "orig", None)
+    pgcode = getattr(orig, "pgcode", None)
+    diag = getattr(orig, "diag", None)
+    constraint = getattr(diag, "constraint_name", None) if diag is not None else None
+    logger.warning(
+        "Integrity error on %s %s pgcode=%s constraint=%s: %s",
+        request.method,
+        request.url.path,
+        pgcode,
+        constraint,
+        exc,
+    )
     return JSONResponse(
         status_code=409,
         content={"detail": "Request conflicts with current state of the resource."},

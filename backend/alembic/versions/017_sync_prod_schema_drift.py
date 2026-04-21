@@ -23,6 +23,7 @@ Revises: 016_rls_perf_cleanup
 Create Date: 2026-04-21
 """
 
+import contextlib
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -48,14 +49,12 @@ def upgrade() -> None:
         with op.batch_alter_table("course_prerequisites", recreate="always") as batch:
             batch.drop_column("id")
             batch.drop_column("created_at")
-            batch.create_primary_key(
-                "course_prerequisites_pkey", ["course_id", "prerequisite_course_id"]
-            )
+            batch.create_primary_key("course_prerequisites_pkey", ["course_id", "prerequisite_course_id"])
             # The dedicated uniqueness constraint is now redundant with the PK.
-            try:
+            # It may not exist on older SQLite batches that skipped it, so
+            # tolerate its absence.
+            with contextlib.suppress(Exception):
                 batch.drop_constraint("uq_prerequisite_course_pair", type_="unique")
-            except Exception:  # noqa: BLE001 — constraint may not exist on SQLite batches
-                pass
     else:
         # Postgres / production path.
         op.execute("ALTER TABLE course_prerequisites DROP CONSTRAINT IF EXISTS uq_prerequisite_course_pair")
@@ -96,12 +95,8 @@ def downgrade() -> None:
     dialect = _dialect()
     if dialect == "sqlite":
         with op.batch_alter_table("course_prerequisites", recreate="always") as batch:
-            batch.add_column(
-                sa.Column("id", sa.String(length=36), nullable=True)
-            )
-            batch.add_column(
-                sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now())
-            )
+            batch.add_column(sa.Column("id", sa.String(length=36), nullable=True))
+            batch.add_column(sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()))
     else:
         op.execute("ALTER TABLE course_prerequisites DROP CONSTRAINT IF EXISTS course_prerequisites_pkey")
         op.add_column(
