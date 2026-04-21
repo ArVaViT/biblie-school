@@ -1,14 +1,18 @@
 import { lazy, Suspense } from "react"
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 import { AuthProvider } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import { useAuth } from "./context/useAuth"
 import { usePageTitle } from "./hooks/usePageTitle"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { Toaster } from "./components/ui/toaster"
+import { ConfirmProvider } from "./components/ui/alert-dialog"
 import Header from "./components/layout/Header"
 import AnnouncementBanner from "./components/announcements/AnnouncementBanner"
 import NotFound from "./pages/NotFound"
+import PageSpinner from "./components/ui/PageSpinner"
 
 const Login = lazy(() => import("./pages/Auth/Login"))
 const Register = lazy(() => import("./pages/Auth/Register"))
@@ -31,31 +35,23 @@ const ChapterEditor = lazy(() => import("./pages/Teacher/ChapterEditor"))
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"))
 const CalendarPage = lazy(() => import("./pages/Calendar/CalendarPage"))
 
-function RouteSpinner() {
-  return (
-    <div className="flex justify-center py-20">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-    </div>
-  )
-}
-
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <RouteSpinner />
+  if (loading) return <PageSpinner />
   if (!user) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <RouteSpinner />
+  if (loading) return <PageSpinner />
   if (user) return <Navigate to="/" replace />
   return <>{children}</>
 }
 
 function TeacherRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <RouteSpinner />
+  if (loading) return <PageSpinner />
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== "teacher" && user.role !== "admin") {
     return <Navigate to="/" replace />
@@ -65,7 +61,7 @@ function TeacherRoute({ children }: { children: React.ReactNode }) {
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <RouteSpinner />
+  if (loading) return <PageSpinner />
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== "admin") {
     return <Navigate to="/" replace />
@@ -95,20 +91,13 @@ function AppRoutes() {
   usePageTitle()
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
-          <span className="text-sm text-muted-foreground">Loading...</span>
-        </div>
-      </div>
-    )
+    return <PageSpinner variant="screen" label="Loading..." />
   }
 
   if (isAuthPage) {
     return (
       <ErrorBoundary>
-        <Suspense fallback={<RouteSpinner />}>
+        <Suspense fallback={<PageSpinner />}>
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
@@ -130,7 +119,7 @@ function AppRoutes() {
       <AnnouncementBanner />
       <main className="flex-1">
         <ErrorBoundary>
-          <Suspense fallback={<RouteSpinner />}>
+          <Suspense fallback={<PageSpinner />}>
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/dashboard" element={<Navigate to="/" replace />} />
@@ -177,9 +166,16 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <AppRoutes />
+          <ConfirmProvider>
+            <AppRoutes />
+          </ConfirmProvider>
         </AuthProvider>
       </ThemeProvider>
+      {/* Vercel Analytics (page views) + Speed Insights (Web Vitals).
+          Both only emit from the deployed *.vercel.app domain — local dev
+          silently no-ops, so there's no need to gate these behind env vars. */}
+      <Analytics />
+      <SpeedInsights />
     </BrowserRouter>
   )
 }

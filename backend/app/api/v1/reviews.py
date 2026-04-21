@@ -16,7 +16,7 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
 @router.get("/course/{course_id}", response_model=list[ReviewResponse])
-async def list_course_reviews(
+def list_course_reviews(
     course_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
@@ -36,7 +36,7 @@ async def list_course_reviews(
 
 
 @router.post("/course/{course_id}", response_model=ReviewResponse)
-async def create_or_update_review(
+def create_or_update_review(
     course_id: str,
     data: ReviewCreate,
     response: Response,
@@ -102,7 +102,7 @@ async def create_or_update_review(
 
 
 @router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_review(
+def delete_review(
     review_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

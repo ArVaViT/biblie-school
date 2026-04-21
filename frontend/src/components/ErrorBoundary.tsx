@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react"
+import * as Sentry from "@sentry/react"
 
 interface Props {
   children: ReactNode
@@ -22,6 +23,12 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("ErrorBoundary caught:", error, info.componentStack)
+    // Forward to Sentry with the React component stack attached. Sentry.init()
+    // is a no-op when VITE_SENTRY_DSN is unset, so this is safe unconditionally.
+    Sentry.withScope((scope) => {
+      scope.setContext("react", { componentStack: info.componentStack })
+      Sentry.captureException(error)
+    })
   }
 
   private handleReset = () => {

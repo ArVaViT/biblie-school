@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import QuizEditor from "@/components/quiz/QuizEditor"
 import AssignmentEditor from "@/components/assignment/AssignmentEditor"
+import { useConfirm } from "@/components/ui/alert-dialog"
 
 const BLOCK_TYPES = [
   { value: "text", label: "Text", icon: Type },
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export default function ChapterBlockEditor({ chapterId }: Props) {
+  const confirm = useConfirm()
   const [blocks, setBlocks] = useState<ChapterBlock[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedBlock, setExpandedBlock] = useState<string | null>(null)
@@ -162,7 +164,12 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
   }
 
   const deleteBlock = async (blockId: string) => {
-    if (!confirm("Delete this block?")) return
+    const ok = await confirm({
+      title: "Delete this block?",
+      confirmLabel: "Delete",
+      tone: "destructive",
+    })
+    if (!ok) return
     try {
       await coursesService.deleteBlock(blockId)
       setBlocks((prev) => prev.filter((b) => b.id !== blockId))

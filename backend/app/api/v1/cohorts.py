@@ -41,7 +41,7 @@ def _get_cohort_or_404(db: Session, cohort_id: str) -> Cohort:
 
 
 @router.get("/course/{course_id}", response_model=list[CohortResponse])
-async def list_cohorts(
+def list_cohorts(
     course_id: str,
     current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
@@ -89,7 +89,7 @@ async def list_cohorts(
     response_model=CohortResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_cohort(
+def create_cohort(
     course_id: str,
     data: CohortCreate,
     teacher: User = Depends(require_teacher),
@@ -113,7 +113,7 @@ async def create_cohort(
 
 
 @router.put("/{cohort_id}", response_model=CohortResponse)
-async def update_cohort(
+def update_cohort(
     cohort_id: str,
     data: CohortUpdate,
     teacher: User = Depends(require_teacher),
@@ -131,7 +131,7 @@ async def update_cohort(
 
 
 @router.delete("/{cohort_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_cohort(
+def delete_cohort(
     cohort_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -143,7 +143,7 @@ async def delete_cohort(
 
 
 @router.get("/{cohort_id}/students")
-async def list_cohort_students(
+def list_cohort_students(
     cohort_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -185,7 +185,7 @@ async def list_cohort_students(
 
 
 @router.post("/{cohort_id}/complete", response_model=CohortResponse)
-async def complete_cohort(
+def complete_cohort(
     cohort_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),

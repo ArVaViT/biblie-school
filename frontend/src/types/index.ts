@@ -199,10 +199,12 @@ export interface Certificate {
   requested_at: string
 }
 
+export type BlockType = 'text' | 'video' | 'quiz' | 'assignment' | 'file'
+
 export interface ChapterBlock {
   id: string
   chapter_id: string
-  block_type: string
+  block_type: BlockType
   order_index: number
   content: string | null
   video_url: string | null

@@ -75,10 +75,14 @@ def _validate_via_supabase(token: str) -> dict | None:
 
 
 def decode_access_token(token: str) -> dict | None:
+    # Validated at app startup by Settings.model_post_init; this assert gives
+    # PyJWT (and mypy) a non-Optional secret without re-adding a runtime check.
+    secret = settings.JWT_SECRET_KEY
+    assert secret is not None, "JWT_SECRET_KEY missing — Settings post-init should have raised"
     try:
         return jwt.decode(
             token,
-            settings.JWT_SECRET_KEY,
+            secret,
             algorithms=[settings.JWT_ALGORITHM],
             audience="authenticated",
         )

@@ -7,6 +7,7 @@ import { coursesService } from "@/services/courses"
 import { toast } from "@/hooks/use-toast"
 import type { Quiz } from "@/types"
 import { Plus, Trash2, Save, ClipboardList, Loader2, ArrowUp, ArrowDown } from "lucide-react"
+import { useConfirm } from "@/components/ui/alert-dialog"
 
 interface QuizEditorProps {
   chapterId: string
@@ -58,6 +59,7 @@ function makeDefaultQuestion(order: number): DraftQuestion {
 }
 
 export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSaved }: QuizEditorProps) {
+  const confirm = useConfirm()
   const [existingQuiz, setExistingQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -232,7 +234,14 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
   }
 
   const handleDelete = async () => {
-    if (!existingQuiz || !confirm("Delete this quiz? Students will lose access.")) return
+    if (!existingQuiz) return
+    const ok = await confirm({
+      title: "Delete this quiz?",
+      description: "Students will lose access to the quiz and its attempts.",
+      confirmLabel: "Delete quiz",
+      tone: "destructive",
+    })
+    if (!ok) return
     setDeleting(true)
     try {
       await coursesService.deleteQuiz(existingQuiz.id)

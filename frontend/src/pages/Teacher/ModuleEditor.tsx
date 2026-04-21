@@ -8,6 +8,8 @@ import { coursesService } from "@/services/courses"
 import { getErrorDetail } from "@/lib/errorDetail"
 import type { Module, Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
+import { moduleSchema, chapterSchema } from "@/lib/validations/course"
+import { useConfirm } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import {
   Plus, Trash2, ChevronRight,
@@ -33,6 +35,7 @@ function chapterTypeBadge(type: string) {
 export default function ModuleEditor() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>()
   const navigate = useNavigate()
+  const confirm = useConfirm()
 
   const [mod, setMod] = useState<Module | null>(null)
   const [loading, setLoading] = useState(true)
@@ -71,6 +74,19 @@ export default function ModuleEditor() {
     if (!courseId || !moduleId) return
     const trimmed = value.trim()
     if (field === "title" && !trimmed) return
+    // Pick the relevant slice of moduleSchema so both the length cap and the
+    // trim rule match what the backend Pydantic schema enforces.
+    const check = moduleSchema
+      .pick({ title: true, description: true })
+      .partial()
+      .safeParse({ [field]: trimmed })
+    if (!check.success) {
+      toast({
+        title: check.error.issues[0]?.message ?? `Invalid ${field}`,
+        variant: "destructive",
+      })
+      return
+    }
     setSavingModule(true)
     try {
       await coursesService.updateModule(courseId, moduleId, { [field]: trimmed })
@@ -129,11 +145,20 @@ export default function ModuleEditor() {
 
   const renameChapter = async (ch: Chapter, newTitle: string) => {
     if (!courseId || !moduleId || !newTitle.trim()) return
+    const trimmed = newTitle.trim()
+    const check = chapterSchema.pick({ title: true }).safeParse({ title: trimmed })
+    if (!check.success) {
+      toast({
+        title: check.error.issues[0]?.message ?? "Invalid chapter title",
+        variant: "destructive",
+      })
+      return
+    }
     const previousTitle = ch.title
-    updateChapterLocal(ch.id, { title: newTitle.trim() })
+    updateChapterLocal(ch.id, { title: trimmed })
     try {
       await coursesService.updateChapter(courseId, moduleId, ch.id, {
-        title: newTitle.trim(),
+        title: trimmed,
       })
     } catch {
       updateChapterLocal(ch.id, { title: previousTitle })
@@ -142,7 +167,14 @@ export default function ModuleEditor() {
   }
 
   const deleteChapter = async (chId: string) => {
-    if (!courseId || !moduleId || !confirm("Delete this chapter?")) return
+    if (!courseId || !moduleId) return
+    const ok = await confirm({
+      title: "Delete this chapter?",
+      description: "The chapter and its content will be removed.",
+      confirmLabel: "Delete",
+      tone: "destructive",
+    })
+    if (!ok) return
     try {
       await coursesService.deleteChapter(courseId, moduleId, chId)
       setMod((prev) =>

@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
@@ -41,7 +42,7 @@ router = APIRouter(prefix="/grades", tags=["grades"])
 
 
 @router.get("/course/{course_id}/config", response_model=GradingConfigResponse)
-async def get_grading_config(
+def get_grading_config(
     course_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -67,7 +68,7 @@ async def get_grading_config(
 
 
 @router.put("/course/{course_id}/config", response_model=GradingConfigResponse)
-async def update_grading_config(
+def update_grading_config(
     course_id: str,
     data: GradingConfigUpdate,
     teacher: User = Depends(require_teacher),
@@ -93,7 +94,7 @@ async def update_grading_config(
     "/course/{course_id}/student/{student_id}/calculated",
     response_model=StudentCalculatedGrade,
 )
-async def get_calculated_grade(
+def get_calculated_grade(
     course_id: str,
     student_id: UUID,
     teacher: User = Depends(require_teacher),
@@ -136,7 +137,7 @@ async def get_calculated_grade(
 
 
 @router.get("/course/{course_id}/summary", response_model=GradeSummaryResponse)
-async def get_grade_summary(
+def get_grade_summary(
     course_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -160,8 +161,8 @@ async def get_grade_summary(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("Grade summary error for course %s: %s", course_id, e)
+    except SQLAlchemyError:
+        logger.exception("Grade summary DB error for course %s", course_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Grade calculation failed",
@@ -172,7 +173,7 @@ async def get_grade_summary(
 
 
 @router.get("/course/{course_id}/export-csv")
-async def export_grades_csv(
+def export_grades_csv(
     course_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -217,7 +218,10 @@ async def export_grades_csv(
         )
 
     buf.seek(0)
-    safe_title = "".join(c for c in course.title if c.isalnum() or c in " -_")[:50].strip()
+    # ASCII-only fallback for the legacy ``filename=`` header. ``c.isalnum``
+    # accepts non-ASCII code points (e.g. Cyrillic letters), which then break
+    # starlette's latin-1 header encoding, so we gate on ASCII explicitly.
+    safe_title = "".join(c for c in course.title if c.isascii() and (c.isalnum() or c in " -_"))[:50].strip()
     if not safe_title:
         safe_title = str(course_id)[:8]
     ascii_filename = f"grades_{safe_title}.csv"
@@ -236,7 +240,7 @@ async def export_grades_csv(
 
 
 @router.get("/my", response_model=list[GradeResponse])
-async def list_my_grades(
+def list_my_grades(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
@@ -253,7 +257,7 @@ async def list_my_grades(
 
 
 @router.get("/my/{course_id}", response_model=GradeResponse)
-async def get_my_grade_for_course(
+def get_my_grade_for_course(
     course_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -275,7 +279,7 @@ async def get_my_grade_for_course(
 
 
 @router.get("/course/{course_id}", response_model=list[GradeResponse])
-async def list_course_grades(
+def list_course_grades(
     course_id: str,
     cohort_id: str | None = Query(None),
     skip: int = Query(0, ge=0),
@@ -291,7 +295,7 @@ async def list_course_grades(
 
 
 @router.get("/course/{course_id}/student/{student_id}", response_model=GradeResponse)
-async def get_student_grade(
+def get_student_grade(
     course_id: str,
     student_id: str,
     cohort_id: str | None = Query(None),
@@ -315,7 +319,7 @@ async def get_student_grade(
 
 
 @router.put("/course/{course_id}/student/{student_id}", response_model=GradeResponse)
-async def upsert_student_grade(
+def upsert_student_grade(
     course_id: str,
     student_id: str,
     data: GradeUpsert,

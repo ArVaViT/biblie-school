@@ -44,6 +44,20 @@ class ChapterResponse(ChapterBase):
     is_locked: bool = False
 
 
+class ChapterSummary(BaseModel):
+    """Chapter fields safe to include in catalog/list responses (no body content)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    module_id: str
+    title: str
+    order_index: int = 0
+    chapter_type: CHAPTER_TYPES = "reading"
+    requires_completion: bool = False
+    is_locked: bool = False
+
+
 class ModuleBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)
     description: str | None = Field(None, max_length=5000)
@@ -68,6 +82,18 @@ class ModuleResponse(ModuleBase):
     id: str
     course_id: str
     chapters: list[ChapterResponse] = []
+
+
+class ModuleSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    course_id: str
+    title: str
+    description: str | None = None
+    order_index: int = 0
+    due_date: datetime | None = None
+    chapters: list[ChapterSummary] = []
 
 
 class CourseBase(BaseModel):
@@ -107,6 +133,29 @@ class CourseResponse(CourseBase):
     modules: list[ModuleResponse] = []
 
 
+class CourseSummary(CourseBase):
+    """Catalog / list-view course — full structure minus chapter body content.
+
+    Chapter ``content`` columns can reach 500k characters each, so loading and
+    serialising them in list endpoints balloons responses into the megabytes.
+    Full tree stays available via ``GET /courses/{id}``.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    status: str = "draft"
+    created_by: UUID | None = None
+    created_at: datetime
+    updated_at: datetime | None = None
+    deleted_at: datetime | None = None
+    enrollment_start: datetime | None = None
+    enrollment_end: datetime | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    modules: list[ModuleSummary] = []
+
+
 class EnrollmentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -117,3 +166,17 @@ class EnrollmentResponse(BaseModel):
     enrolled_at: datetime
     progress: int
     course: CourseResponse | None = None
+
+
+class EnrollmentSummaryResponse(BaseModel):
+    """Enrollment for list views — embeds the slim CourseSummary."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    user_id: UUID
+    course_id: str
+    cohort_id: UUID | None = None
+    enrolled_at: datetime
+    progress: int
+    course: CourseSummary | None = None

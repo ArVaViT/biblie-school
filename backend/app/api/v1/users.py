@@ -20,7 +20,7 @@ from app.models.quiz import QuizAnswer, QuizAttempt
 from app.models.review import CourseReview
 from app.models.student_grade import StudentGrade
 from app.models.user import User
-from app.schemas.course import EnrollmentResponse
+from app.schemas.course import EnrollmentSummaryResponse
 from app.services.audit_service import log_action
 from app.services.course_service import get_user_courses
 
@@ -29,16 +29,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/me/courses", response_model=list[EnrollmentResponse])
-async def get_my_courses(
+@router.get("/me/courses", response_model=list[EnrollmentSummaryResponse])
+def get_my_courses(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # Dashboard view: slim payload (chapter body content stripped).
     return get_user_courses(db, current_user.id)
 
 
 @router.get("/me/export-data")
-async def export_my_data(
+def export_my_data(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -204,7 +205,7 @@ class DeleteAccountRequest(BaseModel):
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_my_account(
+def delete_my_account(
     body: DeleteAccountRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
@@ -275,7 +276,7 @@ async def delete_my_account(
 
 
 @router.get("/admin/users")
-async def list_all_users(
+def list_all_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(200, ge=1, le=500),
     admin: User = Depends(require_admin),
@@ -301,7 +302,7 @@ class BulkRoleUpdate(BaseModel):
 
 
 @router.put("/admin/users/bulk-role")
-async def bulk_update_user_roles(
+def bulk_update_user_roles(
     body: BulkRoleUpdate,
     request: Request,
     admin: User = Depends(require_admin),
@@ -342,7 +343,7 @@ async def bulk_update_user_roles(
 
 
 @router.put("/admin/users/{user_id}/role")
-async def update_user_role(
+def update_user_role(
     user_id: str,
     request: Request,
     role: str = Query(...),

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,9 +11,12 @@ import type { Course, Certificate } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import { Plus, Pencil, Trash2, BookOpen, Layers, BarChart3, Eye, EyeOff, ClipboardList, Users, Clock, CheckCircle, XCircle, Award, Search, Copy, RotateCcw, Archive } from "lucide-react"
 import { getErrorDetail } from "@/lib/errorDetail"
+import { toProxyImage } from "@/lib/images"
+import { useConfirm } from "@/components/ui/alert-dialog"
 
 export default function TeacherDashboard() {
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -128,7 +132,13 @@ export default function TeacherDashboard() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Move this course to trash? You can restore it later.")) return
+    const ok = await confirm({
+      title: "Move course to trash?",
+      description: "You can restore it from trash later.",
+      confirmLabel: "Move to trash",
+      tone: "destructive",
+    })
+    if (!ok) return
     try {
       await coursesService.deleteCourse(id)
       setCourses((prev) => prev.filter((c) => c.id !== id))
@@ -165,7 +175,14 @@ export default function TeacherDashboard() {
   }
 
   const handlePermanentDelete = async (id: string) => {
-    if (!confirm("This will PERMANENTLY delete this course and all its data. This action cannot be undone.\n\nAre you sure?")) return
+    const ok = await confirm({
+      title: "Permanently delete this course?",
+      description:
+        "This will permanently delete the course and all its data (modules, chapters, enrollments, grades). This action cannot be undone.",
+      confirmLabel: "Delete permanently",
+      tone: "destructive",
+    })
+    if (!ok) return
     try {
       await coursesService.permanentlyDeleteCourse(id)
       setTrashedCourses((prev) => prev.filter((c) => c.id !== id))
@@ -309,9 +326,7 @@ export default function TeacherDashboard() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
+        <PageSpinner />
       ) : error ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
@@ -358,7 +373,7 @@ export default function TeacherDashboard() {
               <div className="flex items-start gap-4 p-6">
                 {course.image_url ? (
                   <img
-                    src={course.image_url}
+                    src={toProxyImage(course.image_url)}
                     alt={`${course.title} thumbnail`}
                     loading="lazy"
                     className="w-20 h-20 rounded-lg object-cover shrink-0"

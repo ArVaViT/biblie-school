@@ -4,6 +4,7 @@ import time
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -11,10 +12,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.v1 import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.core.sentry import init_sentry
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.security import SecurityHeadersMiddleware
 
 setup_logging()
+
+# Must run before FastAPI is constructed so the integrations can patch the
+# ASGI stack. No-op when SENTRY_DSN isn't configured.
+init_sentry()
 
 logger = logging.getLogger("api")
 
@@ -69,6 +75,12 @@ class OptionsMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(SecurityHeadersMiddleware)
+
+# GZip JSON responses larger than ~1KB. Starlette runs middleware in LIFO order
+# on the response path, so this sits between SecurityHeaders (innermost, closest
+# to the route) and CORS (outermost). That way Content-Length already reflects
+# the compressed payload by the time CORS/logging sees it.
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=5)
 
 app.add_middleware(RateLimitMiddleware, calls=100, window=60)
 

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import type { Course } from "@/types"
 import { BookOpen, ArrowRight } from "lucide-react"
+import { toProxyImage } from "@/lib/images"
 
 interface CourseCardProps {
   course: Course
@@ -37,15 +38,16 @@ function EnrollmentBadge({ start, end }: { start?: string | null; end?: string |
 
 function CourseCard({ course }: CourseCardProps) {
   const [imgError, setImgError] = useState(false)
+  const coverSrc = toProxyImage(course.image_url)
 
   return (
     <Card className="group flex flex-col overflow-hidden border-border/60 shadow-sm hover:shadow-md transition-shadow duration-300">
       <div className="relative">
         <EnrollmentBadge start={course.enrollment_start} end={course.enrollment_end} />
-        {course.image_url && !imgError ? (
+        {coverSrc && !imgError ? (
           <div className="w-full h-44 overflow-hidden bg-muted">
             <img
-              src={course.image_url}
+              src={coverSrc}
               alt={course.title}
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"

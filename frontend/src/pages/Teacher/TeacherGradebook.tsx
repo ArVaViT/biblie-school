@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -352,11 +353,7 @@ export default function TeacherGradebook() {
   // ── Render ──────────────────────────────────────────────────────
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
+    return <PageSpinner />
   }
 
   if (error) {

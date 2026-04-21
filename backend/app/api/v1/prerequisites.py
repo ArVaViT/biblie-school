@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import require_teacher, verify_course_owner
+from app.api.dependencies import get_current_user, require_teacher, verify_course_owner
 from app.core.database import get_db
 from app.models.course import Course
 from app.models.prerequisite import CoursePrerequisite
-from app.models.user import User
+from app.models.user import User, UserRole
 
 router = APIRouter(prefix="/prerequisites", tags=["prerequisites"])
 
@@ -22,10 +22,24 @@ class PrerequisiteResponse(BaseModel):
 
 
 @router.get("/course/{course_id}", response_model=list[PrerequisiteResponse])
-async def get_prerequisites(
+def get_prerequisites(
     course_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # Requires auth and that the course is visible to the caller. Previously
+    # this endpoint was public and would happily leak draft-course
+    # relationships to anonymous callers (audit P1.4).
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+
+    is_admin = current_user.role == UserRole.ADMIN.value
+    is_owner = str(course.created_by) == str(current_user.id)
+    is_published = getattr(course, "status", None) == "published"
+    if not (is_admin or is_owner or is_published):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+
     prereqs = db.query(CoursePrerequisite).filter(CoursePrerequisite.course_id == course_id).all()
 
     prereq_ids = [p.prerequisite_course_id for p in prereqs]
@@ -43,7 +57,7 @@ async def get_prerequisites(
 
 
 @router.put("/course/{course_id}", response_model=list[PrerequisiteResponse])
-async def set_prerequisites(
+def set_prerequisites(
     course_id: str,
     data: PrerequisiteSetRequest,
     teacher: User = Depends(require_teacher),

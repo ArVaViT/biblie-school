@@ -13,7 +13,7 @@ router = APIRouter(prefix="/blocks", tags=["blocks"])
 
 
 @router.get("/chapter/{chapter_id}", response_model=list[BlockResponse])
-async def list_blocks(
+def list_blocks(
     chapter_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -23,7 +23,7 @@ async def list_blocks(
 
 
 @router.post("/chapter/{chapter_id}", response_model=BlockResponse, status_code=status.HTTP_201_CREATED)
-async def create_block(
+def create_block(
     chapter_id: str,
     data: BlockCreate,
     teacher: User = Depends(require_teacher),
@@ -47,7 +47,7 @@ async def create_block(
 
 
 @router.put("/{block_id}", response_model=BlockResponse)
-async def update_block(
+def update_block(
     block_id: UUID,
     data: BlockUpdate,
     teacher: User = Depends(require_teacher),
@@ -65,7 +65,7 @@ async def update_block(
 
 
 @router.delete("/{block_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_block(
+def delete_block(
     block_id: UUID,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -79,7 +79,7 @@ async def delete_block(
 
 
 @router.put("/chapter/{chapter_id}/reorder", response_model=list[BlockResponse])
-async def reorder_blocks(
+def reorder_blocks(
     chapter_id: str,
     items: list[BlockReorderItem],
     teacher: User = Depends(require_teacher),

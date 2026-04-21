@@ -817,10 +817,10 @@ def test_submit_quiz_anon_unauthorized(anon_client: TestClient):
 # ── GET /api/v1/quizzes/{quiz_id}/attempts (teacher) ─────────────────────
 
 
-def test_get_all_attempts_teacher(client: TestClient, db: Session):
+def test_get_all_attempts_teacher(client: TestClient, student, db: Session):
     _seed_course(db)
     quiz, _, _ = _seed_quiz_with_questions(db)
-    db.add(QuizAttempt(quiz_id=quiz.id, user_id=STUDENT_ID, score=2, max_score=2, passed=True))
+    db.add(QuizAttempt(quiz_id=quiz.id, user_id=student.id, score=2, max_score=2, passed=True))
     db.commit()
 
     resp = client.get(f"/api/v1/quizzes/{quiz.id}/attempts")

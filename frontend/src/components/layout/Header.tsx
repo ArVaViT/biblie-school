@@ -5,6 +5,7 @@ import { useAuth } from "@/context/useAuth"
 import { useTheme } from "@/context/useTheme"
 import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays, Sun, Moon } from "lucide-react"
 import NotificationBell from "./NotificationBell"
+import { toProxyImage } from "@/lib/images"
 
 export default function Header() {
   const { user } = useAuth()
@@ -66,7 +67,7 @@ export default function Header() {
               <Link to="/profile">
                 <Button variant={isActive("/profile") ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0 rounded-full" aria-label="Profile">
                   {user.avatar_url ? (
-                    <img src={user.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = "none" }} />
+                    <img src={toProxyImage(user.avatar_url)} alt={`${user.full_name ?? "User"} avatar`} className="h-6 w-6 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = "none" }} />
                   ) : (
                     <UserIcon className="h-4 w-4" />
                   )}

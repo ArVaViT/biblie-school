@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import type { Certificate, Enrollment } from "@/types"
 import { toast } from "@/hooks/use-toast"
-import { Award, ArrowLeft, ScrollText, Loader2 } from "lucide-react"
+import { Award, ArrowLeft, ScrollText } from "lucide-react"
+import PageSpinner from "@/components/ui/PageSpinner"
 
 export default function CertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
@@ -39,11 +40,7 @@ export default function CertificatesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
+    return <PageSpinner />
   }
 
   return (

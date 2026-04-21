@@ -8,9 +8,15 @@ function sanitizeFileName(name: string): string {
   return name.replace(/[/\\:*?"<>|]/g, "_").replace(/\s+/g, "_").slice(0, 100)
 }
 
+/**
+ * Return a same-origin `/img/{bucket}/{path}` URL for public-bucket objects.
+ * Vercel rewrites and Vite dev proxy map this to the Supabase Storage public
+ * endpoint. Keeping the host the same bypasses AdBlock-style filters. The
+ * path is used directly (no double URL-encoding); Supabase Storage expects
+ * uploaded object keys as-is in the URL path.
+ */
 function getPublicUrl(bucket: string, path: string): string {
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
-  return data.publicUrl
+  return `/img/${bucket}/${path}`
 }
 
 export const storageService = {

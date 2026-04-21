@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, memo } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { sanitizeHtml as sanitize } from "@/lib/sanitize"
+import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import type { Module, Chapter, ChapterBlock } from "@/types"
@@ -245,11 +246,7 @@ export default function ChapterView() {
   )
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
+    return <PageSpinner />
   }
 
   if (error || !mod || !chapter) {

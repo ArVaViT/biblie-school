@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, defer, joinedload, selectinload
 
 from app.constants import GRADABLE_CHAPTER_TYPES
 from app.models.assignment import Assignment
@@ -26,10 +26,19 @@ from app.schemas.course import (
 # ---------------------------------------------------------------------------
 
 
+def _summary_load_options():
+    """Eager-load modules+chapters but SKIP the big ``Chapter.content`` column.
+
+    Catalog / list endpoints never render the body; deferring saves a lot of
+    bytes on the wire and in the Postgres read.
+    """
+    return selectinload(Course.modules).selectinload(Module.chapters).options(defer(Chapter.content))
+
+
 def get_courses(db: Session, *, skip: int = 0, limit: int = 100, search: str | None = None) -> list[Course]:
     query = (
         db.query(Course)
-        .options(selectinload(Course.modules).selectinload(Module.chapters))
+        .options(_summary_load_options())
         .filter(Course.status == "published", Course.deleted_at.is_(None))
     )
     if search:
@@ -58,11 +67,7 @@ def get_course(db: Session, course_id: str, include_deleted: bool = False) -> Co
 
 
 def get_teacher_courses(db: Session, teacher_id: str, *, deleted_only: bool = False) -> list[Course]:
-    query = (
-        db.query(Course)
-        .options(joinedload(Course.modules).joinedload(Module.chapters))
-        .filter(Course.created_by == teacher_id)
-    )
+    query = db.query(Course).options(_summary_load_options()).filter(Course.created_by == teacher_id)
     query = query.filter(Course.deleted_at.isnot(None)) if deleted_only else query.filter(Course.deleted_at.is_(None))
     return query.order_by(Course.created_at.desc()).all()
 
@@ -247,7 +252,12 @@ def enroll_user_in_course(db: Session, user_id: str, course_id: str, cohort_id: 
 def get_user_courses(db: Session, user_id: str) -> list[Enrollment]:
     return (
         db.query(Enrollment)
-        .options(joinedload(Enrollment.course).selectinload(Course.modules).selectinload(Module.chapters))
+        .options(
+            joinedload(Enrollment.course)
+            .selectinload(Course.modules)
+            .selectinload(Module.chapters)
+            .options(defer(Chapter.content))
+        )
         .filter(Enrollment.user_id == user_id)
         .order_by(Enrollment.enrolled_at.desc())
         .all()

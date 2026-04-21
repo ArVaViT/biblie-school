@@ -31,41 +31,70 @@ A modern Learning Management System for Bible study courses.
 
 ## Local development
 
-**Prerequisites:** Node.js 18+, Python 3.12+, a Supabase project.
+**Prerequisites:**
+- Node.js **≥20** and npm **≥10** (pinned in `frontend/package.json` `engines`).
+- Python **3.12** (matches the CI image and Vercel runtime).
+- A Supabase project with a `files` Storage bucket.
+
+### 1. Clone and install
 
 ```bash
-# Frontend
-cd frontend && npm install && npm run dev
+git clone https://github.com/your-org/biblie-school.git
+cd biblie-school
+
+# Frontend — npm ci keeps your install reproducible with package-lock.json.
+cd frontend && npm ci
 
 # Backend
-cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload
+cd ../backend && pip install -r requirements.txt
 ```
 
-Copy `backend/.env.example` to `backend/.env` and fill in your Supabase credentials.
-Copy `backend/alembic.ini.example` to `backend/alembic.ini`, then run migrations:
+### 2. Configure environment
+
+```bash
+cp backend/.env.example backend/.env            # fill in Supabase creds
+cp frontend/.env.example frontend/.env.local    # fill in VITE_* vars
+cp backend/alembic.ini.example backend/alembic.ini
+```
+
+See each `.env.example` file for a description of every variable (and the
+Vercel-marketplace aliases accepted for `DATABASE_URL` and `SUPABASE_KEY`).
+
+### 3. Run migrations and start
 
 ```bash
 cd backend && alembic upgrade head
-```
+uvicorn app.main:app --reload                   # API → http://localhost:8000
 
-Create a Storage bucket named `files` in Supabase (or match `SUPABASE_STORAGE_BUCKET`).
+# In another terminal
+cd frontend && npm run dev                      # SPA → http://localhost:5173
+```
 
 ---
 
 ## Testing
 
 ```bash
-# Backend
+# Backend — 390 tests, SQLite by default; CI also runs an Alembic round-trip
+# against a real Postgres service container.
 cd backend && python -m pytest tests/
 
-# Frontend
+# Frontend — Vitest + jsdom.
 cd frontend && npm run test:run
 ```
 
 ---
 
-## Deployment
+## CI, dependency hygiene & deployment
 
-Both frontend and backend auto-deploy to Vercel from `main`. CI runs on every push and pull request via GitHub Actions (`.github/workflows/`).
-
-API is served at `/api/v1/*`. Interactive schema is available at `/docs` when running locally.
+- GitHub Actions run lint, typecheck, tests, Alembic migrations, `npm audit`
+  and `pip-audit` on every push to `main` and every PR — see
+  `.github/workflows/`.
+- Dependabot (`.github/dependabot.yml`) opens grouped update PRs weekly for
+  npm, pip, and GitHub Actions.
+- Branch protection on `main` should require the `Frontend CI /
+  lint-and-build`, `Backend CI / lint-and-test`, and `Backend CI /
+  migrations-postgres` checks before merge. (Configure once via the GitHub
+  repo settings — this can't be expressed in a workflow file.)
+- Both apps auto-deploy to Vercel from `main`. API routes are served under
+  `/api/v1/*`; OpenAPI schema is at `/docs` when running locally.

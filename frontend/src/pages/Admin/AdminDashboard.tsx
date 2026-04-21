@@ -13,6 +13,15 @@ import {
   Users, BookOpen, GraduationCap, Shield, Search, Clock,
   CheckCircle, XCircle, Award, FileText, ChevronLeft, ChevronRight,
 } from "lucide-react"
+import { toProxyImage } from "@/lib/images"
+import { useConfirm } from "@/components/ui/alert-dialog"
+import VirtualAdminUsers from "./VirtualAdminUsers"
+import PageSpinner from "@/components/ui/PageSpinner"
+
+// Above this row count we swap the full <table> render for a react-window list.
+// Small tenants keep the familiar semantic table; large tenants avoid paying
+// 500 avatar images + 500 <select> elements worth of DOM on mount.
+const USERS_VIRTUAL_THRESHOLD = 50
 
 interface ProfileRow {
   id: string
@@ -47,6 +56,7 @@ const actionBadgeClass: Record<string, string> = {
 
 export default function AdminDashboard() {
   const { user } = useAuth()
+  const confirm = useConfirm()
   const [tab, setTab] = useState<Tab>("overview")
   const [users, setUsers] = useState<ProfileRow[]>([])
   const [stats, setStats] = useState<Stats>({ users: 0, courses: 0, enrollments: 0 })
@@ -200,7 +210,12 @@ export default function AdminDashboard() {
   const handleBulkRoleChange = async () => {
     const ids = [...selectedIds].filter((id) => id !== user?.id)
     if (ids.length === 0) return
-    if (!confirm(`Change role of ${ids.length} user(s) to ${bulkRole}?`)) return
+    const ok = await confirm({
+      title: "Change role for selected users?",
+      description: `${ids.length} user(s) will be set to role "${bulkRole}".`,
+      confirmLabel: "Apply",
+    })
+    if (!ok) return
     setBulkUpdating(true)
     try {
       const result = await coursesService.bulkUpdateUserRoles(ids, bulkRole)
@@ -404,7 +419,7 @@ export default function AdminDashboard() {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {u.avatar_url ? (
-                      <img src={u.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                      <img src={toProxyImage(u.avatar_url)} alt={`${u.full_name ?? u.email} avatar`} className="h-10 w-10 rounded-full object-cover" />
                     ) : (
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">
                         {(u.full_name?.[0] ?? u.email[0] ?? "?").toUpperCase()}
@@ -421,10 +436,13 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-2 shrink-0 ml-4">
                     <Button
                       size="sm"
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to approve this teacher?")) {
-                          handleApproveTeacher(u.id)
-                        }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: "Approve this teacher?",
+                          description: `${u.full_name || u.email} will gain access to teacher features.`,
+                          confirmLabel: "Approve",
+                        })
+                        if (ok) handleApproveTeacher(u.id)
                       }}
                       disabled={updatingId === u.id}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -435,10 +453,14 @@ export default function AdminDashboard() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to deny this teacher?")) {
-                          handleDenyTeacher(u.id)
-                        }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: "Deny this teacher?",
+                          description: `${u.full_name || u.email}'s teacher request will be rejected.`,
+                          confirmLabel: "Deny",
+                          tone: "destructive",
+                        })
+                        if (ok) handleDenyTeacher(u.id)
                       }}
                       disabled={updatingId === u.id}
                       className="text-destructive hover:text-destructive"
@@ -558,9 +580,7 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
+            <PageSpinner />
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-center">
               <Users className="h-12 w-12 text-muted-foreground/40 mb-3" />
@@ -568,6 +588,29 @@ export default function AdminDashboard() {
                 {search ? "No users match your search" : "No users found"}
               </p>
             </div>
+          ) : filtered.length >= USERS_VIRTUAL_THRESHOLD ? (
+            <>
+              <div className="flex items-center gap-3 px-3 pb-2">
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && filtered.every(u => selectedIds.has(u.id))}
+                  onChange={toggleSelectAll}
+                  className="rounded border-gray-300"
+                  aria-label="Select all users"
+                />
+                <span className="text-xs text-muted-foreground">Select all {filtered.length}</span>
+              </div>
+              <VirtualAdminUsers
+                users={filtered}
+                selectedIds={selectedIds}
+                updatingId={updatingId}
+                currentUserId={user?.id}
+                roleBadgeClass={roleBadgeClass}
+                roleDisplayNames={roleDisplayNames}
+                onToggleSelect={toggleSelect}
+                onRoleChange={handleRoleChange}
+              />
+            </>
           ) : (
             <div className="overflow-x-auto -mx-6">
               <table className="w-full text-sm">
@@ -604,8 +647,8 @@ export default function AdminDashboard() {
                         <div className="flex items-center gap-3">
                           {u.avatar_url ? (
                             <img
-                              src={u.avatar_url}
-                              alt=""
+                              src={toProxyImage(u.avatar_url)}
+                              alt={`${u.full_name ?? u.email} avatar`}
                               className="h-8 w-8 rounded-full object-cover"
                             />
                           ) : (
@@ -724,9 +767,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               {auditLoading ? (
-                <div className="flex justify-center py-16">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                </div>
+                <PageSpinner />
               ) : auditLogs.length === 0 ? (
                 <div className="flex flex-col items-center py-16 text-center">
                   <FileText className="h-12 w-12 text-muted-foreground/40 mb-3" />

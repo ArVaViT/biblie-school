@@ -20,6 +20,7 @@ import {
   Pencil,
   X,
 } from "lucide-react"
+import { useConfirm } from "@/components/ui/alert-dialog"
 
 interface AssignmentEditorProps {
   chapterId: string
@@ -27,6 +28,7 @@ interface AssignmentEditorProps {
 }
 
 export default function AssignmentEditor({ chapterId, onAssignmentCreated }: AssignmentEditorProps) {
+  const confirm = useConfirm()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
@@ -86,7 +88,13 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this assignment and all submissions?")) return
+    const ok = await confirm({
+      title: "Delete this assignment?",
+      description: "All student submissions will also be deleted.",
+      confirmLabel: "Delete assignment",
+      tone: "destructive",
+    })
+    if (!ok) return
     try {
       await coursesService.deleteAssignment(id)
       setAssignments((prev) => prev.filter((a) => a.id !== id))

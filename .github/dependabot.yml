@@ -1,0 +1,119 @@
+# Dependabot automatically opens pull requests to keep dependencies up to date
+# and patch known vulnerabilities. Each ecosystem block below controls update
+# cadence for a different part of the monorepo.
+#
+# Grouping strategy: minor/patch upgrades are batched into one PR per ecosystem
+# to keep review load manageable; major upgrades always get their own PR so
+# breaking changes get individual attention.
+version: 2
+
+updates:
+  # Frontend (React + Vite + Supabase JS) -------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "frontend"
+    groups:
+      # React-ecosystem packages tend to need to move in lockstep; batching
+      # them avoids ping-pong PRs where one package bumps and its peer dep
+      # spec rejects the version.
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router*"
+          - "@types/react*"
+      radix:
+        patterns:
+          - "@radix-ui/*"
+      tiptap:
+        patterns:
+          - "@tiptap/*"
+      supabase:
+        patterns:
+          - "@supabase/*"
+      dev-types:
+        dependency-type: "development"
+        patterns:
+          - "@types/*"
+      dev-tooling:
+        dependency-type: "development"
+        patterns:
+          - "eslint*"
+          - "vitest"
+          - "@vitest/*"
+          - "@testing-library/*"
+          - "prettier"
+          - "typescript"
+    ignore:
+      # Hold major bumps back behind dedicated PRs — they almost always need
+      # a codemod or config migration (e.g. React 19 → 20, Vite 5 → 6).
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+
+  # Backend (FastAPI + SQLAlchemy + Supabase Py) -----------------------------
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "backend"
+    groups:
+      fastapi-stack:
+        patterns:
+          - "fastapi"
+          - "uvicorn*"
+          - "starlette"
+          - "pydantic*"
+      sqlalchemy:
+        patterns:
+          - "sqlalchemy"
+          - "alembic"
+          - "psycopg2*"
+      testing:
+        patterns:
+          - "pytest*"
+          - "httpx"
+          - "anyio"
+      tooling:
+        patterns:
+          - "ruff"
+          - "mypy"
+          - "types-*"
+          - "pip-audit"
+    ignore:
+      - dependency-name: "sqlalchemy"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pydantic"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "fastapi"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions workflows --------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"

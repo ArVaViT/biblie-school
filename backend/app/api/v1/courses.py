@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
@@ -17,6 +17,7 @@ from app.schemas.course import (
     ChapterUpdate,
     CourseCreate,
     CourseResponse,
+    CourseSummary,
     CourseUpdate,
     EnrollmentResponse,
     ModuleCreate,
@@ -58,34 +59,70 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 # ---------------------------------------------------------------------------
 
 
-@router.get("", response_model=list[CourseResponse])
-async def list_courses(
+@router.get("", response_model=list[CourseSummary])
+def list_courses(
+    response: Response,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     search: str | None = Query(None, min_length=1, max_length=200),
     db: Session = Depends(get_db),
-) -> list[CourseResponse]:
+):
+    # Catalog view: slim payload (no chapter body content).
+    # Full tree is served from GET /courses/{id}.
+    #
+    # Cache-Control: the catalog is public (RLS restricts to published courses)
+    # and changes on a human editorial cadence, not per-request. Short private
+    # cache + a slightly longer CDN window with stale-while-revalidate keeps the
+    # home page snappy without holding onto stale content for long.
+    response.headers["Cache-Control"] = "public, max-age=30, s-maxage=60, stale-while-revalidate=120"
     return get_courses(db, skip=skip, limit=limit, search=search)
 
 
-@router.get("/my", response_model=list[CourseResponse])
-async def list_my_courses(
+@router.get("/my", response_model=list[CourseSummary])
+def list_my_courses(
     current_user: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> list[CourseResponse]:
+):
     return get_teacher_courses(db, current_user.id)
 
 
-@router.get("/my/trash", response_model=list[CourseResponse])
-async def list_my_trashed_courses(
+@router.get("/my/trash", response_model=list[CourseSummary])
+def list_my_trashed_courses(
     current_user: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> list[CourseResponse]:
+):
     return get_teacher_courses(db, current_user.id, deleted_only=True)
 
 
+@router.get("/{course_id}/enrollment-status")
+def get_enrollment_status(
+    course_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    # Lightweight yes/no endpoint used by CourseDetail so the page does not have
+    # to load the full ``/users/me/courses`` payload just to check whether the
+    # viewer is enrolled. One indexed PK lookup on (user_id, course_id).
+    enrollment = (
+        db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
+    )
+    if not enrollment:
+        return {"enrolled": False, "enrollment": None}
+    return {
+        "enrolled": True,
+        "enrollment": {
+            "id": str(enrollment.id),
+            "user_id": str(enrollment.user_id),
+            "course_id": str(enrollment.course_id),
+            "cohort_id": str(enrollment.cohort_id) if enrollment.cohort_id else None,
+            "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+            "progress": enrollment.progress,
+        },
+    }
+
+
 @router.get("/{course_id}", response_model=CourseResponse)
-async def get_course_detail(
+def get_course_detail(
     course_id: str,
     current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
@@ -106,7 +143,7 @@ async def get_course_detail(
 
 
 @router.get("/{course_id}/modules/{module_id}", response_model=ModuleResponse)
-async def get_module_detail(
+def get_module_detail(
     course_id: str,
     module_id: str,
     current_user: User | None = Depends(get_optional_user),
@@ -139,7 +176,7 @@ async def get_module_detail(
 
 
 @router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
-async def create_new_course(
+def create_new_course(
     data: CourseCreate,
     request: Request,
     teacher: User = Depends(require_teacher),
@@ -153,7 +190,7 @@ async def create_new_course(
 
 
 @router.put("/{course_id}", response_model=CourseResponse)
-async def update_existing_course(
+def update_existing_course(
     course_id: str,
     data: CourseUpdate,
     request: Request,
@@ -184,7 +221,7 @@ async def update_existing_course(
 
 
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_course(
+def remove_course(
     course_id: str,
     request: Request,
     teacher: User = Depends(require_teacher),
@@ -215,7 +252,7 @@ async def remove_course(
     response_model=CourseResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def clone_existing_course(
+def clone_existing_course(
     course_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -251,7 +288,7 @@ async def clone_existing_course(
     response_model=ModuleResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_new_module(
+def create_new_module(
     course_id: str,
     data: ModuleCreate,
     teacher: User = Depends(require_teacher),
@@ -262,7 +299,7 @@ async def create_new_module(
 
 
 @router.put("/{course_id}/modules/{module_id}", response_model=ModuleResponse)
-async def update_existing_module(
+def update_existing_module(
     course_id: str,
     module_id: str,
     data: ModuleUpdate,
@@ -280,7 +317,7 @@ async def update_existing_module(
 
 
 @router.delete("/{course_id}/modules/{module_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_module(
+def remove_module(
     course_id: str,
     module_id: str,
     teacher: User = Depends(require_teacher),
@@ -306,7 +343,7 @@ async def remove_module(
     response_model=ChapterResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_new_chapter(
+def create_new_chapter(
     course_id: str,
     module_id: str,
     data: ChapterCreate,
@@ -331,7 +368,7 @@ async def create_new_chapter(
     "/{course_id}/modules/{module_id}/chapters/{chapter_id}",
     response_model=ChapterResponse,
 )
-async def update_existing_chapter(
+def update_existing_chapter(
     course_id: str,
     module_id: str,
     chapter_id: str,
@@ -357,7 +394,7 @@ async def update_existing_chapter(
     "/{course_id}/modules/{module_id}/chapters/{chapter_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def remove_chapter(
+def remove_chapter(
     course_id: str,
     module_id: str,
     chapter_id: str,
@@ -380,7 +417,7 @@ async def remove_chapter(
 
 
 @router.post("/{course_id}/enroll", response_model=EnrollmentResponse)
-async def enroll_course(
+def enroll_course(
     course_id: str,
     request: Request,
     body: EnrollRequest = EnrollRequest(),
@@ -457,7 +494,7 @@ async def enroll_course(
 
 
 @router.post("/{course_id}/restore", response_model=CourseResponse)
-async def restore_deleted_course(
+def restore_deleted_course(
     course_id: str,
     request: Request,
     teacher: User = Depends(require_teacher),
@@ -476,7 +513,7 @@ async def restore_deleted_course(
 
 
 @router.delete("/{course_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)
-async def permanently_remove_course(
+def permanently_remove_course(
     course_id: str,
     request: Request,
     teacher: User = Depends(require_teacher),

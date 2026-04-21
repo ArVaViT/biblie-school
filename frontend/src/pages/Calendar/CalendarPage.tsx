@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { Link } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import type { CalendarEvent, Enrollment } from "@/types"
@@ -172,11 +173,7 @@ export default function CalendarPage() {
   const goToday = () => setCurrentDate(new Date())
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
+    return <PageSpinner />
   }
 
   if (fetchError) {

@@ -669,11 +669,20 @@ class TestFileUpload:
 
 
 class TestHealthDb:
-    def test_db_health_check(self, client: TestClient):
+    def test_db_health_requires_admin(self, client: TestClient):
+        # /health/db now requires admin auth (tightened during pre-release
+        # audit — previously leaked internal schema metadata).
         resp = client.get("/api/v1/health/db")
-        # SQLite doesn't have information_schema, so the endpoint may return 200
-        # with profiles_table_exists=False, or 503 if the query blows up.
-        # Both are acceptable behaviors since we're testing against SQLite.
+        assert resp.status_code == 403
+
+    def test_db_health_anon_rejected(self, anon_client: TestClient):
+        resp = anon_client.get("/api/v1/health/db")
+        assert resp.status_code in (401, 403)
+
+    def test_db_health_admin_ok(self, admin_client: TestClient):
+        resp = admin_client.get("/api/v1/health/db")
+        # SQLite lacks information_schema so the endpoint may return 200 with
+        # ``profiles_table_exists=False`` or 503 if the query errors out.
         assert resp.status_code in (200, 503)
         if resp.status_code == 200:
             body = resp.json()

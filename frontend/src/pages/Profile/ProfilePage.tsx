@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +19,7 @@ import { usersService } from "@/services/users"
 import { storageService } from "@/services/storage"
 import { coursesService } from "@/services/courses"
 import { profileSchema } from "@/lib/validations/course"
+import { toProxyImage } from "@/lib/images"
 import {
   User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera,
   Loader2, Award, BookOpen, ArrowRight, LogOut, Moon, Sun,
@@ -152,11 +154,7 @@ export default function ProfilePage() {
   }
 
   if (!user) {
-    return (
-      <div className="flex justify-center py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
+    return <PageSpinner />
   }
 
   const initials = (user.full_name ?? user.email)
@@ -176,8 +174,8 @@ export default function ProfilePage() {
               <div className="relative group">
                 {user.avatar_url ? (
                   <img
-                    src={user.avatar_url}
-                    alt={user.full_name ?? "Avatar"}
+                    src={toProxyImage(user.avatar_url)}
+                    alt={`${user.full_name ?? "User"} avatar`}
                     loading="lazy"
                     className="h-16 w-16 rounded-full object-cover border-2 border-background shadow-sm"
                   />

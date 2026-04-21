@@ -19,7 +19,7 @@ router = APIRouter(prefix="/calendar", tags=["calendar"])
 
 
 @router.get("/events", response_model=list[CalendarEvent])
-async def get_calendar_events(
+def get_calendar_events(
     course_id: str | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -125,7 +125,7 @@ event_router = APIRouter(prefix="/courses", tags=["calendar"])
     response_model=CourseEventResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_course_event(
+def create_course_event(
     course_id: str,
     data: CourseEventCreate,
     teacher: User = Depends(require_teacher),
@@ -150,7 +150,7 @@ async def create_course_event(
     "/{course_id}/events",
     response_model=list[CourseEventResponse],
 )
-async def list_course_events(
+def list_course_events(
     course_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -179,7 +179,7 @@ async def list_course_events(
     "/{course_id}/events/{event_id}",
     response_model=CourseEventResponse,
 )
-async def update_course_event(
+def update_course_event(
     course_id: str,
     event_id: str,
     data: CourseEventUpdate,
@@ -208,7 +208,7 @@ async def update_course_event(
     "/{course_id}/events/{event_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_course_event(
+def delete_course_event(
     course_id: str,
     event_id: str,
     teacher: User = Depends(require_teacher),

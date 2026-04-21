@@ -10,7 +10,7 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 @router.get("/course/{course_id}")
-async def get_course_analytics(
+def get_course_analytics(
     course_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),

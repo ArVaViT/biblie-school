@@ -41,11 +41,25 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-ci.txt
 
+      # pip-audit scans the runtime requirements against the PyPA advisory db.
+      # --strict makes CI fail on any advisory; --ignore-vuln can be added below
+      # with a justification (and optional expiry comment) when a fix isn't yet
+      # available upstream. We audit requirements.txt (runtime) rather than
+      # requirements-ci.txt to avoid noise from dev-only deps.
+      - name: Audit runtime dependencies with pip-audit
+        run: pip-audit --requirement requirements.txt --strict
+
       - name: Lint with Ruff
         run: ruff check app/ tests/
 
       - name: Check formatting with Ruff
         run: ruff format app/ tests/ --check
+
+      # Static type check — scoped to app/schemas and app/core in mypy.ini.
+      # Schemas are the API contract boundary so stricter typing pays off there;
+      # other modules can opt in as they are annotated.
+      - name: Type-check with mypy
+        run: mypy --config-file mypy.ini
 
       - name: Verify main entrypoint syntax
         run: python -m py_compile app/main.py
@@ -73,3 +87,89 @@ jobs:
           name: backend-coverage-xml
           path: backend/coverage.xml
           if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Postgres integration job — runs Alembic migrations against a real Postgres
+  # container so Postgres-specific DDL (RLS policies, CHECK constraints, JSONB
+  # defaults, …) can't silently drift from the SQLite test suite.
+  # ---------------------------------------------------------------------------
+  migrations-postgres:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_KEY: ci-placeholder-not-real
+      # sslmode=disable so env.py's auto-SSL patching leaves the URL alone
+      # (the GHA Postgres service container doesn't expose SSL).
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?sslmode=disable
+      JWT_SECRET_KEY: ci-only-jwt-secret-not-for-production-use-min-32
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements-ci.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-ci.txt
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U ci; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Postgres did not become ready" >&2
+          exit 1
+
+      - name: Apply Alembic migrations (upgrade head)
+        run: alembic upgrade head
+
+      - name: Round-trip Alembic migrations (downgrade → upgrade)
+        run: |
+          alembic downgrade base
+          alembic upgrade head
+
+      - name: Smoke-check model imports against the live DB
+        run: |
+          python - <<'PY'
+          from sqlalchemy import create_engine, text
+          import os
+
+          engine = create_engine(os.environ["DATABASE_URL"])
+          with engine.connect() as conn:
+              rows = conn.execute(text(
+                  "SELECT tablename FROM pg_tables WHERE schemaname = 'public' "
+                  "ORDER BY tablename"
+              )).fetchall()
+              names = {r[0] for r in rows}
+              assert "profiles" in names, f"profiles missing; got {names}"
+              assert "courses" in names, f"courses missing; got {names}"
+              assert "quiz_attempts" in names, f"quiz_attempts missing; got {names}"
+              print(f"OK: {len(names)} tables created")
+          PY

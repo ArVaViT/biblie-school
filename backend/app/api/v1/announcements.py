@@ -14,13 +14,13 @@ from app.schemas.announcement import (
     AnnouncementResponse,
     AnnouncementUpdate,
 )
-from app.services.notification_service import create_notification
+from app.services.notification_service import create_notifications_bulk
 
 router = APIRouter(prefix="/announcements", tags=["announcements"])
 
 
 @router.get("", response_model=list[AnnouncementResponse])
-async def list_announcements(
+def list_announcements(
     course_id: str | None = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
@@ -28,12 +28,36 @@ async def list_announcements(
     db: Session = Depends(get_db),
 ) -> list[AnnouncementResponse]:
     query = db.query(Announcement)
-    if current_user.role in (UserRole.ADMIN.value, "admin"):
-        if course_id is not None:
-            query = query.filter(Announcement.course_id == course_id)
-    elif course_id is not None:
+    is_admin = current_user.role in (UserRole.ADMIN.value, "admin")
+
+    if course_id is not None:
+        if not is_admin:
+            # Non-admin must be enrolled in or own this course to see its announcements.
+            # Previously this branch skipped the check entirely (IDOR). See audit P0.4.
+            has_access = (
+                db.query(Enrollment.id)
+                .filter(
+                    Enrollment.user_id == current_user.id,
+                    Enrollment.course_id == course_id,
+                )
+                .first()
+                is not None
+            ) or (
+                db.query(Course.id)
+                .filter(
+                    Course.id == course_id,
+                    Course.created_by == current_user.id,
+                )
+                .first()
+                is not None
+            )
+            if not has_access:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You do not have access to this course's announcements",
+                )
         query = query.filter(Announcement.course_id == course_id)
-    else:
+    elif not is_admin:
         enrolled_ids = db.query(Enrollment.course_id).filter(Enrollment.user_id == current_user.id).scalar_subquery()
         owned_ids = db.query(Course.id).filter(Course.created_by == current_user.id).scalar_subquery()
         query = query.filter(
@@ -41,11 +65,13 @@ async def list_announcements(
             | Announcement.course_id.in_(owned_ids)
             | Announcement.course_id.is_(None)
         )
+    # Admin without course_id sees all announcements (paginated, capped by limit).
+
     return query.order_by(Announcement.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.post("", response_model=AnnouncementResponse, status_code=status.HTTP_201_CREATED)
-async def create_announcement(
+def create_announcement(
     data: AnnouncementCreate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -78,17 +104,16 @@ async def create_announcement(
     if data.course_id:
         enrolled_users = db.query(Enrollment.user_id).filter(Enrollment.course_id == data.course_id).all()
         course_title = course.title if course else "a course"
-        for (user_id,) in enrolled_users:
-            if str(user_id) != str(teacher.id):
-                create_notification(
-                    db,
-                    user_id=user_id,
-                    type="new_announcement",
-                    title="New Announcement",
-                    message=f'{data.title} — in "{course_title}"',
-                    link=f"/courses/{data.course_id}",
-                    metadata={"course_id": data.course_id, "announcement_id": str(announcement.id)},
-                )
+        recipients = [user_id for (user_id,) in enrolled_users if str(user_id) != str(teacher.id)]
+        create_notifications_bulk(
+            db,
+            recipients,
+            type="new_announcement",
+            title="New Announcement",
+            message=f'{data.title} — in "{course_title}"',
+            link=f"/courses/{data.course_id}",
+            metadata={"course_id": data.course_id, "announcement_id": str(announcement.id)},
+        )
 
     db.commit()
     db.refresh(announcement)
@@ -96,7 +121,7 @@ async def create_announcement(
 
 
 @router.put("/{announcement_id}", response_model=AnnouncementResponse)
-async def update_announcement(
+def update_announcement(
     announcement_id: str,
     data: AnnouncementUpdate,
     teacher: User = Depends(require_teacher),
@@ -125,7 +150,7 @@ async def update_announcement(
 
 
 @router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_announcement(
+def delete_announcement(
     announcement_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),

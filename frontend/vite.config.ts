@@ -14,17 +14,16 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
+        // Keep only the two chunks that genuinely benefit from manual
+        // splitting: the React runtime (shared by every route) and the Supabase
+        // client (loaded eagerly by AuthContext). The previous `ui` bucket
+        // forced a handful of ~2KB utility libs into a separate request for
+        // every visitor, and `editor` duplicated the automatic async chunk
+        // that already gets created when `RichTextEditor` is dynamically
+        // imported from the lazy teacher routes (CourseEditor / ChapterEditor).
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           supabase: ['@supabase/supabase-js'],
-          ui: ['lucide-react', 'class-variance-authority', 'clsx', 'tailwind-merge'],
-          editor: [
-            '@tiptap/react',
-            '@tiptap/starter-kit',
-            '@tiptap/extension-link',
-            '@tiptap/extension-image',
-            '@tiptap/extension-placeholder',
-          ],
         },
       },
     },
@@ -35,6 +34,13 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+      },
+      // Same-origin proxy for Supabase Storage public objects. Mirrors the
+      // Vercel rewrite in frontend/vercel.json so local dev matches prod.
+      '/img': {
+        target: process.env.VITE_SUPABASE_URL || 'https://rrisqutxlkamwfhcashl.supabase.co',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/img/, '/storage/v1/object/public'),
       },
     },
   },

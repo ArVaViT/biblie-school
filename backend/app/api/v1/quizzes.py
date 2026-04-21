@@ -33,7 +33,7 @@ router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
 
 @router.get("/chapter/{chapter_id}", response_model=QuizStudentResponse | None)
-async def get_chapter_quiz(
+def get_chapter_quiz(
     chapter_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -65,7 +65,7 @@ def _verify_quiz_owner(db: Session, quiz: Quiz, teacher_id) -> None:
 
 
 @router.get("/{quiz_id}", response_model=QuizResponse)
-async def get_quiz_detail(
+def get_quiz_detail(
     quiz_id: UUID,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -83,7 +83,7 @@ async def get_quiz_detail(
 
 
 @router.post("", response_model=QuizResponse, status_code=status.HTTP_201_CREATED)
-async def create_quiz(
+def create_quiz(
     data: QuizCreate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -135,7 +135,7 @@ async def create_quiz(
 
 
 @router.put("/{quiz_id}", response_model=QuizResponse)
-async def update_quiz(
+def update_quiz(
     quiz_id: UUID,
     data: QuizUpdate,
     teacher: User = Depends(require_teacher),
@@ -163,7 +163,7 @@ async def update_quiz(
 
 
 @router.delete("/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_quiz(
+def delete_quiz(
     quiz_id: UUID,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -177,7 +177,7 @@ async def delete_quiz(
 
 
 @router.post("/{quiz_id}/submit", response_model=QuizAttemptResponse)
-async def submit_quiz(
+def submit_quiz(
     quiz_id: UUID,
     data: QuizSubmitRequest,
     current_user: User = Depends(get_current_user),
@@ -361,7 +361,7 @@ async def submit_quiz(
 
 
 @router.get("/{quiz_id}/attempts", response_model=list[QuizAttemptResponse])
-async def get_quiz_attempts(
+def get_quiz_attempts(
     quiz_id: UUID,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
@@ -384,7 +384,7 @@ async def get_quiz_attempts(
 
 
 @router.get("/{quiz_id}/my-attempts", response_model=list[QuizAttemptResponse])
-async def get_my_quiz_attempts(
+def get_my_quiz_attempts(
     quiz_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -407,7 +407,7 @@ async def get_my_quiz_attempts(
 
 
 @router.post("/{quiz_id}/extra-attempts", response_model=ExtraAttemptsResponse)
-async def grant_extra_attempts(
+def grant_extra_attempts(
     quiz_id: UUID,
     data: GrantExtraAttemptsRequest,
     teacher: User = Depends(require_teacher),
@@ -448,7 +448,7 @@ async def grant_extra_attempts(
 
 
 @router.get("/{quiz_id}/extra-attempts", response_model=list[ExtraAttemptsResponse])
-async def list_extra_attempts(
+def list_extra_attempts(
     quiz_id: UUID,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),

@@ -1,14 +1,22 @@
+import logging
 import os
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
     SUPABASE_URL: str
-    SUPABASE_KEY: str | None = Field(default=None, description="Supabase anon key")
+    # Preferred env var for server-side Supabase work (storage uploads, admin
+    # queries). Keep SUPABASE_KEY as a legacy alias so existing deployments
+    # keep working — but new deployments should set SUPABASE_SERVICE_ROLE_KEY
+    # explicitly to make the key's scope obvious.
+    SUPABASE_SERVICE_ROLE_KEY: str | None = Field(default=None, description="Supabase service-role key (server-only)")
+    SUPABASE_KEY: str | None = Field(default=None, description="DEPRECATED: alias for SUPABASE_SERVICE_ROLE_KEY")
     SUPABASE_STORAGE_BUCKET: str = "files"
 
     DATABASE_URL: str | None = Field(default=None, description="Database connection URL")
@@ -18,15 +26,36 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,https://biblie-school-frontend.vercel.app"
 
+    # Sentry — entirely optional. Leaving SENTRY_DSN unset skips init.
+    SENTRY_DSN: str | None = Field(default=None, description="Sentry DSN for error monitoring")
+    SENTRY_ENVIRONMENT: str | None = Field(default=None, description="Sentry environment label")
+    SENTRY_TRACES_SAMPLE_RATE: float = Field(default=0.1, ge=0.0, le=1.0)
+
     @model_validator(mode="after")
     def load_alternative_env_vars(self):
         """Support alternative env var names from Vercel/Supabase integration."""
+        if not self.SUPABASE_SERVICE_ROLE_KEY:
+            self.SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
         if not self.SUPABASE_KEY:
+            # Fall back to the service role key, then to legacy / anon-key
+            # env names. We intentionally DO NOT accept the anon key as a
+            # service-side secret in new deployments.
             self.SUPABASE_KEY = (
-                os.getenv("SUPABASE_KEY")
+                self.SUPABASE_SERVICE_ROLE_KEY
+                or os.getenv("SUPABASE_KEY")
                 or os.getenv("SUPABASE_ANON_KEY")
                 or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
             )
+
+        # Keep the service-role slot populated even when callers only set the
+        # legacy SUPABASE_KEY — server-side uploads need the elevated key.
+        if not self.SUPABASE_SERVICE_ROLE_KEY and self.SUPABASE_KEY:
+            self.SUPABASE_SERVICE_ROLE_KEY = self.SUPABASE_KEY
+            if os.getenv("SUPABASE_KEY") and not os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
+                logger.warning(
+                    "SUPABASE_KEY is deprecated; set SUPABASE_SERVICE_ROLE_KEY explicitly",
+                )
 
         if not self.DATABASE_URL:
             self.DATABASE_URL = (

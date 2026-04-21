@@ -13,6 +13,8 @@ import AssignmentEditor from "@/components/assignment/AssignmentEditor"
 import { coursesService } from "@/services/courses"
 import type { Chapter } from "@/types"
 import { toast } from "@/hooks/use-toast"
+import { chapterSchema } from "@/lib/validations/course"
+import { useConfirm } from "@/components/ui/alert-dialog"
 import {
   ChevronRight, Save, FileText, PlayCircle, Headphones,
   HelpCircle, ClipboardList, MessageSquare, Puzzle, Loader2, GraduationCap,
@@ -40,6 +42,7 @@ export default function ChapterEditor() {
     chapterId: string
   }>()
   const navigate = useNavigate()
+  const confirm = useConfirm()
 
   const [chapter, setChapter] = useState<Chapter | null>(null)
   const [loading, setLoading] = useState(true)
@@ -117,6 +120,22 @@ export default function ChapterEditor() {
 
   const save = useCallback(async () => {
     if (!courseId || !moduleId || !chapterId || !title.trim()) return
+    // Validate the incoming values client-side against the same bounds the
+    // backend enforces so we can surface a useful error instead of a 422.
+    const validation = chapterSchema.safeParse({
+      title: title.trim(),
+      chapter_type: chapterType,
+      content,
+      video_url: videoUrl.trim(),
+    })
+    if (!validation.success) {
+      const first = validation.error.issues[0]
+      toast({
+        title: first?.message ?? "Invalid chapter data",
+        variant: "destructive",
+      })
+      return
+    }
     setSaving(true)
     try {
       const payload: ChapterUpdatePayload = {
@@ -213,8 +232,16 @@ export default function ChapterEditor() {
           variant="ghost"
           size="sm"
           className="shrink-0"
-          onClick={() => {
-            if (isDirty && !confirm("You have unsaved changes. Leave anyway?")) return
+          onClick={async () => {
+            if (isDirty) {
+              const ok = await confirm({
+                title: "Leave without saving?",
+                description: "You have unsaved changes. They will be lost if you leave now.",
+                confirmLabel: "Leave",
+                tone: "destructive",
+              })
+              if (!ok) return
+            }
             navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)
           }}
         >

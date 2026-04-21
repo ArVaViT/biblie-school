@@ -32,7 +32,7 @@ router = APIRouter(prefix="/assignments", tags=["assignments"])
 
 
 @router.get("/chapter/{chapter_id}", response_model=list[AssignmentResponse])
-async def list_chapter_assignments(
+def list_chapter_assignments(
     chapter_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -42,7 +42,7 @@ async def list_chapter_assignments(
 
 
 @router.post("", response_model=AssignmentResponse, status_code=status.HTTP_201_CREATED)
-async def create_assignment(
+def create_assignment(
     data: AssignmentCreate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -56,7 +56,7 @@ async def create_assignment(
 
 
 @router.put("/{assignment_id}", response_model=AssignmentResponse)
-async def update_assignment(
+def update_assignment(
     assignment_id: UUID,
     data: AssignmentUpdate,
     teacher: User = Depends(require_teacher),
@@ -76,7 +76,7 @@ async def update_assignment(
 
 
 @router.delete("/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_assignment(
+def delete_assignment(
     assignment_id: UUID,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -90,7 +90,7 @@ async def delete_assignment(
 
 
 @router.post("/{assignment_id}/submit", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
-async def submit_assignment(
+def submit_assignment(
     assignment_id: UUID,
     data: SubmissionCreate,
     current_user: User = Depends(get_current_user),
@@ -144,7 +144,7 @@ async def submit_assignment(
 
 
 @router.get("/{assignment_id}/submissions", response_model=list[SubmissionResponse])
-async def list_submissions(
+def list_submissions(
     assignment_id: UUID,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
@@ -166,7 +166,7 @@ async def list_submissions(
 
 
 @router.get("/{assignment_id}/my-submissions", response_model=list[SubmissionResponse])
-async def list_my_submissions(
+def list_my_submissions(
     assignment_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -194,7 +194,7 @@ async def list_my_submissions(
 
 
 @router.put("/submissions/{submission_id}/grade", response_model=SubmissionResponse)
-async def grade_submission(
+def grade_submission(
     submission_id: UUID,
     data: GradeSubmissionRequest,
     request: Request,

@@ -73,7 +73,11 @@ class QuizAttempt(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     quiz_id = Column(UUID(as_uuid=True), ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("profiles.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     score = Column(Integer)
     max_score = Column(Integer)
     passed = Column(Boolean)
@@ -89,8 +93,15 @@ class QuizExtraAttempt(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     quiz_id = Column(UUID(as_uuid=True), ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("profiles.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     extra_attempts = Column(Integer, nullable=False, default=1)
+    # granted_by stays nullable=False but intentionally has no FK: we never want
+    # a student's extra-attempt grant to disappear because an admin account was
+    # later deleted. Keep as a loose reference.
     granted_by = Column(UUID(as_uuid=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

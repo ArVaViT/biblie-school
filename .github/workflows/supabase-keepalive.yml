@@ -1,0 +1,69 @@
+name: Keep Supabase awake
+
+# Supabase free-tier projects are paused after 7 consecutive days without any
+# database activity. We hit the public course catalog endpoint every 6 days so
+# the pause timer always resets before it fires. The endpoint executes a real
+# SQL query (SELECT * FROM courses …) which counts as activity.
+#
+# Scheduled every 6 days at 03:17 UTC — offset from the top of the hour so we
+# don't pile on with other scheduled jobs, and offset from midnight so a
+# failure alert lands during business hours.
+
+on:
+  schedule:
+    - cron: '17 3 */6 * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resolve API URL
+        id: resolve
+        env:
+          API_URL: ${{ vars.KEEPALIVE_API_URL }}
+        run: |
+          if [ -z "${API_URL}" ]; then
+            # Fall back to the production default. Override via the repo var
+            # `KEEPALIVE_API_URL` if the API moves or we spin up a second env.
+            API_URL="https://biblie-school-frontend.vercel.app/api/v1/courses?limit=1"
+          fi
+          echo "api_url=${API_URL}" >> "$GITHUB_OUTPUT"
+          echo "Will ping: ${API_URL}"
+
+      # Retry up to 3 times to ride out Vercel cold starts and Supabase's
+      # own startup latency on the first hit of the day. 20s timeout per try
+      # is generous for a cold function.
+      - name: Ping API
+        env:
+          URL: ${{ steps.resolve.outputs.api_url }}
+        run: |
+          set -euo pipefail
+          ATTEMPTS=3
+          for i in $(seq 1 $ATTEMPTS); do
+            echo "Attempt $i/$ATTEMPTS…"
+            HTTP_STATUS=$(curl -sS -o /tmp/body -w "%{http_code}" \
+              --connect-timeout 10 --max-time 20 \
+              -H "User-Agent: github-actions-supabase-keepalive/1.0" \
+              "$URL" || echo "000")
+            echo "HTTP $HTTP_STATUS"
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+              echo "Keepalive ping succeeded."
+              head -c 200 /tmp/body || true
+              exit 0
+            fi
+            if [ "$i" -lt "$ATTEMPTS" ]; then
+              sleep 15
+            fi
+          done
+          echo "All $ATTEMPTS attempts failed — Supabase may be sleeping or down." >&2
+          cat /tmp/body >&2 || true
+          exit 1

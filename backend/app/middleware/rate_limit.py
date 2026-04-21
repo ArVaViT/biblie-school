@@ -1,3 +1,38 @@
+"""HTTP rate limiting middleware.
+
+## Design decision: in-memory + Vercel WAF, not Upstash Redis
+
+We considered three strategies for rate limiting in this deployment:
+
+1. **In-memory per-instance (current).** Simple, zero-dependency, no network
+   round-trip. Drawback: Vercel serverless functions run on N independent
+   workers, so an attacker distributing requests across cold workers sees
+   ~N times the effective budget. For a ~100-user Bible School app with no API
+   keys to harvest, this is acceptable "defense-in-depth" — not a hard
+   enforcement boundary.
+
+2. **Upstash Redis / @vercel/kv.** Shared counter across all workers; true
+   enforcement. Drawbacks: +$10/mo minimum, +5-10ms per request, and an
+   extra SPOF in the critical path. Not justified at current scale.
+
+3. **Vercel WAF / Edge rate limiting.** Runs before any function invocation,
+   so it's free and catches bursts the in-memory limiter can't see. This is
+   the recommended hard limit for `/api/v1/auth/*` in production. Configure
+   via Vercel Dashboard → Firewall → Rate Limit Rules:
+       - 10 requests / 60s for `/api/v1/auth/login` and `/auth/register`
+       - 20 requests / 60s for `/api/v1/files/upload`
+
+Decision: keep this in-memory limiter as per-instance defense, point
+production at Vercel WAF for the hard auth/file limits, and revisit
+Upstash if the user count crosses 1000 active/day.
+
+## IP detection
+
+On Vercel (and any proxy-fronted deploy) `request.client.host` is the proxy
+IP, NOT the user's real IP — so every user shares one bucket per worker
+and the limiter is effectively disabled. We now read `X-Forwarded-For` first.
+"""
+
 import time
 from collections import defaultdict
 
@@ -11,6 +46,27 @@ ENDPOINT_LIMITS: dict[str, tuple[int, int]] = {
 
 MAX_BUCKETS = 10_000
 CLEANUP_INTERVAL = 300
+
+
+def _client_ip(request: Request) -> str:
+    """Resolve the real client IP, honoring standard forwarding headers.
+
+    Vercel always sets `x-forwarded-for` to `<client>, <proxy>, <proxy>…`
+    (left-to-right). Reading `request.client.host` on Vercel yields the
+    Vercel worker IP, which is shared across many users and completely
+    breaks per-client rate limiting. The fallback to `request.client.host`
+    is only used in local development where no proxy is in front.
+    """
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        # First IP is the original client; anything after is a proxy chain.
+        return forwarded.split(",")[0].strip()
+
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip()
+
+    return request.client.host if request.client else "unknown"
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -44,7 +100,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = _client_ip(request)
         path = request.url.path
         max_calls, window = self._resolve_limit(path)
 

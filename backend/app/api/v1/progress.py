@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, require_teacher, verify_chapter_owner, verify_course_owner
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/progress", tags=["progress"])
 
 
 @router.get("/course/{course_id}/my-progress")
-async def get_my_chapter_progress(
+def get_my_chapter_progress(
     course_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -51,7 +52,7 @@ async def get_my_chapter_progress(
 
 
 @router.get("/course/{course_id}/students")
-async def get_course_student_progress(
+def get_course_student_progress(
     course_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
@@ -101,56 +102,126 @@ async def get_course_student_progress(
     )
 
     all_quiz_ids = [q.id for qs in quiz_map.values() for q in qs]
-    all_attempts = (
-        (
-            db.query(QuizAttempt)
-            .filter(QuizAttempt.quiz_id.in_(all_quiz_ids), QuizAttempt.completed_at.isnot(None))
-            .all()
-        )
-        if all_quiz_ids
-        else []
-    )
 
-    quiz_to_chapter = {}
-    quiz_to_quiz_id = {}
+    quiz_to_chapter: dict = {}
+    quiz_to_quiz_id: dict = {}
     for ch_id, qs in quiz_map.items():
         for q in qs:
             quiz_to_chapter[q.id] = ch_id
             quiz_to_quiz_id[q.id] = str(q.id)
 
-    attempts_by_user_chapter: dict[tuple, list] = defaultdict(list)
+    # Aggregate best quiz attempt per (user, quiz) in SQL instead of pulling
+    # every attempt row. Pre-aggregated data is collapsed per (user, chapter)
+    # below so the rest of the endpoint can iterate a small dictionary.
+    best_by_user_chapter: dict[tuple[str, str], dict] = {}
+    attempts_by_user_chapter_count: dict[tuple[str, str], int] = {}
     latest_quiz_by_user: dict[str, datetime] = {}
-    for a in all_attempts:
-        uid = str(a.user_id)
-        ch_id = quiz_to_chapter.get(a.quiz_id)
-        if ch_id:
-            attempts_by_user_chapter[(uid, ch_id)].append(a)
-        if a.completed_at and (uid not in latest_quiz_by_user or a.completed_at > latest_quiz_by_user[uid]):
-            latest_quiz_by_user[uid] = a.completed_at
+    if all_quiz_ids:
+        passed_any = func.max(case((QuizAttempt.passed.is_(True), 1), else_=0)).label("passed_any")
+        quiz_aggs = (
+            db.query(
+                QuizAttempt.user_id.label("user_id"),
+                QuizAttempt.quiz_id.label("quiz_id"),
+                func.max(QuizAttempt.score).label("best_score"),
+                func.max(QuizAttempt.max_score).label("best_max_score"),
+                passed_any,
+                func.count().label("attempts"),
+                func.max(QuizAttempt.completed_at).label("last_completed"),
+            )
+            .filter(
+                QuizAttempt.quiz_id.in_(all_quiz_ids),
+                QuizAttempt.completed_at.isnot(None),
+            )
+            .group_by(QuizAttempt.user_id, QuizAttempt.quiz_id)
+            .all()
+        )
+        for row in quiz_aggs:
+            uid = str(row.user_id)
+            ch_id = quiz_to_chapter.get(row.quiz_id)
+            if ch_id is None:
+                continue
+            ch_key = (uid, str(ch_id))
+            attempts_by_user_chapter_count[ch_key] = attempts_by_user_chapter_count.get(ch_key, 0) + int(
+                row.attempts or 0
+            )
+            score = int(row.best_score or 0)
+            entry = {
+                "chapter_id": str(ch_id),
+                "quiz_id": str(row.quiz_id),
+                "score": score,
+                "max_score": int(row.best_max_score or 0),
+                "passed": bool(row.passed_any),
+            }
+            prev = best_by_user_chapter.get(ch_key)
+            if prev is None or score > prev["score"]:
+                best_by_user_chapter[ch_key] = entry
+            if row.last_completed and (uid not in latest_quiz_by_user or row.last_completed > latest_quiz_by_user[uid]):
+                latest_quiz_by_user[uid] = row.last_completed
 
     all_assignment_ids = [a.id for al in assignment_map.values() for a in al]
-    all_submissions = (
-        (db.query(AssignmentSubmission).filter(AssignmentSubmission.assignment_id.in_(all_assignment_ids)).all())
-        if all_assignment_ids
-        else []
-    )
 
     assignment_to_chapter: dict = {}
+    assignment_to_chapter_str: dict[str, str] = {}
     assignment_by_id: dict = {}
+    assignment_by_id_str: dict[str, Assignment] = {}
     for ch_id, als in assignment_map.items():
         for a in als:
             assignment_to_chapter[a.id] = ch_id
+            assignment_to_chapter_str[str(a.id)] = str(ch_id)
             assignment_by_id[a.id] = a
+            assignment_by_id_str[str(a.id)] = a
 
-    subs_by_user_chapter: dict[tuple, list] = defaultdict(list)
+    # Latest submission per (student, assignment) — use MIN/MAX aggregate so
+    # earlier revisions aren't loaded into memory. Tie-break on id for
+    # determinism when two rows share submitted_at.
+    latest_sub_by_user_assignment: dict[tuple[str, str], dict] = {}
     latest_sub_by_user: dict[str, datetime] = {}
-    for s in all_submissions:
-        uid = str(s.student_id)
-        ch_id = assignment_to_chapter.get(s.assignment_id)
-        if ch_id:
-            subs_by_user_chapter[(uid, ch_id)].append(s)
-        if s.submitted_at and (uid not in latest_sub_by_user or s.submitted_at > latest_sub_by_user[uid]):
-            latest_sub_by_user[uid] = s.submitted_at
+    if all_assignment_ids:
+        latest_ts_subq = (
+            db.query(
+                AssignmentSubmission.student_id.label("student_id"),
+                AssignmentSubmission.assignment_id.label("assignment_id"),
+                func.max(AssignmentSubmission.submitted_at).label("latest_at"),
+            )
+            .filter(AssignmentSubmission.assignment_id.in_(all_assignment_ids))
+            .group_by(AssignmentSubmission.student_id, AssignmentSubmission.assignment_id)
+            .subquery()
+        )
+        latest_rows = (
+            db.query(AssignmentSubmission)
+            .join(
+                latest_ts_subq,
+                (AssignmentSubmission.student_id == latest_ts_subq.c.student_id)
+                & (AssignmentSubmission.assignment_id == latest_ts_subq.c.assignment_id)
+                & (AssignmentSubmission.submitted_at == latest_ts_subq.c.latest_at),
+            )
+            .all()
+        )
+        for s in latest_rows:
+            uid = str(s.student_id)
+            aid = str(s.assignment_id)
+            key = (uid, aid)
+            existing = latest_sub_by_user_assignment.get(key)
+            # Guard against the rare duplicate submitted_at tie — prefer latest id.
+            if existing is None or str(s.id) > existing["id"]:
+                latest_sub_by_user_assignment[key] = {
+                    "id": str(s.id),
+                    "assignment_id": aid,
+                    "status": s.status or "submitted",
+                    "grade": s.grade,
+                    "submitted_at": s.submitted_at,
+                }
+            if s.submitted_at and (uid not in latest_sub_by_user or s.submitted_at > latest_sub_by_user[uid]):
+                latest_sub_by_user[uid] = s.submitted_at
+
+    # Group latest submissions by (user, chapter) for easy lookup during the
+    # per-student render loop below.
+    subs_by_user_chapter: dict[tuple[str, str], list[dict]] = {}
+    for (uid, aid), sub in latest_sub_by_user_assignment.items():
+        ch_id = assignment_to_chapter_str.get(aid)
+        if ch_id is None:
+            continue
+        subs_by_user_chapter.setdefault((uid, ch_id), []).append(sub)
 
     all_progress = (
         (
@@ -175,35 +246,37 @@ async def get_course_student_progress(
 
         quiz_results = []
         for ch_id in quiz_map:
-            best_attempts = attempts_by_user_chapter.get((uid, ch_id), [])
-            if best_attempts:
-                best = max(best_attempts, key=lambda a: a.score or 0)
+            ch_key = (uid, str(ch_id))
+            best = best_by_user_chapter.get(ch_key)
+            if best is not None:
                 quiz_results.append(
                     {
                         "chapter_title": chapter_map.get(str(ch_id), ""),
                         "chapter_id": str(ch_id),
-                        "quiz_id": quiz_to_quiz_id.get(best.quiz_id, ""),
-                        "score": best.score or 0,
-                        "max_score": best.max_score or 0,
-                        "passed": bool(best.passed),
-                        "attempts_used": len(best_attempts),
+                        "quiz_id": best["quiz_id"],
+                        "score": best["score"],
+                        "max_score": best["max_score"],
+                        "passed": best["passed"],
+                        "attempts_used": attempts_by_user_chapter_count.get(ch_key, 0),
                     }
                 )
 
         assignment_results = []
         for ch_id in assignment_map:
-            submissions = subs_by_user_chapter.get((uid, ch_id), [])
+            ch_key = (uid, str(ch_id))
+            submissions = subs_by_user_chapter.get(ch_key, [])
             for a in assignment_map[ch_id]:
-                a_subs = [s for s in submissions if str(s.assignment_id) == str(a.id)]
-                if a_subs:
-                    latest = max(a_subs, key=lambda s: s.submitted_at or datetime.min)
+                a_id = str(a.id)
+                matching = [s for s in submissions if s["assignment_id"] == a_id]
+                if matching:
+                    latest = matching[0]
                     assignment_results.append(
                         {
                             "chapter_title": chapter_map.get(str(ch_id), ""),
                             "chapter_id": str(ch_id),
                             "title": a.title,
-                            "status": latest.status or "submitted",
-                            "grade": latest.grade,
+                            "status": latest["status"],
+                            "grade": latest["grade"],
                             "max_score": a.max_score or 0,
                         }
                     )
@@ -214,24 +287,24 @@ async def get_course_student_progress(
         chapter_infos = []
         for ch in chapters:
             cp = user_progress.get(str(ch.id))
-            ch_quiz_results = attempts_by_user_chapter.get((uid, ch.id), [])
+            ch_key = (uid, str(ch.id))
+            best = best_by_user_chapter.get(ch_key)
             quiz_data = None
-            if ch_quiz_results:
-                best = max(ch_quiz_results, key=lambda a: a.score or 0)
+            if best is not None:
                 quiz_data = {
-                    "score": best.score or 0,
-                    "max_score": best.max_score or 0,
-                    "passed": bool(best.passed),
+                    "score": best["score"],
+                    "max_score": best["max_score"],
+                    "passed": best["passed"],
                 }
-            ch_subs = subs_by_user_chapter.get((uid, ch.id), [])
+            ch_subs = subs_by_user_chapter.get(ch_key, [])
             asgn_data = None
             if ch_subs:
-                latest_sub = max(ch_subs, key=lambda s: s.submitted_at or datetime.min)
-                asgn = assignment_by_id.get(latest_sub.assignment_id)
+                latest_sub = max(ch_subs, key=lambda s: s["submitted_at"] or datetime.min)
+                asgn = assignment_by_id_str.get(latest_sub["assignment_id"])
                 max_score = asgn.max_score if asgn is not None else 100
                 asgn_data = {
-                    "status": latest_sub.status or "submitted",
-                    "grade": latest_sub.grade,
+                    "status": latest_sub["status"],
+                    "grade": latest_sub["grade"],
                     "max_score": max_score,
                 }
             chapter_infos.append(
@@ -280,7 +353,7 @@ async def get_course_student_progress(
 
 
 @router.put("/chapter/{chapter_id}/student/{student_id}/complete")
-async def teacher_complete_chapter(
+def teacher_complete_chapter(
     chapter_id: str,
     student_id: UUID,
     teacher: User = Depends(require_teacher),
@@ -319,7 +392,7 @@ async def teacher_complete_chapter(
 
 
 @router.put("/chapter/{chapter_id}/student/{student_id}/incomplete")
-async def teacher_uncomplete_chapter(
+def teacher_uncomplete_chapter(
     chapter_id: str,
     student_id: UUID,
     teacher: User = Depends(require_teacher),

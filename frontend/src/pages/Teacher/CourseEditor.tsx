@@ -9,6 +9,8 @@ import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
 import type { Course, Announcement, Cohort, CourseEvent } from "@/types"
 import { toast } from "@/hooks/use-toast"
+import { toProxyImage } from "@/lib/images"
+import { useConfirm } from "@/components/ui/alert-dialog"
 import {
   Pencil, Calendar, Megaphone, Plus, Trash2,
   Layers, Save, Upload, Image, Loader2, X, Eye, EyeOff, BookOpen, ChevronRight,
@@ -17,28 +19,21 @@ import {
 
 interface MaterialFile { name: string; path: string; size?: number }
 
-function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
-  useEffect(() => {
-    if (!open) return
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
-    document.addEventListener("keydown", handleEsc)
-    return () => document.removeEventListener("keydown", handleEsc)
-  }, [open, onClose])
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-  if (!open) return null
+function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+  // Radix Dialog already provides a focus trap, ESC-to-close, outside-click
+  // dismissal, and inert backdrop — all behaviours the hand-rolled version
+  // was missing.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-background border rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 id="modal-title" className="font-serif text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="p-4">{children}</div>
-      </div>
-    </div>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif">{title}</DialogTitle>
+        </DialogHeader>
+        <div className="pt-2">{children}</div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -55,6 +50,7 @@ const ta = "flex min-h-[80px] w-full rounded-md border border-input bg-backgroun
 export default function CourseEditor() {
   const { courseId } = useParams<{ courseId: string }>()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -170,7 +166,14 @@ export default function CourseEditor() {
   }
 
   const removeModule = async (id: string) => {
-    if (!courseId || !confirm("Delete this module and all its chapters?")) return
+    if (!courseId) return
+    const ok = await confirm({
+      title: "Delete this module?",
+      description: "All chapters inside the module will also be removed.",
+      confirmLabel: "Delete",
+      tone: "destructive",
+    })
+    if (!ok) return
     try {
       await coursesService.deleteModule(courseId, id)
       setCourse(p => p ? { ...p, modules: p.modules?.filter(m => m.id !== id) } : p)
@@ -187,7 +190,12 @@ export default function CourseEditor() {
   }
 
   const deleteAnn = async (id: string) => {
-    if (!confirm("Delete this announcement?")) return
+    const ok = await confirm({
+      title: "Delete this announcement?",
+      confirmLabel: "Delete",
+      tone: "destructive",
+    })
+    if (!ok) return
     try { await coursesService.deleteAnnouncement(id); setAnns(p => p.filter(a => a.id !== id)) }
     catch { toast({ title: "Failed", variant: "destructive" }) }
   }
@@ -206,7 +214,13 @@ export default function CourseEditor() {
   }
 
   const delMat = async (m: MaterialFile) => {
-    if (!confirm(`Delete "${m.name}"?`)) return
+    const ok = await confirm({
+      title: "Delete material?",
+      description: `"${m.name}" will be permanently removed.`,
+      confirmLabel: "Delete",
+      tone: "destructive",
+    })
+    if (!ok) return
     try { await storageService.deleteCourseMaterial(m.path); setMats(p => p.filter(x => x.path !== m.path)) }
     catch { toast({ title: "Failed", variant: "destructive" }) }
   }
@@ -255,7 +269,12 @@ export default function CourseEditor() {
   }
 
   const deleteCohort = async (id: string) => {
-    if (!confirm("Delete this cohort?")) return
+    const ok = await confirm({
+      title: "Delete this cohort?",
+      confirmLabel: "Delete",
+      tone: "destructive",
+    })
+    if (!ok) return
     try {
       await coursesService.deleteCohort(id)
       setCohorts(p => p.filter(c => c.id !== id))
@@ -264,7 +283,12 @@ export default function CourseEditor() {
   }
 
   const completeCohort = async (id: string) => {
-    if (!confirm("Mark this cohort as completed? This cannot be undone.")) return
+    const ok = await confirm({
+      title: "Mark cohort as completed?",
+      description: "This cannot be undone.",
+      confirmLabel: "Complete cohort",
+    })
+    if (!ok) return
     try {
       await coursesService.completeCohort(id)
       setCohorts(p => p.map(c => c.id === id ? { ...c, status: "completed" as const } : c))
@@ -312,7 +336,13 @@ export default function CourseEditor() {
   }
 
   const deleteEvent = async (id: string) => {
-    if (!courseId || !confirm("Delete this event?")) return
+    if (!courseId) return
+    const ok = await confirm({
+      title: "Delete this event?",
+      confirmLabel: "Delete",
+      tone: "destructive",
+    })
+    if (!ok) return
     try {
       await coursesService.deleteCourseEvent(courseId, id)
       setCourseEvents(p => p.filter(e => e.id !== id))
@@ -403,7 +433,7 @@ export default function CourseEditor() {
       <div className="rounded-xl overflow-hidden border mb-8">
         <div className="h-48 bg-muted">
           {course.image_url
-            ? <img src={course.image_url} alt={course.title} className="w-full h-full object-cover" />
+            ? <img src={toProxyImage(course.image_url)} alt={course.title} className="w-full h-full object-cover" />
             : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5"><BookOpen className="h-16 w-16 text-primary/20" /></div>}
         </div>
         <div className="p-6">
@@ -490,7 +520,7 @@ export default function CourseEditor() {
             <Label>Cover Image</Label>
             {imageUrl ? (
               <div className="relative w-full h-36 rounded-lg overflow-hidden border">
-                <img src={imageUrl} alt="Cover" className="w-full h-full object-cover" />
+                <img src={toProxyImage(imageUrl)} alt="Cover" className="w-full h-full object-cover" />
                 <button type="button" onClick={() => coverRef.current?.click()} className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                   {uploadingCover ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : <span className="text-white text-sm flex items-center gap-1.5"><Image className="h-4 w-4" />Change</span>}
                 </button>

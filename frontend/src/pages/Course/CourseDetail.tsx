@@ -9,11 +9,12 @@ import type { Course, Enrollment, Certificate, Cohort, CalendarEvent } from "@/t
 import { toast } from "@/hooks/use-toast"
 import {
   BookOpen, ArrowRight, CheckCircle, Users, Layers, ArrowLeft,
-  CalendarDays, Clock, Lock, Download, Paperclip, Star, X, AlertTriangle,
+  CalendarDays, Clock, Lock, Download, Paperclip, Star, AlertTriangle,
 } from "lucide-react"
 import CourseAnnouncements from "@/components/announcements/CourseAnnouncements"
 import CourseReviews from "@/components/course/CourseReviews"
 import CertificateCard from "@/components/course/CertificateCard"
+import { toProxyImage } from "@/lib/images"
 
 interface CourseMaterial {
   name: string
@@ -26,28 +27,20 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
 }
 
-function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
-  useEffect(() => {
-    if (!open) return
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
-    document.addEventListener("keydown", handleEsc)
-    return () => document.removeEventListener("keydown", handleEsc)
-  }, [open, onClose])
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-  if (!open) return null
+function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+  // See CourseEditor.Modal — delegates to Radix Dialog for accessible focus
+  // trapping and keyboard handling.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-background border rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 id="modal-title" className="font-serif text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="p-4">{children}</div>
-      </div>
-    </div>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif">{title}</DialogTitle>
+        </DialogHeader>
+        <div className="pt-2">{children}</div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -94,15 +87,19 @@ export default function CourseDetail() {
       setCalendarEvents([])
       setCohorts([])
       try {
-        const [courseData, enrollments, cohortsData] = await Promise.all([
+        const [courseData, enrollmentStatus, cohortsData] = await Promise.all([
           coursesService.getCourse(id),
-          user ? coursesService.getMyCourses().catch(() => []) : Promise.resolve([]),
+          user
+            ? coursesService
+                .getEnrollmentStatus(id)
+                .catch(() => ({ enrolled: false, enrollment: null as Enrollment | null }))
+            : Promise.resolve({ enrolled: false, enrollment: null as Enrollment | null }),
           coursesService.getCourseCohorts(id).catch(() => [] as Cohort[]),
         ])
         if (cancelled) return
         setCourse(courseData)
         setCohorts(cohortsData)
-        const match = enrollments.find((e) => e.course_id === id)
+        const match = enrollmentStatus.enrolled ? enrollmentStatus.enrollment : null
         if (match) {
           setEnrollment(match)
           const [cert, progress, mats, evts] = await Promise.all([
@@ -243,7 +240,7 @@ export default function CourseDetail() {
         {course.image_url && (
           <div className="w-full h-48 sm:h-56 overflow-hidden rounded-xl bg-muted mb-6">
             <img
-              src={course.image_url}
+              src={toProxyImage(course.image_url)}
               alt={course.title}
               loading="lazy"
               className="w-full h-full object-cover"
@@ -400,7 +397,7 @@ export default function CourseDetail() {
         {course.image_url && (
           <div className="w-full sm:w-36 h-24 overflow-hidden rounded-lg bg-muted shrink-0">
             <img
-              src={course.image_url}
+              src={toProxyImage(course.image_url)}
               alt={course.title}
               loading="lazy"
               className="w-full h-full object-cover"

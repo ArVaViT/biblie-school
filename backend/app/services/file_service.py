@@ -17,7 +17,15 @@ logger = logging.getLogger(__name__)
 def get_supabase_client() -> Client:
     from supabase import create_client
 
-    return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    # Server-side uploads need the service-role key so they bypass storage
+    # RLS policies. Never fall back to the anon key here — it would silently
+    # fail uploads for any RLS-protected bucket.
+    key = settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_KEY
+    if not key:
+        raise RuntimeError(
+            "SUPABASE_SERVICE_ROLE_KEY (or legacy SUPABASE_KEY) is not configured",
+        )
+    return create_client(settings.SUPABASE_URL, key)
 
 
 def upload_file_to_storage(

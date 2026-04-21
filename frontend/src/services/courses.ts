@@ -3,7 +3,7 @@ import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/li
 import { isAxiosError } from "axios"
 import type {
   User, Course, Module, Chapter, Enrollment, Announcement, StudentGrade,
-  Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, Cohort,
+  Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, BlockType, Cohort,
   Notification, NotificationListResponse,
   AuditLogPage,
   GradingConfig, GradeSummaryResponse,
@@ -30,7 +30,7 @@ type AssignmentCreateData = {
 }
 
 type ChapterBlockCreateData = {
-  block_type: string
+  block_type: BlockType
   order_index?: number
   content?: string | null
   video_url?: string | null
@@ -40,7 +40,7 @@ type ChapterBlockCreateData = {
 }
 
 type ChapterBlockUpdateData = Partial<Omit<ChapterBlockCreateData, "block_type">> & {
-  block_type?: string
+  block_type?: BlockType
 }
 
 export const coursesService = {
@@ -95,11 +95,33 @@ export const coursesService = {
       `/courses/${courseId}/enroll`,
       cohortId ? { cohort_id: cohortId } : {},
     )
+    // Invalidate the per-user course list so HomePage/Profile/Calendar refresh
+    // their dashboards after an enroll. Same for the one-off status probe.
+    cacheInvalidate("courses:my")
+    cacheInvalidate(`courses:enrollment-status:${courseId}`)
     return response.data
   },
 
   async getMyCourses(): Promise<Enrollment[]> {
+    // Cached per-session. HomePage, ProfilePage, CalendarPage, and
+    // CertificatesPage all call this on mount, so without a small TTL we'd
+    // hit `/users/me/courses` four times during a normal navigation.
+    const key = "courses:my"
+    const cached = cacheGet<Enrollment[]>(key)
+    if (cached) return cached
     const response = await api.get<Enrollment[]>("/users/me/courses")
+    cacheSet(key, response.data, 60 * 1000)
+    return response.data
+  },
+
+  async getEnrollmentStatus(courseId: string): Promise<{ enrolled: boolean; enrollment: Enrollment | null }> {
+    const key = `courses:enrollment-status:${courseId}`
+    const cached = cacheGet<{ enrolled: boolean; enrollment: Enrollment | null }>(key)
+    if (cached) return cached
+    const response = await api.get<{ enrolled: boolean; enrollment: Enrollment | null }>(
+      `/courses/${courseId}/enrollment-status`,
+    )
+    cacheSet(key, response.data, 60 * 1000)
     return response.data
   },
 

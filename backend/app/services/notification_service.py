@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Iterable
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -26,3 +27,33 @@ def create_notification(
     db.add(notification)
     db.flush()
     return notification
+
+
+def create_notifications_bulk(
+    db: Session,
+    user_ids: Iterable[str | uuid.UUID],
+    *,
+    type: str,
+    title: str,
+    message: str,
+    link: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> int:
+    # Bulk-insert one identical notification row per recipient. Used for fan-out
+    # cases like course announcements where a per-row ``create_notification`` +
+    # ``flush`` would cost one round-trip per enrolled student.
+    payloads = [
+        {
+            "user_id": uid,
+            "type": type,
+            "title": title,
+            "message": message,
+            "link": link,
+            "meta": metadata,
+        }
+        for uid in user_ids
+    ]
+    if not payloads:
+        return 0
+    db.bulk_insert_mappings(Notification, payloads)
+    return len(payloads)

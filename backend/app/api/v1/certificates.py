@@ -27,7 +27,7 @@ def _generate_certificate_number() -> str:
 
 
 @router.post("/course/{course_id}", response_model=CertificateResponse, status_code=status.HTTP_201_CREATED)
-async def request_certificate(
+def request_certificate(
     course_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -78,7 +78,7 @@ async def request_certificate(
 
 
 @router.get("/course/{course_id}", response_model=CertificateResponse)
-async def get_course_certificate(
+def get_course_certificate(
     course_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -93,7 +93,7 @@ async def get_course_certificate(
 
 
 @router.get("/my", response_model=list[CertificateResponse])
-async def list_my_certificates(
+def list_my_certificates(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
@@ -110,7 +110,7 @@ async def list_my_certificates(
 
 
 @router.get("/pending", response_model=list[CertificateResponse])
-async def list_pending_certificates(
+def list_pending_certificates(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     teacher: User = Depends(require_teacher),
@@ -134,7 +134,7 @@ async def list_pending_certificates(
 
 
 @router.get("/admin/pending", response_model=list[CertificateResponse])
-async def list_admin_pending_certificates(
+def list_admin_pending_certificates(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     admin: User = Depends(require_admin),
@@ -152,7 +152,7 @@ async def list_admin_pending_certificates(
 
 
 @router.put("/{cert_id}/teacher-approve", response_model=CertificateResponse)
-async def teacher_approve_certificate(
+def teacher_approve_certificate(
     cert_id: UUID,
     request: Request,
     teacher: User = Depends(require_teacher),
@@ -182,7 +182,7 @@ async def teacher_approve_certificate(
 
 
 @router.put("/{cert_id}/admin-approve", response_model=CertificateResponse)
-async def admin_approve_certificate(
+def admin_approve_certificate(
     cert_id: UUID,
     request: Request,
     admin: User = Depends(require_admin),
@@ -221,7 +221,7 @@ async def admin_approve_certificate(
 
 
 @router.put("/{cert_id}/reject", response_model=CertificateResponse)
-async def reject_certificate(
+def reject_certificate(
     cert_id: UUID,
     request: Request,
     current_user: User = Depends(require_teacher),
@@ -263,7 +263,7 @@ async def reject_certificate(
 
 
 @router.get("/verify/{certificate_number}", response_model=CertificateVerifyResponse)
-async def verify_certificate(
+def verify_certificate(
     certificate_number: str,
     db: Session = Depends(get_db),
 ):

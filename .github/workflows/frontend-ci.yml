@@ -37,8 +37,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
+      # `npm ci` enforces that package-lock.json matches package.json and performs
+      # a clean install into a fresh node_modules — required for reproducible CI
+      # builds. Fails fast if someone forgets to commit an updated lockfile.
       - name: Install dependencies
-        run: npm install --no-fund
+        run: npm ci --no-fund
+
+      # Fail on HIGH or CRITICAL advisories in production dependencies. Moderate
+      # and below are reported but don't block merges; we triage those via the
+      # Dependabot queue rather than blocking every PR.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Run ESLint (zero warnings)
         run: npx eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0
