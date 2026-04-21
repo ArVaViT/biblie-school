@@ -20,7 +20,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_table("student_notes")
+    # `student_notes` existed in the historical Supabase schema but was never
+    # part of 001_initial (it was created out-of-band, before alembic was in
+    # use). On fresh DBs (CI, local dev) the table simply isn't there, so we
+    # drop it conditionally instead of unconditionally.
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute("DROP TABLE IF EXISTS student_notes CASCADE")
+    else:
+        # SQLite / others: best effort via inspector
+        from sqlalchemy import inspect
+
+        if inspect(bind).has_table("student_notes"):
+            op.drop_table("student_notes")
 
 
 def downgrade() -> None:
