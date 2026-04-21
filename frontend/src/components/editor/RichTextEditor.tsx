@@ -16,7 +16,7 @@ import {
   Undo2,
   Redo2,
   ImageIcon,
-  Youtube,
+  Video as Youtube,
   Info,
   BookOpen,
   Lightbulb,

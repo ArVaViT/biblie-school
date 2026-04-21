@@ -10,41 +10,37 @@ const YT_EMBED_PREFIXES = [
   "https://www.youtube-nocookie.com/embed/",
 ] as const
 
-let hookRegistered = false
-if (!hookRegistered) {
-  DOMPurify.addHook("uponSanitizeElement", (node, data) => {
-    if (data.tagName === "iframe") {
-      const src = (node as HTMLIFrameElement).getAttribute("src") || ""
-      if (YT_EMBED_PREFIXES.some((p) => src.startsWith(p))) {
-        return
-      }
-      node.parentNode?.removeChild(node)
+// Module-scope code runs once per process, so the hooks only register once.
+DOMPurify.addHook("uponSanitizeElement", (node, data) => {
+  if (data.tagName === "iframe") {
+    const src = (node as HTMLIFrameElement).getAttribute("src") || ""
+    if (YT_EMBED_PREFIXES.some((p) => src.startsWith(p))) {
+      return
     }
-  })
+    node.parentNode?.removeChild(node)
+  }
+})
 
-  // Strip any href/src whose scheme is dangerous. DOMPurify already blocks
-  // javascript:, but we also block data: (outside of images handled via the
-  // proxy below), vbscript: and file: just in case.
-  DOMPurify.addHook("uponSanitizeAttribute", (_node, data) => {
-    const name = data.attrName
-    const value = (data.attrValue || "").trim().toLowerCase()
-    if (name === "href" || name === "src" || name === "xlink:href") {
-      if (
-        value.startsWith("javascript:") ||
-        value.startsWith("vbscript:") ||
-        value.startsWith("file:") ||
-        (value.startsWith("data:") && !value.startsWith("data:image/"))
-      ) {
-        data.keepAttr = false
-      }
-    }
-    // Block inline event handlers outright.
-    if (name.startsWith("on")) {
+// Strip any href/src whose scheme is dangerous. DOMPurify already blocks
+// javascript:, but we also block data: (outside of images handled via the
+// proxy below), vbscript: and file: just in case.
+DOMPurify.addHook("uponSanitizeAttribute", (_node, data) => {
+  const name = data.attrName
+  const value = (data.attrValue || "").trim().toLowerCase()
+  if (name === "href" || name === "src" || name === "xlink:href") {
+    if (
+      value.startsWith("javascript:") ||
+      value.startsWith("vbscript:") ||
+      value.startsWith("file:") ||
+      (value.startsWith("data:") && !value.startsWith("data:image/"))
+    ) {
       data.keepAttr = false
     }
-  })
-  hookRegistered = true
-}
+  }
+  if (name.startsWith("on")) {
+    data.keepAttr = false
+  }
+})
 
 const SANITIZE_CONFIG = {
   ADD_TAGS: ["iframe"],

@@ -21,9 +21,17 @@ export default defineConfig({
         // every visitor, and `editor` duplicated the automatic async chunk
         // that already gets created when `RichTextEditor` is dynamically
         // imported from the lazy teacher routes (CourseEditor / ChapterEditor).
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
+        manualChunks(id) {
+          if (id.includes('node_modules/@supabase/supabase-js')) return 'supabase'
+          if (
+            id.includes('node_modules/react-router-dom') ||
+            id.includes('node_modules/react-router') ||
+            id.includes('node_modules/react-dom') ||
+            /node_modules[\\/]react[\\/]/.test(id)
+          ) {
+            return 'vendor'
+          }
+          return undefined
         },
       },
     },

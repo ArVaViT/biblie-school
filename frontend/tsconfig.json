@@ -23,8 +23,7 @@
     "noImplicitOverride": true,
     "forceConsistentCasingInFileNames": true,
 
-    /* Path aliases */
-    "baseUrl": ".",
+    /* Path aliases (baseUrl dropped in TS 6; paths are resolved relative to tsconfig.json) */
     "paths": {
       "@/*": ["./src/*"]
     }
