@@ -11,7 +11,7 @@ python-dotenv==1.0.0
 alembic==1.18.4
 bleach==6.1.0
 supabase>=2.0.0,<3.0.0
-sentry-sdk[fastapi,sqlalchemy]==2.44.0
+sentry-sdk[fastapi,sqlalchemy]==2.58.0
 pytest==9.0.2
 pytest-cov==6.1.1
 httpx==0.28.1
