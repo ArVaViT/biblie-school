@@ -14,23 +14,20 @@ from app.schemas.cohort import CohortCreate, CohortResponse, CohortUpdate
 router = APIRouter(prefix="/cohorts", tags=["cohorts"])
 
 
-def _cohort_to_response(db: Session, cohort: Cohort) -> CohortResponse:
-    student_count = db.query(func.count(Enrollment.id)).filter(Enrollment.cohort_id == cohort.id).scalar() or 0
+def _cohort_to_response(cohort: Cohort, student_count: int) -> CohortResponse:
+    """Serialize a cohort with its pre-computed student count.
 
-    return CohortResponse(
-        id=str(cohort.id),
-        course_id=str(cohort.course_id),
-        name=cohort.name,
-        start_date=cohort.start_date,
-        end_date=cohort.end_date,
-        enrollment_start=cohort.enrollment_start,
-        enrollment_end=cohort.enrollment_end,
-        status=cohort.status,
-        max_students=cohort.max_students,
-        created_at=cohort.created_at,
-        updated_at=cohort.updated_at,
-        student_count=student_count,
-    )
+    ``student_count`` is a computed field not stored on the model, so callers
+    must count enrollments themselves (one query per cohort, or a single
+    batched ``group_by`` for lists — see :func:`list_cohorts`).
+    """
+    resp = CohortResponse.model_validate(cohort)
+    resp.student_count = student_count
+    return resp
+
+
+def _count_students_in_cohort(db: Session, cohort_id: object) -> int:
+    return db.query(func.count(Enrollment.id)).filter(Enrollment.cohort_id == cohort_id).scalar() or 0
 
 
 def _get_cohort_or_404(db: Session, cohort_id: str) -> Cohort:
@@ -65,25 +62,8 @@ def list_cohorts(
         .group_by(Enrollment.cohort_id)
         .all()
     )
-    count_map = {cid: cnt for cid, cnt in counts}
-
-    return [
-        CohortResponse(
-            id=str(c.id),
-            course_id=str(c.course_id),
-            name=c.name,
-            start_date=c.start_date,
-            end_date=c.end_date,
-            enrollment_start=c.enrollment_start,
-            enrollment_end=c.enrollment_end,
-            status=c.status,
-            max_students=c.max_students,
-            created_at=c.created_at,
-            updated_at=c.updated_at,
-            student_count=count_map.get(c.id, 0),
-        )
-        for c in cohorts
-    ]
+    count_map = dict(counts)
+    return [_cohort_to_response(c, count_map.get(c.id, 0)) for c in cohorts]
 
 
 @router.post(
@@ -111,7 +91,7 @@ def create_cohort(
     db.add(cohort)
     db.commit()
     db.refresh(cohort)
-    return _cohort_to_response(db, cohort)
+    return _cohort_to_response(cohort, _count_students_in_cohort(db, cohort.id))
 
 
 @router.put("/{cohort_id}", response_model=CohortResponse)
@@ -129,7 +109,7 @@ def update_cohort(
 
     db.commit()
     db.refresh(cohort)
-    return _cohort_to_response(db, cohort)
+    return _cohort_to_response(cohort, _count_students_in_cohort(db, cohort.id))
 
 
 @router.delete("/{cohort_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -204,4 +184,4 @@ def complete_cohort(
     cohort.status = "completed"
     db.commit()
     db.refresh(cohort)
-    return _cohort_to_response(db, cohort)
+    return _cohort_to_response(cohort, _count_students_in_cohort(db, cohort.id))

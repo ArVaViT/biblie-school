@@ -26,11 +26,8 @@ from app.schemas.grade import (
     StudentCalculatedGrade,
 )
 from app.services.grade_calculator import (
-    _get_assignment_ids_for_chapters,
-    _get_course_chapter_ids,
-    _get_quiz_ids_for_chapters,
     calculate_all_student_grades,
-    calculate_student_grade,
+    calculate_student_grade_for_course,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,11 +57,7 @@ def get_grading_config(
     if not (is_owner or is_admin or is_enrolled):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    return GradingConfigResponse(
-        quiz_weight=course.quiz_weight,
-        assignment_weight=course.assignment_weight,
-        participation_weight=course.participation_weight,
-    )
+    return GradingConfigResponse.model_validate(course)
 
 
 @router.put("/course/{course_id}/config", response_model=GradingConfigResponse)
@@ -80,11 +73,7 @@ def update_grading_config(
     course.participation_weight = data.participation_weight
     db.commit()
     db.refresh(course)
-    return GradingConfigResponse(
-        quiz_weight=course.quiz_weight,
-        assignment_weight=course.assignment_weight,
-        participation_weight=course.participation_weight,
-    )
+    return GradingConfigResponse.model_validate(course)
 
 
 # ── Calculated Grades ──────────────────────────────────────────────
@@ -115,11 +104,7 @@ def get_calculated_grade(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
-    chapter_ids = _get_course_chapter_ids(db, course_id)
-    quiz_ids = _get_quiz_ids_for_chapters(db, chapter_ids)
-    assignment_ids = _get_assignment_ids_for_chapters(db, chapter_ids)
-
-    breakdown = calculate_student_grade(db, course, student_id, chapter_ids, quiz_ids, assignment_ids)
+    breakdown = calculate_student_grade_for_course(db, course, student_id)
 
     manual = (
         db.query(StudentGrade.grade)
@@ -151,11 +136,7 @@ def get_grade_summary(
 
         return GradeSummaryResponse(
             course_id=course_id,
-            config=GradingConfigResponse(
-                quiz_weight=course.quiz_weight,
-                assignment_weight=course.assignment_weight,
-                participation_weight=course.participation_weight,
-            ),
+            config=GradingConfigResponse.model_validate(course),
             students=students,
             class_average=class_avg,
         )

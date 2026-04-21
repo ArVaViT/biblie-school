@@ -81,6 +81,22 @@ def _build_breakdown(
     )
 
 
+def calculate_student_grade_for_course(
+    db: Session,
+    course: Course,
+    student_id: UUID,
+) -> GradeBreakdown:
+    """Calculate a single student's weighted grade breakdown.
+
+    Thin convenience wrapper that resolves the course's gradable chapter /
+    quiz / assignment ids once and delegates to :func:`calculate_student_grade`.
+    """
+    chapter_ids = _get_course_chapter_ids(db, course.id)
+    quiz_ids = _get_quiz_ids_for_chapters(db, chapter_ids)
+    assignment_ids = _get_assignment_ids_for_chapters(db, chapter_ids)
+    return calculate_student_grade(db, course, student_id, chapter_ids, quiz_ids, assignment_ids)
+
+
 def calculate_student_grade(
     db: Session,
     course: Course,
@@ -89,7 +105,12 @@ def calculate_student_grade(
     quiz_ids: list[UUID],
     assignment_ids: list[UUID],
 ) -> GradeBreakdown:
-    """Calculate a single student's weighted grade breakdown."""
+    """Calculate a single student's weighted grade breakdown.
+
+    Lower-level entry point when chapter / quiz / assignment ids are already
+    in hand (e.g. inside :func:`calculate_all_student_grades`). Callers that
+    only have a course should use :func:`calculate_student_grade_for_course`.
+    """
     quiz_avg = 0.0
     if quiz_ids:
         rows = (
