@@ -70,3 +70,6 @@ assets/c__Users_*
 
 # Database config (may contain credentials)
 alembic.ini
+
+# Local agent tooling scratchpad (MCP/automation helpers)
+agent-tools/
