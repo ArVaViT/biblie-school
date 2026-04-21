@@ -254,13 +254,16 @@ def submit_quiz(
     auto_graded_types = ("multiple_choice", "true_false")
     max_score = sum(q.points for q in quiz.questions if q.question_type in auto_graded_types)
 
-    all_options = db.query(QuizOption).join(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).all()
-    options_by_id = {str(o.id): o for o in all_options}
-
+    # Options were already fetched via selectinload(Quiz.questions → options)
+    # on the quiz load above; re-querying them here duplicates the work on
+    # every submit.
+    options_by_id: dict[str, QuizOption] = {}
     correct_option_map: dict[str, UUID | None] = {}
-    for o in all_options:
-        if o.is_correct:
-            correct_option_map[str(o.question_id)] = o.id
+    for q in quiz.questions:
+        for o in q.options:
+            options_by_id[str(o.id)] = o
+            if o.is_correct:
+                correct_option_map[str(o.question_id)] = o.id
 
     answer_results: list[QuizAnswerResult] = []
     answered_question_ids: set[UUID] = set()

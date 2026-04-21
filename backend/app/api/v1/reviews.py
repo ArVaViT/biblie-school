@@ -95,7 +95,13 @@ def create_or_update_review(
             db.refresh(existing)
             response.status_code = status.HTTP_200_OK
             return existing
-        raise
+        # Concurrent delete between the duplicate insert and this read, or a
+        # different constraint fired. Return a clean 409 instead of leaking the
+        # raw IntegrityError to the generic DB handler (which would report 503).
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Review could not be saved due to a conflict; please retry.",
+        ) from None
     db.refresh(review)
     response.status_code = status.HTTP_201_CREATED
     return review

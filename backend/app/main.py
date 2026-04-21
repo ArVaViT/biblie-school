@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1 import api_router
@@ -105,6 +105,19 @@ app.add_middleware(
 app.add_middleware(OptionsMiddleware)
 
 app.include_router(api_router, prefix="/api/v1")
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError):
+    # Constraint violations (unique/foreign-key/check) mean the request
+    # conflicts with current state — not that the database is down. Surfacing
+    # these as 503 hid real client-side bugs (duplicate keys, stale refs)
+    # behind a generic outage message.
+    logger.warning("Integrity error on %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "Request conflicts with current state of the resource."},
+    )
 
 
 @app.exception_handler(SQLAlchemyError)

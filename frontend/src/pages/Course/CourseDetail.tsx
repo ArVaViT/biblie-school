@@ -122,7 +122,11 @@ export default function CourseDetail() {
     }
     load()
     return () => { cancelled = true }
-  }, [id, user])
+    // Reload only when identity changes, not on every `user` object reference.
+    // Supabase rewrites the whole object on every TOKEN_REFRESHED tick, which
+    // used to refetch the entire course detail every ~55 minutes mid-session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id])
 
   const handleEnrollClick = () => {
     if (!id || !user) return

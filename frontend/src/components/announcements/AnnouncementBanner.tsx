@@ -28,7 +28,11 @@ export default function AnnouncementBanner() {
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium text-blue-800 dark:text-blue-300">{announcement.title}</span>
           {announcement.content && (
-            <span className="text-sm text-blue-700 dark:text-blue-400 ml-2">{announcement.content.slice(0, 150)}</span>
+            <span className="text-sm text-blue-700 dark:text-blue-400 ml-2">
+              {announcement.content.length > 150
+                ? `${announcement.content.slice(0, 150).trimEnd()}…`
+                : announcement.content}
+            </span>
           )}
         </div>
         <button onClick={() => setDismissed(true)} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded" aria-label="Dismiss announcement">

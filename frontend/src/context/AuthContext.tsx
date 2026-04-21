@@ -25,15 +25,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const enrichProfile = useCallback((userId: string, email: string) => {
     activeUserId.current = userId
+    // Supabase resolves with `{ data, error }` even for failures — it does NOT
+    // reject the promise — so relying on the `.then` rejection handler only
+    // would leave `loading` stuck forever on DB errors. Handle `error` in the
+    // success branch explicitly.
     supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single()
       .then(
-        ({ data }) => {
-          if (!mounted.current || !data) return
-          if (activeUserId.current !== userId) return
+        ({ data, error }) => {
+          if (!mounted.current || activeUserId.current !== userId) return
+          if (error || !data) {
+            setLoading(false)
+            return
+          }
           setUser({
             id: data.id,
             email: data.email || email,
@@ -43,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             created_at: data.created_at,
             updated_at: data.updated_at,
           })
+          setLoading(false)
         },
         () => {
           if (mounted.current && activeUserId.current === userId) {

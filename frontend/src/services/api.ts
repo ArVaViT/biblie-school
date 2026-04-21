@@ -53,6 +53,36 @@ api.interceptors.request.use(async (config) => {
   return config
 })
 
+// Coalesce concurrent 401s into a single refreshSession() call. Without this,
+// N in-flight requests each call refreshSession() and signOut() in parallel —
+// multiple refresh tokens burn, and the last signOut wins, bouncing the user
+// even if an earlier refresh actually succeeded.
+let refreshInflight: Promise<string | null> | null = null
+
+function refreshAccessTokenOnce(): Promise<string | null> {
+  if (refreshInflight) return refreshInflight
+  refreshInflight = (async () => {
+    try {
+      const { data, error: refreshError } = await supabase.auth.refreshSession()
+      const newToken = data.session?.access_token ?? null
+      if (refreshError || !newToken) {
+        cachedToken = null
+        await supabase.auth.signOut()
+        return null
+      }
+      cachedToken = newToken
+      return newToken
+    } catch {
+      cachedToken = null
+      await supabase.auth.signOut()
+      return null
+    } finally {
+      refreshInflight = null
+    }
+  })()
+  return refreshInflight
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: unknown) => {
@@ -70,23 +100,13 @@ api.interceptors.response.use(
     // ejecting the user. A truly invalid session — refresh fails or the retry
     // still returns 401 — falls through to signOut so the UI re-renders to the
     // auth screens instead of looping.
-    try {
-      const { data, error: refreshError } = await supabase.auth.refreshSession()
-      const newToken = data.session?.access_token ?? null
-      if (refreshError || !newToken) {
-        cachedToken = null
-        await supabase.auth.signOut()
-        return Promise.reject(error)
-      }
-      cachedToken = newToken
-      original.headers = original.headers ?? {}
-      original.headers.Authorization = `Bearer ${newToken}`
-      return api.request(original)
-    } catch {
-      cachedToken = null
-      await supabase.auth.signOut()
+    const newToken = await refreshAccessTokenOnce()
+    if (!newToken) {
       return Promise.reject(error)
     }
+    original.headers = original.headers ?? {}
+    original.headers.Authorization = `Bearer ${newToken}`
+    return api.request(original)
   },
 )
 

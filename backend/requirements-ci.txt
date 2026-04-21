@@ -7,7 +7,7 @@ pydantic-settings==2.14.0
 email-validator==2.3.0
 PyJWT==2.12.1
 python-multipart==0.0.26
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 alembic==1.18.4
 bleach==6.1.0
 supabase>=2.0.0,<3.0.0

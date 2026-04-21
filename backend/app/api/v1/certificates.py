@@ -171,7 +171,7 @@ def teacher_approve_certificate(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Certificate is not pending (current status: {cert.status})",
         )
-    course = db.query(Course).filter(Course.id == cert.course_id).first()
+    course = db.query(Course).filter(Course.id == cert.course_id, Course.deleted_at.is_(None)).first()
     if not course or str(course.created_by) != str(teacher.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -207,7 +207,7 @@ def admin_approve_certificate(
     cert.admin_approved_by = admin.id
     cert.issued_at = datetime.now(UTC)
 
-    course = db.query(Course).filter(Course.id == cert.course_id).first()
+    course = db.query(Course).filter(Course.id == cert.course_id, Course.deleted_at.is_(None)).first()
     course_title = course.title if course else "a course"
     create_notification(
         db,

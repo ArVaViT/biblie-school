@@ -217,7 +217,7 @@ def grade_submission(
 
     if data.grade > assignment.max_score:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Grade ({data.grade}) cannot exceed max score ({assignment.max_score})",
         )
 

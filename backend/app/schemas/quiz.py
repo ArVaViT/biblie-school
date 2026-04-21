@@ -36,7 +36,7 @@ class QuizQuestionCreate(BaseModel):
     question_type: Literal["multiple_choice", "true_false", "short_answer"] = "multiple_choice"
     order_index: int = Field(0, ge=0)
     points: int = Field(1, ge=1, le=100)
-    options: list[QuizOptionCreate] = Field(default=[], max_length=20)
+    options: list[QuizOptionCreate] = Field(default_factory=list, max_length=20)
 
 
 class QuizQuestionResponse(BaseModel):
@@ -68,7 +68,7 @@ class QuizCreate(BaseModel):
     quiz_type: Literal["quiz", "exam"] = "quiz"
     max_attempts: int | None = Field(None, ge=1, le=10)
     passing_score: int = Field(70, ge=0, le=100)
-    questions: list[QuizQuestionCreate] = Field(default=[], max_length=100)
+    questions: list[QuizQuestionCreate] = Field(default_factory=list, max_length=100)
 
 
 class QuizUpdate(BaseModel):

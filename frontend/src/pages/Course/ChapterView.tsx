@@ -294,7 +294,12 @@ export default function ChapterView() {
     )
   }
 
-  const chapterType = chapter.chapter_type || "reading"
+  // "content" is an older/alternative alias for "reading" used by some
+  // migrated chapters. The type union no longer permits it, but the DB may
+  // still return it, so collapse it via a string compare before the switch so
+  // the reading branch renders blocks/prose instead of falling through.
+  const rawChapterType: string = chapter.chapter_type || "reading"
+  const chapterType = rawChapterType === "content" ? "reading" : rawChapterType
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-3xl">

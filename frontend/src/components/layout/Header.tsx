@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/useAuth"
 import { useTheme } from "@/context/useTheme"
-import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays, Sun, Moon } from "lucide-react"
+import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays, Sun, Moon, Award } from "lucide-react"
 import NotificationBell from "./NotificationBell"
 import { toProxyImage } from "@/lib/images"
 
@@ -36,6 +36,12 @@ export default function Header() {
                 <Button variant={isActive("/calendar") ? "secondary" : "ghost"} size="sm" className="h-8 text-xs">
                   <CalendarDays className="h-3.5 w-3.5 mr-1" />
                   Calendar
+                </Button>
+              </Link>
+              <Link to="/certificates">
+                <Button variant={isActive("/certificates") ? "secondary" : "ghost"} size="sm" className="h-8 text-xs">
+                  <Award className="h-3.5 w-3.5 mr-1" />
+                  Certificates
                 </Button>
               </Link>
               {isTeacher && (

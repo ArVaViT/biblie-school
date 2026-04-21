@@ -104,11 +104,9 @@ def get_course_student_progress(
     all_quiz_ids = [q.id for qs in quiz_map.values() for q in qs]
 
     quiz_to_chapter: dict = {}
-    quiz_to_quiz_id: dict = {}
     for ch_id, qs in quiz_map.items():
         for q in qs:
             quiz_to_chapter[q.id] = ch_id
-            quiz_to_quiz_id[q.id] = str(q.id)
 
     # Aggregate best quiz attempt per (user, quiz) in SQL instead of pulling
     # every attempt row. Pre-aggregated data is collapsed per (user, chapter)

@@ -53,13 +53,24 @@ updates:
           - "prettier"
           - "typescript"
     ignore:
-      # Hold major bumps back behind dedicated PRs — they almost always need
-      # a codemod or config migration (e.g. React 19 → 20, Vite 5 → 6).
+      # Hold major bumps back — they almost always need a codemod or config
+      # migration (e.g. React 19, Vite 6, react-router v7 renamed APIs).
+      # Major bumps are opened manually when we're ready to do the migration.
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-dom"
         update-types: ["version-update:semver-major"]
       - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-router"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-router-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@hello-pangea/dnd"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
 
   # Backend (FastAPI + SQLAlchemy + Supabase Py) -----------------------------

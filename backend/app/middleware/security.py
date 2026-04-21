@@ -1,3 +1,5 @@
+import os
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -6,6 +8,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 # possible. The frontend ships its own CSP from Vercel; this one is purely
 # defence-in-depth for the raw API surface.
 _STRICT_API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+
+# HSTS on plain HTTP (local dev) has no effect unless the browser later sees
+# the same host over HTTPS — but if a dev ever points a real hostname at a
+# local tunnel, HSTS could pin the browser to HTTPS in confusing ways. Only
+# advertise it in hosted environments.
+_IS_PRODUCTION = bool(os.environ.get("VERCEL") or os.environ.get("PRODUCTION"))
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -16,7 +24,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "0"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        if _IS_PRODUCTION:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
