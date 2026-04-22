@@ -2,15 +2,13 @@ import { lazy, Suspense, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/useAuth"
-import { useTheme } from "@/context/useTheme"
-import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays, Sun, Moon, Award } from "lucide-react"
+import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays, Award } from "lucide-react"
 import { toProxyImage } from "@/lib/images"
 
 const NotificationBell = lazy(() => import("./NotificationBell"))
 
 export default function Header() {
   const { user } = useAuth()
-  const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -34,9 +32,14 @@ export default function Header() {
                 </Button>
               </Link>
               <Link to="/calendar">
-                <Button variant={isActive("/calendar") ? "secondary" : "ghost"} size="sm" className="h-8 text-xs">
-                  <CalendarDays className="h-3.5 w-3.5 mr-1" />
-                  Calendar
+                <Button
+                  variant={isActive("/calendar") ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  aria-label="Calendar"
+                  title="Calendar"
+                >
+                  <CalendarDays className="h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/certificates">
@@ -64,15 +67,6 @@ export default function Header() {
               <Suspense fallback={<div className="h-8 w-8" />}>
                 <NotificationBell />
               </Suspense>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={toggleTheme}
-                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
               <Link to="/profile">
                 <Button variant={isActive("/profile") ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0 rounded-full" aria-label="Profile">
                   {user.avatar_url ? (
@@ -107,14 +101,6 @@ export default function Header() {
                 {isTeacher && <Link to="/teacher" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Manage Courses</Link>}
                 {user.role === "admin" && <Link to="/admin" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Admin Panel</Link>}
                 <div className="px-3 py-1"><Suspense fallback={null}><NotificationBell /></Suspense></div>
-                <button
-                  type="button"
-                  onClick={() => { toggleTheme(); setMobileOpen(false) }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted text-left"
-                >
-                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                </button>
                 <Link to="/profile" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Profile & Settings</Link>
               </>
             ) : (

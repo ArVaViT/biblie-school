@@ -24,7 +24,7 @@ import type { User } from "@/types"
 import {
   User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera,
   Loader2, Award, BookOpen, ArrowRight, LogOut, Moon, Sun,
-  Download, AlertTriangle, Trash2,
+  AlertTriangle, Trash2,
 } from "lucide-react"
 
 function NameForm({ user, onSaved }: { user: User; onSaved: () => Promise<void> }) {
@@ -99,7 +99,6 @@ export default function ProfilePage() {
   const [completedCount, setCompletedCount] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [exporting, setExporting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState("")
   const [deleting, setDeleting] = useState(false)
@@ -143,26 +142,6 @@ export default function ProfilePage() {
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ""
-    }
-  }
-
-  const handleExportData = async () => {
-    setExporting(true)
-    try {
-      const data = await usersService.exportMyData()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `my-data-export-${new Date().toISOString().slice(0, 10)}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch {
-      setError("Failed to export data. Please try again.")
-    } finally {
-      setExporting(false)
     }
   }
 
@@ -343,23 +322,6 @@ export default function ProfilePage() {
                 {theme === "dark" ? "Light" : "Dark"}
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Your Data</CardTitle>
-            <CardDescription>Download a copy of all your data stored on this platform</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" onClick={handleExportData} disabled={exporting}>
-              {exporting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              {exporting ? "Preparing export..." : "Export My Data"}
-            </Button>
           </CardContent>
         </Card>
 

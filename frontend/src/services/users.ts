@@ -18,11 +18,6 @@ export const usersService = {
     return profile as Profile
   },
 
-  async exportMyData(): Promise<Record<string, unknown>> {
-    const response = await api.get<Record<string, unknown>>("/users/me/export-data")
-    return response.data
-  },
-
   async deleteMyAccount(): Promise<void> {
     await api.delete("/users/me", { data: { confirm: "DELETE" } })
   },

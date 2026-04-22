@@ -127,18 +127,10 @@ function AppRoutes() {
           </Suspense>
         </ErrorBoundary>
       </main>
-      <footer className="border-t border-border/60 bg-card/50 py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-foreground">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-accent"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
-              <span className="font-serif text-sm font-semibold tracking-tight">Bible School</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground italic font-serif">Training servants for the work of ministry</p>
-            <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-              <span>&copy; {new Date().getFullYear()} Bible School</span>
-            </div>
-          </div>
+      <footer className="border-t border-border/60 bg-card/40 py-2">
+        <div className="container mx-auto px-4 flex items-center justify-between text-[11px] text-muted-foreground">
+          <span className="font-serif tracking-tight">Bible School</span>
+          <span>&copy; {new Date().getFullYear()}</span>
         </div>
       </footer>
       <Toaster />

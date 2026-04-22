@@ -187,49 +187,6 @@ class TestGetMyCourses:
 
 
 # ===================================================================
-# USERS — GET /api/v1/users/me/export-data
-# ===================================================================
-
-
-class TestExportData:
-    def test_export_returns_profile(self, client: TestClient):
-        resp = client.get("/api/v1/users/me/export-data")
-        assert resp.status_code == 200
-        body = resp.json()
-        assert "profile" in body
-        assert body["profile"]["email"] == "teacher@example.com"
-        assert "exported_at" in body
-
-    def test_export_includes_all_sections(self, client: TestClient):
-        resp = client.get("/api/v1/users/me/export-data")
-        assert resp.status_code == 200
-        body = resp.json()
-        for key in (
-            "enrollments",
-            "quiz_attempts",
-            "assignment_submissions",
-            "grades",
-            "certificates",
-            "reviews",
-            "notifications",
-            "chapter_progress",
-        ):
-            assert key in body
-
-    def test_export_with_enrollments(self, student_client: TestClient, db: Session):
-        _seed_course(db)
-        _seed_enrollment(db, user_id=STUDENT_ID)
-        resp = student_client.get("/api/v1/users/me/export-data")
-        assert resp.status_code == 200
-        body = resp.json()
-        assert len(body["enrollments"]) >= 1
-
-    def test_anon_gets_401(self, anon_client: TestClient):
-        resp = anon_client.get("/api/v1/users/me/export-data")
-        assert resp.status_code in (401, 403)
-
-
-# ===================================================================
 # USERS — DELETE /api/v1/users/me
 # ===================================================================
 
