@@ -1,0 +1,34 @@
+design(wave-6): catalog + module view on semantic tokens
+
+CourseCard
+- Wrap the entire card in a single Link so the whole surface is a
+  native link (previously only the "Open" button was clickable). This
+  also gives us a proper focus-visible ring on the card, not on an
+  inner button.
+- Replace bespoke pill markup for enrollment state with the shared
+  <Badge> component and its info / destructive / success variants —
+  identical visual language across the app, zero raw palette classes.
+- Swap the 176px hard-coded height for aspect-[16/10] so covers stay
+  editorial on every breakpoint, and drop shadow-sm + hover:shadow-md
+  in favour of a primary-tinted border on hover.
+
+CourseDetail
+- Cover block: rounded-xl → rounded-md + border (the editorial recipe
+  from DESIGN.md).
+- Cohort status pill: custom emerald/blue classes → <Badge>.
+- Deadline list: red-/blue-/orange-/gray- palette soup → destructive /
+  info / warning / muted-foreground tokens with a 3px left rule for
+  overdue rows.
+- Module status chip + overdue-due text now read from success /
+  destructive tokens.
+
+ModuleView
+- Due-date banner, "module complete" banner, and per-chapter
+  completion/locked icons all migrated off red-/amber-/emerald-/green-
+  palettes onto destructive / warning / success tokens. The completed
+  chapter card now uses border-success/40 + bg-success/5 instead of
+  green-500/30, which keeps dark-mode contrast correct automatically.
+- Drop hover:shadow-sm on chapter cards — editorial is hover-tint, not
+  hover-lift.
+
+No test or build regressions; 82/82 pass.

@@ -119,20 +119,20 @@ export default function ModuleView() {
         const isOverdue = dueDate < now && !allComplete
         const isUpcoming = !isOverdue && dueDate.getTime() - now.getTime() < 3 * 24 * 60 * 60 * 1000
         return (
-          <div className={`flex items-center gap-2 px-3 py-2 rounded-md border mb-4 ${
+          <div className={`mb-4 flex items-center gap-2 rounded-md border px-3 py-2 ${
             isOverdue
-              ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+              ? "border-l-[3px] border-l-destructive border-border bg-destructive/5"
               : isUpcoming
-                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
-                : "bg-muted/50 border-border"
+                ? "border-l-[3px] border-l-warning border-border bg-warning/10"
+                : "border-border bg-muted/50"
           }`}>
             {isOverdue ? (
-              <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+              <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
             ) : (
-              <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+              <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
             )}
             <span className={`text-sm font-medium ${
-              isOverdue ? "text-red-700 dark:text-red-400" : isUpcoming ? "text-amber-700 dark:text-amber-400" : "text-foreground"
+              isOverdue ? "text-destructive" : isUpcoming ? "text-warning" : "text-foreground"
             }`}>
               {isOverdue ? "Overdue" : "Due"}: {dueDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
               {" at "}{dueDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
@@ -142,9 +142,9 @@ export default function ModuleView() {
       })()}
 
       {allComplete && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 mb-4">
-          <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
-          <span className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Module complete — well done!</span>
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-border border-l-[3px] border-l-success bg-success/10 px-3 py-2">
+          <CheckCircle className="h-4 w-4 shrink-0 text-success" />
+          <span className="text-sm font-medium text-success">Module complete — well done!</span>
         </div>
       )}
 
@@ -212,18 +212,18 @@ export default function ModuleView() {
                   className="block"
                 >
                   <Card
-                    className={`animate-fade-in transition-colors hover:border-primary/40 hover:shadow-sm ${isCompleted ? "border-green-500/30 bg-green-50/30 dark:bg-green-950/10" : ""}`}
+                    className={`animate-fade-in transition-colors hover:border-primary/40 ${isCompleted ? "border-success/40 bg-success/5" : ""}`}
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2">
                         {isGradable ? (
                           isCompleted ? (
-                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
+                            <CheckCircle className="h-5 w-5 shrink-0 text-success" />
                           ) : requiresTeacher ? (
-                            <Lock className="h-5 w-5 text-amber-500 shrink-0" />
+                            <Lock className="h-5 w-5 shrink-0 text-warning" />
                           ) : (
-                            <Circle className="h-5 w-5 text-muted-foreground/40 shrink-0" />
+                            <Circle className="h-5 w-5 shrink-0 text-muted-foreground/40" />
                           )
                         ) : null}
                         <span className={isCompleted ? "text-muted-foreground" : ""}>

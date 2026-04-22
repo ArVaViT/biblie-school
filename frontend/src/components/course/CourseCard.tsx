@@ -1,7 +1,7 @@
 import { useState, memo } from "react"
 import { Link } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import type { Course } from "@/types"
 import { BookOpen, ArrowRight } from "lucide-react"
 import { toProxyImage } from "@/lib/images"
@@ -10,29 +10,39 @@ interface CourseCardProps {
   course: Course
 }
 
-function EnrollmentBadge({ start, end }: { start?: string | null; end?: string | null }) {
-  if (!start && !end) return null
+type EnrollmentState = "opens" | "closed" | "open" | null
+
+function enrollmentState(start?: string | null, end?: string | null): { state: EnrollmentState; date?: Date } {
+  if (!start && !end) return { state: null }
   const now = new Date()
   const s = start ? new Date(start) : null
   const e = end ? new Date(end) : null
-  if (s && now < s) {
+  if (s && now < s) return { state: "opens", date: s }
+  if (e && now > e) return { state: "closed" }
+  return { state: "open" }
+}
+
+function EnrollmentBadge({ start, end }: { start?: string | null; end?: string | null }) {
+  const { state, date } = enrollmentState(start, end)
+  if (!state) return null
+  if (state === "opens") {
     return (
-      <span className="absolute top-2 right-2 z-10 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 shadow-sm">
-        Enrollment opens {s.toLocaleDateString()}
-      </span>
+      <Badge variant="info" className="absolute top-3 right-3 z-10">
+        Opens {date!.toLocaleDateString()}
+      </Badge>
     )
   }
-  if (e && now > e) {
+  if (state === "closed") {
     return (
-      <span className="absolute top-2 right-2 z-10 text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 shadow-sm">
+      <Badge variant="destructive" className="absolute top-3 right-3 z-10">
         Enrollment closed
-      </span>
+      </Badge>
     )
   }
   return (
-    <span className="absolute top-2 right-2 z-10 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 shadow-sm">
+    <Badge variant="success" className="absolute top-3 right-3 z-10">
       Enrolling now
-    </span>
+    </Badge>
   )
 }
 
@@ -41,47 +51,49 @@ function CourseCard({ course }: CourseCardProps) {
   const coverSrc = toProxyImage(course.image_url)
 
   return (
-    <Card className="group flex flex-col overflow-hidden border-border/60 shadow-sm hover:shadow-md transition-shadow duration-300">
-      <div className="relative">
-        <EnrollmentBadge start={course.enrollment_start} end={course.enrollment_end} />
-        {coverSrc && !imgError ? (
-          <div className="w-full h-44 overflow-hidden bg-muted">
-            <img
-              src={coverSrc}
-              alt={course.title}
-              loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-              onError={() => setImgError(true)}
-            />
-          </div>
-        ) : (
-          <div className="w-full h-44 bg-muted flex items-center justify-center">
-            <BookOpen className="h-10 w-10 text-muted-foreground/20" />
-          </div>
-        )}
-      </div>
-      <CardHeader className="pb-2">
-        <CardTitle className="font-serif text-lg line-clamp-1">{course.title}</CardTitle>
-        {course.description && (
-          <CardDescription className="line-clamp-2 text-xs leading-relaxed">
-            {course.description}
-          </CardDescription>
-        )}
-      </CardHeader>
-      <CardContent className="mt-auto pt-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground tracking-wide uppercase">
+    <Link
+      to={`/courses/${course.id}`}
+      className="group block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <Card className="flex h-full flex-col overflow-hidden border-border/60 transition-colors hover:border-primary/40">
+        <div className="relative">
+          <EnrollmentBadge start={course.enrollment_start} end={course.enrollment_end} />
+          {coverSrc && !imgError ? (
+            <div className="aspect-[16/10] w-full overflow-hidden bg-muted">
+              <img
+                src={coverSrc}
+                alt={course.title}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                onError={() => setImgError(true)}
+              />
+            </div>
+          ) : (
+            <div className="flex aspect-[16/10] w-full items-center justify-center bg-muted">
+              <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+            </div>
+          )}
+        </div>
+        <CardHeader className="pb-2">
+          <CardTitle className="font-serif text-lg leading-snug line-clamp-2">{course.title}</CardTitle>
+          {course.description && (
+            <CardDescription className="line-clamp-2 text-xs leading-relaxed">
+              {course.description}
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="mt-auto flex items-center justify-between pt-2 text-xs text-muted-foreground">
+          <span className="uppercase tracking-wide">
             {course.modules?.length ?? 0} modules
           </span>
-          <Link to={`/courses/${course.id}`}>
-            <Button size="sm" variant="ghost" className="h-8 text-xs rounded-md group/btn">
-              Open
-              <ArrowRight className="h-3.5 w-3.5 ml-1 transition-transform group-hover/btn:translate-x-0.5" />
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
+          <span className="inline-flex items-center gap-1 text-foreground/80 transition-colors group-hover:text-primary">
+            Open
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        </CardContent>
+      </Card>
+    </Link>
   )
 }
 

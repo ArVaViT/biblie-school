@@ -14,6 +14,7 @@ import {
 import CourseAnnouncements from "@/components/announcements/CourseAnnouncements"
 import CourseReviews from "@/components/course/CourseReviews"
 import CertificateCard from "@/components/course/CertificateCard"
+import { Badge } from "@/components/ui/badge"
 import { toProxyImage } from "@/lib/images"
 
 interface CourseMaterial {
@@ -242,12 +243,13 @@ export default function CourseDetail() {
         </Link>
 
         {course.image_url && (
-          <div className="w-full h-48 sm:h-56 overflow-hidden rounded-xl bg-muted mb-6">
+          <div className="mb-6 w-full aspect-[16/9] overflow-hidden rounded-md border bg-muted">
             <img
               src={toProxyImage(course.image_url)}
               alt={course.title}
               loading="lazy"
-              className="w-full h-full object-cover"
+              decoding="async"
+              className="h-full w-full object-cover"
               onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none" }}
             />
           </div>
@@ -269,13 +271,9 @@ export default function CourseDetail() {
               <div className="flex items-center gap-2 mb-1">
                 <CalendarDays className="h-4 w-4 text-primary" />
                 <span className="font-medium">{activeCohort.name}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  activeCohort.status === "active"
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
-                }`}>
+                <Badge variant={activeCohort.status === "active" ? "success" : "info"}>
                   {activeCohort.status}
-                </span>
+                </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
                 {formatDate(activeCohort.start_date)} &mdash; {formatDate(activeCohort.end_date)}
@@ -428,7 +426,7 @@ export default function CourseDetail() {
               <BookOpen className="h-3.5 w-3.5" />
               {totalChapters} chapters
             </span>
-            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+            <span className="flex items-center gap-1 font-medium text-success">
               <CheckCircle className="h-3.5 w-3.5" />
               {enrollment.progress}% complete
             </span>
@@ -464,21 +462,21 @@ export default function CourseDetail() {
                     key={evt.id}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${
                       overdue
-                        ? "border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800"
+                        ? "border-l-[3px] border-l-destructive border-border bg-destructive/5"
                         : "border-border hover:bg-muted/50"
                     }`}
                   >
                     {overdue ? (
-                      <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                      <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
                     ) : (
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${
-                        evt.event_type === "deadline" ? "bg-red-500"
-                          : evt.event_type === "live_session" ? "bg-blue-500"
-                            : evt.event_type === "exam" ? "bg-orange-500"
-                              : "bg-gray-400"
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${
+                        evt.event_type === "deadline" ? "bg-destructive"
+                          : evt.event_type === "live_session" ? "bg-info"
+                            : evt.event_type === "exam" ? "bg-warning"
+                              : "bg-muted-foreground/50"
                       }`} />
                     )}
-                    <span className={`flex-1 truncate ${overdue ? "text-red-600 dark:text-red-400" : ""}`}>
+                    <span className={`flex-1 truncate ${overdue ? "text-destructive" : ""}`}>
                       {evt.title}
                     </span>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -532,11 +530,11 @@ export default function CourseDetail() {
                   <CardHeader className="py-3 px-4">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                        <span className={`flex items-center justify-center h-6 w-6 rounded-full text-xs font-bold shrink-0 ${
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                           isLocked
                             ? "bg-muted text-muted-foreground"
                             : allComplete
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              ? "bg-success/15 text-success"
                               : "bg-primary/10 text-primary"
                         }`}>
                           {isLocked ? <Lock className="h-3 w-3" /> : allComplete ? <CheckCircle className="h-3 w-3" /> : idx + 1}
@@ -576,8 +574,8 @@ export default function CourseDetail() {
                       const now = new Date()
                       const overdue = dueDate < now && !allComplete
                       return (
-                        <div className={`ml-8 mt-1 flex items-center gap-1 text-[10px] ${
-                          overdue ? "text-red-500" : "text-muted-foreground"
+                        <div className={`ml-8 mt-1 flex items-center gap-1 text-[11px] ${
+                          overdue ? "text-destructive" : "text-muted-foreground"
                         }`}>
                           {overdue ? <AlertTriangle className="h-2.5 w-2.5" /> : <Clock className="h-2.5 w-2.5" />}
                           <span>{overdue ? "Overdue" : "Due"}: {formatDate(module.due_date)}</span>
