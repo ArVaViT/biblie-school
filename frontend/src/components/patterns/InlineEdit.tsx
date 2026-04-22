@@ -1,0 +1,227 @@
+import * as React from "react"
+import { Check, Pencil, X, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+type Size = "h1" | "h2" | "body"
+
+interface InlineEditProps {
+  value: string
+  onSave: (next: string) => Promise<void> | void
+  placeholder?: string
+  size?: Size
+  multiline?: boolean
+  maxLength?: number
+  disabled?: boolean
+  required?: boolean
+  className?: string
+  textClassName?: string
+  ariaLabel?: string
+}
+
+const sizeClasses: Record<Size, string> = {
+  h1: "font-serif text-3xl md:text-4xl font-semibold leading-tight tracking-tight",
+  h2: "font-serif text-xl md:text-2xl font-semibold leading-tight",
+  body: "text-sm leading-relaxed",
+}
+
+export function InlineEdit({
+  value,
+  onSave,
+  placeholder = "Click to edit",
+  size = "body",
+  multiline = false,
+  maxLength,
+  disabled = false,
+  required = false,
+  className,
+  textClassName,
+  ariaLabel,
+}: InlineEditProps) {
+  const [editing, setEditing] = React.useState(false)
+  const [draft, setDraft] = React.useState(value)
+  const [saving, setSaving] = React.useState(false)
+  const inputRef = React.useRef<HTMLTextAreaElement | HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    if (!editing) setDraft(value)
+  }, [value, editing])
+
+  React.useEffect(() => {
+    if (!editing) return
+    const el = inputRef.current
+    if (!el) return
+    el.focus()
+    if ("setSelectionRange" in el) {
+      try {
+        el.setSelectionRange(el.value.length, el.value.length)
+      } catch {
+        // ignore
+      }
+    }
+    if (multiline && el instanceof HTMLTextAreaElement) {
+      el.style.height = "auto"
+      el.style.height = `${el.scrollHeight}px`
+    }
+  }, [editing, multiline])
+
+  const start = () => {
+    if (disabled) return
+    setDraft(value)
+    setEditing(true)
+  }
+
+  const cancel = () => {
+    setDraft(value)
+    setEditing(false)
+  }
+
+  const commit = async () => {
+    const trimmed = draft.trim()
+    if (required && !trimmed) {
+      cancel()
+      return
+    }
+    if (trimmed === value.trim()) {
+      setEditing(false)
+      return
+    }
+    try {
+      setSaving(true)
+      await onSave(trimmed)
+      setEditing(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault()
+      cancel()
+      return
+    }
+    if (e.key === "Enter") {
+      if (multiline && !(e.metaKey || e.ctrlKey)) return
+      e.preventDefault()
+      void commit()
+    }
+  }
+
+  const onBlur = () => {
+    if (!saving) void commit()
+  }
+
+  const resize = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }
+
+  if (editing) {
+    const sharedProps = {
+      value: draft,
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setDraft(e.target.value)
+        if (multiline && e.currentTarget instanceof HTMLTextAreaElement) {
+          resize(e.currentTarget)
+        }
+      },
+      onKeyDown,
+      onBlur,
+      maxLength,
+      placeholder,
+      disabled: saving,
+      "aria-label": ariaLabel,
+      className: cn(
+        "w-full rounded-md border border-input bg-background px-2 py-1 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        sizeClasses[size],
+        textClassName,
+      ),
+    }
+
+    return (
+      <span className={cn("inline-flex w-full items-start gap-2", className)}>
+        {multiline ? (
+          <textarea
+            {...sharedProps}
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            rows={2}
+          />
+        ) : (
+          <input
+            {...sharedProps}
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            type="text"
+          />
+        )}
+        <span className="flex shrink-0 items-center gap-1 pt-1">
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          ) : (
+            <>
+              <button
+                type="button"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => void commit()}
+                aria-label="Save"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={cancel}
+                aria-label="Cancel"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </span>
+      </span>
+    )
+  }
+
+  const isEmpty = !value.trim()
+  const displayText = isEmpty ? placeholder : value
+
+  if (disabled) {
+    return (
+      <span className={cn("inline-block w-full", className)}>
+        <span
+          className={cn(
+            sizeClasses[size],
+            isEmpty && "text-muted-foreground italic",
+            textClassName,
+          )}
+        >
+          {displayText}
+        </span>
+      </span>
+    )
+  }
+
+  return (
+    <span className={cn("group/edit relative inline-flex w-full items-start gap-2", className)}>
+      <button
+        type="button"
+        onClick={start}
+        aria-label={ariaLabel ?? `Edit ${placeholder.toLowerCase()}`}
+        className={cn(
+          "flex-1 min-w-0 cursor-text rounded-md px-2 py-1 text-left transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          sizeClasses[size],
+          isEmpty && "text-muted-foreground italic",
+          textClassName,
+        )}
+      >
+        {displayText}
+      </button>
+      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover/edit:opacity-100 group-focus-within/edit:opacity-100">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-background/80 text-muted-foreground shadow-sm ring-1 ring-border">
+          <Pencil className="h-3.5 w-3.5" />
+        </span>
+      </span>
+    </span>
+  )
+}
