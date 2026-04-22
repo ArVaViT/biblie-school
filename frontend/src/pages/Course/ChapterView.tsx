@@ -15,10 +15,8 @@ import {
   Lock,
   PlayCircle,
   Headphones,
-  MessageSquare,
   Download,
   File,
-  Info,
 } from "lucide-react"
 import QuizTaker from "@/components/quiz/QuizTaker"
 import AssignmentPanel from "@/components/assignment/AssignmentPanel"
@@ -120,7 +118,7 @@ const BlockRenderer = memo(function BlockRenderer({
 /**
  * Renders the shared "show custom blocks if the chapter has them, otherwise
  * fall back to a static per-type view" pattern. Every content-carrying chapter
- * type (reading, video, audio, discussion, mixed) needs this exact handling,
+ * type (reading, video, audio, mixed) needs this exact handling,
  * so centralising it cuts out ~60 lines of duplication.
  */
 function ChapterBodyBlocks({
@@ -235,7 +233,6 @@ export default function ChapterView() {
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
   const [chapterBlocks, setChapterBlocks] = useState<ChapterBlock[]>([])
   const [loadingBlocks, setLoadingBlocks] = useState(false)
-  const [discussionResponse, setDiscussionResponse] = useState("")
   const [hasAssignments, setHasAssignments] = useState(false)
 
   useEffect(() => {
@@ -280,7 +277,6 @@ export default function ChapterView() {
     if (!chapter) return
     let cancelled = false
 
-    setDiscussionResponse("")
     setHasAssignments(false)
 
     const needsBlocks = BLOCK_BASED_CHAPTER_TYPES.has(normalizeChapterType(chapter.chapter_type))
@@ -488,48 +484,6 @@ export default function ChapterView() {
             onSubmitted={refreshCompletion}
             onCountLoaded={handleAssignmentCountLoaded}
           />
-        )}
-
-        {chapterType === "discussion" && (
-          <div className="space-y-4">
-            {chapter.content && (
-              <div className="rounded-md border bg-card p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium text-sm">Discussion Prompt</span>
-                </div>
-                <div
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
-                />
-              </div>
-            )}
-            <ChapterBodyBlocks
-              loading={loadingBlocks}
-              blocks={chapterBlocks}
-              onProgressChanged={refreshCompletion}
-              onAssignmentCountLoaded={handleAssignmentCountLoaded}
-              fallback={null}
-            />
-            <div>
-              <label htmlFor="discussion-response" className="text-sm font-medium mb-2 block">
-                Your Response
-              </label>
-              <textarea
-                id="discussion-response"
-                value={discussionResponse}
-                onChange={(e) => setDiscussionResponse(e.target.value)}
-                placeholder="Share your thoughts on this topic..."
-                className="w-full min-h-[160px] p-4 text-sm bg-muted/30 border rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
-              />
-              <div className="mt-3 flex items-start gap-3 rounded-md border-l-[3px] border-l-warning bg-warning/10 px-4 py-3">
-                <Info className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                <p className="text-sm text-foreground">
-                  Discussion responses are for personal reflection and are not saved.
-                </p>
-              </div>
-            </div>
-          </div>
         )}
 
         {chapterType === "mixed" && (

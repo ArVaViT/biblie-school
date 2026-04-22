@@ -5,7 +5,6 @@ import {
   Headphones,
   HelpCircle,
   Layers,
-  MessageSquare,
   PlayCircle,
   Puzzle,
   type LucideIcon,
@@ -28,7 +27,6 @@ export const CHAPTER_TYPES = [
   "quiz",
   "exam",
   "assignment",
-  "discussion",
   "mixed",
 ] as const
 
@@ -94,13 +92,6 @@ export const CHAPTER_TYPE_META: Record<ChapterType, ChapterTypeMeta> = {
     color: PILL,
     badgeColor: PILL,
   },
-  discussion: {
-    label: "Discussion",
-    description: "Student discussion prompt",
-    icon: MessageSquare,
-    color: PILL,
-    badgeColor: PILL,
-  },
   mixed: {
     label: "Mixed",
     description: "Combine multiple content types",
@@ -123,12 +114,15 @@ export const BLOCK_BASED_CHAPTER_TYPES: ReadonlySet<ChapterType> = new Set([
   "reading",
   "video",
   "audio",
-  "discussion",
   "mixed",
 ])
 
 const LEGACY_ALIASES: Record<string, ChapterType> = {
   content: "reading",
+  // The discussion feature was removed in favour of plain reading with a
+  // prompt — existing rows still migrate on the server, but any late reads
+  // coming back with the old value normalise to reading here.
+  discussion: "reading",
 }
 
 /**

@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 # is a legacy alias some seeded chapters already use on prod — leaving it out
 # of the schema blocked PATCHes on those rows with a 422 even though the DB
 # accepts them.
-CHAPTER_TYPES = Literal["reading", "video", "audio", "quiz", "exam", "assignment", "discussion", "mixed", "content"]
+CHAPTER_TYPES = Literal["reading", "video", "audio", "quiz", "exam", "assignment", "mixed", "content"]
 
 
 class ChapterBase(BaseModel):

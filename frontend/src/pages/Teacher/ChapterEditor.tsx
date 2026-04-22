@@ -145,7 +145,7 @@ export default function ChapterEditor() {
         chapter_type: chapterType,
       }
 
-      if (chapterType === "reading" || chapterType === "discussion") {
+      if (chapterType === "reading") {
         payload.content = content
       } else if (chapterType === "video") {
         payload.video_url = videoUrl.trim() || undefined
@@ -370,17 +370,6 @@ export default function ChapterEditor() {
 
           {chapterType === "assignment" && (
             <AssignmentEditor chapterId={chapter.id} />
-          )}
-
-          {chapterType === "discussion" && (
-            <>
-              <Label className="text-sm font-semibold">Discussion Prompt</Label>
-              <RichTextEditor
-                content={content}
-                onChange={setContent}
-                placeholder="Write the discussion prompt and guidelines here..."
-              />
-            </>
           )}
 
           {chapterType === "mixed" && (
