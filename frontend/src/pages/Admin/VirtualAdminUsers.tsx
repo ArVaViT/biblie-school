@@ -54,7 +54,7 @@ function UserRow({
           type="checkbox"
           checked={selected}
           onChange={() => onToggleSelect(u.id)}
-          className="rounded border-gray-300"
+          className="h-4 w-4 rounded border-input"
           aria-label={`Select ${u.full_name || u.email}`}
         />
       </div>

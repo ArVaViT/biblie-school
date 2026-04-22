@@ -8,6 +8,7 @@ import { getErrorDetail } from "@/lib/errorDetail"
 import { supabase } from "@/lib/supabase"
 import type { UserRole, Certificate, AuditLogEntry } from "@/types"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
 import {
   Users, BookOpen, GraduationCap, Shield, Search, Clock,
@@ -44,14 +45,14 @@ const ACTION_OPTIONS = ["create", "update", "delete", "publish", "enroll", "appr
 const RESOURCE_OPTIONS = ["course", "module", "chapter", "enrollment", "certificate", "assignment_submission", "user"]
 
 const actionBadgeClass: Record<string, string> = {
-  create: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
-  update: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-  delete: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
-  publish: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
-  enroll: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400",
-  approve: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
-  reject: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
-  grade: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+  create: "bg-success/15 text-success",
+  update: "bg-info/15 text-info",
+  delete: "bg-destructive/15 text-destructive",
+  publish: "bg-primary/15 text-primary",
+  enroll: "bg-info/15 text-info",
+  approve: "bg-success/15 text-success",
+  reject: "bg-destructive/15 text-destructive",
+  grade: "bg-warning/15 text-warning",
 }
 
 export default function AdminDashboard() {
@@ -232,9 +233,9 @@ export default function AdminDashboard() {
   }
 
   const statCards = [
-    { label: "Total Users", value: stats.users, icon: Users, color: "text-blue-600 bg-blue-100 dark:bg-blue-900/40 dark:text-blue-400" },
-    { label: "Total Courses", value: stats.courses, icon: BookOpen, color: "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-400" },
-    { label: "Total Enrollments", value: stats.enrollments, icon: GraduationCap, color: "text-purple-600 bg-purple-100 dark:bg-purple-900/40 dark:text-purple-400" },
+    { label: "Total Users", value: stats.users, icon: Users },
+    { label: "Total Courses", value: stats.courses, icon: BookOpen },
+    { label: "Total Enrollments", value: stats.enrollments, icon: GraduationCap },
   ]
 
   const pendingTeachers = users.filter((u) => u.role === "pending_teacher")
@@ -303,10 +304,10 @@ export default function AdminDashboard() {
   }
 
   const roleBadgeClass: Record<UserRole, string> = {
-    admin: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
-    teacher: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-    pending_teacher: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
-    student: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400",
+    admin: "bg-destructive/15 text-destructive",
+    teacher: "bg-primary/15 text-primary",
+    pending_teacher: "bg-warning/15 text-warning",
+    student: "bg-info/15 text-info",
   }
 
   const resetAuditFilters = () => {
@@ -384,8 +385,8 @@ export default function AdminDashboard() {
         {statCards.map((s) => (
           <Card key={s.label}>
             <CardContent className="flex items-center gap-4 p-6">
-              <div className={`p-3 rounded-xl ${s.color}`}>
-                <s.icon className="h-6 w-6" />
+              <div className="rounded-md bg-muted p-3">
+                <s.icon className="h-6 w-6 text-muted-foreground" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{s.label}</p>
@@ -400,14 +401,14 @@ export default function AdminDashboard() {
 
       {/* Pending Teacher Approvals */}
       {pendingTeachers.length > 0 && (
-        <Card className="mb-8 border-amber-200 dark:border-amber-800">
+        <Card className="mb-8 border-l-[3px] border-l-warning">
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-2">
-              <Clock className="h-5 w-5 text-amber-600" />
+              <Clock className="h-5 w-5 text-warning" />
               Pending Teacher Approvals
-              <span className="text-sm font-normal bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5">
+              <Badge variant="warning" className="font-normal">
                 {pendingTeachers.length}
-              </span>
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -415,7 +416,7 @@ export default function AdminDashboard() {
               {pendingTeachers.map((u) => (
                 <div
                   key={u.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20"
+                  className="flex items-center justify-between rounded-md border border-l-[3px] border-l-warning/60 bg-warning/5 p-4"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {u.avatar_url ? (
@@ -445,7 +446,6 @@ export default function AdminDashboard() {
                         if (ok) handleApproveTeacher(u.id)
                       }}
                       disabled={updatingId === u.id}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                       <CheckCircle className="h-4 w-4 mr-1.5" />
                       Approve
@@ -478,14 +478,14 @@ export default function AdminDashboard() {
 
       {/* Certificate Approvals */}
       {adminCerts.length > 0 && (
-        <Card className="mb-8 border-purple-200 dark:border-purple-800">
+        <Card className="mb-8 border-l-[3px] border-l-primary">
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-2">
-              <Award className="h-5 w-5 text-purple-600" />
+              <Award className="h-5 w-5 text-primary" />
               Certificate Approvals
-              <span className="text-sm font-normal bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 rounded-full px-2.5 py-0.5">
+              <Badge variant="default" className="font-normal">
                 {adminCerts.length}
-              </span>
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -493,7 +493,7 @@ export default function AdminDashboard() {
               {adminCerts.map((cert) => (
                 <div
                   key={cert.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-purple-50/50 dark:bg-purple-950/20"
+                  className="flex items-center justify-between rounded-md border border-l-[3px] border-l-primary/60 bg-primary/5 p-4"
                 >
                   <div className="min-w-0">
                     <p className="font-medium truncate">{cert.student_name || "Student"}</p>
@@ -501,7 +501,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                       {cert.approved_by_name && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3 text-emerald-500" />
+                          <CheckCircle className="h-3 w-3 text-success" />
                           Approved by {cert.approved_by_name}
                         </span>
                       )}
@@ -518,10 +518,9 @@ export default function AdminDashboard() {
                       size="sm"
                       onClick={() => handleFinalApproveCert(cert.id)}
                       disabled={certActionId === cert.id}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                       <CheckCircle className="h-4 w-4 mr-1.5" />
-                      Final Approve
+                      Approve
                     </Button>
                     <Button
                       size="sm"
@@ -595,7 +594,7 @@ export default function AdminDashboard() {
                   type="checkbox"
                   checked={filtered.length > 0 && filtered.every(u => selectedIds.has(u.id))}
                   onChange={toggleSelectAll}
-                  className="rounded border-gray-300"
+                  className="h-4 w-4 rounded border-input"
                   aria-label="Select all users"
                 />
                 <span className="text-xs text-muted-foreground">Select all {filtered.length}</span>
@@ -621,7 +620,7 @@ export default function AdminDashboard() {
                         type="checkbox"
                         checked={filtered.length > 0 && filtered.every(u => selectedIds.has(u.id))}
                         onChange={toggleSelectAll}
-                        className="rounded border-gray-300"
+                        className="h-4 w-4 rounded border-input"
                         aria-label="Select all users"
                       />
                     </th>
@@ -639,7 +638,7 @@ export default function AdminDashboard() {
                           type="checkbox"
                           checked={selectedIds.has(u.id)}
                           onChange={() => toggleSelect(u.id)}
-                          className="rounded border-gray-300"
+                          className="h-4 w-4 rounded border-input"
                           aria-label={`Select ${u.full_name || u.email}`}
                         />
                       </td>
@@ -797,7 +796,7 @@ export default function AdminDashboard() {
                               {log.user_id ? (userMap[log.user_id] || log.user_id.slice(0, 8) + "…") : "—"}
                             </td>
                             <td className="px-6 py-3">
-                              <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${actionBadgeClass[log.action] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}>
+                              <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${actionBadgeClass[log.action] || "bg-muted text-muted-foreground"}`}>
                                 {log.action}
                               </span>
                             </td>
