@@ -10,7 +10,9 @@ class Enrollment(Base):
     __tablename__ = "enrollments"
     __table_args__ = (
         UniqueConstraint("user_id", "course_id", name="uq_enrollment_user_course"),
-        Index("ix_enrollments_user_id", "user_id"),
+        # The unique ``(user_id, course_id)`` already indexes ``user_id`` via
+        # its leading column, so we only need an explicit index for the
+        # access patterns it doesn't cover.
         Index("ix_enrollments_course_id", "course_id"),
         Index("ix_enrollments_cohort_id", "cohort_id"),
     )

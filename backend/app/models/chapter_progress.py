@@ -19,7 +19,9 @@ class ChapterProgress(Base):
             "completion_type IN ('self', 'teacher', 'quiz')",
             name="chapter_progress_completion_type_check",
         ),
-        Index("ix_chapter_progress_user_id", "user_id"),
+        # ``uq_progress_user_chapter`` already provides a B-tree on
+        # ``user_id`` via its leading column; keep only the chapter-side
+        # index for the "all progress rows for chapter X" access pattern.
         Index("ix_chapter_progress_chapter_id", "chapter_id"),
     )
 

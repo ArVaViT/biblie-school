@@ -21,7 +21,8 @@ class Notification(Base):
     meta = Column(JSON, nullable=True)
 
     __table_args__ = (
-        Index("ix_notifications_user_id", "user_id"),
-        Index("ix_notifications_is_read", "is_read"),
+        # Single composite covers both "all rows for user" (leading column)
+        # and "unread rows for user" (both columns). A standalone
+        # ``is_read`` index is pointless for a boolean column.
         Index("ix_notifications_user_unread", "user_id", "is_read"),
     )

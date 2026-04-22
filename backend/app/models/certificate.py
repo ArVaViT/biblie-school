@@ -10,8 +10,10 @@ from app.core.database import Base
 class Certificate(Base):
     __tablename__ = "certificates"
     __table_args__ = (
+        # The unique constraint already backs a B-tree on
+        # ``(user_id, course_id)``; a separate identical index was pure
+        # duplication (same columns, same order).
         UniqueConstraint("user_id", "course_id", name="uq_certificate_user_course"),
-        Index("ix_certificates_user_course", "user_id", "course_id"),
         Index("ix_certificates_status", "status"),
     )
 

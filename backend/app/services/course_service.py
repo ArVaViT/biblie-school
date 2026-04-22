@@ -1,4 +1,5 @@
 import uuid
+from collections import defaultdict
 from datetime import UTC, datetime
 
 from sqlalchemy import func, or_
@@ -21,22 +22,17 @@ from app.schemas.course import (
     ModuleUpdate,
 )
 
-
-def _summary_load_options():
-    """Eager-load modules + chapters for list endpoints.
-
-    After migration 026 ``Chapter`` has no wide columns — the body lives on
-    ``chapter_blocks`` rows — so there's nothing left to ``defer``. Kept as
-    a helper so the call sites stay consistent and any future slimming
-    (e.g. a dedicated summary column set) has a natural home.
-    """
-    return selectinload(Course.modules).selectinload(Module.chapters)
+# Eager-load modules + their chapters without the cartesian row explosion a
+# chained ``joinedload`` would produce: one IN query per level means the
+# catalog page fetches ~3 rows of wire instead of ``courses * modules *
+# chapters`` when a course has many chapters.
+_COURSE_TREE: "tuple" = (selectinload(Course.modules).selectinload(Module.chapters),)
 
 
 def get_courses(db: Session, *, skip: int = 0, limit: int = 100, search: str | None = None) -> list[Course]:
     query = (
         db.query(Course)
-        .options(_summary_load_options())
+        .options(*_COURSE_TREE)
         .filter(Course.status == "published", Course.deleted_at.is_(None))
     )
     if search:
@@ -56,9 +52,7 @@ def get_courses(db: Session, *, skip: int = 0, limit: int = 100, search: str | N
 
 
 def get_course(db: Session, course_id: str, include_deleted: bool = False) -> Course | None:
-    query = (
-        db.query(Course).options(joinedload(Course.modules).joinedload(Module.chapters)).filter(Course.id == course_id)
-    )
+    query = db.query(Course).options(*_COURSE_TREE).filter(Course.id == course_id)
     if not include_deleted:
         query = query.filter(Course.deleted_at.is_(None))
     return query.first()
@@ -72,7 +66,7 @@ def get_teacher_courses(
     skip: int = 0,
     limit: int | None = None,
 ) -> list[Course]:
-    query = db.query(Course).options(_summary_load_options()).filter(Course.created_by == teacher_id)
+    query = db.query(Course).options(*_COURSE_TREE).filter(Course.created_by == teacher_id)
     query = query.filter(Course.deleted_at.isnot(None)) if deleted_only else query.filter(Course.deleted_at.is_(None))
     query = query.order_by(Course.created_at.desc())
     if skip:
@@ -280,9 +274,7 @@ def get_user_courses(
         db.query(Enrollment)
         .join(Course, Course.id == Enrollment.course_id)
         .options(
-            joinedload(Enrollment.course)
-            .selectinload(Course.modules)
-            .selectinload(Module.chapters)
+            joinedload(Enrollment.course).options(*_COURSE_TREE),
         )
         .filter(Enrollment.user_id == user_id, Course.deleted_at.is_(None))
         .order_by(Enrollment.enrolled_at.desc())
@@ -344,7 +336,7 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
     # 404 (mirrors the API-level visibility rules in get_course()).
     original = (
         db.query(Course)
-        .options(joinedload(Course.modules).joinedload(Module.chapters))
+        .options(*_COURSE_TREE)
         .filter(Course.id == course_id, Course.deleted_at.is_(None))
         .first()
     )
@@ -373,8 +365,6 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
 
         all_assignments = db.query(Assignment).filter(Assignment.chapter_id.in_(all_chapter_ids)).all()
         all_blocks = db.query(ChapterBlock).filter(ChapterBlock.chapter_id.in_(all_chapter_ids)).all()
-
-    from collections import defaultdict
 
     quizzes_by_chapter: dict[str, list[Quiz]] = defaultdict(list)
     for q in all_quizzes:
@@ -514,7 +504,7 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
 
     return (
         db.query(Course)
-        .options(joinedload(Course.modules).joinedload(Module.chapters))
+        .options(*_COURSE_TREE)
         .filter(Course.id == new_course_id)
         .first()
     )
