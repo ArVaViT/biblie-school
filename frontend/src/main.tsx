@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary'
 import { initSentry } from './lib/sentry'
+import '@fontsource-variable/inter/index.css'
+import '@fontsource-variable/fraunces/index.css'
 import './index.css'
 
 // Initialize error monitoring before React mounts so early boot errors
