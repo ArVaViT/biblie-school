@@ -271,7 +271,7 @@ export default function StudentProgress() {
                 <p className="text-sm text-muted-foreground">Total Students</p>
                 <p className="text-2xl font-bold mt-1">{data.students.length}</p>
               </div>
-              <Users className="h-8 w-8 text-blue-600 opacity-80" />
+              <Users className="h-8 w-8 text-muted-foreground/60" />
             </div>
           </CardContent>
         </Card>
@@ -282,7 +282,7 @@ export default function StudentProgress() {
                 <p className="text-sm text-muted-foreground">Average Progress</p>
                 <p className="text-2xl font-bold mt-1">{avgProgress}%</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-emerald-600 opacity-80" />
+              <TrendingUp className="h-8 w-8 text-muted-foreground/60" />
             </div>
           </CardContent>
         </Card>
@@ -293,7 +293,7 @@ export default function StudentProgress() {
                 <p className="text-sm text-muted-foreground">Completion Rate</p>
                 <p className="text-2xl font-bold mt-1">{completionRate}%</p>
               </div>
-              <Award className="h-8 w-8 text-amber-600 opacity-80" />
+              <Award className="h-8 w-8 text-muted-foreground/60" />
             </div>
           </CardContent>
         </Card>
@@ -396,22 +396,22 @@ export default function StudentProgress() {
 function ProgressBar({ value, className = "" }: { value: number; className?: string }) {
   const color =
     value >= 100
-      ? "bg-emerald-500"
+      ? "bg-success"
       : value >= 60
         ? "bg-primary"
         : value >= 30
-          ? "bg-amber-500"
-          : "bg-red-400"
+          ? "bg-warning"
+          : "bg-destructive"
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <div className="flex-1 h-2 rounded-full bg-muted max-w-[120px]">
+      <div className="h-2 max-w-[120px] flex-1 rounded-full bg-muted">
         <div
           className={`h-full rounded-full transition-all ${color}`}
           style={{ width: `${Math.min(value, 100)}%` }}
         />
       </div>
-      <span className="text-xs font-medium tabular-nums w-10 text-right">
+      <span className="w-10 text-right text-xs font-medium tabular-nums">
         {value}%
       </span>
     </div>
@@ -422,14 +422,14 @@ function ScoreBadge({ value }: { value: number | null }) {
   if (value === null) return <span className="text-xs text-muted-foreground">—</span>
   const color =
     value >= 90
-      ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400"
+      ? "bg-success/15 text-success"
       : value >= 70
-        ? "text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400"
+        ? "bg-info/15 text-info"
         : value >= 50
-          ? "text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400"
-          : "text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400"
+          ? "bg-warning/15 text-warning"
+          : "bg-destructive/15 text-destructive"
   return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>
       {value}%
     </span>
   )
@@ -589,8 +589,8 @@ function StudentRow({
                             <p className="text-xs mt-0.5">
                               {chapterInfo.completed ? (
                                 <span className={chapterInfo.completed_by === "teacher"
-                                  ? "text-blue-600 dark:text-blue-400"
-                                  : "text-emerald-600 dark:text-emerald-400"
+                                  ? "text-info"
+                                  : "text-success"
                                 }>
                                   {chapterInfo.completed_by === "teacher"
                                     ? "Completed by teacher"
@@ -607,9 +607,9 @@ function StudentRow({
                         {quiz && (
                           <div className="flex items-center gap-1.5 text-xs">
                             {quiz.passed ? (
-                              <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                              <CheckCircle className="h-3.5 w-3.5 text-success" />
                             ) : (
-                              <XCircle className="h-3.5 w-3.5 text-red-500" />
+                              <XCircle className="h-3.5 w-3.5 text-destructive" />
                             )}
                             <span>
                               Quiz: {quiz.score}/{quiz.max_score}
@@ -638,9 +638,9 @@ function StudentRow({
                         {assignment && (
                           <div className="flex items-center gap-1.5 text-xs">
                             {assignment.status === "graded" ? (
-                              <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                              <CheckCircle className="h-3.5 w-3.5 text-success" />
                             ) : (
-                              <Clock className="h-3.5 w-3.5 text-amber-500" />
+                              <Clock className="h-3.5 w-3.5 text-warning" />
                             )}
                             <span>
                               {assignment.title}:{" "}

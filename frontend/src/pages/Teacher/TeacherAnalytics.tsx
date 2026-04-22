@@ -93,10 +93,10 @@ export default function TeacherAnalytics() {
   }
 
   const stats = [
-    { label: "Total Students", value: analytics.totalStudents, icon: Users, color: "text-blue-600" },
-    { label: "Average Progress", value: `${analytics.avgProgress}%`, icon: TrendingUp, color: "text-emerald-600" },
-    { label: "Completed (100%)", value: analytics.completedCount, icon: Award, color: "text-amber-600" },
-    { label: "Enrolled This Month", value: enrolledThisMonth, icon: Calendar, color: "text-violet-600" },
+    { label: "Total Students", value: analytics.totalStudents, icon: Users },
+    { label: "Average Progress", value: `${analytics.avgProgress}%`, icon: TrendingUp },
+    { label: "Completed (100%)", value: analytics.completedCount, icon: Award },
+    { label: "Enrolled This Month", value: enrolledThisMonth, icon: Calendar },
   ]
 
   return (
@@ -139,7 +139,7 @@ export default function TeacherAnalytics() {
                   <p className="text-sm text-muted-foreground">{s.label}</p>
                   <p className="text-2xl font-bold mt-1">{s.value}</p>
                 </div>
-                <s.icon className={`h-8 w-8 ${s.color} opacity-80`} />
+                <s.icon className="h-8 w-8 text-muted-foreground/60" />
               </div>
             </CardContent>
           </Card>

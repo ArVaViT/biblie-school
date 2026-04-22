@@ -68,11 +68,11 @@ const LETTER_ORDER: Record<string, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 }
 
 function letterColor(letter: string) {
   switch (letter) {
-    case "A": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-    case "B": return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-    case "C": return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
-    case "D": return "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
-    case "F": return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+    case "A": return "bg-success/15 text-success"
+    case "B": return "bg-info/15 text-info"
+    case "C": return "bg-accent/20 text-foreground"
+    case "D": return "bg-warning/15 text-warning"
+    case "F": return "bg-destructive/15 text-destructive"
     default: return "bg-muted text-muted-foreground"
   }
 }
@@ -383,7 +383,7 @@ export default function TeacherGradebook() {
                 <p className="text-xs text-muted-foreground">Students</p>
                 <p className="text-2xl font-bold mt-0.5">{studentCount}</p>
               </div>
-              <Users className="h-7 w-7 text-blue-600 opacity-70" />
+              <Users className="h-7 w-7 text-muted-foreground/60" />
             </div>
           </CardContent>
         </Card>
@@ -394,7 +394,7 @@ export default function TeacherGradebook() {
                 <p className="text-xs text-muted-foreground">Class Average</p>
                 <p className="text-2xl font-bold mt-0.5">{classAvg.toFixed(1)}%</p>
               </div>
-              <TrendingUp className="h-7 w-7 text-emerald-600 opacity-70" />
+              <TrendingUp className="h-7 w-7 text-muted-foreground/60" />
             </div>
           </CardContent>
         </Card>
@@ -405,7 +405,7 @@ export default function TeacherGradebook() {
                 <p className="text-xs text-muted-foreground">Manually Graded</p>
                 <p className="text-2xl font-bold mt-0.5">{gradedCount}/{studentCount}</p>
               </div>
-              <Award className="h-7 w-7 text-amber-600 opacity-70" />
+              <Award className="h-7 w-7 text-muted-foreground/60" />
             </div>
           </CardContent>
         </Card>
@@ -418,7 +418,7 @@ export default function TeacherGradebook() {
                   {config.quiz_weight}/{config.assignment_weight}/{config.participation_weight}
                 </p>
               </div>
-              <Calculator className="h-7 w-7 text-purple-600 opacity-70" />
+              <Calculator className="h-7 w-7 text-muted-foreground/60" />
             </div>
           </CardContent>
         </Card>
@@ -489,7 +489,7 @@ export default function TeacherGradebook() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-4">
-                  <p className={`text-sm font-medium ${configValid ? "text-emerald-600" : "text-destructive"}`}>
+                  <p className={`text-sm font-medium ${configValid ? "text-success" : "text-destructive"}`}>
                     Total: {configTotal}% {configValid ? "✓" : "(must equal 100%)"}
                   </p>
                   <Button size="sm" onClick={saveConfig} disabled={!configValid || savingConfig}>
@@ -556,7 +556,7 @@ export default function TeacherGradebook() {
                             </div>
                             <div className="flex justify-center">
                               {manualGrade?.grade ? (
-                                <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold ${hasDifferentManual ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 ring-1 ring-amber-300" : "bg-muted text-muted-foreground"}`}>
+                                <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold ${hasDifferentManual ? "bg-warning/15 text-warning ring-1 ring-warning/30" : "bg-muted text-muted-foreground"}`}>
                                   {manualGrade.grade}
                                 </span>
                               ) : (
@@ -586,7 +586,7 @@ export default function TeacherGradebook() {
                               </div>
 
                               {hasDifferentManual && (
-                                <div className="text-xs px-3 py-2 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                <div className="rounded border border-border border-l-[3px] border-l-warning bg-warning/10 px-3 py-2 text-xs text-foreground">
                                   Manual grade <strong>{manualGrade?.grade}</strong> differs from calculated <strong>{b.letter_grade}</strong> ({b.final_score.toFixed(1)}%)
                                 </div>
                               )}
@@ -682,10 +682,10 @@ function ChapterCell({ chapter }: { chapter: ChapterInfo | undefined }) {
         ? Math.round((chapter.quiz_result.score / chapter.quiz_result.max_score) * 100)
         : 0
       return (
-        <div className={`flex flex-col items-center justify-center h-9 rounded text-xs font-medium px-1 ${
+        <div className={`flex h-9 flex-col items-center justify-center rounded border px-1 text-xs font-medium ${
           chapter.quiz_result.passed
-            ? "bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
-            : "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
+            ? "border-success/30 bg-success/10 text-success"
+            : "border-destructive/30 bg-destructive/10 text-destructive"
         }`}>
           <span className="font-semibold">{pct}%</span>
           <span className="text-[10px] opacity-70">{chapter.quiz_result.score}/{chapter.quiz_result.max_score}</span>
@@ -703,10 +703,10 @@ function ChapterCell({ chapter }: { chapter: ChapterInfo | undefined }) {
     if (chapter.assignment_result) {
       const graded = chapter.assignment_result.grade !== null
       return (
-        <div className={`flex flex-col items-center justify-center h-9 rounded text-xs font-medium px-1 ${
+        <div className={`flex h-9 flex-col items-center justify-center rounded border px-1 text-xs font-medium ${
           graded
-            ? "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
-            : "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+            ? "border-info/30 bg-info/10 text-info"
+            : "border-warning/30 bg-warning/10 text-warning"
         }`}>
           {graded ? (
             <>
@@ -945,31 +945,31 @@ function GradeTableView({
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t text-xs text-muted-foreground">
+          <div className="mt-4 flex flex-wrap gap-4 border-t pt-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <div className="h-4 w-4 rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 flex items-center justify-center">
-                <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" />
+              <div className="flex h-4 w-4 items-center justify-center rounded border border-success/30 bg-success/10">
+                <CheckCircle2 className="h-2.5 w-2.5 text-success" />
               </div>
               Completed (1 pt)
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="h-4 w-6 rounded bg-green-50 dark:bg-green-950/20 border border-green-200 text-[9px] flex items-center justify-center text-green-700 font-semibold">85%</div>
+              <div className="flex h-4 w-6 items-center justify-center rounded border border-success/30 bg-success/10 text-[9px] font-semibold text-success">85%</div>
               Quiz passed
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="h-4 w-6 rounded bg-red-50 dark:bg-red-950/20 border border-red-200 text-[9px] flex items-center justify-center text-red-700 font-semibold">40%</div>
+              <div className="flex h-4 w-6 items-center justify-center rounded border border-destructive/30 bg-destructive/10 text-[9px] font-semibold text-destructive">40%</div>
               Quiz failed
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="h-4 w-10 rounded bg-blue-50 dark:bg-blue-950/20 border border-blue-200 text-[9px] flex items-center justify-center text-blue-700 font-semibold">graded</div>
+              <div className="flex h-4 w-10 items-center justify-center rounded border border-info/30 bg-info/10 text-[9px] font-semibold text-info">graded</div>
               Assignment graded
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="h-4 w-14 rounded bg-amber-50 dark:bg-amber-950/20 border border-amber-200 text-[9px] flex items-center justify-center text-amber-700">submitted</div>
+              <div className="flex h-4 w-14 items-center justify-center rounded border border-warning/30 bg-warning/10 text-[9px] text-warning">submitted</div>
               Assignment submitted
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="h-4 w-4 rounded bg-muted/30 border flex items-center justify-center">
+              <div className="flex h-4 w-4 items-center justify-center rounded border bg-muted/30">
                 <Circle className="h-2.5 w-2.5 text-muted-foreground/40" />
               </div>
               Not submitted

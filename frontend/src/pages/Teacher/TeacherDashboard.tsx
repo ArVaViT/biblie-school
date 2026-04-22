@@ -5,6 +5,7 @@ import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { coursesService } from "@/services/courses"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
 import type { Course, Certificate } from "@/types"
@@ -272,14 +273,14 @@ export default function TeacherDashboard() {
       )}
 
       {pendingCerts.length > 0 && (
-        <Card className="mb-8 border-amber-200 dark:border-amber-800">
+        <Card className="mb-8 border-l-[3px] border-l-warning">
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-2">
-              <Award className="h-5 w-5 text-amber-600" />
+              <Award className="h-5 w-5 text-warning" />
               Pending Certificates
-              <span className="text-sm font-normal bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5">
+              <Badge variant="warning" className="font-normal">
                 {pendingCerts.length}
-              </span>
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -287,7 +288,7 @@ export default function TeacherDashboard() {
               {pendingCerts.map((cert) => (
                 <div
                   key={cert.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20"
+                  className="flex items-center justify-between rounded-md border border-l-[3px] border-l-warning/60 bg-warning/5 p-4"
                 >
                   <div className="min-w-0">
                     <p className="font-medium truncate">{cert.student_name || "Student"}</p>
@@ -302,7 +303,6 @@ export default function TeacherDashboard() {
                       size="sm"
                       onClick={() => handleApproveCert(cert.id)}
                       disabled={certActionId === cert.id}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                       <CheckCircle className="h-4 w-4 mr-1.5" />
                       Approve
@@ -386,15 +386,9 @@ export default function TeacherDashboard() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-lg truncate">{course.title}</h3>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                        course.status === "published"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}
-                    >
+                    <Badge variant={course.status === "published" ? "success" : "warning"}>
                       {course.status === "published" ? "Published" : "Draft"}
-                    </span>
+                    </Badge>
                   </div>
                   {course.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
