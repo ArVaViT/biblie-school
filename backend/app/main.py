@@ -12,15 +12,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.v1 import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.core.sentry import init_sentry
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.security import SecurityHeadersMiddleware
 
 setup_logging()
-
-# Must run before FastAPI is constructed so the integrations can patch the
-# ASGI stack. No-op when SENTRY_DSN isn't configured.
-init_sentry()
 
 logger = logging.getLogger("api")
 

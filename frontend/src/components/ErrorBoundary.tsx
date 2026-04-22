@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from "react"
-import * as Sentry from "@sentry/react"
+import { datadogRum } from "@datadog/browser-rum"
 
 interface Props {
   children: ReactNode
@@ -23,11 +23,12 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("ErrorBoundary caught:", error, info.componentStack)
-    // Forward to Sentry with the React component stack attached. Sentry.init()
-    // is a no-op when VITE_SENTRY_DSN is unset, so this is safe unconditionally.
-    Sentry.withScope((scope) => {
-      scope.setContext("react", { componentStack: info.componentStack })
-      Sentry.captureException(error)
+    // Forward to Datadog RUM with the React component stack attached as
+    // context. datadogRum.init() is a no-op when VITE_DATADOG_* env vars
+    // aren't set, and addError silently drops the call if init never ran,
+    // so this is safe unconditionally.
+    datadogRum.addError(error, {
+      componentStack: info.componentStack,
     })
   }
 

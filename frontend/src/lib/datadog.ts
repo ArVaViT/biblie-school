@@ -3,7 +3,7 @@ import { reactPlugin } from "@datadog/browser-rum-react"
 
 // Datadog RUM is opt-in: if the applicationId / clientToken aren't set we
 // skip init entirely so local and preview builds don't ship events to a
-// dashboard nobody reads. Mirrors the Sentry setup in ./sentry.ts.
+// dashboard nobody reads.
 export function initDatadogRum() {
   const applicationId = import.meta.env.VITE_DATADOG_APPLICATION_ID
   const clientToken = import.meta.env.VITE_DATADOG_CLIENT_TOKEN
@@ -27,8 +27,8 @@ export function initDatadogRum() {
     // Session Replay is the expensive one — keep it at 20% of sessions,
     // matching Datadog's recommended starting point. Bump later if needed.
     sessionReplaySampleRate: 20,
-    // Privacy: mask text and inputs by default. Same rationale as Sentry —
-    // quiz content, student names, and chat-style pages can leak PII.
+    // Privacy: mask user input by default — quiz answers, student names,
+    // and chat-style pages can leak PII through session replays.
     defaultPrivacyLevel: "mask-user-input",
     trackResources: true,
     trackUserInteractions: true,

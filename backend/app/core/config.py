@@ -24,11 +24,6 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,https://biblie-school-frontend.vercel.app"
 
-    # Sentry — entirely optional. Leaving SENTRY_DSN unset skips init.
-    SENTRY_DSN: str | None = Field(default=None, description="Sentry DSN for error monitoring")
-    SENTRY_ENVIRONMENT: str | None = Field(default=None, description="Sentry environment label")
-    SENTRY_TRACES_SAMPLE_RATE: float = Field(default=0.1, ge=0.0, le=1.0)
-
     @model_validator(mode="after")
     def load_alternative_env_vars(self):
         """Support alternative env var names from Vercel/Supabase integration."""
