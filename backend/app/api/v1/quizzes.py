@@ -359,9 +359,7 @@ def submit_quiz(
 
     course_id = resolve_chapter_course_id(db, quiz.chapter_id)
     enrolled = (
-        db.query(Enrollment)
-        .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
-        .first()
+        db.query(Enrollment).filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id).first()
     )
     if not enrolled:
         raise HTTPException(

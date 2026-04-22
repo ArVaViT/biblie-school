@@ -53,8 +53,11 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
+      # ESLint 10 flat config resolves file patterns via its own config;
+      # the legacy --ext flag was removed, and `tsx`/`ts` file matching is
+      # defined inside eslint.config.js instead.
       - name: Run ESLint (zero warnings)
-        run: npx eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+        run: npx eslint . --report-unused-disable-directives --max-warnings 0
 
       - name: Typecheck with TypeScript (strict)
         run: npx tsc --noEmit
