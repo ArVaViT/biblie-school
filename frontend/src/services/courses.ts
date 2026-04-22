@@ -3,7 +3,8 @@ import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/li
 import { isAxiosError } from "axios"
 import type {
   User, Course, Module, Chapter, Enrollment, Announcement, StudentGrade,
-  Quiz, QuizAttempt, Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, BlockType, Cohort,
+  Quiz, QuizAttempt, QuizAnswerResult, QuizQuestionType, PendingAnswer,
+  Assignment, AssignmentSubmission, Certificate, CourseReview, ChapterBlock, BlockType, Cohort,
   Notification, NotificationListResponse,
   AuditLogPage,
   GradingConfig, GradeSummaryResponse,
@@ -421,9 +422,10 @@ export const coursesService = {
     passing_score: number
     questions: Array<{
       question_text: string
-      question_type: "multiple_choice" | "true_false" | "short_answer"
+      question_type: QuizQuestionType
       order_index: number
       points: number
+      min_words?: number | null
       options: Array<{
         option_text: string
         is_correct: boolean
@@ -450,6 +452,24 @@ export const coursesService = {
   },
   async getMyQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
     const response = await api.get<QuizAttempt[]>(`/quizzes/${quizId}/my-attempts`)
+    return response.data
+  },
+  async getPendingAnswers(quizId: string, includeGraded = false): Promise<PendingAnswer[]> {
+    const response = await api.get<PendingAnswer[]>(
+      `/quizzes/${quizId}/pending-answers`,
+      { params: { include_graded: includeGraded } },
+    )
+    return response.data
+  },
+  async gradeQuizAnswer(
+    answerId: string,
+    pointsEarned: number,
+    graderComment?: string | null,
+  ): Promise<QuizAnswerResult> {
+    const response = await api.patch<QuizAnswerResult>(`/quizzes/answers/${answerId}`, {
+      points_earned: pointsEarned,
+      grader_comment: graderComment ?? null,
+    })
     return response.data
   },
   async grantExtraAttempts(quizId: string, userId: string, extraAttempts: number): Promise<void> {

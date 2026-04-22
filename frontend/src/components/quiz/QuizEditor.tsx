@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/hooks/use-toast"
-import type { Quiz } from "@/types"
-import { Plus, Trash2, Save, ClipboardList, Loader2, ArrowUp, ArrowDown } from "lucide-react"
+import type { Quiz, QuizQuestionType } from "@/types"
+import { Plus, Trash2, Save, ClipboardList, Loader2, ArrowUp, ArrowDown, GraduationCap } from "lucide-react"
 import { useConfirm } from "@/components/ui/alert-dialog"
+import QuizSubmissionsReview from "./QuizSubmissionsReview"
 
 interface QuizEditorProps {
   chapterId: string
@@ -25,9 +26,10 @@ interface DraftOption {
 interface DraftQuestion {
   id: string
   question_text: string
-  question_type: "multiple_choice" | "true_false" | "short_answer"
+  question_type: QuizQuestionType
   order_index: number
   points: number
+  min_words: number | null
   options: DraftOption[]
 }
 
@@ -54,6 +56,7 @@ function makeDefaultQuestion(order: number): DraftQuestion {
     question_type: "multiple_choice",
     order_index: order,
     points: 1,
+    min_words: null,
     options: [makeDefaultOption(0), makeDefaultOption(1)],
   }
 }
@@ -70,6 +73,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
   const [passingScore, setPassingScore] = useState(70)
   const [maxAttempts, setMaxAttempts] = useState<number>(1)
   const [questions, setQuestions] = useState<DraftQuestion[]>([])
+  const [mode, setMode] = useState<"edit" | "review">("edit")
 
   useEffect(() => {
     let cancelled = false
@@ -89,6 +93,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
               .sort((a, b) => a.order_index - b.order_index)
               .map((qu) => ({
                 ...qu,
+                min_words: qu.min_words ?? null,
                 options: qu.options
                   .sort((a, b) => a.order_index - b.order_index)
                   .map((o) => ({ ...o, is_correct: !!o.is_correct })),
@@ -137,10 +142,15 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
         if (patch.question_type && patch.question_type !== q.question_type) {
           if (patch.question_type === "true_false") {
             updated.options = makeTrueFalseOptions()
-          } else if (patch.question_type === "short_answer") {
+          } else if (patch.question_type === "short_answer" || patch.question_type === "essay") {
             updated.options = []
           } else {
             updated.options = [makeDefaultOption(0), makeDefaultOption(1)]
+          }
+          // ``min_words`` only makes sense for ``essay``; clear it when the
+          // teacher switches away so a stale hint doesn't linger on e.g. MCQ.
+          if (patch.question_type !== "essay") {
+            updated.min_words = null
           }
         }
         return updated
@@ -210,6 +220,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
           question_type: q.question_type,
           order_index: q.order_index,
           points: q.points,
+          min_words: q.question_type === "essay" ? (q.min_words ?? null) : null,
           options: q.options.map((o) => ({
             option_text: o.option_text,
             is_correct: o.is_correct,
@@ -267,15 +278,129 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
     )
   }
 
+  const hasManualQuestions = existingQuiz?.questions.some(
+    (q) => q.question_type === "short_answer" || q.question_type === "essay",
+  ) ?? false
+
   return (
     <div className="space-y-4 mt-3">
-      <div className="flex items-center gap-2 mb-2">
-        <ClipboardList className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">
-          {existingQuiz ? `Edit ${chapterType === "exam" ? "Exam" : "Quiz"}` : `Create ${chapterType === "exam" ? "Exam" : "Quiz"}`}
-        </span>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">
+            {existingQuiz
+              ? `Edit ${chapterType === "exam" ? "Exam" : "Quiz"}`
+              : `Create ${chapterType === "exam" ? "Exam" : "Quiz"}`}
+          </span>
+        </div>
+        {existingQuiz && hasManualQuestions && (
+          <div className="flex items-center rounded-md border bg-background p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setMode("edit")}
+              className={`px-2.5 py-1 rounded-sm transition-colors ${
+                mode === "edit" ? "bg-muted font-medium" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("review")}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-sm transition-colors ${
+                mode === "review" ? "bg-muted font-medium" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <GraduationCap className="h-3.5 w-3.5" />
+              Submissions
+            </button>
+          </div>
+        )}
       </div>
 
+      {mode === "review" && existingQuiz ? (
+        <QuizSubmissionsReview quizId={existingQuiz.id} />
+      ) : (
+        <QuizEditView
+          title={title}
+          setTitle={setTitle}
+          description={description}
+          setDescription={setDescription}
+          passingScore={passingScore}
+          setPassingScore={setPassingScore}
+          maxAttempts={maxAttempts}
+          setMaxAttempts={setMaxAttempts}
+          chapterType={chapterType}
+          questions={questions}
+          onAddQuestion={addQuestion}
+          onRemoveQuestion={removeQuestion}
+          onMoveQuestion={moveQuestion}
+          onUpdateQuestion={updateQuestion}
+          onAddOption={addOption}
+          onRemoveOption={removeOption}
+          onUpdateOption={updateOption}
+          saving={saving}
+          onSave={handleSave}
+          existingQuiz={existingQuiz}
+          deleting={deleting}
+          onDelete={handleDelete}
+        />
+      )}
+    </div>
+  )
+}
+
+interface QuizEditViewProps {
+  title: string
+  setTitle: (v: string) => void
+  description: string
+  setDescription: (v: string) => void
+  passingScore: number
+  setPassingScore: (v: number) => void
+  maxAttempts: number
+  setMaxAttempts: (v: number) => void
+  chapterType: "quiz" | "exam"
+  questions: DraftQuestion[]
+  onAddQuestion: () => void
+  onRemoveQuestion: (idx: number) => void
+  onMoveQuestion: (idx: number, direction: "up" | "down") => void
+  onUpdateQuestion: (idx: number, patch: Partial<DraftQuestion>) => void
+  onAddOption: (qIdx: number) => void
+  onRemoveOption: (qIdx: number, oIdx: number) => void
+  onUpdateOption: (qIdx: number, oIdx: number, patch: Partial<DraftOption>) => void
+  saving: boolean
+  onSave: () => void
+  existingQuiz: Quiz | null
+  deleting: boolean
+  onDelete: () => void
+}
+
+function QuizEditView({
+  title,
+  setTitle,
+  description,
+  setDescription,
+  passingScore,
+  setPassingScore,
+  maxAttempts,
+  setMaxAttempts,
+  chapterType,
+  questions,
+  onAddQuestion,
+  onRemoveQuestion,
+  onMoveQuestion,
+  onUpdateQuestion,
+  onAddOption,
+  onRemoveOption,
+  onUpdateOption,
+  saving,
+  onSave,
+  existingQuiz,
+  deleting,
+  onDelete,
+}: QuizEditViewProps) {
+  return (
+    <>
       <div className="grid gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs">Quiz Title</Label>
@@ -324,7 +449,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Questions ({questions.length})</span>
-          <Button variant="outline" size="sm" onClick={addQuestion} className="h-7 text-xs">
+          <Button variant="outline" size="sm" onClick={onAddQuestion} className="h-7 text-xs">
             <Plus className="h-3 w-3 mr-1" />
             Add Question
           </Button>
@@ -337,7 +462,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                 <div className="flex flex-col gap-0.5 shrink-0 mt-1">
                   <button
                     type="button"
-                    onClick={() => moveQuestion(qIdx, "up")}
+                    onClick={() => onMoveQuestion(qIdx, "up")}
                     disabled={qIdx === 0}
                     className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground"
                   >
@@ -345,7 +470,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                   </button>
                   <button
                     type="button"
-                    onClick={() => moveQuestion(qIdx, "down")}
+                    onClick={() => onMoveQuestion(qIdx, "down")}
                     disabled={qIdx === questions.length - 1}
                     className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground"
                   >
@@ -357,7 +482,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                     <span className="text-xs font-semibold text-muted-foreground">Q{qIdx + 1}</span>
                     <Input
                       value={q.question_text}
-                      onChange={(e) => updateQuestion(qIdx, { question_text: e.target.value })}
+                      onChange={(e) => onUpdateQuestion(qIdx, { question_text: e.target.value })}
                       placeholder="Question text..."
                       className="h-8 text-sm flex-1"
                     />
@@ -365,7 +490,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive h-7 w-7 p-0 shrink-0"
-                      onClick={() => removeQuestion(qIdx)}
+                      onClick={() => onRemoveQuestion(qIdx)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -375,7 +500,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                     <select
                       value={q.question_type}
                       onChange={(e) =>
-                        updateQuestion(qIdx, {
+                        onUpdateQuestion(qIdx, {
                           question_type: e.target.value as DraftQuestion["question_type"],
                         })
                       }
@@ -384,14 +509,32 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                       <option value="multiple_choice">Multiple Choice</option>
                       <option value="true_false">True / False</option>
                       <option value="short_answer">Short Answer</option>
+                      <option value="essay">Essay</option>
                     </select>
+                    {q.question_type === "essay" && (
+                      <div className="flex items-center gap-1">
+                        <Label className="text-xs text-muted-foreground">Min words:</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          placeholder="—"
+                          value={q.min_words ?? ""}
+                          onChange={(e) =>
+                            onUpdateQuestion(qIdx, {
+                              min_words: e.target.value === "" ? null : Math.max(1, Number(e.target.value) || 1),
+                            })
+                          }
+                          className="h-7 text-xs w-20"
+                        />
+                      </div>
+                    )}
                     <div className="flex items-center gap-1">
                       <Label className="text-xs text-muted-foreground">Points:</Label>
                       <Input
                         type="number"
                         min={1}
                         value={q.points}
-                        onChange={(e) => updateQuestion(qIdx, { points: Number(e.target.value) || 1 })}
+                        onChange={(e) => onUpdateQuestion(qIdx, { points: Number(e.target.value) || 1 })}
                         className="h-7 text-xs w-16"
                       />
                     </div>
@@ -405,13 +548,13 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                             type="radio"
                             name={`correct-${q.id}`}
                             checked={opt.is_correct}
-                            onChange={() => updateOption(qIdx, oIdx, { is_correct: true })}
+                            onChange={() => onUpdateOption(qIdx, oIdx, { is_correct: true })}
                             className="accent-primary shrink-0"
                             title="Mark as correct"
                           />
                           <Input
                             value={opt.option_text}
-                            onChange={(e) => updateOption(qIdx, oIdx, { option_text: e.target.value })}
+                            onChange={(e) => onUpdateOption(qIdx, oIdx, { option_text: e.target.value })}
                             placeholder={`Option ${oIdx + 1}`}
                             className="h-7 text-xs flex-1"
                           />
@@ -420,7 +563,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                               variant="ghost"
                               size="sm"
                               className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                              onClick={() => removeOption(qIdx, oIdx)}
+                              onClick={() => onRemoveOption(qIdx, oIdx)}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -431,7 +574,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                         variant="ghost"
                         size="sm"
                         className="h-7 text-xs"
-                        onClick={() => addOption(qIdx)}
+                        onClick={() => onAddOption(qIdx)}
                       >
                         <Plus className="h-3 w-3 mr-1" />
                         Add Option
@@ -454,7 +597,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                             type="radio"
                             name={`correct-${q.id}`}
                             checked={opt.is_correct}
-                            onChange={() => updateOption(qIdx, oIdx, { is_correct: true })}
+                            onChange={() => onUpdateOption(qIdx, oIdx, { is_correct: true })}
                             className="accent-primary"
                           />
                           {opt.option_text}
@@ -466,6 +609,12 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                   {q.question_type === "short_answer" && (
                     <p className="text-xs text-muted-foreground italic">
                       Students will type a free-text answer. Graded manually.
+                    </p>
+                  )}
+
+                  {q.question_type === "essay" && (
+                    <p className="text-xs text-muted-foreground italic">
+                      Long-form written response. Graded manually from the Submissions tab.
                     </p>
                   )}
                 </div>
@@ -482,7 +631,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
       </div>
 
       <div className="flex items-center gap-2 pt-2">
-        <Button size="sm" onClick={handleSave} disabled={saving}>
+        <Button size="sm" onClick={onSave} disabled={saving}>
           {saving ? (
             <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
           ) : (
@@ -490,11 +639,11 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
           )}
           {saving ? "Saving..." : `Save ${chapterType === "exam" ? "Exam" : "Quiz"}`}
         </Button>
-      {existingQuiz && (
+        {existingQuiz && (
           <Button
             size="sm"
             variant="destructive"
-            onClick={handleDelete}
+            onClick={onDelete}
             disabled={deleting}
           >
             {deleting ? (
@@ -506,6 +655,6 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
           </Button>
         )}
       </div>
-    </div>
+    </>
   )
 }

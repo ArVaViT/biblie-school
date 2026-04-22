@@ -1,0 +1,219 @@
+import { useCallback, useEffect, useState } from "react"
+import { coursesService } from "@/services/courses"
+import { toast } from "@/hooks/use-toast"
+import { getErrorDetail } from "@/lib/errorDetail"
+import type { PendingAnswer } from "@/types"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { CheckCircle2, GraduationCap, Loader2, Save, Users } from "lucide-react"
+
+type EditableAnswer = PendingAnswer & {
+  draftPoints: string
+  draftComment: string
+  savingState: "idle" | "saving" | "saved"
+}
+
+function toDraft(answer: PendingAnswer): EditableAnswer {
+  return {
+    ...answer,
+    draftPoints: String(answer.points_earned || ""),
+    draftComment: answer.grader_comment ?? "",
+    savingState: "idle",
+  }
+}
+
+function countWords(text: string | null | undefined): number {
+  if (!text) return 0
+  return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+interface Props {
+  quizId: string
+}
+
+export default function QuizSubmissionsReview({ quizId }: Props) {
+  const [items, setItems] = useState<EditableAnswer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showGraded, setShowGraded] = useState(false)
+  const [error, setError] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(false)
+    try {
+      const pending = await coursesService.getPendingAnswers(quizId, showGraded)
+      setItems(pending.map(toDraft))
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
+  }, [quizId, showGraded])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const updateDraft = (id: string, patch: Partial<EditableAnswer>) => {
+    setItems((prev) => prev.map((i) => (i.answer_id === id ? { ...i, ...patch } : i)))
+  }
+
+  const handleSave = async (item: EditableAnswer) => {
+    const pointsNum = Number(item.draftPoints)
+    if (Number.isNaN(pointsNum) || pointsNum < 0) {
+      toast({ title: "Enter a valid score (0 or higher)", variant: "destructive" })
+      return
+    }
+    if (pointsNum > item.max_points) {
+      toast({
+        title: `Score can't exceed ${item.max_points} for this question`,
+        variant: "destructive",
+      })
+      return
+    }
+    updateDraft(item.answer_id, { savingState: "saving" })
+    try {
+      await coursesService.gradeQuizAnswer(
+        item.answer_id,
+        pointsNum,
+        item.draftComment.trim() || null,
+      )
+      updateDraft(item.answer_id, { savingState: "saved" })
+      toast({ title: "Grade saved", variant: "success" })
+      // Ungraded mode: drop the row from the list after a beat so the
+      // teacher sees the success state before it disappears.
+      if (!showGraded) {
+        setTimeout(() => {
+          setItems((prev) => prev.filter((i) => i.answer_id !== item.answer_id))
+        }, 600)
+      }
+    } catch (err: unknown) {
+      const detail = getErrorDetail(err)
+      toast({ title: detail || "Failed to save grade", variant: "destructive" })
+      updateDraft(item.answer_id, { savingState: "idle" })
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <p className="text-sm text-destructive py-4 text-center">
+        Failed to load submissions. Please try again.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Users className="h-4 w-4" />
+          {items.length === 0
+            ? showGraded
+              ? "No open-ended answers yet."
+              : "Nothing to grade — you're all caught up."
+            : `${items.length} open-ended answer${items.length === 1 ? "" : "s"}`}
+        </div>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showGraded}
+            onChange={(e) => setShowGraded(e.target.checked)}
+            className="accent-primary"
+          />
+          Show already graded
+        </label>
+      </div>
+
+      {items.map((item) => {
+        const wordCount = countWords(item.text_answer)
+        return (
+          <div
+            key={item.answer_id}
+            className="rounded-md border bg-card p-4 space-y-3"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-wrap-safe whitespace-pre-line">
+                  {item.question_text}
+                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <GraduationCap className="h-3.5 w-3.5" />
+                    {item.question_type === "essay" ? "Essay" : "Short answer"} · up to{" "}
+                    {item.max_points} pt{item.max_points !== 1 ? "s" : ""}
+                  </span>
+                  {item.min_words ? (
+                    <span
+                      className={wordCount < item.min_words ? "text-warning" : undefined}
+                    >
+                      {wordCount} / {item.min_words} words
+                    </span>
+                  ) : (
+                    <span>{wordCount} words</span>
+                  )}
+                </div>
+              </div>
+              <div className="text-right text-xs text-muted-foreground shrink-0">
+                <div className="font-medium text-foreground">
+                  {item.student_name || item.student_email}
+                </div>
+                {item.submitted_at && (
+                  <div>{new Date(item.submitted_at).toLocaleString()}</div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-md border border-dashed bg-muted/30 p-3 text-sm whitespace-pre-wrap text-wrap-safe">
+              {item.text_answer || <span className="text-muted-foreground italic">(empty)</span>}
+            </div>
+
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Points (0–{item.max_points})</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={item.max_points}
+                  value={item.draftPoints}
+                  onChange={(e) => updateDraft(item.answer_id, { draftPoints: e.target.value })}
+                  className="h-8 w-24 text-sm"
+                />
+              </div>
+              <div className="flex-1 min-w-[220px] space-y-1">
+                <label className="text-xs text-muted-foreground">Comment (optional)</label>
+                <Input
+                  value={item.draftComment}
+                  onChange={(e) => updateDraft(item.answer_id, { draftComment: e.target.value })}
+                  placeholder="Feedback shown to the student…"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={() => handleSave(item)}
+                disabled={item.savingState === "saving"}
+              >
+                {item.savingState === "saving" ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : item.savingState === "saved" ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                ) : (
+                  <Save className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                {item.savingState === "saved" ? "Saved" : "Save grade"}
+              </Button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}

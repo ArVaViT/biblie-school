@@ -164,3 +164,75 @@ class TestCloneCourse:
     def test_clone_nonexistent_returns_404(self, client: TestClient):
         resp = client.post(f"{PREFIX}/nonexistent-id/clone")
         assert resp.status_code == 404
+
+    def test_clone_copies_chapter_blocks_and_essay_questions(self, client: TestClient):
+        """Regression: clone must propagate storage pointers and essay hints.
+
+        Before the audit fix, ``clone_course`` still referenced the retired
+        ``file_url`` column and silently dropped ``min_words``, so any course
+        with file blocks or essay prompts came back incomplete.
+        """
+        course = _create_course(client, title="Has Files & Essay")
+        mod_resp = client.post(
+            f"{PREFIX}/{course['id']}/modules",
+            json={"title": "M1", "order_index": 1},
+        )
+        assert mod_resp.status_code == 201
+        module_id = mod_resp.json()["id"]
+
+        ch_resp = client.post(
+            f"{PREFIX}/{course['id']}/modules/{module_id}/chapters",
+            json={"title": "Ch1", "chapter_type": "quiz", "order_index": 1},
+        )
+        assert ch_resp.status_code == 201
+        chapter_id = ch_resp.json()["id"]
+
+        quiz_resp = client.post(
+            "/api/v1/quizzes",
+            json={
+                "chapter_id": chapter_id,
+                "title": "Essay Quiz",
+                "passing_score": 60,
+                "questions": [
+                    {
+                        "question_text": "Write an essay on Acts 2.",
+                        "question_type": "essay",
+                        "order_index": 1,
+                        "points": 10,
+                        "min_words": 150,
+                        "options": [],
+                    }
+                ],
+            },
+        )
+        assert quiz_resp.status_code == 201, quiz_resp.text
+
+        block_resp = client.post(
+            f"/api/v1/blocks/chapter/{chapter_id}",
+            json={
+                "block_type": "file",
+                "order_index": 0,
+                "file_bucket": "course-materials",
+                "file_path": f"{chapter_id}/lecture.pdf",
+                "file_name": "lecture.pdf",
+            },
+        )
+        assert block_resp.status_code == 201, block_resp.text
+
+        clone_resp = client.post(f"{PREFIX}/{course['id']}/clone")
+        assert clone_resp.status_code == 201, clone_resp.text
+        clone = clone_resp.json()
+
+        cloned_chapter_id = clone["modules"][0]["chapters"][0]["id"]
+
+        cloned_blocks = client.get(f"/api/v1/blocks/chapter/{cloned_chapter_id}").json()
+        assert len(cloned_blocks) == 1
+        assert cloned_blocks[0]["file_bucket"] == "course-materials"
+        assert cloned_blocks[0]["file_path"].endswith("/lecture.pdf")
+        assert cloned_blocks[0]["file_name"] == "lecture.pdf"
+
+        cloned_quiz_resp = client.get(f"/api/v1/quizzes/chapter/{cloned_chapter_id}")
+        assert cloned_quiz_resp.status_code == 200
+        cloned_quiz = cloned_quiz_resp.json()
+        assert cloned_quiz["questions"][0]["question_type"] == "essay"
+        assert cloned_quiz["questions"][0]["min_words"] == 150

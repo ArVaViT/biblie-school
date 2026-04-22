@@ -40,6 +40,8 @@ class QuizQuestion(Base):
     question_type = Column(String(20), nullable=False, default="multiple_choice")
     order_index = Column(Integer, nullable=False, default=0)
     points = Column(Integer, nullable=False, default=1)
+    # Only meaningful for ``essay`` — UX hint rendered on the student's textarea.
+    min_words = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     quiz = relationship("Quiz", back_populates="questions")
@@ -120,5 +122,8 @@ class QuizAnswer(Base):
     text_answer = Column(Text)
     is_correct = Column(Boolean)
     points_earned = Column(Integer, nullable=False, default=0)
+    # Teacher feedback for manually-graded answers; null until a teacher
+    # actually grades it (see PATCH /quizzes/answers/{id}).
+    grader_comment = Column(Text)
 
     attempt = relationship("QuizAttempt", back_populates="answers")

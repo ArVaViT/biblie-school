@@ -143,7 +143,6 @@ def create_module(db: Session, course_id: str, data: ModuleCreate) -> Module:
     # already has modules, append at the tail instead of silently colliding.
     # Clients that need a specific slot (e.g. drag-and-drop reorder) still
     # pass their explicit index and control the full layout themselves.
-    # See PLATFORM_ISSUES #9.
     order_index = data.order_index if data.order_index else _next_module_order(db, course_id)
     module = Module(
         id=str(uuid.uuid4()),
@@ -201,7 +200,7 @@ def _next_chapter_order(db: Session, module_id: str) -> int:
 
 def create_chapter(db: Session, module_id: str, data: ChapterCreate) -> Chapter:
     # Mirrors ``create_module``: default order_index (0) appends at the tail
-    # when the module already has chapters. See PLATFORM_ISSUES #9.
+    # when the module already has chapters.
     order_index = data.order_index if data.order_index else _next_chapter_order(db, module_id)
     chapter = Chapter(
         id=str(uuid.uuid4()),
@@ -413,6 +412,13 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
                 is_locked=chapter.is_locked,
             )
             db.add(new_chapter)
+            # Flush the chapter before its children (quizzes/assignments/blocks)
+            # so FK constraints see a parent row. The unit-of-work topological
+            # sort normally handles this, but ``ChapterBlock.chapter_id`` is a
+            # plain String FK (not wired through a ``relationship``), so some
+            # dialects — including SQLite with PRAGMA foreign_keys=ON — issue
+            # the block INSERT before the chapter INSERT and raise a FK error.
+            db.flush()
 
             quiz_id_map: dict[str, uuid.UUID] = {}
             assignment_id_map: dict[str, uuid.UUID] = {}
@@ -445,6 +451,7 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
                             question_type=question.question_type,
                             order_index=question.order_index,
                             points=question.points,
+                            min_words=question.min_words,
                         )
                     )
 
@@ -486,7 +493,9 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
                         content=block.content,
                         quiz_id=quiz_id_map.get(str(block.quiz_id)) if block.quiz_id else None,
                         assignment_id=assignment_id_map.get(str(block.assignment_id)) if block.assignment_id else None,
-                        file_url=block.file_url,
+                        file_bucket=block.file_bucket,
+                        file_path=block.file_path,
+                        file_name=block.file_name,
                     )
                 )
 

@@ -100,7 +100,18 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
   const allAnswered = sortedQuestions.every((q) => {
     const a = answers[q.id]
     if (!a) return false
-    if (q.question_type === "short_answer") return !!a.text_answer?.trim()
+    if (q.question_type === "short_answer" || q.question_type === "essay") {
+      const text = a.text_answer?.trim() ?? ""
+      if (!text) return false
+      // For ``essay`` the teacher can enforce a minimum length; we block
+      // submit until that's reached so students don't accidentally submit
+      // half-written work and burn an attempt on an exam.
+      if (q.question_type === "essay" && q.min_words && q.min_words > 0) {
+        const words = text.split(/\s+/).filter(Boolean).length
+        if (words < q.min_words) return false
+      }
+      return true
+    }
     return !!a.selected_option_id
   })
 
@@ -127,12 +138,13 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
   }
 
   // Mirrors the backend: only MCQ / true-false questions contribute to the
-  // auto-graded score. Open-ended answers are scored by the teacher later.
+  // auto-graded score. Open-ended answers (``short_answer`` + ``essay``) are
+  // scored by the teacher later.
   const autoMaxScore = sortedQuestions
     .filter((q) => q.question_type === "multiple_choice" || q.question_type === "true_false")
     .reduce((sum, q) => sum + q.points, 0)
   const manualMaxScore = sortedQuestions
-    .filter((q) => q.question_type === "short_answer")
+    .filter((q) => q.question_type === "short_answer" || q.question_type === "essay")
     .reduce((sum, q) => sum + q.points, 0)
   const totalMaxScore = autoMaxScore + manualMaxScore
 
@@ -348,6 +360,48 @@ function QuestionCard({
           />
         </div>
       )}
+
+      {question.question_type === "essay" && (
+        <EssayAnswer
+          value={answer?.text_answer ?? ""}
+          minWords={question.min_words}
+          onChange={(text) => onAnswer({ text_answer: text })}
+        />
+      )}
+    </div>
+  )
+}
+
+function EssayAnswer({
+  value,
+  minWords,
+  onChange,
+}: {
+  value: string
+  minWords: number | null
+  onChange: (text: string) => void
+}) {
+  const words = value.trim() ? value.trim().split(/\s+/).filter(Boolean).length : 0
+  const minReached = !minWords || words >= minWords
+  return (
+    <div className="ml-8 space-y-1.5">
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={
+          minWords
+            ? `Write at least ${minWords} words. Your response will be reviewed by the teacher.`
+            : "Write your essay response…"
+        }
+        className="w-full min-h-[220px] p-3 text-sm bg-background border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
+      />
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">Essay · graded by the teacher</span>
+        <span className={minReached ? "text-muted-foreground" : "text-warning font-medium"}>
+          {words} word{words === 1 ? "" : "s"}
+          {minWords ? ` / ${minWords} required` : ""}
+        </span>
+      </div>
     </div>
   )
 }
@@ -387,7 +441,7 @@ function ResultsView({
           <p className="text-sm text-muted-foreground">
             {scorePercent}% — Passing score: {quiz.passing_score}%
           </p>
-          {questions.some((q) => q.question_type === "short_answer") && (
+          {questions.some((q) => q.question_type === "short_answer" || q.question_type === "essay") && (
             <p className="mt-2 text-xs text-warning">
               Open-ended answers are pending teacher review
             </p>
@@ -400,10 +454,19 @@ function ResultsView({
         {questions.map((q, idx) => {
           const userAnswer = answers[q.id]
           const answerResult = answerMap.get(q.id)
-          const isCorrect =
-            q.question_type === "short_answer"
-              ? null
-              : answerResult?.is_correct ?? null
+          const isManual = q.question_type === "short_answer" || q.question_type === "essay"
+          // For manual questions we only flash ✓/✗ once the teacher has
+          // actually touched the row (non-zero points or an attached
+          // comment). Otherwise the card stays neutral — "pending review".
+          const hasGrade =
+            isManual &&
+            !!answerResult &&
+            (answerResult.points_earned > 0 || !!answerResult.grader_comment)
+          const isCorrect = isManual
+            ? hasGrade
+              ? answerResult?.is_correct ?? null
+              : null
+            : answerResult?.is_correct ?? null
 
           return (
             <div
@@ -433,7 +496,7 @@ function ResultsView({
                   </span>
                 )}
               </div>
-              {q.question_type !== "short_answer" && (
+              {!isManual && (
                 <div className="ml-7 space-y-1">
                   {[...(q.options ?? [])].sort((a, b) => a.order_index - b.order_index).map((opt) => {
                     const isSelected = userAnswer?.selected_option_id === opt.id
@@ -457,14 +520,29 @@ function ResultsView({
                   })}
                 </div>
               )}
-              {q.question_type === "short_answer" && (
+              {isManual && (
                 <div className="ml-7 space-y-1.5">
-                  <div className="flex w-fit items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning">
-                    <BookOpen className="h-3.5 w-3.5 shrink-0" />
-                    Sent for teacher review
-                  </div>
+                  {hasGrade ? (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2 py-1 font-medium text-success">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Graded · {answerResult?.points_earned ?? 0}/{q.points} pt
+                        {q.points !== 1 ? "s" : ""}
+                      </span>
+                      {answerResult?.grader_comment && (
+                        <span className="text-muted-foreground">
+                          “{answerResult.grader_comment}”
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex w-fit items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning">
+                      <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                      Sent for teacher review
+                    </div>
+                  )}
                   {userAnswer?.text_answer && (
-                    <p className="text-xs text-muted-foreground italic">
+                    <p className="text-xs text-muted-foreground italic whitespace-pre-wrap">
                       Your answer: {userAnswer.text_answer}
                     </p>
                   )}

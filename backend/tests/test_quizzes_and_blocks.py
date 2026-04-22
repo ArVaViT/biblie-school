@@ -1052,3 +1052,260 @@ def test_list_extra_attempts_quiz_not_found(client: TestClient, db: Session):
 def test_list_extra_attempts_anon_unauthorized(anon_client: TestClient):
     resp = anon_client.get(f"/api/v1/quizzes/{uuid.uuid4()}/extra-attempts")
     assert resp.status_code == 401
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  ESSAY + MANUAL GRADING
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _seed_essay_quiz(db: Session):
+    """Seed a mixed quiz: one 1-point MCQ + one 20-point essay, passing=70."""
+    quiz_id = uuid.uuid4()
+    quiz = Quiz(
+        id=quiz_id,
+        chapter_id="ch-1",
+        title="Midterm",
+        description="MCQ + essay",
+        quiz_type="exam",
+        max_attempts=2,
+        passing_score=70,
+    )
+    db.add(quiz)
+    db.flush()
+
+    mcq_id, essay_id = uuid.uuid4(), uuid.uuid4()
+    mcq = QuizQuestion(
+        id=mcq_id,
+        quiz_id=quiz_id,
+        question_text="2+2?",
+        question_type="multiple_choice",
+        order_index=0,
+        points=1,
+    )
+    essay = QuizQuestion(
+        id=essay_id,
+        quiz_id=quiz_id,
+        question_text="Reflect on the book of Acts (≥300 words).",
+        question_type="essay",
+        order_index=1,
+        points=20,
+        min_words=300,
+    )
+    db.add_all([mcq, essay])
+    db.flush()
+
+    o_wrong, o_right = uuid.uuid4(), uuid.uuid4()
+    db.add_all(
+        [
+            QuizOption(id=o_wrong, question_id=mcq_id, option_text="3", is_correct=False, order_index=0),
+            QuizOption(id=o_right, question_id=mcq_id, option_text="4", is_correct=True, order_index=1),
+        ]
+    )
+    db.commit()
+    return quiz, mcq, essay, o_right
+
+
+def test_create_essay_question_accepted(client: TestClient, db: Session):
+    _seed_course(db)
+    resp = client.post(
+        "/api/v1/quizzes",
+        json={
+            "chapter_id": "ch-1",
+            "title": "Essay exam",
+            "quiz_type": "exam",
+            "passing_score": 70,
+            "questions": [
+                {
+                    "question_text": "Write a reflective essay on the book of Acts.",
+                    "question_type": "essay",
+                    "order_index": 0,
+                    "points": 20,
+                    "min_words": 400,
+                }
+            ],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["questions"][0]["question_type"] == "essay"
+    assert body["questions"][0]["min_words"] == 400
+
+
+def test_submit_with_essay_does_not_auto_pass(student_client: TestClient, db: Session):
+    """Essay points are *potential*; auto-score alone must not clear passing_score."""
+    _seed_course_with_enrollment(db)
+    quiz, mcq, essay, o_right = _seed_essay_quiz(db)
+
+    resp = student_client.post(
+        f"/api/v1/quizzes/{quiz.id}/submit",
+        json={
+            "answers": [
+                {"question_id": str(mcq.id), "selected_option_id": str(o_right)},
+                {"question_id": str(essay.id), "text_answer": "My reflection on the book of Acts…"},
+            ],
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    # 1/21 ≈ 4.8% < 70% passing. Essay counts toward max_score.
+    assert body["score"] == 1
+    assert body["max_score"] == 21
+    assert body["passed"] is False
+
+
+def _seed_submitted_essay_attempt(db: Session, *, essay_text: str = "A thoughtful essay."):
+    """Insert a student attempt + answers for the seeded essay quiz directly.
+
+    Bypasses the API (and therefore the test's auth override) so we can
+    exercise the teacher-grading endpoints without having to juggle two
+    different ``TestClient`` fixtures in the same test.
+    """
+    from app.models.quiz import QuizAnswer
+
+    quiz, mcq, essay, o_right = _seed_essay_quiz(db)
+
+    attempt = QuizAttempt(
+        id=uuid.uuid4(),
+        quiz_id=quiz.id,
+        user_id=STUDENT_ID,
+        score=1,
+        max_score=1 + int(essay.points),
+        passed=False,
+        completed_at=_now_utc(),
+    )
+    db.add(attempt)
+    db.flush()
+
+    mcq_answer = QuizAnswer(
+        id=uuid.uuid4(),
+        attempt_id=attempt.id,
+        question_id=mcq.id,
+        selected_option_id=o_right,
+        text_answer=None,
+        is_correct=True,
+        points_earned=1,
+    )
+    essay_answer = QuizAnswer(
+        id=uuid.uuid4(),
+        attempt_id=attempt.id,
+        question_id=essay.id,
+        selected_option_id=None,
+        text_answer=essay_text,
+        is_correct=False,
+        points_earned=0,
+    )
+    db.add_all([mcq_answer, essay_answer])
+    db.commit()
+    return quiz, essay, attempt, essay_answer
+
+
+def _now_utc():
+    from datetime import UTC, datetime
+
+    return datetime.now(UTC)
+
+
+def test_grade_essay_answer_recomputes_passed(client: TestClient, student, db: Session):
+    _seed_course_with_enrollment(db)
+    quiz, _essay, attempt, essay_answer = _seed_submitted_essay_attempt(db)
+
+    pending = client.get(f"/api/v1/quizzes/{quiz.id}/pending-answers").json()
+    assert len(pending) == 1
+    pending_answer = pending[0]
+    assert pending_answer["question_type"] == "essay"
+    assert pending_answer["student_id"] == str(STUDENT_ID)
+
+    graded = client.patch(
+        f"/api/v1/quizzes/answers/{essay_answer.id}",
+        json={"points_earned": 18, "grader_comment": "Clear and well-structured."},
+    )
+    assert graded.status_code == 200, graded.text
+    body = graded.json()
+    assert body["points_earned"] == 18
+    assert body["grader_comment"] == "Clear and well-structured."
+
+    attempts_resp = client.get(f"/api/v1/quizzes/{quiz.id}/attempts").json()
+    attempt_view = next(a for a in attempts_resp if a["id"] == str(attempt.id))
+    assert attempt_view["score"] == 1 + 18
+    assert attempt_view["max_score"] == 21
+    assert attempt_view["passed"] is True  # 19/21 ≈ 90.5% ≥ 70
+
+    pending_after = client.get(f"/api/v1/quizzes/{quiz.id}/pending-answers").json()
+    assert pending_after == []
+
+    graded_list = client.get(f"/api/v1/quizzes/{quiz.id}/pending-answers?include_graded=true").json()
+    assert len(graded_list) == 1
+    assert graded_list[0]["points_earned"] == 18
+
+
+def test_grade_answer_rejects_points_above_cap(client: TestClient, student, db: Session):
+    _seed_course_with_enrollment(db)
+    _quiz, _essay, _attempt, essay_answer = _seed_submitted_essay_attempt(db)
+
+    resp = client.patch(
+        f"/api/v1/quizzes/answers/{essay_answer.id}",
+        json={"points_earned": 99},
+    )
+    assert resp.status_code == 400
+    assert "exceeds" in resp.json()["detail"].lower()
+
+
+def test_grade_answer_rejects_auto_graded_question(student_client: TestClient, db: Session):
+    _seed_course_with_enrollment(db)
+    quiz, questions, opts = _seed_quiz_with_questions(db)
+    submit = student_client.post(
+        f"/api/v1/quizzes/{quiz.id}/submit",
+        json={"answers": [{"question_id": str(questions[0].id), "selected_option_id": str(opts["q1_correct"])}]},
+    )
+    assert submit.status_code == 200
+    answer_id = submit.json()["answers"][0]["id"]
+
+    # ``student_client`` can't hit the teacher endpoint (403), so we flip the
+    # override inline just for this assertion.
+    from app.api.dependencies import get_current_user
+    from app.main import app
+
+    teacher_user = db.query(User).filter(User.id == TEACHER_ID).first()
+
+    def _as_teacher():
+        return teacher_user
+
+    original = app.dependency_overrides.get(get_current_user)
+    app.dependency_overrides[get_current_user] = _as_teacher
+    try:
+        resp = student_client.patch(
+            f"/api/v1/quizzes/answers/{answer_id}",
+            json={"points_earned": 1, "grader_comment": "n/a"},
+        )
+    finally:
+        if original is not None:
+            app.dependency_overrides[get_current_user] = original
+    assert resp.status_code == 400
+    assert "open-ended" in resp.json()["detail"].lower()
+
+
+def test_grade_answer_student_forbidden(student_client: TestClient, db: Session):
+    _seed_course_with_enrollment(db)
+    _quiz, _essay, _attempt, essay_answer = _seed_submitted_essay_attempt(db)
+    resp = student_client.patch(
+        f"/api/v1/quizzes/answers/{essay_answer.id}",
+        json={"points_earned": 15},
+    )
+    assert resp.status_code == 403
+
+
+def test_pending_answers_student_forbidden(student_client: TestClient, db: Session):
+    _seed_course_with_enrollment(db)
+    quiz, *_ = _seed_essay_quiz(db)
+    resp = student_client.get(f"/api/v1/quizzes/{quiz.id}/pending-answers")
+    assert resp.status_code == 403
+
+
+def test_grade_answer_not_found(client: TestClient, db: Session):
+    _seed_course(db)
+    resp = client.patch(
+        f"/api/v1/quizzes/answers/{uuid.uuid4()}",
+        json={"points_earned": 1},
+    )
+    assert resp.status_code == 404

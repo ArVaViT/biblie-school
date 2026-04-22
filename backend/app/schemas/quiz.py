@@ -28,14 +28,21 @@ class QuizOptionStudentResponse(BaseModel):
     order_index: int
 
 
+QuestionType = Literal["multiple_choice", "true_false", "short_answer", "essay"]
+
+
 class QuizQuestionCreate(BaseModel):
     # 4000 chars keeps room for full essay prompts (rubrics, reading refs,
-    # formatting requirements). Old 1000-char cap blocked long-form essay
-    # exam questions — see PLATFORM_ISSUES #3.
+    # formatting requirements). The historical 1000-char cap blocked
+    # long-form essay exam questions.
     question_text: str = Field(..., min_length=1, max_length=4000)
-    question_type: Literal["multiple_choice", "true_false", "short_answer"] = "multiple_choice"
+    question_type: QuestionType = "multiple_choice"
     order_index: int = Field(0, ge=0)
     points: int = Field(1, ge=1, le=100)
+    # Only meaningful for ``essay``; acts as a soft hint on the student's
+    # textarea ("write at least N words"). Kept nullable so ``short_answer``
+    # questions stay unconstrained.
+    min_words: int | None = Field(None, ge=1, le=10_000)
     options: list[QuizOptionCreate] = Field(default_factory=list, max_length=20)
 
 
@@ -47,6 +54,7 @@ class QuizQuestionResponse(BaseModel):
     question_type: str
     order_index: int
     points: int
+    min_words: int | None = None
     options: list[QuizOptionResponse] = []
 
 
@@ -58,6 +66,7 @@ class QuizQuestionStudentResponse(BaseModel):
     question_type: str
     order_index: int
     points: int
+    min_words: int | None = None
     options: list[QuizOptionStudentResponse] = []
 
 
@@ -120,12 +129,42 @@ class QuizSubmitRequest(BaseModel):
 class QuizAnswerResult(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: UUID | None = None
     question_id: UUID
     selected_option_id: UUID | None = None
     text_answer: str | None = None
     is_correct: bool | None = None
     points_earned: int = 0
+    grader_comment: str | None = None
     correct_option_id: UUID | None = None
+
+
+class QuizAnswerGradeRequest(BaseModel):
+    """Teacher-facing payload for grading a single open-ended answer."""
+
+    points_earned: int = Field(..., ge=0, le=100)
+    grader_comment: str | None = Field(None, max_length=5_000)
+
+
+class PendingAnswerInfo(BaseModel):
+    """Flat record for the teacher's "pending manual grading" list."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    answer_id: UUID
+    attempt_id: UUID
+    question_id: UUID
+    question_text: str
+    question_type: str
+    max_points: int
+    min_words: int | None = None
+    text_answer: str | None = None
+    points_earned: int
+    grader_comment: str | None = None
+    student_id: UUID
+    student_name: str | None = None
+    student_email: str
+    submitted_at: datetime | None = None
 
 
 class QuizAttemptResponse(BaseModel):

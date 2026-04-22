@@ -123,13 +123,16 @@ export interface QuizOption {
   order_index: number
 }
 
+export type QuizQuestionType = 'multiple_choice' | 'true_false' | 'short_answer' | 'essay'
+
 export interface QuizQuestion {
   id: string
   quiz_id: string
   question_text: string
-  question_type: 'multiple_choice' | 'true_false' | 'short_answer'
+  question_type: QuizQuestionType
   order_index: number
   points: number
+  min_words: number | null
   options: QuizOption[]
 }
 
@@ -146,12 +149,31 @@ export interface Quiz {
 }
 
 export interface QuizAnswerResult {
+  id: string | null
   question_id: string
   selected_option_id: string | null
   text_answer: string | null
   is_correct: boolean | null
   points_earned: number
+  grader_comment: string | null
   correct_option_id: string | null
+}
+
+export interface PendingAnswer {
+  answer_id: string
+  attempt_id: string
+  question_id: string
+  question_text: string
+  question_type: QuizQuestionType
+  max_points: number
+  min_words: number | null
+  text_answer: string | null
+  points_earned: number
+  grader_comment: string | null
+  student_id: string
+  student_name: string | null
+  student_email: string
+  submitted_at: string | null
 }
 
 export interface QuizAttempt {

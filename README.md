@@ -77,7 +77,7 @@ cd frontend && npm run dev                      # SPA → http://localhost:5173
 ## Testing
 
 ```bash
-# Backend — 383 tests, SQLite by default; CI also runs an Alembic round-trip
+# Backend — 396 tests, SQLite by default; CI also runs an Alembic round-trip
 # against a real Postgres service container.
 cd backend && python -m pytest tests/
 

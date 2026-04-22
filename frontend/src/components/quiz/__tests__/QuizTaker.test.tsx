@@ -40,6 +40,7 @@ function makeQuiz(overrides: Partial<Quiz> = {}): Quiz {
         question_type: "multiple_choice",
         order_index: 0,
         points: 1,
+        min_words: null,
         options: [
           { id: "o1a", question_id: "q1", option_text: "5", is_correct: false, order_index: 0 },
           { id: "o1b", question_id: "q1", option_text: "6", is_correct: true, order_index: 1 },
@@ -53,6 +54,7 @@ function makeQuiz(overrides: Partial<Quiz> = {}): Quiz {
         question_type: "true_false",
         order_index: 1,
         points: 1,
+        min_words: null,
         options: [
           { id: "o2a", question_id: "q2", option_text: "True", is_correct: true, order_index: 0 },
           { id: "o2b", question_id: "q2", option_text: "False", is_correct: false, order_index: 1 },
@@ -75,19 +77,23 @@ function makeAttempt(overrides: Partial<QuizAttempt> = {}): QuizAttempt {
     completed_at: "2025-01-01T00:01:00Z",
     answers: [
       {
+        id: "ans-1",
         question_id: "q1",
         selected_option_id: "o1b",
         text_answer: null,
         is_correct: true,
         points_earned: 1,
+        grader_comment: null,
         correct_option_id: "o1b",
       },
       {
+        id: "ans-2",
         question_id: "q2",
         selected_option_id: "o2a",
         text_answer: null,
         is_correct: true,
         points_earned: 1,
+        grader_comment: null,
         correct_option_id: "o2a",
       },
     ],
