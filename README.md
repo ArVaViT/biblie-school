@@ -34,7 +34,9 @@ A modern Learning Management System for Bible study courses.
 **Prerequisites:**
 - Node.js **≥20** and npm **≥10** (pinned in `frontend/package.json` `engines`).
 - Python **3.12** (matches the CI image and Vercel runtime).
-- A Supabase project with a `files` Storage bucket.
+- A Supabase project with the Storage buckets `avatars`, `course-assets` and
+  `course-materials` (all three are written to directly from the browser via
+  Supabase JS using the user's JWT, not through the backend).
 
 ### 1. Clone and install
 
@@ -75,7 +77,7 @@ cd frontend && npm run dev                      # SPA → http://localhost:5173
 ## Testing
 
 ```bash
-# Backend — 390 tests, SQLite by default; CI also runs an Alembic round-trip
+# Backend — 383 tests, SQLite by default; CI also runs an Alembic round-trip
 # against a real Postgres service container.
 cd backend && python -m pytest tests/
 
