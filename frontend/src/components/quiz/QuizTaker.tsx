@@ -140,7 +140,7 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
     <div className="border rounded-lg bg-card mt-6">
       <div className="p-5 border-b">
         <div className="flex items-center gap-2 mb-1">
-          <ClipboardList className="h-5 w-5 text-blue-500" />
+          <ClipboardList className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-semibold text-base">{quiz.title}</h3>
         </div>
         {quiz.description && (
@@ -186,7 +186,7 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
       ) : (
         <div className="p-5 space-y-6">
           {attemptsReached && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-300">
+            <div className="rounded-md border border-border border-l-[3px] border-l-warning bg-warning/10 px-3 py-2 text-xs text-foreground">
               Maximum attempts reached for this {assessmentLabel.toLowerCase()}.
             </div>
           )}
@@ -234,8 +234,8 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
               const style = inProgress
                 ? "bg-muted/30 border border-border"
                 : att.passed
-                  ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800"
-                  : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
+                  ? "border border-success/30 bg-success/10"
+                  : "border border-destructive/30 bg-destructive/10"
               return (
                 <div
                   key={att.id}
@@ -245,9 +245,9 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
                     {inProgress ? (
                       <Clock className="h-4 w-4 text-muted-foreground" />
                     ) : att.passed ? (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <CheckCircle className="h-4 w-4 text-success" />
                     ) : (
-                      <XCircle className="h-4 w-4 text-red-600" />
+                      <XCircle className="h-4 w-4 text-destructive" />
                     )}
                     <span>
                       {att.score ?? 0}/{att.max_score ?? autoMaxScore} points
@@ -369,12 +369,12 @@ function ResultsView({
 
   return (
     <div className="p-5 space-y-6">
-      <Card className={result.passed ? "border-green-300 dark:border-green-700" : "border-red-300 dark:border-red-700"}>
+      <Card className={result.passed ? "border-l-[3px] border-l-success" : "border-l-[3px] border-l-destructive"}>
         <CardContent className="py-6 text-center">
           {result.passed ? (
-            <Trophy className="h-10 w-10 text-green-500 mx-auto mb-3" />
+            <Trophy className="mx-auto mb-3 h-10 w-10 text-success" />
           ) : (
-            <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
+            <AlertCircle className="mx-auto mb-3 h-10 w-10 text-destructive" />
           )}
           <h3 className="text-lg font-bold mb-1">
             {result.passed ? "You Passed!" : "Not Quite"}
@@ -386,7 +386,7 @@ function ResultsView({
             {scorePercent}% — Passing score: {quiz.passing_score}%
           </p>
           {questions.some((q) => q.question_type === "short_answer") && (
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+            <p className="mt-2 text-xs text-warning">
               Open-ended answers are pending teacher review
             </p>
           )}
@@ -410,8 +410,8 @@ function ResultsView({
                 isCorrect === null
                   ? "border-border"
                   : isCorrect
-                    ? "border-green-300 bg-green-50/50 dark:bg-green-950/10"
-                    : "border-red-300 bg-red-50/50 dark:bg-red-950/10"
+                    ? "border-success/30 bg-success/5"
+                    : "border-destructive/30 bg-destructive/5"
               }`}
             >
               <div className="flex items-start gap-2 mb-2">
@@ -422,9 +422,9 @@ function ResultsView({
                 {isCorrect !== null && (
                   <span className="ml-auto shrink-0">
                     {isCorrect ? (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <CheckCircle className="h-4 w-4 text-success" />
                     ) : (
-                      <XCircle className="h-4 w-4 text-red-600" />
+                      <XCircle className="h-4 w-4 text-destructive" />
                     )}
                   </span>
                 )}
@@ -437,11 +437,11 @@ function ResultsView({
                     return (
                       <div
                         key={opt.id}
-                        className={`text-xs px-2 py-1 rounded ${
+                        className={`rounded px-2 py-1 text-xs ${
                           isRight
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium"
+                            ? "bg-success/15 font-medium text-success"
                             : isSelected
-                              ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                              ? "bg-destructive/15 text-destructive"
                               : "text-muted-foreground"
                         }`}
                       >
@@ -455,7 +455,7 @@ function ResultsView({
               )}
               {q.question_type === "short_answer" && (
                 <div className="ml-7 space-y-1.5">
-                  <div className="flex items-center gap-1.5 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5 text-xs text-amber-700 dark:text-amber-400 font-medium w-fit">
+                  <div className="flex w-fit items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning">
                     <BookOpen className="h-3.5 w-3.5 shrink-0" />
                     Sent for teacher review
                   </div>

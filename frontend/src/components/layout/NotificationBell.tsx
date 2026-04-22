@@ -17,12 +17,12 @@ const NOTIFICATION_ICONS: Record<NotificationType, typeof Bell> = {
 }
 
 const NOTIFICATION_COLORS: Record<NotificationType, string> = {
-  certificate_approved: "text-emerald-500",
-  certificate_rejected: "text-red-500",
-  assignment_graded: "text-blue-500",
-  new_announcement: "text-amber-500",
-  course_update: "text-purple-500",
-  enrollment_confirmed: "text-teal-500",
+  certificate_approved: "text-success",
+  certificate_rejected: "text-destructive",
+  assignment_graded: "text-info",
+  new_announcement: "text-warning",
+  course_update: "text-muted-foreground",
+  enrollment_confirmed: "text-success",
 }
 
 function timeAgo(dateStr: string): string {
@@ -213,7 +213,7 @@ export default function NotificationBell() {
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}

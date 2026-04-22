@@ -38,70 +38,75 @@ type ChapterTypeMeta = {
   label: string
   description: string
   icon: LucideIcon
-  /** Full Tailwind pill colour string (bg+text, light+dark). */
+  /** Tailwind pill classes (editorial: muted surface, neutral text). */
   color: string
-  /** Slightly heavier background variant used in compact list badges. */
+  /** Compact badge variant — same editorial treatment as ``color``. */
   badgeColor: string
   /** Icon used in the teacher editor grid when ``icon`` feels too literal. */
   editorIcon?: LucideIcon
 }
+
+// Editorial palette: chapter type is communicated through label + icon, not
+// colour. Using a single muted token keeps the UI calm and consistent across
+// light/dark and matches the rest of the token-based design system.
+const PILL = "bg-muted text-muted-foreground"
 
 export const CHAPTER_TYPE_META: Record<ChapterType, ChapterTypeMeta> = {
   reading: {
     label: "Reading",
     description: "Text lesson with rich formatting",
     icon: FileText,
-    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    badgeColor: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+    color: PILL,
+    badgeColor: PILL,
   },
   video: {
     label: "Video",
     description: "Video lesson with optional notes",
     icon: PlayCircle,
-    color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
-    badgeColor: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400",
+    color: PILL,
+    badgeColor: PILL,
   },
   audio: {
     label: "Audio",
     description: "Audio lesson with transcript",
     icon: Headphones,
-    color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
-    badgeColor: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400",
+    color: PILL,
+    badgeColor: PILL,
   },
   quiz: {
     label: "Quiz",
     description: "Test student knowledge",
     icon: HelpCircle,
-    color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    badgeColor: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    color: PILL,
+    badgeColor: PILL,
   },
   exam: {
     label: "Exam",
     description: "Final assessment with attempts limit",
     icon: GraduationCap,
-    color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    badgeColor: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+    color: PILL,
+    badgeColor: PILL,
   },
   assignment: {
     label: "Assignment",
     description: "Submit work for grading",
     icon: ClipboardList,
-    color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    badgeColor: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
+    color: PILL,
+    badgeColor: PILL,
   },
   discussion: {
     label: "Discussion",
     description: "Student discussion prompt",
     icon: MessageSquare,
-    color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
-    badgeColor: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
+    color: PILL,
+    badgeColor: PILL,
   },
   mixed: {
     label: "Mixed",
     description: "Combine multiple content types",
     icon: Layers,
-    color: "bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400",
-    badgeColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+    color: PILL,
+    badgeColor: PILL,
     editorIcon: Puzzle,
   },
 }

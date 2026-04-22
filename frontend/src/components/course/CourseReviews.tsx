@@ -176,7 +176,7 @@ function StarDisplay({ rating, size = "sm" }: { rating: number; size?: "sm" | "l
             key={value}
             className={`${iconClass} ${
               filled
-                ? "fill-amber-400 text-amber-400"
+                ? "fill-warning text-warning"
                 : "text-muted-foreground/30"
             }`}
           />

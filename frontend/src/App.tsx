@@ -72,9 +72,9 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
 function PendingTeacherBanner() {
   return (
-    <div className="border-b bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+    <div className="border-b border-border border-l-[3px] border-l-warning bg-warning/10">
       <div className="container mx-auto px-4 py-3 text-center">
-        <p className="text-sm text-amber-800 dark:text-amber-300">
+        <p className="text-sm text-foreground">
           Your teacher account is pending administrator approval. You can browse courses as a student in the meantime.
           {" "}Contact <a href="mailto:support@bibleschool.com" className="underline font-medium hover:no-underline">support</a> if you have questions.
         </p>

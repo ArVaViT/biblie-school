@@ -18,32 +18,37 @@ import {
 
 const EVENT_COLORS: Record<string, { dot: string; bg: string; text: string; border: string }> = {
   deadline: {
-    dot: "bg-red-500",
-    bg: "bg-red-50 dark:bg-red-950/30",
-    text: "text-red-700 dark:text-red-400",
-    border: "border-red-200 dark:border-red-800",
+    dot: "bg-destructive",
+    bg: "bg-destructive/10",
+    text: "text-destructive",
+    border: "border-destructive/30",
   },
   live_session: {
-    dot: "bg-blue-500",
-    bg: "bg-blue-50 dark:bg-blue-950/30",
-    text: "text-blue-700 dark:text-blue-400",
-    border: "border-blue-200 dark:border-blue-800",
+    dot: "bg-info",
+    bg: "bg-info/10",
+    text: "text-info",
+    border: "border-info/30",
   },
   exam: {
-    dot: "bg-orange-500",
-    bg: "bg-orange-50 dark:bg-orange-950/30",
-    text: "text-orange-700 dark:text-orange-400",
-    border: "border-orange-200 dark:border-orange-800",
+    dot: "bg-warning",
+    bg: "bg-warning/10",
+    text: "text-warning",
+    border: "border-warning/30",
   },
   other: {
-    dot: "bg-gray-400",
-    bg: "bg-gray-50 dark:bg-gray-900/30",
-    text: "text-gray-700 dark:text-gray-400",
-    border: "border-gray-200 dark:border-gray-700",
+    dot: "bg-muted-foreground/50",
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    border: "border-border",
   },
 }
 
-const FALLBACK_EVENT_COLOR = { dot: "bg-gray-400", bg: "bg-gray-50 dark:bg-gray-900/30", text: "text-gray-700 dark:text-gray-400", border: "border-gray-200 dark:border-gray-700" }
+const FALLBACK_EVENT_COLOR = {
+  dot: "bg-muted-foreground/50",
+  bg: "bg-muted",
+  text: "text-muted-foreground",
+  border: "border-border",
+}
 
 function getEventColor(type: string) {
   return EVENT_COLORS[type] ?? FALLBACK_EVENT_COLOR
@@ -401,20 +406,20 @@ export default function CalendarPage() {
                     return (
                       <div
                         key={evt.id}
-                        className={`flex items-start gap-2 p-2 rounded-md border transition-colors ${
-                          overdue ? "border-red-300 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800" : "hover:bg-muted/50"
+                        className={`flex items-start gap-2 rounded-md border p-2 transition-colors ${
+                          overdue ? "border-destructive/30 bg-destructive/5" : "hover:bg-muted/50"
                         }`}
                       >
-                        <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${color.dot}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-medium truncate ${overdue ? "text-red-600 dark:text-red-400" : ""}`}>
+                        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color.dot}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className={`truncate text-xs font-medium ${overdue ? "text-destructive" : ""}`}>
                             {evt.title}
                           </p>
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
+                          <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
                             <span>{formatShortDate(evt.event_date)}</span>
                             <span>{formatTime(evt.event_date)}</span>
                             {overdue && (
-                              <span className="text-red-500 font-medium">Overdue</span>
+                              <span className="font-medium text-destructive">Overdue</span>
                             )}
                           </div>
                           {evt.course_title && (

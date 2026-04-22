@@ -106,12 +106,12 @@ function MyCoursesSection() {
             const grade = grades.find((g) => g.course_id === enrollment.course_id)
             const progressColor =
               enrollment.progress >= 100
-                ? "bg-emerald-500"
+                ? "bg-success"
                 : enrollment.progress >= 60
                   ? "bg-primary"
                   : enrollment.progress >= 30
-                    ? "bg-amber-500"
-                    : "bg-red-400"
+                    ? "bg-warning"
+                    : "bg-destructive"
 
             return (
               <div
@@ -124,7 +124,7 @@ function MyCoursesSection() {
                       {enrollment.course?.title || "Course"}
                     </h3>
                     {enrollment.progress >= 100 && (
-                      <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
+                      <CheckCircle className="h-4 w-4 shrink-0 text-success" />
                     )}
                   </div>
                   <div className="flex items-center gap-4 mt-2">
@@ -140,7 +140,7 @@ function MyCoursesSection() {
                       </span>
                     </div>
                     {grade?.grade && (
-                      <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary rounded-md font-medium">
+                      <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                         Grade: {grade.grade}
                       </span>
                     )}
@@ -223,10 +223,16 @@ export default function HomePage() {
       </div>
 
       {!user && (
-        <div className="mb-8 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 flex items-center justify-center gap-2">
-          <LogIn className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <p className="text-sm text-blue-800 dark:text-blue-300">
-            <Link to="/login" className="font-medium underline underline-offset-2 hover:text-blue-900 dark:hover:text-blue-200">Sign in</Link> to enroll in courses
+        <div className="mb-8 flex items-center justify-center gap-2 rounded-md border border-border border-l-[3px] border-l-info bg-info/5 px-4 py-3">
+          <LogIn className="h-4 w-4 text-info" />
+          <p className="text-sm text-foreground">
+            <Link
+              to="/login"
+              className="font-medium underline underline-offset-2 hover:no-underline"
+            >
+              Sign in
+            </Link>{" "}
+            to enroll in courses
           </p>
         </div>
       )}

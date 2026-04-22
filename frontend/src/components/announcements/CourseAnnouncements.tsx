@@ -29,8 +29,8 @@ export default function CourseAnnouncements({ courseId }: Props) {
   return (
     <div className="space-y-3 mb-6">
       {announcements.map((a) => (
-        <div key={a.id} className="flex gap-3 p-4 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/50">
-          <Megaphone className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+        <div key={a.id} className="flex gap-3 rounded-md border border-border border-l-[3px] border-l-info bg-info/5 p-4">
+          <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-info" />
           <div>
             <h4 className="text-sm font-medium">{a.title}</h4>
             <p className="text-xs text-muted-foreground mt-1">{a.content}</p>

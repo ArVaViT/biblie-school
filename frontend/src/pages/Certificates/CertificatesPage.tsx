@@ -53,13 +53,13 @@ export default function CertificatesPage() {
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/40">
-            <Award className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+        <h1 className="flex items-center gap-3 font-serif text-3xl font-bold tracking-tight">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+            <Award className="h-5 w-5 text-muted-foreground" />
           </div>
           My Certificates
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="mt-2 text-muted-foreground">
           Certificates you've earned for completing courses
         </p>
       </div>
@@ -67,11 +67,11 @@ export default function CertificatesPage() {
       {certificates.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="h-16 w-16 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center mb-4">
-              <ScrollText className="h-8 w-8 text-amber-400" />
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <ScrollText className="h-8 w-8 text-muted-foreground/50" />
             </div>
-            <h3 className="text-lg font-medium mb-1">No certificates yet</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mb-6">
+            <h3 className="mb-1 text-lg font-medium">No certificates yet</h3>
+            <p className="mb-6 max-w-sm text-sm text-muted-foreground">
               Complete a course to earn your first certificate. Keep learning and collecting achievements!
             </p>
             <Link to="/">
@@ -80,25 +80,23 @@ export default function CertificatesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {certificates.map((cert) => (
             <Card
               key={cert.id}
-              className="group relative overflow-hidden border-amber-200/60 dark:border-amber-800/40 hover:shadow-lg hover:shadow-amber-100/50 dark:hover:shadow-amber-900/20 transition-all duration-300"
+              className="group relative overflow-hidden border-l-[3px] border-l-accent transition-colors hover:border-primary/40"
             >
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500" />
-
-              <CardContent className="pt-6 pb-5">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-amber-100 to-yellow-50 dark:from-amber-900/40 dark:to-yellow-900/20 flex items-center justify-center shadow-sm">
-                    <Award className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              <CardContent className="pb-5 pt-6">
+                <div className="mb-4 flex items-start justify-between">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-md bg-muted">
+                    <Award className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <span className="text-[10px] font-mono text-muted-foreground/70 tracking-wider uppercase">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">
                     Certificate
                   </span>
                 </div>
 
-                <h3 className="font-semibold text-sm leading-snug mb-3 line-clamp-2 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
+                <h3 className="mb-3 line-clamp-2 font-serif text-base font-semibold leading-snug transition-colors group-hover:text-primary">
                   {courseTitle(cert.course_id)}
                 </h3>
 
@@ -106,7 +104,7 @@ export default function CertificatesPage() {
                   {cert.certificate_number && (
                     <div className="flex items-center justify-between">
                       <dt className="text-muted-foreground">Certificate No.</dt>
-                      <dd className="font-mono font-medium text-amber-700 dark:text-amber-400">
+                      <dd className="font-mono font-medium text-foreground">
                         {cert.certificate_number}
                       </dd>
                     </div>

@@ -131,17 +131,17 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
     submitted: {
       icon: <Clock className="h-4 w-4" />,
       label: "Submitted — Awaiting Review",
-      color: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800",
+      color: "border-info/30 bg-info/10 text-info",
     },
     graded: {
       icon: <CheckCircle className="h-4 w-4" />,
       label: "Graded",
-      color: "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800",
+      color: "border-success/30 bg-success/10 text-success",
     },
     returned: {
       icon: <RotateCcw className="h-4 w-4" />,
       label: "Returned — Resubmission Requested",
-      color: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800",
+      color: "border-warning/30 bg-warning/10 text-warning",
     },
   }
 
@@ -149,7 +149,7 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
     <div className="border rounded-lg bg-card">
       <div className="p-5 border-b">
         <div className="flex items-center gap-2 mb-1">
-          <FileText className="h-5 w-5 text-violet-500" />
+          <FileText className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-semibold text-base">{assignment.title}</h3>
         </div>
         {assignment.description && (
@@ -161,7 +161,7 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
             Max: {assignment.max_score} pts
           </span>
           {assignment.due_date && (
-            <span className={`flex items-center gap-1 ${isOverdue ? "text-red-500 font-medium" : ""}`}>
+            <span className={`flex items-center gap-1 ${isOverdue ? "font-medium text-destructive" : ""}`}>
               <Calendar className="h-3 w-3" />
               Due: {new Date(assignment.due_date).toLocaleDateString()}
               {isOverdue && " (overdue)"}
@@ -209,7 +209,7 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
         {showForm && (
           <div className="space-y-3">
             {canResubmit && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              <p className="text-xs font-medium text-warning">
                 Your instructor has returned this assignment. Please revise and resubmit.
               </p>
             )}
