@@ -181,13 +181,13 @@ async def upload_file(
 
 ---
 
-## 12. 🟡 Medium — `POST /api/v1/blocks/chapter/{id}` не возвращает поля `file_url` в ответе при загрузке через сидер
+## 12. ✅ **RESOLVED** 🟡 Medium — `chapter_blocks.file_url` завязан на текущий Supabase-секрет
 
-**Где:** при сидировании я отправляю блок типа `file` с `file_url=<signed URL>`. Ответ `BlockResponse` содержит поле `file_url`, и оно действительно сохраняется в БД (фронт затем может обратиться). Но при повторном `GET /api/v1/blocks/chapter/{id}` я вижу корректный URL, поэтому заливка работает. Настораживает другое: если в будущем мы захотим ротировать бакет или мигрировать файлы, поле `file_url` в БД будет хранить полную подписанную ссылку со встроенным токеном, зависимым от текущего service-role секрета (или access_token). Это жёсткая зависимость контента от инфраструктуры — ротация ключей сломает все старые ссылки.
+**Fix:** колонка `file_url` удалена. Вместо неё в `chapter_blocks` хранятся `file_bucket`, `file_path`, `file_name` — стабильные идентификаторы контента, не зависящие от инструмента доступа. Подписанный URL теперь выдаётся **в момент клика** на фронте (`storageService.getSignedBlockFileUrl`, TTL 1 час). Ротация Supabase JWT-секрета больше не «убивает все файлы в курсах»: следующий клик автоматически получит свежий токен на актуальном секрете.
 
-**Репро:** залить файл через `/files/upload`, получить `signed_url` на год, записать в `file_url` блока. При ротации JWT-секрета Supabase Storage все такие ссылки в старых курсах «протухнут» единомоментно, без уведомления и без возможности массового ре-подписания без обхода всех блоков.
+**Миграция данных (032_chapter_blocks_bucket_path):** существующие `file_url` со схемой `/storage/v1/object/(sign|public)/{bucket}/{path}` и same-origin прокси `/img/{bucket}/{path}` распарсены в `file_bucket`+`file_path` автоматически. Внешние ссылки (Google Drive и т. п.) отброшены — им и так было не место в блоке типа `file`.
 
-**Рекомендация:** хранить только `bucket` и `object_path`, а signed URL выдавать по запросу через эндпоинт `GET /api/v1/blocks/{id}/file-url` (или инлайнить в ответ блока). Тогда срок жизни ссылки контролирует бэкенд, а контент остаётся независимым от текущего секрета. Связано с пунктами №5 и №6.
+**UX учителя:** в `ChapterBlockEditor` блок «file» теперь использует нативный аплоадер (upload → replace → clear) напрямую в Storage. Учителю не нужно знать про signed URLs — он видит имя файла, кнопки `Replace` / `Remove` и всё.
 
 ---
 
@@ -232,3 +232,9 @@ async def upload_file(
 - **Pt6 MITIGATED**: TTL на signed URL у `uploadCourseMaterial` / `getSignedMaterialUrl` поднят до 1 года. Практическая боль («материал протух через час») ушла. Архитектурная часть — хранить `{bucket, object_path}` в блоке и подписывать серверно — остаётся в Pt12.
 - Закрыты 3 из 4 Supabase Security Advisor warnings: у функций `update_updated_at`, `courses_search_vector_update`, `custom_access_token_hook` теперь явно зафиксирован `search_path = pg_catalog, public` (миграция `031_lock_function_search_paths`). Единственный оставшийся advisor — Leaked Password Protection Disabled — это Supabase Dashboard toggle, не код.
 - Открытыми остаются: **Pt11** (нет `essay` как типа вопроса), **Pt12** (signed URL в `file_url` блока завязан на текущий Supabase-секрет).
+
+**2026-04-22 (сессия file-blocks + account deletion):**
+
+- **Pt12 RESOLVED:** `chapter_blocks.file_url` заменён на `file_bucket` + `file_path` + `file_name` (миграция `032_chapter_blocks_bucket_path`, с авто-парсингом существующих signed/public/proxy URL). Подписанные ссылки теперь выдаются на лету на клиенте через `storageService.getSignedBlockFileUrl` (TTL 1 час), и ротация Supabase JWT-секрета больше не ломает контент всех курсов одновременно.
+- **User self-delete удалён:** `DELETE /users/me` снят с сервера, «Danger Zone» из `ProfilePage` убрана. Удаление аккаунта теперь — только административный инструмент: `DELETE /api/v1/users/admin/{user_id}` с cascade-пургой (через общий `_purge_user`), проверкой admin-роли и защитой от «админ удаляет себя». В UI админки добавлена кнопка-корзина в списке пользователей (виртуализированный + обычный рендер), disabled для собственной строки.
+- Открытым остаётся только **Pt11** (essay как тип вопроса) и Supabase Dashboard toggle для Leaked Password Protection.
