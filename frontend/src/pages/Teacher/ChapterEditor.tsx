@@ -5,8 +5,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import RichTextEditor from "@/components/editor/RichTextEditor"
 import ChapterBlockEditor from "@/components/editor/ChapterBlockEditor"
 import QuizEditor from "@/components/quiz/QuizEditor"
 import AssignmentEditor from "@/components/assignment/AssignmentEditor"
@@ -16,7 +14,7 @@ import { toast } from "@/hooks/use-toast"
 import { chapterSchema } from "@/lib/validations/course"
 import { useConfirm } from "@/components/ui/alert-dialog"
 import {
-  ChevronRight, Save, PlayCircle, Headphones, Loader2, ArrowLeft,
+  ChevronRight, Save, Loader2, ArrowLeft,
 } from "lucide-react"
 import {
   CHAPTER_TYPES,
@@ -25,14 +23,13 @@ import {
   type ChapterType,
 } from "@/lib/chapterTypes"
 
-/** Teacher-editor-only mapping (shows a puzzle icon for ``mixed``, etc.). */
 const EDITOR_OPTIONS = CHAPTER_TYPES.map((value) => {
   const meta = CHAPTER_TYPE_META[value]
   return {
     value,
     label: meta.label,
     desc: meta.description,
-    icon: meta.editorIcon ?? meta.icon,
+    icon: meta.icon,
   }
 })
 
@@ -53,8 +50,6 @@ export default function ChapterEditor() {
 
   const [title, setTitle] = useState("")
   const [chapterType, setChapterType] = useState<ChapterType>("reading")
-  const [content, setContent] = useState("")
-  const [videoUrl, setVideoUrl] = useState("")
   const [moduleName, setModuleName] = useState("Module")
   const [isDirty, setIsDirty] = useState(false)
 
@@ -75,13 +70,9 @@ export default function ChapterEditor() {
       setTitle(ch.title)
       const resolvedType = normalizeChapterType(ch.chapter_type)
       setChapterType(resolvedType)
-      setContent(ch.content ?? "")
-      setVideoUrl(ch.video_url ?? "")
       setInitialSnapshot(JSON.stringify({
         title: ch.title,
         chapterType: resolvedType,
-        content: ch.content ?? "",
-        videoUrl: ch.video_url ?? "",
       }))
       setIsDirty(false)
     } catch {
@@ -103,13 +94,13 @@ export default function ChapterEditor() {
 
   useEffect(() => {
     if (!chapter) return
-    const snapshot = JSON.stringify({ title, chapterType, content, videoUrl })
+    const snapshot = JSON.stringify({ title, chapterType })
     if (!initialSnapshot) {
       setInitialSnapshot(snapshot)
       return
     }
     setIsDirty(snapshot !== initialSnapshot)
-  }, [chapter, title, chapterType, content, videoUrl, initialSnapshot])
+  }, [chapter, title, chapterType, initialSnapshot])
 
   useEffect(() => {
     if (!isDirty) return
@@ -122,13 +113,12 @@ export default function ChapterEditor() {
 
   const save = useCallback(async () => {
     if (!courseId || !moduleId || !chapterId || !title.trim()) return
-    // Validate the incoming values client-side against the same bounds the
-    // backend enforces so we can surface a useful error instead of a 422.
+    // Only title + chapter_type live on the chapter row now. Reading content
+    // is owned by chapter_blocks (edited inline inside ChapterBlockEditor,
+    // which auto-saves). Quiz/exam/assignment editors write their own rows.
     const validation = chapterSchema.safeParse({
       title: title.trim(),
       chapter_type: chapterType,
-      content,
-      video_url: videoUrl.trim(),
     })
     if (!validation.success) {
       const first = validation.error.issues[0]
@@ -145,18 +135,8 @@ export default function ChapterEditor() {
         chapter_type: chapterType,
       }
 
-      if (chapterType === "reading") {
-        payload.content = content
-      } else if (chapterType === "video") {
-        payload.video_url = videoUrl.trim() || undefined
-        payload.content = content
-      } else if (chapterType === "audio") {
-        payload.video_url = videoUrl.trim() || undefined
-        payload.content = content
-      }
-
       await coursesService.updateChapter(courseId, moduleId, chapterId, payload)
-      const snapshot = JSON.stringify({ title: title.trim(), chapterType, content, videoUrl })
+      const snapshot = JSON.stringify({ title: title.trim(), chapterType })
       setInitialSnapshot(snapshot)
       setIsDirty(false)
       toast({ title: "Chapter saved" })
@@ -166,7 +146,7 @@ export default function ChapterEditor() {
     } finally {
       setSaving(false)
     }
-  }, [courseId, moduleId, chapterId, title, chapterType, content, videoUrl])
+  }, [courseId, moduleId, chapterId, title, chapterType])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -184,8 +164,8 @@ export default function ChapterEditor() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="h-5 w-48 bg-muted rounded animate-pulse mb-6" />
         <div className="h-10 w-3/4 bg-muted rounded animate-pulse mb-4" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
-          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
           ))}
         </div>
@@ -261,7 +241,7 @@ export default function ChapterEditor() {
       {/* Chapter Type Selector */}
       <div className="mb-6">
         <Label className="text-sm font-semibold mb-3 block">Chapter Type</Label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {EDITOR_OPTIONS.map((ct) => {
             const Icon = ct.icon
             const selected = chapterType === ct.value
@@ -302,66 +282,7 @@ export default function ChapterEditor() {
       <Card className="mb-6">
         <CardContent className="p-6 space-y-4">
           {chapterType === "reading" && (
-            <>
-              <Label className="text-sm font-semibold">Content</Label>
-              <RichTextEditor
-                content={content}
-                onChange={setContent}
-                placeholder="Write chapter content here..."
-              />
-            </>
-          )}
-
-          {chapterType === "video" && (
-            <>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold flex items-center gap-1.5">
-                  <PlayCircle className="h-4 w-4" />
-                  Video URL
-                </Label>
-                <Input
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="h-9 text-sm"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold">Notes (optional)</Label>
-                <RichTextEditor
-                  content={content}
-                  onChange={setContent}
-                  placeholder="Optional notes to accompany the video..."
-                />
-              </div>
-            </>
-          )}
-
-          {chapterType === "audio" && (
-            <>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold flex items-center gap-1.5">
-                  <Headphones className="h-4 w-4" />
-                  Audio URL
-                </Label>
-                <Input
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="https://example.com/audio.mp3"
-                  className="h-9 text-sm"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold">Transcript (optional)</Label>
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Paste or type the audio transcript here..."
-                  rows={10}
-                  className="text-sm"
-                />
-              </div>
-            </>
+            <ChapterBlockEditor chapterId={chapter.id} />
           )}
 
           {(chapterType === "quiz" || chapterType === "exam") && (
@@ -370,10 +291,6 @@ export default function ChapterEditor() {
 
           {chapterType === "assignment" && (
             <AssignmentEditor chapterId={chapter.id} />
-          )}
-
-          {chapterType === "mixed" && (
-            <ChapterBlockEditor chapterId={chapter.id} />
           )}
         </CardContent>
       </Card>

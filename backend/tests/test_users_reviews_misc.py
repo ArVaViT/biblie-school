@@ -894,18 +894,17 @@ class TestCreateChapter:
         resp = client.post(
             "/api/v1/courses/course-1/modules/mod-1/chapters",
             json={
-                "title": "Video Chapter",
-                "content": "Watch this video",
-                "video_url": "https://example.com/video.mp4",
+                "title": "Reading Chapter",
+                "content": "Lorem ipsum",
                 "order_index": 1,
-                "chapter_type": "video",
+                "chapter_type": "reading",
                 "requires_completion": True,
                 "is_locked": False,
             },
         )
         assert resp.status_code == 201
         body = resp.json()
-        assert body["chapter_type"] == "video"
+        assert body["chapter_type"] == "reading"
         assert body["requires_completion"] is True
 
 

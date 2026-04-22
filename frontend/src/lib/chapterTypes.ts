@@ -2,11 +2,7 @@ import {
   ClipboardList,
   FileText,
   GraduationCap,
-  Headphones,
   HelpCircle,
-  Layers,
-  PlayCircle,
-  Puzzle,
   type LucideIcon,
 } from "lucide-react"
 
@@ -16,18 +12,16 @@ import {
  * add a type, update both sides *and* the Postgres ``chapters_chapter_type_check``
  * constraint.
  *
- * ``"content"`` exists in the database as a legacy alias for ``"reading"`` and is
- * intentionally omitted from this tuple — it should never be produced by the UI
- * and is normalised to ``"reading"`` on read via ``normalizeChapterType``.
+ * ``video`` / ``audio`` / ``mixed`` / ``content`` / ``discussion`` were
+ * collapsed into block-based ``reading`` by migration 024 — every
+ * content-shaped chapter is now a sequence of typed blocks. They live on in
+ * ``LEGACY_ALIASES`` below so stale client caches don't blow up.
  */
 export const CHAPTER_TYPES = [
   "reading",
-  "video",
-  "audio",
   "quiz",
   "exam",
   "assignment",
-  "mixed",
 ] as const
 
 export type ChapterType = (typeof CHAPTER_TYPES)[number]
@@ -40,8 +34,6 @@ type ChapterTypeMeta = {
   color: string
   /** Compact badge variant — same editorial treatment as ``color``. */
   badgeColor: string
-  /** Icon used in the teacher editor grid when ``icon`` feels too literal. */
-  editorIcon?: LucideIcon
 }
 
 // Editorial palette: chapter type is communicated through label + icon, not
@@ -51,23 +43,9 @@ const PILL = "bg-muted text-muted-foreground"
 
 export const CHAPTER_TYPE_META: Record<ChapterType, ChapterTypeMeta> = {
   reading: {
-    label: "Reading",
-    description: "Text lesson with rich formatting",
+    label: "Lesson",
+    description: "Mix text, video, audio, files and more into a single lesson",
     icon: FileText,
-    color: PILL,
-    badgeColor: PILL,
-  },
-  video: {
-    label: "Video",
-    description: "Video lesson with optional notes",
-    icon: PlayCircle,
-    color: PILL,
-    badgeColor: PILL,
-  },
-  audio: {
-    label: "Audio",
-    description: "Audio lesson with transcript",
-    icon: Headphones,
     color: PILL,
     badgeColor: PILL,
   },
@@ -92,14 +70,6 @@ export const CHAPTER_TYPE_META: Record<ChapterType, ChapterTypeMeta> = {
     color: PILL,
     badgeColor: PILL,
   },
-  mixed: {
-    label: "Mixed",
-    description: "Combine multiple content types",
-    icon: Layers,
-    color: PILL,
-    badgeColor: PILL,
-    editorIcon: Puzzle,
-  },
 }
 
 /** Chapter types whose completion gates the next chapter when ``is_locked`` is on. */
@@ -109,20 +79,14 @@ const GRADABLE_CHAPTER_TYPES: ReadonlySet<ChapterType> = new Set([
   "assignment",
 ])
 
-/** Chapter types that render freeform ``ChapterBlock`` rows as their body. */
-export const BLOCK_BASED_CHAPTER_TYPES: ReadonlySet<ChapterType> = new Set([
-  "reading",
-  "video",
-  "audio",
-  "mixed",
-])
-
 const LEGACY_ALIASES: Record<string, ChapterType> = {
+  // All collapsed into reading by migration 024. Clients may still have
+  // stale caches; normalise so the UI never sees the old values.
   content: "reading",
-  // The discussion feature was removed in favour of plain reading with a
-  // prompt — existing rows still migrate on the server, but any late reads
-  // coming back with the old value normalise to reading here.
   discussion: "reading",
+  video: "reading",
+  audio: "reading",
+  mixed: "reading",
 }
 
 /**

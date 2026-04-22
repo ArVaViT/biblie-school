@@ -14,14 +14,12 @@ import {
   Circle,
   Lock,
   PlayCircle,
-  Headphones,
   Download,
   File,
 } from "lucide-react"
 import QuizTaker from "@/components/quiz/QuizTaker"
 import AssignmentPanel from "@/components/assignment/AssignmentPanel"
 import {
-  BLOCK_BASED_CHAPTER_TYPES,
   isGradableChapterType,
   normalizeChapterType,
 } from "@/lib/chapterTypes"
@@ -284,9 +282,9 @@ export default function ChapterView() {
 
     setHasAssignments(false)
 
-    const needsBlocks = BLOCK_BASED_CHAPTER_TYPES.has(normalizeChapterType(chapter.chapter_type))
-
-    if (!needsBlocks) {
+    // Only reading chapters carry blocks; quiz/exam/assignment render their
+    // own dedicated panels.
+    if (normalizeChapterType(chapter.chapter_type) !== "reading") {
       setChapterBlocks([])
       return
     }
@@ -431,54 +429,6 @@ export default function ChapterView() {
           />
         )}
 
-        {chapterType === "video" && (
-          <>
-            {chapter.video_url && <VideoEmbed url={chapter.video_url} title={chapter.title} />}
-            <ChapterBodyBlocks
-              loading={loadingBlocks}
-              blocks={chapterBlocks}
-              onProgressChanged={refreshCompletion}
-              onAssignmentCountLoaded={handleAssignmentCountLoaded}
-              fallback={proseFallback}
-            />
-          </>
-        )}
-
-        {chapterType === "audio" && (
-          <>
-            {chapter.video_url && (
-              <div className="rounded-md border bg-card p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Headphones className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium text-sm">Audio Lesson</span>
-                </div>
-                <audio controls className="w-full" src={chapter.video_url}>
-                  Your browser does not support the audio element.
-                </audio>
-              </div>
-            )}
-            <ChapterBodyBlocks
-              loading={loadingBlocks}
-              blocks={chapterBlocks}
-              onProgressChanged={refreshCompletion}
-              onAssignmentCountLoaded={handleAssignmentCountLoaded}
-              fallback={
-                sanitizedChapterContent ? (
-                  <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                      Transcript
-                    </h3>
-                    <div
-                      className="prose max-w-none"
-                      dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
-                    />
-                  </div>
-                ) : null
-              }
-            />
-          </>
-        )}
-
         {(chapterType === "quiz" || chapterType === "exam") && (
           <QuizTaker chapterId={chapter.id} onSubmitted={refreshCompletion} />
         )}
@@ -488,27 +438,6 @@ export default function ChapterView() {
             chapterId={chapter.id}
             onSubmitted={refreshCompletion}
             onCountLoaded={handleAssignmentCountLoaded}
-          />
-        )}
-
-        {chapterType === "mixed" && (
-          <ChapterBodyBlocks
-            loading={loadingBlocks}
-            blocks={chapterBlocks}
-            onProgressChanged={refreshCompletion}
-            onAssignmentCountLoaded={handleAssignmentCountLoaded}
-            fallback={
-              <>
-                {chapter.video_url && <VideoEmbed url={chapter.video_url} title={chapter.title} />}
-                {proseFallback}
-                <QuizTaker chapterId={chapter.id} onSubmitted={refreshCompletion} />
-                <AssignmentPanel
-                  chapterId={chapter.id}
-                  onSubmitted={refreshCompletion}
-                  onCountLoaded={handleAssignmentCountLoaded}
-                />
-              </>
-            }
           />
         )}
       </div>

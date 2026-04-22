@@ -4,11 +4,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# Mirrors the ``chapters_chapter_type_check`` CHECK in Postgres. ``content``
-# is a legacy alias some seeded chapters already use on prod — leaving it out
-# of the schema blocked PATCHes on those rows with a 422 even though the DB
-# accepts them.
-CHAPTER_TYPES = Literal["reading", "video", "audio", "quiz", "exam", "assignment", "mixed", "content"]
+# Mirrors the ``chapters_chapter_type_check`` CHECK in Postgres. ``video`` /
+# ``audio`` / ``mixed`` / ``content`` were collapsed into block-based
+# ``reading`` by migration 024 — block rows carry the content shape instead.
+CHAPTER_TYPES = Literal["reading", "quiz", "exam", "assignment"]
 
 
 class ChapterBase(BaseModel):
