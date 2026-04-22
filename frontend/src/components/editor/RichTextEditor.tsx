@@ -17,6 +17,7 @@ import {
   Redo2,
   ImageIcon,
   Video as Youtube,
+  Headphones,
   Info,
   BookOpen,
   Lightbulb,
@@ -27,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Callout, type CalloutVariant } from "./CalloutExtension";
 import { YoutubeEmbed } from "./YoutubeExtension";
+import { AudioEmbed } from "./AudioExtension";
 import { storageService } from "@/services/storage";
 import { toast } from "@/hooks/use-toast";
 import { usePrompt } from "@/components/ui/alert-dialog";
@@ -121,6 +123,7 @@ export default function RichTextEditor({
       }),
       Callout,
       YoutubeEmbed,
+      AudioEmbed,
     ],
     content,
     editable,
@@ -251,6 +254,20 @@ export default function RichTextEditor({
     });
     if (!url) return;
     editor.chain().focus().setYoutubeVideo({ src: url }).run();
+  }, [editor, prompt]);
+
+  const addAudio = useCallback(async () => {
+    if (!editor) return;
+    const url = await prompt({
+      title: "Embed audio",
+      description: "Paste a direct https:// URL to an audio file (mp3, m4a, ogg).",
+      placeholder: "https://example.com/lesson.mp3",
+      inputType: "url",
+      confirmLabel: "Embed",
+    });
+    if (!url) return;
+    const ok = editor.chain().focus().setAudio({ src: url }).run();
+    if (!ok) toast({ title: "Audio URL must start with http(s)", variant: "destructive" });
   }, [editor, prompt]);
 
   const insertCallout = useCallback(
@@ -406,6 +423,10 @@ export default function RichTextEditor({
 
           <ToolbarButton onClick={addYoutube} title="Insert YouTube Video">
             <Youtube size={iconSize} />
+          </ToolbarButton>
+
+          <ToolbarButton onClick={addAudio} title="Insert Audio">
+            <Headphones size={iconSize} />
           </ToolbarButton>
 
           <ToolbarButton
