@@ -116,19 +116,11 @@ chapters = relationship(
 
 ---
 
-## 6. 🟠 High — `createSignedUrl` со сроком 1 час → ссылки на материалы протухают
+## 6. ✅ **MITIGATED** 🟠 High — `createSignedUrl` со сроком 1 час → ссылки на материалы протухают
 
-**Где:** `frontend/src/services/storage.ts::uploadCourseMaterial` и `getSignedMaterialUrl` просят Supabase signed URL с `expiresIn: 3600`.
+**Fix-as-mitigation:** `frontend/src/services/storage.ts::uploadCourseMaterial` и `getSignedMaterialUrl` теперь подписывают URL на 1 год вместо 1 часа. Практическая проблема учителя решена: ссылка на ранее загруженный PDF не умирает через час.
 
-**Что видит учитель:** загружаю PDF, вставляю ссылку в блок `file` главы. Через час студент получает `Unauthorized` при клике по той же ссылке.
-
-**Почему так сложилось:** лениво. Прямо сейчас всё, что учитель прикладывает — хостится в приватном бакете. Правильный URL можно подписать только на ~7 дней максимум (ограничение Supabase) и продлевать сервер-сайд.
-
-**Рекомендация (сохраняется):**
-
-- Блок `file` в БД хранит `{bucket, object_path}`, а не подписанный URL.
-- При рендере главы фронт запрашивает свежий signed URL у бэкенда (один короткий эндпоинт или через расширенный `GET /blocks/chapter/{id}`), и он выдаётся с коротким TTL на запрос.
-- Перевести `course-materials` в публичный бакет и хранить прямой публичный URL — тоже валидный вариант, но ломает приватность загруженных материалов.
+**Что осталось архитектурно (перенесено в Pt12):** signed URL всё равно зависит от текущего Supabase JWT-секрета. Если секрет ротируют, все `file_url` в существующих блоках протухают одновременно. Правильное решение — хранить в блоке `{bucket, object_path}` и пересчитывать URL на лету сервером. Оставлено на момент, когда ротация секрета реально понадобится.
 
 ---
 
@@ -237,4 +229,6 @@ async def upload_file(
 
 - Добавлен серверный sanitize на путь `POST /blocks/chapter/{id}` и `PUT /blocks/{id}`. Прямой API-вызов уже не может сохранить `<script>` в `chapter_blocks.content`.
 - **Pt5 RESOLVED**: удалён дохлый backend-путь `POST /api/v1/files/upload` со всей обвязкой (эндпоинт, `file_service.py`, модель `File`, таблица `public.files` в Supabase, `SUPABASE_STORAGE_BUCKET`, тесты, ссылки в `.env.example` и `rate_limit.py`). Фронт его никогда не звал, прод-таблица была пуста. Миграция `030_drop_files_table`.
-- Открытыми остаются: **Pt6** (подписанные URL на материалы протухают через час), **Pt11** (нет `essay` как типа вопроса), **Pt12** (signed URL в `file_url` блока завязан на текущий Supabase-секрет).
+- **Pt6 MITIGATED**: TTL на signed URL у `uploadCourseMaterial` / `getSignedMaterialUrl` поднят до 1 года. Практическая боль («материал протух через час») ушла. Архитектурная часть — хранить `{bucket, object_path}` в блоке и подписывать серверно — остаётся в Pt12.
+- Закрыты 3 из 4 Supabase Security Advisor warnings: у функций `update_updated_at`, `courses_search_vector_update`, `custom_access_token_hook` теперь явно зафиксирован `search_path = pg_catalog, public` (миграция `031_lock_function_search_paths`). Единственный оставшийся advisor — Leaked Password Protection Disabled — это Supabase Dashboard toggle, не код.
+- Открытыми остаются: **Pt11** (нет `essay` как типа вопроса), **Pt12** (signed URL в `file_url` блока завязан на текущий Supabase-секрет).

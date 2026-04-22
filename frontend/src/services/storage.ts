@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase"
 const AVATARS_BUCKET = "avatars"
 const COURSE_ASSETS_BUCKET = "course-assets"
 const COURSE_MATERIALS_BUCKET = "course-materials"
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365
 
 function sanitizeFileName(name: string): string {
   return name.replace(/[/\\:*?"<>|]/g, "_").replace(/\s+/g, "_").slice(0, 100)
@@ -58,9 +59,16 @@ export const storageService = {
 
     if (error) throw error
 
+    // Long-lived signed URL (~1 year). Short TTLs made teacher-uploaded
+    // attachments break silently a few hours after upload. The block
+    // stores this URL verbatim and re-signing on every render would add
+    // a round-trip to every chapter page load. The architectural fix
+    // (store ``{bucket, object_path}`` and sign on demand server-side)
+    // is tracked as Pt12 in docs/PLATFORM_ISSUES.md; it is not a small
+    // change and is deferred until we actually rotate the JWT secret.
     const { data: urlData, error: urlError } = await supabase.storage
       .from(COURSE_MATERIALS_BUCKET)
-      .createSignedUrl(path, 3600)
+      .createSignedUrl(path, ONE_YEAR_SECONDS)
 
     if (urlError || !urlData?.signedUrl) {
       throw urlError ?? new Error("Failed to create signed URL")
@@ -90,7 +98,7 @@ export const storageService = {
   async getSignedMaterialUrl(path: string): Promise<string> {
     const { data, error } = await supabase.storage
       .from(COURSE_MATERIALS_BUCKET)
-      .createSignedUrl(path, 3600)
+      .createSignedUrl(path, ONE_YEAR_SECONDS)
 
     if (error) throw error
     return data.signedUrl
