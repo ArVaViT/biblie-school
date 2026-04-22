@@ -108,8 +108,6 @@ class CourseUpdate(BaseModel):
     status: Literal["draft", "published"] | None = None
     enrollment_start: datetime | None = None
     enrollment_end: datetime | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
 
 
 class CourseResponse(CourseBase):
@@ -123,8 +121,6 @@ class CourseResponse(CourseBase):
     deleted_at: datetime | None = None
     enrollment_start: datetime | None = None
     enrollment_end: datetime | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
     modules: list[ModuleResponse] = []
 
 
@@ -144,8 +140,6 @@ class CourseSummary(CourseBase):
     deleted_at: datetime | None = None
     enrollment_start: datetime | None = None
     enrollment_end: datetime | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
     modules: list[ModuleSummary] = []
 
 

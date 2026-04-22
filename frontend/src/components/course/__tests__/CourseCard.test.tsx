@@ -17,8 +17,6 @@ function makeCourse(overrides: Partial<Course> = {}): Course {
     deleted_at: null,
     enrollment_start: null,
     enrollment_end: null,
-    start_date: null,
-    end_date: null,
     modules: [],
     ...overrides,
   }

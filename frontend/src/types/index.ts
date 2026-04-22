@@ -24,8 +24,6 @@ export interface Course {
   deleted_at: string | null
   enrollment_start: string | null
   enrollment_end: string | null
-  start_date: string | null
-  end_date: string | null
   modules?: Module[]
 }
 
