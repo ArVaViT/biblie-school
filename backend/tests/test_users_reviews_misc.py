@@ -186,29 +186,21 @@ class TestGetMyCourses:
 
 
 # ===================================================================
-# USERS — DELETE /api/v1/users/me
+# USERS — self-account deletion has been removed. Only admins can hard
+# -delete users; see TestAdminDeleteUser below.
 # ===================================================================
 
 
-class TestDeleteMyAccount:
-    def test_delete_own_account(self, student_client: TestClient, db: Session):
-        _seed_course(db)
-        _seed_enrollment(db, user_id=STUDENT_ID)
+class TestSelfDeleteIsGone:
+    """The ``DELETE /users/me`` route was removed (see commit history).
+
+    Exercising it here guarantees that no regression re-introduces a
+    self-destruct button on the public API surface.
+    """
+
+    def test_self_delete_route_is_404(self, student_client: TestClient):
         resp = student_client.request("DELETE", "/api/v1/users/me", json={"confirm": "DELETE"})
-        assert resp.status_code == 204
-        assert db.query(User).filter(User.id == STUDENT_ID).first() is None
-
-    def test_wrong_confirm_string(self, student_client: TestClient):
-        resp = student_client.request("DELETE", "/api/v1/users/me", json={"confirm": "NOPE"})
-        assert resp.status_code == 400
-
-    def test_missing_confirm(self, student_client: TestClient):
-        resp = student_client.request("DELETE", "/api/v1/users/me", json={})
-        assert resp.status_code == 422
-
-    def test_anon_gets_401(self, anon_client: TestClient):
-        resp = anon_client.request("DELETE", "/api/v1/users/me", json={"confirm": "DELETE"})
-        assert resp.status_code in (401, 403)
+        assert resp.status_code in (404, 405)
 
 
 # ===================================================================

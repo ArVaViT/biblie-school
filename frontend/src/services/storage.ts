@@ -3,7 +3,13 @@ import { supabase } from "@/lib/supabase"
 const AVATARS_BUCKET = "avatars"
 const COURSE_ASSETS_BUCKET = "course-assets"
 const COURSE_MATERIALS_BUCKET = "course-materials"
-const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365
+
+// Signed-URL TTL for on-demand downloads. One hour is plenty for a user to
+// click → browser to start the download, and keeps blast radius tight if a
+// URL leaks (e.g. copied from the address bar into a chat). We re-sign
+// every time the link is clicked, so the secret can rotate without
+// breaking anything in the DB.
+const SIGNED_URL_TTL_SECONDS = 60 * 60
 
 function sanitizeFileName(name: string): string {
   return name.replace(/[/\\:*?"<>|]/g, "_").replace(/\s+/g, "_").slice(0, 100)
@@ -18,6 +24,12 @@ function sanitizeFileName(name: string): string {
  */
 function getPublicUrl(bucket: string, path: string): string {
   return `/img/${bucket}/${path}`
+}
+
+export interface UploadedBlockFile {
+  bucket: string
+  path: string
+  name: string
 }
 
 export const storageService = {
@@ -45,10 +57,14 @@ export const storageService = {
     return getPublicUrl(COURSE_ASSETS_BUCKET, path)
   },
 
-  async uploadCourseMaterial(
-    courseId: string,
-    file: File,
-  ): Promise<{ url: string; name: string; type: string }> {
+  /**
+   * Upload a course material file into the private `course-materials` bucket.
+   * Returns nothing — every caller refreshes its own list afterwards and
+   * signs URLs on demand via `getSignedMaterialUrl`. Previously this minted
+   * a 1-year signed URL as a workaround for short TTLs; that bandaid is
+   * gone now that chapter file blocks re-sign on click too.
+   */
+  async uploadCourseMaterial(courseId: string, file: File): Promise<void> {
     const timestamp = Date.now()
     const safeName = sanitizeFileName(file.name)
     const path = `${courseId}/${timestamp}-${safeName}`
@@ -58,27 +74,6 @@ export const storageService = {
       .upload(path, file)
 
     if (error) throw error
-
-    // Long-lived signed URL (~1 year). Short TTLs made teacher-uploaded
-    // attachments break silently a few hours after upload. The block
-    // stores this URL verbatim and re-signing on every render would add
-    // a round-trip to every chapter page load. The architectural fix
-    // (store ``{bucket, object_path}`` and sign on demand server-side)
-    // is tracked as Pt12 in docs/PLATFORM_ISSUES.md; it is not a small
-    // change and is deferred until we actually rotate the JWT secret.
-    const { data: urlData, error: urlError } = await supabase.storage
-      .from(COURSE_MATERIALS_BUCKET)
-      .createSignedUrl(path, ONE_YEAR_SECONDS)
-
-    if (urlError || !urlData?.signedUrl) {
-      throw urlError ?? new Error("Failed to create signed URL")
-    }
-
-    return {
-      url: urlData.signedUrl,
-      name: file.name,
-      type: file.type,
-    }
   },
 
   async listCourseMaterials(courseId: string): Promise<{ name: string; path: string; size: number | undefined; created: string | null }[]> {
@@ -98,7 +93,7 @@ export const storageService = {
   async getSignedMaterialUrl(path: string): Promise<string> {
     const { data, error } = await supabase.storage
       .from(COURSE_MATERIALS_BUCKET)
-      .createSignedUrl(path, ONE_YEAR_SECONDS)
+      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
 
     if (error) throw error
     return data.signedUrl
@@ -110,6 +105,36 @@ export const storageService = {
       .remove([path])
 
     if (error) throw error
+  },
+
+  /**
+   * Upload a file attached to a chapter block. The caller persists the
+   * returned `{ bucket, path, name }` on the block and re-signs the URL
+   * every time a student opens the file. Nothing JWT-secret-dependent
+   * is ever stored in the database — see Pt12 in docs/PLATFORM_ISSUES.md.
+   */
+  async uploadBlockFile(chapterId: string, file: File): Promise<UploadedBlockFile> {
+    const timestamp = Date.now()
+    const safeName = sanitizeFileName(file.name)
+    const path = `${chapterId}/${timestamp}-${safeName}`
+
+    const { error } = await supabase.storage
+      .from(COURSE_MATERIALS_BUCKET)
+      .upload(path, file)
+
+    if (error) throw error
+
+    return { bucket: COURSE_MATERIALS_BUCKET, path, name: file.name }
+  },
+
+  /** Mint a short-lived signed URL for a block-attached file. */
+  async getSignedBlockFileUrl(bucket: string, path: string): Promise<string> {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+
+    if (error) throw error
+    return data.signedUrl
   },
 
   async uploadContentImage(file: File): Promise<string> {

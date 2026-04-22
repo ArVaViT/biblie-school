@@ -18,6 +18,11 @@ class ChapterBlock(Base):
     content = Column(Text)
     quiz_id = Column(UUID(as_uuid=True), ForeignKey("quizzes.id", ondelete="SET NULL"))
     assignment_id = Column(UUID(as_uuid=True), ForeignKey("assignments.id", ondelete="SET NULL"))
-    file_url = Column(Text)
+    # Pt12: persist only the bucket + object path. Signed URLs are minted on
+    # demand by the client against the current Supabase secret, so JWT-secret
+    # rotation can never break chapter file links.
+    file_bucket = Column(String(50))
+    file_path = Column(Text)
+    file_name = Column(String(255))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

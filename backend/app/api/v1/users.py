@@ -38,74 +38,39 @@ def get_my_courses(
     return get_user_courses(db, current_user.id, skip=skip, limit=limit)
 
 
-class DeleteAccountRequest(BaseModel):
-    confirm: str
+def _purge_user(db: Session, uid: _uuid.UUID) -> None:
+    """Delete every row that belongs to ``uid`` and then the ``User`` itself.
 
+    Shared by the admin-delete-user path. We walk the FKs manually instead of
+    relying on ``ON DELETE CASCADE`` because several tables intentionally keep
+    history (``courses.created_by``, ``audit_logs.user_id``) — those get
+    nulled out rather than removed. Runs inside the caller's transaction so a
+    partial failure rolls back cleanly.
+    """
+    db.query(ChapterProgress).filter(ChapterProgress.user_id == uid).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.user_id == uid).delete(synchronize_session=False)
 
-@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
-def delete_my_account(
-    body: DeleteAccountRequest,
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    if body.confirm != "DELETE":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='You must send {"confirm": "DELETE"} to delete your account.',
-        )
+    attempt_ids = [a.id for a in db.query(QuizAttempt.id).filter(QuizAttempt.user_id == uid).all()]
+    if attempt_ids:
+        db.query(QuizAnswer).filter(QuizAnswer.attempt_id.in_(attempt_ids)).delete(synchronize_session=False)
+    db.query(QuizAttempt).filter(QuizAttempt.user_id == uid).delete(synchronize_session=False)
 
-    uid = current_user.id
+    db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == uid).delete(synchronize_session=False)
+    db.query(StudentGrade).filter(StudentGrade.student_id == uid).delete(synchronize_session=False)
+    db.query(Enrollment).filter(Enrollment.user_id == uid).delete(synchronize_session=False)
+    db.query(CourseReview).filter(CourseReview.user_id == uid).delete(synchronize_session=False)
+    db.query(Certificate).filter(Certificate.user_id == uid).delete(synchronize_session=False)
 
-    log_action(
-        db,
-        uid,
-        "delete",
-        "user",
-        str(uid),
-        details={"email": current_user.email, "self_deletion": True},
-        request=request,
+    db.query(Course).filter(Course.created_by == uid).update(
+        {Course.created_by: None},
+        synchronize_session=False,
+    )
+    db.query(AuditLog).filter(AuditLog.user_id == uid).update(
+        {AuditLog.user_id: None},
+        synchronize_session=False,
     )
 
-    try:
-        db.query(ChapterProgress).filter(ChapterProgress.user_id == uid).delete(synchronize_session=False)
-        db.query(Notification).filter(Notification.user_id == uid).delete(synchronize_session=False)
-
-        attempt_ids = [a.id for a in db.query(QuizAttempt.id).filter(QuizAttempt.user_id == uid).all()]
-        if attempt_ids:
-            db.query(QuizAnswer).filter(QuizAnswer.attempt_id.in_(attempt_ids)).delete(synchronize_session=False)
-        db.query(QuizAttempt).filter(QuizAttempt.user_id == uid).delete(synchronize_session=False)
-
-        db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == uid).delete(synchronize_session=False)
-        db.query(StudentGrade).filter(StudentGrade.student_id == uid).delete(synchronize_session=False)
-        db.query(Enrollment).filter(Enrollment.user_id == uid).delete(synchronize_session=False)
-
-        db.query(CourseReview).filter(CourseReview.user_id == uid).delete(synchronize_session=False)
-
-        db.query(Certificate).filter(Certificate.user_id == uid).delete(synchronize_session=False)
-
-        db.query(Course).filter(Course.created_by == uid).update(
-            {Course.created_by: None},
-            synchronize_session=False,
-        )
-
-        db.query(AuditLog).filter(AuditLog.user_id == uid).update(
-            {AuditLog.user_id: None},
-            synchronize_session=False,
-        )
-
-        db.query(User).filter(User.id == uid).delete(synchronize_session=False)
-
-        db.commit()
-    except Exception as exc:
-        db.rollback()
-        logger.exception("Account deletion failed for user %s", uid)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Account deletion failed. Please try again or contact support.",
-        ) from exc
-
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    db.query(User).filter(User.id == uid).delete(synchronize_session=False)
 
 
 @router.get("/admin/users")
@@ -203,3 +168,55 @@ def update_user_role(
         db, admin.id, "update", "user", user_id, details={"old_role": old_role, "new_role": role}, request=request
     )
     return {"id": str(user.id), "email": user.email, "role": user.role}
+
+
+@router.delete("/admin/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def admin_delete_user(
+    user_id: str,
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Hard-delete another user and all their owned rows.
+
+    An admin cannot delete themselves via this route — that would leave the
+    platform without an admin in the worst case. Self-deletion is disabled by
+    design: users cannot delete their own accounts from the UI. If the last
+    admin truly wants to leave, a direct SQL operation through Supabase is the
+    right escape hatch.
+    """
+    try:
+        uid = _uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found") from None
+
+    admin_uuid = admin.id if isinstance(admin.id, _uuid.UUID) else _uuid.UUID(str(admin.id))
+    if uid == admin_uuid:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Admins cannot delete their own account")
+
+    target = db.query(User).filter(User.id == uid).first()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
+    log_action(
+        db,
+        admin.id,
+        "delete",
+        "user",
+        str(uid),
+        details={"email": target.email, "role": target.role},
+        request=request,
+    )
+
+    try:
+        _purge_user(db, uid)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Admin-initiated deletion failed for user %s", uid)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="User deletion failed. Please try again or contact support.",
+        ) from exc
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

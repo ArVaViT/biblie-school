@@ -206,6 +206,55 @@ class TestBulkUpdateRoles:
 
 
 # ===========================================================================
+# DELETE /api/v1/users/admin/users/{user_id}
+# ===========================================================================
+
+
+class TestAdminDeleteUser:
+    def test_admin_can_hard_delete_student(self, admin_client: TestClient, db: Session):
+        student = _make_other_student(db)
+        student_id = student.id
+        resp = admin_client.delete(f"{USERS_PREFIX}/admin/users/{student_id}")
+        assert resp.status_code == 204
+        db.expire_all()
+        assert db.query(User).filter(User.id == student_id).first() is None
+
+    def test_admin_cannot_delete_self(self, admin_client: TestClient, db: Session):
+        resp = admin_client.delete(f"{USERS_PREFIX}/admin/users/{ADMIN_ID}")
+        assert resp.status_code == 400
+        db.expire_all()
+        assert db.query(User).filter(User.id == ADMIN_ID).first() is not None
+
+    def test_delete_unknown_user_is_404(self, admin_client: TestClient):
+        resp = admin_client.delete(f"{USERS_PREFIX}/admin/users/{uuid.uuid4()}")
+        assert resp.status_code == 404
+
+    def test_delete_invalid_uuid_is_404(self, admin_client: TestClient):
+        resp = admin_client.delete(f"{USERS_PREFIX}/admin/users/not-a-uuid")
+        assert resp.status_code == 404
+
+    def test_teacher_is_forbidden(self, client: TestClient, db: Session):
+        student = _make_other_student(db)
+        student_id = student.id
+        resp = client.delete(f"{USERS_PREFIX}/admin/users/{student_id}")
+        assert resp.status_code == 403
+        db.expire_all()
+        assert db.query(User).filter(User.id == student_id).first() is not None
+
+    def test_student_is_forbidden(self, student_client: TestClient, db: Session):
+        other = _make_other_student(db)
+        other_id = other.id
+        resp = student_client.delete(f"{USERS_PREFIX}/admin/users/{other_id}")
+        assert resp.status_code == 403
+
+    def test_anon_is_rejected(self, anon_client: TestClient, db: Session):
+        other = _make_other_student(db)
+        other_id = other.id
+        resp = anon_client.delete(f"{USERS_PREFIX}/admin/users/{other_id}")
+        assert resp.status_code in (401, 403)
+
+
+# ===========================================================================
 # Soft-delete / trash / restore / permanent-delete
 # ===========================================================================
 

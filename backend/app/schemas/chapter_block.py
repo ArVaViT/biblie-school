@@ -16,7 +16,9 @@ class BlockCreate(BaseModel):
     content: str | None = Field(None, max_length=500_000)
     quiz_id: str | None = Field(None, max_length=36)
     assignment_id: str | None = Field(None, max_length=36)
-    file_url: str | None = Field(None, max_length=2048)
+    file_bucket: str | None = Field(None, max_length=50)
+    file_path: str | None = Field(None, max_length=2048)
+    file_name: str | None = Field(None, max_length=255)
 
 
 class BlockUpdate(BaseModel):
@@ -25,7 +27,9 @@ class BlockUpdate(BaseModel):
     content: str | None = Field(None, max_length=500_000)
     quiz_id: str | None = Field(None, max_length=36)
     assignment_id: str | None = Field(None, max_length=36)
-    file_url: str | None = Field(None, max_length=2048)
+    file_bucket: str | None = Field(None, max_length=50)
+    file_path: str | None = Field(None, max_length=2048)
+    file_name: str | None = Field(None, max_length=255)
 
 
 class BlockResponse(BaseModel):
@@ -38,7 +42,9 @@ class BlockResponse(BaseModel):
     content: str | None = None
     quiz_id: UUID | None = None
     assignment_id: UUID | None = None
-    file_url: str | None = None
+    file_bucket: str | None = None
+    file_path: str | None = None
+    file_name: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
 

@@ -35,7 +35,9 @@ type ChapterBlockCreateData = {
   content?: string | null
   quiz_id?: string | null
   assignment_id?: string | null
-  file_url?: string | null
+  file_bucket?: string | null
+  file_path?: string | null
+  file_name?: string | null
 }
 
 type ChapterBlockUpdateData = Partial<Omit<ChapterBlockCreateData, "block_type">> & {
@@ -146,6 +148,10 @@ export const coursesService = {
   async bulkUpdateUserRoles(userIds: string[], role: string): Promise<{ updated: number; role: string }> {
     const response = await api.put<{ updated: number; role: string }>("/users/admin/users/bulk-role", { user_ids: userIds, role })
     return response.data
+  },
+
+  async adminDeleteUser(userId: string): Promise<void> {
+    await api.delete(`/users/admin/users/${userId}`)
   },
 
   async getTeacherCourses(): Promise<Course[]> {

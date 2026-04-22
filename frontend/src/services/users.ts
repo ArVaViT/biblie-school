@@ -1,4 +1,3 @@
-import api from "./api"
 import { supabase } from "@/lib/supabase"
 import type { Profile } from "@/types"
 
@@ -16,9 +15,5 @@ export const usersService = {
 
     if (error) throw error
     return profile as Profile
-  },
-
-  async deleteMyAccount(): Promise<void> {
-    await api.delete("/users/me", { data: { confirm: "DELETE" } })
   },
 }

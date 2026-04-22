@@ -207,11 +207,16 @@ def test_create_block_file(client: TestClient, db: Session):
         json={
             "block_type": "file",
             "order_index": 1,
-            "file_url": "https://example.com/handout.pdf",
+            "file_bucket": "course-materials",
+            "file_path": "ch-1/1745000000-handout.pdf",
+            "file_name": "handout.pdf",
         },
     )
     assert resp.status_code == 201
-    assert resp.json()["file_url"] == "https://example.com/handout.pdf"
+    body = resp.json()
+    assert body["file_bucket"] == "course-materials"
+    assert body["file_path"] == "ch-1/1745000000-handout.pdf"
+    assert body["file_name"] == "handout.pdf"
 
 
 def test_create_block_student_forbidden(student_client: TestClient, db: Session):

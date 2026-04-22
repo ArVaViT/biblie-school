@@ -210,7 +210,9 @@ export interface ChapterBlock {
   content: string | null
   quiz_id: string | null
   assignment_id: string | null
-  file_url: string | null
+  file_bucket: string | null
+  file_path: string | null
+  file_name: string | null
 }
 
 export interface CourseReview {

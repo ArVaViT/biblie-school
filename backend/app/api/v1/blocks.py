@@ -44,7 +44,9 @@ def create_block(
         content=content,
         quiz_id=data.quiz_id,
         assignment_id=data.assignment_id,
-        file_url=data.file_url,
+        file_bucket=data.file_bucket,
+        file_path=data.file_path,
+        file_name=data.file_name,
     )
     db.add(block)
     try:

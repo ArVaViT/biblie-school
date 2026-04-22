@@ -14,6 +14,7 @@ import { toast } from "@/hooks/use-toast"
 import {
   Users, BookOpen, GraduationCap, Shield, Search, Clock,
   CheckCircle, XCircle, Award, FileText, ChevronLeft, ChevronRight,
+  Trash2,
 } from "lucide-react"
 import { toProxyImage } from "@/lib/images"
 import { useConfirm } from "@/components/ui/alert-dialog"
@@ -210,6 +211,33 @@ export default function AdminDashboard() {
       toast({ title: "Role updated", variant: "success" })
     } catch {
       toast({ title: "Failed to update role", variant: "destructive" })
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const handleDeleteUser = async (target: ProfileRow) => {
+    const ok = await confirm({
+      title: `Delete ${target.full_name || target.email}?`,
+      description:
+        "This permanently removes their account, enrollments, submissions, grades, certificates, and notifications. Courses they created will be kept but disassociated. This cannot be undone.",
+      confirmLabel: "Delete account",
+      tone: "destructive",
+    })
+    if (!ok) return
+    setUpdatingId(target.id)
+    try {
+      await coursesService.adminDeleteUser(target.id)
+      setUsers((prev) => prev.filter((u) => u.id !== target.id))
+      setSelectedIds((prev) => {
+        if (!prev.has(target.id)) return prev
+        const next = new Set(prev)
+        next.delete(target.id)
+        return next
+      })
+      toast({ title: "User deleted", variant: "success" })
+    } catch (err) {
+      toast({ title: getErrorDetail(err, "Failed to delete user"), variant: "destructive" })
     } finally {
       setUpdatingId(null)
     }
@@ -629,6 +657,7 @@ export default function AdminDashboard() {
                 roleDisplayNames={roleDisplayNames}
                 onToggleSelect={toggleSelect}
                 onRoleChange={handleRoleChange}
+                onDeleteUser={handleDeleteUser}
               />
             </>
           ) : (
@@ -649,6 +678,7 @@ export default function AdminDashboard() {
                     <th className="px-6 py-3 font-medium text-muted-foreground">Email</th>
                     <th className="px-6 py-3 font-medium text-muted-foreground">Role</th>
                     <th className="px-6 py-3 font-medium text-muted-foreground">Joined</th>
+                    <th className="px-6 py-3 w-10" aria-label="Actions" />
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -700,6 +730,19 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-3 text-muted-foreground">
                         {new Date(u.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-3 py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                          disabled={updatingId === u.id || u.id === user?.id}
+                          onClick={() => handleDeleteUser(u)}
+                          aria-label={`Delete ${u.full_name || u.email}`}
+                          title={u.id === user?.id ? "You cannot delete your own account" : "Delete user"}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))}

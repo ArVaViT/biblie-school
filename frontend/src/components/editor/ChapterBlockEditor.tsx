@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import RichTextEditor from "./RichTextEditor"
 import { coursesService } from "@/services/courses"
+import { storageService } from "@/services/storage"
 import { getErrorDetail } from "@/lib/errorDetail"
 import type { ChapterBlock } from "@/types"
 import { toast } from "@/hooks/use-toast"
@@ -11,6 +11,7 @@ import {
   Plus, Trash2, GripVertical, Save, FileText,
   ChevronDown, ChevronRight, Loader2, Type,
   HelpCircle, ClipboardList, Paperclip, Check,
+  Upload, X,
 } from "lucide-react"
 import QuizEditor from "@/components/quiz/QuizEditor"
 import AssignmentEditor from "@/components/assignment/AssignmentEditor"
@@ -32,6 +33,80 @@ interface Props {
   chapterId: string
 }
 
+function FileBlockEditor({
+  block,
+  uploading,
+  onUpload,
+  onClear,
+}: {
+  block: ChapterBlock
+  uploading: boolean
+  onUpload: (file: File) => void
+  onClear: () => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const hasFile = Boolean(block.file_bucket && block.file_path)
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs flex items-center gap-1.5">
+        <Paperclip className="h-3.5 w-3.5" />
+        Attached File
+      </Label>
+      {hasFile ? (
+        <div className="flex items-center gap-2 rounded-md border px-3 py-2 bg-muted/30">
+          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-sm flex-1 truncate">{block.file_name ?? block.file_path}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="h-7 text-xs"
+          >
+            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Replace"}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onClear}
+            disabled={uploading}
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+            aria-label="Remove file"
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ) : (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="w-full border-dashed"
+        >
+          {uploading ? (
+            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <Upload className="h-3.5 w-3.5 mr-1.5" />
+          )}
+          {uploading ? "Uploading..." : "Upload a file"}
+        </Button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) onUpload(file)
+          e.target.value = ""
+        }}
+      />
+    </div>
+  )
+}
+
 export default function ChapterBlockEditor({ chapterId }: Props) {
   const confirm = useConfirm()
   const [blocks, setBlocks] = useState<ChapterBlock[]>([])
@@ -44,7 +119,7 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
 
   const [editContent, setEditContent] = useState("")
-  const [editFileUrl, setEditFileUrl] = useState("")
+  const [uploadingFileFor, setUploadingFileFor] = useState<string | null>(null)
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "pending" | "saving" | "saved">("idle")
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -96,7 +171,6 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
   const initEditState = (block: ChapterBlock) => {
     setEditContent(block.content ?? "")
     editContentRef.current = block.content ?? ""
-    setEditFileUrl(block.file_url ?? "")
   }
 
   const updateBlockField = async (blockId: string, field: string, value: string) => {
@@ -105,6 +179,38 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
       setBlocks((prev) => prev.map((b) => (b.id === blockId ? updated : b)))
     } catch {
       toast({ title: "Failed to update block", variant: "destructive" })
+    }
+  }
+
+  const handleBlockFileUpload = async (block: ChapterBlock, file: File) => {
+    setUploadingFileFor(block.id)
+    try {
+      const { bucket, path, name } = await storageService.uploadBlockFile(chapterId, file)
+      const updated = await coursesService.updateBlock(block.id, {
+        file_bucket: bucket,
+        file_path: path,
+        file_name: name,
+      })
+      setBlocks((prev) => prev.map((b) => (b.id === block.id ? updated : b)))
+      toast({ title: "File uploaded", variant: "success" })
+    } catch (error: unknown) {
+      const detail = getErrorDetail(error) || "Upload failed"
+      toast({ title: detail, variant: "destructive" })
+    } finally {
+      setUploadingFileFor(null)
+    }
+  }
+
+  const handleBlockFileClear = async (block: ChapterBlock) => {
+    try {
+      const updated = await coursesService.updateBlock(block.id, {
+        file_bucket: null,
+        file_path: null,
+        file_name: null,
+      })
+      setBlocks((prev) => prev.map((b) => (b.id === block.id ? updated : b)))
+    } catch {
+      toast({ title: "Failed to remove file", variant: "destructive" })
     }
   }
 
@@ -149,17 +255,13 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
     }
   }, [])
 
-  const saveBlock = async (block: ChapterBlock) => {
+  const saveTextBlock = async (block: ChapterBlock) => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     if (savedResetTimer.current) clearTimeout(savedResetTimer.current)
     setAutoSaveStatus("idle")
     setSavingBlock(block.id)
     try {
-      const payload: Partial<ChapterBlock> = {}
-      if (block.block_type === "text") payload.content = editContent
-      if (block.block_type === "file") payload.file_url = editFileUrl.trim() || null
-
-      const updated = await coursesService.updateBlock(block.id, payload)
+      const updated = await coursesService.updateBlock(block.id, { content: editContent })
       setBlocks((prev) => prev.map((b) => (b.id === block.id ? updated : b)))
       toast({ title: "Block saved", variant: "success" })
     } catch {
@@ -317,7 +419,7 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
                       <div className="flex items-center gap-3">
                         <Button
                           size="sm"
-                          onClick={() => saveBlock(block)}
+                          onClick={() => saveTextBlock(block)}
                           disabled={savingBlock === block.id}
                         >
                           {savingBlock === block.id ? (
@@ -363,32 +465,12 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
                   )}
 
                   {block.block_type === "file" && (
-                    <>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs flex items-center gap-1.5">
-                          <Paperclip className="h-3.5 w-3.5" />
-                          File URL
-                        </Label>
-                        <Input
-                          value={editFileUrl}
-                          onChange={(e) => setEditFileUrl(e.target.value)}
-                          placeholder="https://..."
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => saveBlock(block)}
-                        disabled={savingBlock === block.id}
-                      >
-                        {savingBlock === block.id ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                        ) : (
-                          <Save className="h-3.5 w-3.5 mr-1.5" />
-                        )}
-                        Save File
-                      </Button>
-                    </>
+                    <FileBlockEditor
+                      block={block}
+                      uploading={uploadingFileFor === block.id}
+                      onUpload={(file) => handleBlockFileUpload(block, file)}
+                      onClear={() => handleBlockFileClear(block)}
+                    />
                   )}
                 </div>
               )}

@@ -1,4 +1,6 @@
 import { List, type RowComponentProps } from "react-window"
+import { Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { toProxyImage } from "@/lib/images"
 import type { UserRole } from "@/types"
 
@@ -20,6 +22,7 @@ interface VirtualAdminUsersProps {
   roleDisplayNames: Record<string, string>
   onToggleSelect: (id: string) => void
   onRoleChange: (userId: string, role: UserRole) => void
+  onDeleteUser: (user: ProfileRow) => void
 }
 
 type RowProps = Omit<VirtualAdminUsersProps, "users"> & { users: ProfileRow[] }
@@ -37,6 +40,7 @@ function UserRow({
   roleDisplayNames,
   onToggleSelect,
   onRoleChange,
+  onDeleteUser,
 }: RowComponentProps<RowProps>) {
   const u = users[index]
   if (!u) return null
@@ -45,7 +49,7 @@ function UserRow({
     <div
       role="row"
       style={style}
-      className={`grid grid-cols-[40px_2fr_2fr_2fr_1fr] items-center border-b px-3 text-sm hover:bg-muted/50 transition-colors ${
+      className={`grid grid-cols-[40px_2fr_2fr_2fr_1fr_40px] items-center border-b px-3 text-sm hover:bg-muted/50 transition-colors ${
         selected ? "bg-primary/[0.03]" : ""
       }`}
     >
@@ -97,6 +101,19 @@ function UserRow({
       <div role="cell" className="px-3 text-muted-foreground">
         {new Date(u.created_at).toLocaleDateString()}
       </div>
+      <div role="cell" className="flex items-center justify-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+          disabled={updatingId === u.id || u.id === currentUserId}
+          onClick={() => onDeleteUser(u)}
+          aria-label={`Delete ${u.full_name || u.email}`}
+          title={u.id === currentUserId ? "You cannot delete your own account" : "Delete user"}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   )
 }
@@ -110,6 +127,7 @@ export default function VirtualAdminUsers({
   roleDisplayNames,
   onToggleSelect,
   onRoleChange,
+  onDeleteUser,
 }: VirtualAdminUsersProps) {
   // Height budget: enough to show ~10 rows before the window scrolls. Keeps the
   // admin dashboard from running off the viewport on long tenant lists.
@@ -119,13 +137,14 @@ export default function VirtualAdminUsers({
     <div role="table" aria-rowcount={users.length} className="-mx-6">
       <div
         role="row"
-        className="grid grid-cols-[40px_2fr_2fr_2fr_1fr] items-center border-b px-3 py-3 text-xs font-medium text-muted-foreground"
+        className="grid grid-cols-[40px_2fr_2fr_2fr_1fr_40px] items-center border-b px-3 py-3 text-xs font-medium text-muted-foreground"
       >
         <div role="columnheader" />
         <div role="columnheader" className="px-3">Name</div>
         <div role="columnheader" className="px-3">Email</div>
         <div role="columnheader" className="px-3">Role</div>
         <div role="columnheader" className="px-3">Joined</div>
+        <div role="columnheader" aria-label="Actions" />
       </div>
       <List
         rowComponent={UserRow}
@@ -140,6 +159,7 @@ export default function VirtualAdminUsers({
           roleDisplayNames,
           onToggleSelect,
           onRoleChange,
+          onDeleteUser,
         }}
         style={{ height, width: "100%" }}
         overscanCount={5}

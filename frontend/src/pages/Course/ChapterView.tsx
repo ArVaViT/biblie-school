@@ -4,6 +4,8 @@ import { sanitizeHtml as sanitize } from "@/lib/sanitize"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
+import { storageService } from "@/services/storage"
+import { toast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/useAuth"
 import type { Module, Chapter, ChapterBlock } from "@/types"
 import {
@@ -15,6 +17,7 @@ import {
   Lock,
   Download,
   File,
+  Loader2,
 } from "lucide-react"
 import QuizTaker from "@/components/quiz/QuizTaker"
 import AssignmentPanel from "@/components/assignment/AssignmentPanel"
@@ -63,23 +66,63 @@ const BlockRenderer = memo(function BlockRenderer({
       ) : null
 
     case "file":
-      return block.file_url ? (
-        <a
-          href={block.file_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
-        >
-          <File className="h-4 w-4 text-muted-foreground" />
-          <span>{block.content || "Download file"}</span>
-          <Download className="h-3.5 w-3.5 text-muted-foreground" />
-        </a>
+      return block.file_bucket && block.file_path ? (
+        <FileBlockLink
+          bucket={block.file_bucket}
+          path={block.file_path}
+          label={block.file_name || block.content || "Download file"}
+        />
       ) : null
 
     default:
       return null
   }
 })
+
+function FileBlockLink({
+  bucket,
+  path,
+  label,
+}: {
+  bucket: string
+  path: string
+  label: string
+}) {
+  const [opening, setOpening] = useState(false)
+
+  // Sign on click so the URL is always valid against the current Supabase
+  // secret. Never store a pre-signed URL anywhere — see Pt12 in
+  // docs/PLATFORM_ISSUES.md for the full reasoning.
+  const handleClick = useCallback(async () => {
+    if (opening) return
+    setOpening(true)
+    try {
+      const url = await storageService.getSignedBlockFileUrl(bucket, path)
+      window.open(url, "_blank", "noopener,noreferrer")
+    } catch {
+      toast({ title: "Could not open file. Please try again.", variant: "destructive" })
+    } finally {
+      setOpening(false)
+    }
+  }, [bucket, path, opening])
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={opening}
+      className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-muted/50 transition-colors disabled:opacity-60"
+    >
+      {opening ? (
+        <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+      ) : (
+        <File className="h-4 w-4 text-muted-foreground" />
+      )}
+      <span>{label}</span>
+      <Download className="h-3.5 w-3.5 text-muted-foreground" />
+    </button>
+  )
+}
 
 /**
  * Renders the reading chapter body — loader, list of blocks, empty state.
