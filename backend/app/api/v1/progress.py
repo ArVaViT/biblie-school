@@ -57,7 +57,7 @@ def get_course_student_progress(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    course = verify_course_owner(db, course_id, teacher.id)
+    course = verify_course_owner(db, course_id, teacher)
 
     modules = (
         db.query(Module)
@@ -357,7 +357,7 @@ def teacher_complete_chapter(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    _chapter, course_id = verify_chapter_owner(db, chapter_id, teacher.id)
+    _chapter, course_id = verify_chapter_owner(db, chapter_id, teacher)
 
     enrolled = db.query(Enrollment).filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id).first()
     if not enrolled:
@@ -396,7 +396,7 @@ def teacher_uncomplete_chapter(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    _chapter, course_id = verify_chapter_owner(db, chapter_id, teacher.id)
+    _chapter, course_id = verify_chapter_owner(db, chapter_id, teacher)
 
     enrolled = db.query(Enrollment).filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id).first()
     if not enrolled:

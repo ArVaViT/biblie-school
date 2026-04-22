@@ -1,5 +1,3 @@
-import asyncio
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -14,13 +12,13 @@ security = HTTPBearer()
 optional_security = HTTPBearer(auto_error=False)
 
 
-async def get_current_user(
+# Sync so FastAPI runs it in the threadpool: keeps the event loop free while
+# decode_access_token (possible Supabase HTTP call) and the User SELECT block.
+def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
-    # decode_access_token may fall back to a blocking HTTP call against
-    # Supabase; run on the threadpool so the event loop stays responsive.
-    payload = await asyncio.to_thread(decode_access_token, credentials.credentials)
+    payload = decode_access_token(credentials.credentials)
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -44,13 +42,13 @@ async def get_current_user(
     return user
 
 
-async def get_optional_user(
+def get_optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
     db: Session = Depends(get_db),
 ) -> User | None:
     if credentials is None:
         return None
-    payload = await asyncio.to_thread(decode_access_token, credentials.credentials)
+    payload = decode_access_token(credentials.credentials)
     if payload is None:
         return None
     user_id: str | None = payload.get("sub")
@@ -59,7 +57,7 @@ async def get_optional_user(
     return db.query(User).filter(User.id == user_id).first()
 
 
-async def require_teacher(
+def require_teacher(
     current_user: User = Depends(get_current_user),
 ) -> User:
     if current_user.role not in (UserRole.TEACHER.value, UserRole.ADMIN.value):
@@ -70,7 +68,7 @@ async def require_teacher(
     return current_user
 
 
-async def require_admin(
+def require_admin(
     current_user: User = Depends(get_current_user),
 ) -> User:
     if current_user.role != UserRole.ADMIN.value:
@@ -97,24 +95,34 @@ def assert_course_owner(course: Course, user: User, *, allow_admin: bool = True)
     )
 
 
-def verify_course_owner(db: Session, course_id: str, teacher_id, *, allow_admin: bool = True) -> Course:
-    # Soft-deleted courses are treated as "not found" for ownership checks
-    # so deleted courses cannot be edited / enrolled into / have modules
-    # created in them until explicitly restored. Admin recovery flows that
-    # need deleted rows query the ORM directly with include_deleted.
+def verify_course_owner(
+    db: Session,
+    course_id: str,
+    teacher: User | str,
+    *,
+    allow_admin: bool = True,
+) -> Course:
+    # Soft-deleted courses are treated as "not found" so deleted courses cannot
+    # be edited / enrolled into until explicitly restored. Admin recovery flows
+    # that need deleted rows query the ORM directly with include_deleted.
     course = db.query(Course).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
-    if str(course.created_by) != str(teacher_id):
-        if allow_admin:
-            user = db.query(User).filter(User.id == teacher_id).first()
-            if user and user.role == UserRole.ADMIN.value:
-                return course
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not own this course",
+    teacher_id = teacher.id if isinstance(teacher, User) else teacher
+    if str(course.created_by) == str(teacher_id):
+        return course
+    if allow_admin:
+        is_admin = (
+            teacher.role == UserRole.ADMIN.value
+            if isinstance(teacher, User)
+            else bool(db.query(User.id).filter(User.id == teacher_id, User.role == UserRole.ADMIN.value).first())
         )
-    return course
+        if is_admin:
+            return course
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You do not own this course",
+    )
 
 
 def _resolve_chapter(db: Session, chapter_id: str) -> tuple[Chapter, Module, Course]:
@@ -156,19 +164,25 @@ def verify_chapter_access(db: Session, chapter_id: str, user: User) -> Chapter:
     return chapter
 
 
-def verify_chapter_owner(db: Session, chapter_id: str, teacher_id) -> tuple[Chapter, str]:
+def verify_chapter_owner(db: Session, chapter_id: str, teacher: User | str) -> tuple[Chapter, str]:
     """Resolve chapter -> module -> course and verify ownership.
 
     Returns ``(chapter, course_id)`` so callers can skip redundant lookups.
     """
     chapter, _module, course = _resolve_chapter(db, chapter_id)
-    if str(course.created_by) != str(teacher_id):
-        user = db.query(User).filter(User.id == teacher_id).first()
-        if not (user and user.role == UserRole.ADMIN.value):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not own this course",
-            )
+    teacher_id = teacher.id if isinstance(teacher, User) else teacher
+    if str(course.created_by) == str(teacher_id):
+        return chapter, str(course.id)
+    is_admin = (
+        teacher.role == UserRole.ADMIN.value
+        if isinstance(teacher, User)
+        else bool(db.query(User.id).filter(User.id == teacher_id, User.role == UserRole.ADMIN.value).first())
+    )
+    if not is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not own this course",
+        )
     return chapter, str(course.id)
 
 

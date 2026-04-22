@@ -82,17 +82,16 @@ export default function CourseEditor() {
     if (!courseId) return
     setLoading(true)
     try {
-      const d = await coursesService.getCourse(courseId)
-      if (signal?.cancelled) return
-      setCourse(d); setTitle(d.title); setDescription(d.description ?? ""); setImageUrl(d.image_url ?? "")
-      setEnrollStart(d.enrollment_start?.slice(0, 16) ?? ""); setEnrollEnd(d.enrollment_end?.slice(0, 16) ?? "")
-      const [mats, anns, cohorts, events] = await Promise.all([
+      const [d, mats, anns, cohorts, events] = await Promise.all([
+        coursesService.getCourse(courseId),
         storageService.listCourseMaterials(courseId).catch(() => []),
         coursesService.getAnnouncements(courseId).catch(() => []),
         coursesService.getCourseCohorts(courseId).catch(() => []),
         coursesService.getCourseEvents(courseId).catch(() => []),
       ])
       if (signal?.cancelled) return
+      setCourse(d); setTitle(d.title); setDescription(d.description ?? ""); setImageUrl(d.image_url ?? "")
+      setEnrollStart(d.enrollment_start?.slice(0, 16) ?? ""); setEnrollEnd(d.enrollment_end?.slice(0, 16) ?? "")
       setMats(mats); setAnns(anns); setCohorts(cohorts); setCourseEvents(events)
     } catch { if (!signal?.cancelled) navigate("/teacher") } finally { if (!signal?.cancelled) setLoading(false) }
   }, [courseId, navigate])

@@ -23,6 +23,7 @@ interface AnalyticsRaw {
   avgProgress?: number
   completion_count?: number
   completedCount?: number
+  course_title?: string
 }
 
 interface Analytics {
@@ -46,10 +47,7 @@ export default function TeacherAnalytics() {
     setCourseTitle("")
     const load = async () => {
       try {
-        const [raw, course] = await Promise.all([
-          coursesService.getCourseAnalyticsAPI(courseId) as Promise<AnalyticsRaw>,
-          coursesService.getCourse(courseId),
-        ])
+        const raw = (await coursesService.getCourseAnalyticsAPI(courseId)) as AnalyticsRaw
         if (cancelled) return
         setAnalytics({
           totalStudents: raw.total_students ?? raw.totalStudents ?? 0,
@@ -57,7 +55,7 @@ export default function TeacherAnalytics() {
           avgProgress: raw.avg_progress ?? raw.avgProgress ?? 0,
           completedCount: raw.completion_count ?? raw.completedCount ?? 0,
         })
-        setCourseTitle(course.title)
+        setCourseTitle(raw.course_title ?? "Course")
       } catch {
         // analytics remains null — fallback UI handles this
       } finally {

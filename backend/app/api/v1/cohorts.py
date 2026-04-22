@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -77,7 +77,7 @@ def create_cohort(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> CohortResponse:
-    verify_course_owner(db, course_id, teacher.id)
+    verify_course_owner(db, course_id, teacher)
 
     cohort = Cohort(
         course_id=course_id,
@@ -102,7 +102,7 @@ def update_cohort(
     db: Session = Depends(get_db),
 ) -> CohortResponse:
     cohort = _get_cohort_or_404(db, cohort_id)
-    verify_course_owner(db, cohort.course_id, teacher.id)
+    verify_course_owner(db, cohort.course_id, teacher)
 
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(cohort, field, value)
@@ -119,7 +119,7 @@ def delete_cohort(
     db: Session = Depends(get_db),
 ) -> None:
     cohort = _get_cohort_or_404(db, cohort_id)
-    verify_course_owner(db, cohort.course_id, teacher.id)
+    verify_course_owner(db, cohort.course_id, teacher)
     db.delete(cohort)
     db.commit()
 
@@ -127,13 +127,22 @@ def delete_cohort(
 @router.get("/{cohort_id}/students")
 def list_cohort_students(
     cohort_id: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(200, ge=1, le=500),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
     cohort = _get_cohort_or_404(db, cohort_id)
-    verify_course_owner(db, cohort.course_id, teacher.id)
+    verify_course_owner(db, cohort.course_id, teacher)
 
-    enrollments = db.query(Enrollment).filter(Enrollment.cohort_id == cohort.id).all()
+    enrollments = (
+        db.query(Enrollment)
+        .filter(Enrollment.cohort_id == cohort.id)
+        .order_by(Enrollment.enrolled_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
     student_ids = [e.user_id for e in enrollments]
     grades_map: dict[str, StudentGrade] = {}
@@ -173,7 +182,7 @@ def complete_cohort(
     db: Session = Depends(get_db),
 ) -> CohortResponse:
     cohort = _get_cohort_or_404(db, cohort_id)
-    verify_course_owner(db, cohort.course_id, teacher.id)
+    verify_course_owner(db, cohort.course_id, teacher)
 
     if cohort.status == "completed":
         raise HTTPException(

@@ -9,10 +9,6 @@ class UserBase(BaseModel):
     full_name: str | None = Field(None, max_length=200)
 
 
-class UserCreate(UserBase):
-    password: str = Field(..., min_length=8, max_length=128)
-
-
 class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 

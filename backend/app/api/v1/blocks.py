@@ -30,7 +30,7 @@ def create_block(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    verify_chapter_owner(db, chapter_id, teacher.id)
+    verify_chapter_owner(db, chapter_id, teacher)
     block = ChapterBlock(
         chapter_id=chapter_id,
         block_type=data.block_type,
@@ -67,7 +67,7 @@ def update_block(
     block = db.query(ChapterBlock).filter(ChapterBlock.id == block_id).first()
     if not block:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
-    verify_chapter_owner(db, block.chapter_id, teacher.id)
+    verify_chapter_owner(db, block.chapter_id, teacher)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(block, field, value)
     try:
@@ -91,7 +91,7 @@ def delete_block(
     block = db.query(ChapterBlock).filter(ChapterBlock.id == block_id).first()
     if not block:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
-    verify_chapter_owner(db, block.chapter_id, teacher.id)
+    verify_chapter_owner(db, block.chapter_id, teacher)
     db.delete(block)
     db.commit()
 
@@ -103,7 +103,7 @@ def reorder_blocks(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    verify_chapter_owner(db, chapter_id, teacher.id)
+    verify_chapter_owner(db, chapter_id, teacher)
     block_ids = [item.id for item in items]
     blocks_by_id = {
         b.id: b

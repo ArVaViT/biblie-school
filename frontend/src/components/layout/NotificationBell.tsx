@@ -97,8 +97,23 @@ export default function NotificationBell() {
   useEffect(() => {
     const signal = { cancelled: false }
     fetchUnreadCount(signal)
-    const interval = setInterval(() => fetchUnreadCount(signal), 30_000)
-    return () => { signal.cancelled = true; clearInterval(interval) }
+    let interval: ReturnType<typeof setInterval> | null = null
+    const start = () => {
+      if (interval == null) interval = setInterval(() => fetchUnreadCount(signal), 30_000)
+    }
+    const stop = () => {
+      if (interval != null) { clearInterval(interval); interval = null }
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") { fetchUnreadCount(signal); start() } else stop()
+    }
+    if (document.visibilityState === "visible") start()
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      signal.cancelled = true
+      stop()
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
   }, [fetchUnreadCount])
 
   const loadMoreSignalRef = useRef<{ cancelled: boolean } | null>(null)

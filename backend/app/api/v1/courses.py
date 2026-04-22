@@ -15,6 +15,7 @@ from app.api.dependencies import (
 from app.core.database import get_db
 from app.core.sanitize import sanitize_string
 from app.models.cohort import Cohort
+from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.user import User, UserRole
 from app.schemas.course import (
@@ -161,15 +162,20 @@ def get_module_detail(
     current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
 ) -> ModuleResponse:
-    course = get_course(db, course_id)
-    if not course:
+    # Lightweight access probe — avoids loading the whole course→modules→chapters
+    # tree just to check publication state.
+    course_row = (
+        db.query(Course.status, Course.created_by).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
+    )
+    if not course_row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.status != "published":
+    course_status, course_owner_id = course_row
+    if course_status != "published":
         if not current_user or (
-            str(course.created_by) != str(current_user.id) and current_user.role != UserRole.ADMIN.value
+            str(course_owner_id) != str(current_user.id) and current_user.role != UserRole.ADMIN.value
         ):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

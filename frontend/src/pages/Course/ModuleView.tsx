@@ -14,18 +14,8 @@ import {
   CalendarDays,
   AlertTriangle,
 } from "lucide-react"
-import { getChapterTypeMeta, isGradableChapterType } from "@/lib/chapterTypes"
-
-function ChapterTypeBadge({ type }: { type: string }) {
-  const meta = getChapterTypeMeta(type)
-  const Icon = meta.icon
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.color}`}>
-      <Icon className="h-3 w-3" />
-      {meta.label}
-    </span>
-  )
-}
+import { isGradableChapterType } from "@/lib/chapterTypes"
+import ChapterTypeBadge from "@/components/course/ChapterTypeBadge"
 
 export default function ModuleView() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>()
@@ -204,7 +194,7 @@ export default function ModuleView() {
                         <Lock className="h-5 w-5 text-muted-foreground/50 shrink-0" />
                         <span className="text-muted-foreground">{chapter.title}</span>
                         {chapter.chapter_type && (
-                          <ChapterTypeBadge type={chapter.chapter_type} />
+                          <ChapterTypeBadge type={chapter.chapter_type} size="sm" />
                         )}
                         <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground/30 shrink-0" />
                       </CardTitle>
@@ -238,7 +228,7 @@ export default function ModuleView() {
                           {chapter.title}
                         </span>
                         {chapter.chapter_type && (
-                          <ChapterTypeBadge type={chapter.chapter_type} />
+                          <ChapterTypeBadge type={chapter.chapter_type} size="sm" />
                         )}
                         <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground/40 shrink-0" />
                       </CardTitle>

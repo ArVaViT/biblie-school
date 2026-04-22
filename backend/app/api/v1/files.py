@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 from uuid import UUID
@@ -99,13 +100,11 @@ async def upload_file(
     course_id_str = str(course_id) if course_id is not None else None
 
     if course_id_str:
-        # Only the course owner (or an admin) may upload files scoped to a course.
-        # Previously the check allowed any teacher/admin through, enabling cross-
-        # tenant uploads; see audit P0.3.
-        verify_course_owner(db, course_id_str, current_user.id, allow_admin=True)
+        verify_course_owner(db, course_id_str, current_user, allow_admin=True)
 
     try:
-        file_metadata = upload_file_to_storage(
+        file_metadata = await asyncio.to_thread(
+            upload_file_to_storage,
             db=db,
             file=file.file,
             filename=file.filename,

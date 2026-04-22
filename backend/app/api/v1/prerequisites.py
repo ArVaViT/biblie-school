@@ -68,7 +68,7 @@ def set_prerequisites(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    verify_course_owner(db, course_id, teacher.id)
+    verify_course_owner(db, course_id, teacher)
 
     # Dedupe while preserving the order the teacher submitted. Without this
     # a client that accidentally sent the same prerequisite twice would

@@ -266,18 +266,25 @@ export const coursesService = {
 
   // Announcements
   async getAnnouncements(courseId?: string): Promise<Announcement[]> {
+    const key = courseId ? `announcements:course:${courseId}` : `announcements:global`
+    const cached = cacheGet<Announcement[]>(key)
+    if (cached) return cached
     const params = courseId ? { course_id: courseId } : undefined
     const response = await api.get<Announcement[]>("/announcements", { params })
+    cacheSet(key, response.data, 2 * 60 * 1000)
     return response.data
   },
 
   async createAnnouncement(data: { title: string; content: string; course_id?: string }): Promise<Announcement> {
     const response = await api.post<Announcement>("/announcements", data)
+    cacheInvalidate(`announcements:global`)
+    if (data.course_id) cacheInvalidate(`announcements:course:${data.course_id}`)
     return response.data
   },
 
   async deleteAnnouncement(id: string): Promise<void> {
     await api.delete(`/announcements/${id}`)
+    cacheInvalidatePrefix(`announcements:`)
   },
 
   async getCourseGrades(courseId: string): Promise<StudentGrade[]> {
@@ -375,6 +382,7 @@ export const coursesService = {
   },
   async submitQuiz(quizId: string, answers: { question_id: string; selected_option_id?: string; text_answer?: string }[]): Promise<QuizAttempt> {
     const response = await api.post<QuizAttempt>(`/quizzes/${quizId}/submit`, { answers })
+    cacheInvalidatePrefix("progress:my:")
     return response.data
   },
   async getMyQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
@@ -406,6 +414,7 @@ export const coursesService = {
   },
   async submitAssignment(id: string, data: { content?: string; file_url?: string }): Promise<AssignmentSubmission> {
     const response = await api.post<AssignmentSubmission>(`/assignments/${id}/submit`, data)
+    cacheInvalidatePrefix("progress:my:")
     return response.data
   },
   async getSubmissions(assignmentId: string): Promise<AssignmentSubmission[]> {
@@ -513,7 +522,11 @@ export const coursesService = {
   },
 
   async getMyChapterProgress(courseId: string): Promise<string[]> {
+    const key = `progress:my:${courseId}`
+    const cached = cacheGet<string[]>(key)
+    if (cached) return cached
     const response = await api.get<string[]>(`/progress/course/${courseId}/my-progress`)
+    cacheSet(key, response.data, 60 * 1000)
     return response.data
   },
 

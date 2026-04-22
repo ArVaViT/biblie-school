@@ -47,7 +47,7 @@ def create_assignment(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    verify_chapter_owner(db, data.chapter_id, teacher.id)
+    verify_chapter_owner(db, data.chapter_id, teacher)
     assignment = Assignment(**data.model_dump())
     db.add(assignment)
     db.commit()
@@ -65,7 +65,7 @@ def update_assignment(
     assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
-    verify_chapter_owner(db, assignment.chapter_id, teacher.id)
+    verify_chapter_owner(db, assignment.chapter_id, teacher)
 
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(assignment, field, value)
@@ -84,7 +84,7 @@ def delete_assignment(
     assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
-    verify_chapter_owner(db, assignment.chapter_id, teacher.id)
+    verify_chapter_owner(db, assignment.chapter_id, teacher)
     db.delete(assignment)
     db.commit()
 
@@ -154,7 +154,7 @@ def list_submissions(
     assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
-    verify_chapter_owner(db, assignment.chapter_id, teacher.id)
+    verify_chapter_owner(db, assignment.chapter_id, teacher)
     return (
         db.query(AssignmentSubmission)
         .filter(AssignmentSubmission.assignment_id == assignment_id)
@@ -213,7 +213,7 @@ def grade_submission(
     assignment = db.query(Assignment).filter(Assignment.id == submission.assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
-    verify_chapter_owner(db, assignment.chapter_id, teacher.id)
+    verify_chapter_owner(db, assignment.chapter_id, teacher)
 
     if data.grade > assignment.max_score:
         raise HTTPException(

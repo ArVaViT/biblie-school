@@ -11,8 +11,9 @@ import { Toaster } from "./components/ui/toaster"
 import { ConfirmProvider } from "./components/ui/alert-dialog"
 import Header from "./components/layout/Header"
 import AnnouncementBanner from "./components/announcements/AnnouncementBanner"
-import NotFound from "./pages/NotFound"
 import PageSpinner from "./components/ui/PageSpinner"
+
+const NotFound = lazy(() => import("./pages/NotFound"))
 
 const Login = lazy(() => import("./pages/Auth/Login"))
 const Register = lazy(() => import("./pages/Auth/Register"))

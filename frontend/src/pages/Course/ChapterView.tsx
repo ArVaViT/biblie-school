@@ -23,23 +23,11 @@ import QuizTaker from "@/components/quiz/QuizTaker"
 import AssignmentPanel from "@/components/assignment/AssignmentPanel"
 import {
   BLOCK_BASED_CHAPTER_TYPES,
-  getChapterTypeMeta,
   isGradableChapterType,
   normalizeChapterType,
 } from "@/lib/chapterTypes"
-
-function extractYouTubeId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-  ]
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match) return match[1] ?? null
-  }
-  return null
-}
+import { parseYouTubeId } from "@/lib/youtubeUrl"
+import ChapterTypeBadge from "@/components/course/ChapterTypeBadge"
 
 /**
  * Renders a YouTube iframe for recognised URLs, or a simple "open in new tab"
@@ -48,7 +36,7 @@ function extractYouTubeId(url: string): string | null {
  * student saw a blank space where the video should have been.
  */
 function VideoEmbed({ url, title }: { url: string; title: string }) {
-  const videoId = extractYouTubeId(url)
+  const videoId = parseYouTubeId(url)
   if (videoId) {
     return (
       <div className="relative w-full overflow-hidden rounded-xl shadow-sm" style={{ paddingBottom: "56.25%" }}>
@@ -71,17 +59,6 @@ function VideoEmbed({ url, title }: { url: string; title: string }) {
     >
       <PlayCircle className="h-4 w-4" /> Open video in new tab
     </a>
-  )
-}
-
-function ChapterTypeBadge({ type }: { type: string }) {
-  const meta = getChapterTypeMeta(type)
-  const Icon = meta.icon
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${meta.color}`}>
-      <Icon className="h-3.5 w-3.5" />
-      {meta.label}
-    </span>
   )
 }
 

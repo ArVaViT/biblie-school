@@ -67,7 +67,7 @@ def update_grading_config(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    course = verify_course_owner(db, course_id, teacher.id)
+    course = verify_course_owner(db, course_id, teacher)
     course.quiz_weight = data.quiz_weight
     course.assignment_weight = data.assignment_weight
     course.participation_weight = data.participation_weight
@@ -89,7 +89,7 @@ def get_calculated_grade(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    course = verify_course_owner(db, course_id, teacher.id)
+    course = verify_course_owner(db, course_id, teacher)
 
     enrolled = (
         db.query(Enrollment).filter(Enrollment.user_id == str(student_id), Enrollment.course_id == course_id).first()
@@ -128,7 +128,7 @@ def get_grade_summary(
     db: Session = Depends(get_db),
 ):
     try:
-        course = verify_course_owner(db, course_id, teacher.id)
+        course = verify_course_owner(db, course_id, teacher)
         results = calculate_all_student_grades(db, course)
 
         students = [StudentCalculatedGrade(**r) for r in results]
@@ -159,7 +159,7 @@ def export_grades_csv(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    course = verify_course_owner(db, course_id, teacher.id)
+    course = verify_course_owner(db, course_id, teacher)
     results = calculate_all_student_grades(db, course)
 
     buf = io.StringIO()
@@ -268,7 +268,7 @@ def list_course_grades(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> list[GradeResponse]:
-    verify_course_owner(db, course_id, teacher.id)
+    verify_course_owner(db, course_id, teacher)
     query = db.query(StudentGrade).filter(StudentGrade.course_id == course_id)
     if cohort_id is not None:
         query = query.filter(StudentGrade.cohort_id == cohort_id)
@@ -283,7 +283,7 @@ def get_student_grade(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> GradeResponse:
-    verify_course_owner(db, course_id, teacher.id)
+    verify_course_owner(db, course_id, teacher)
     query = db.query(StudentGrade).filter(
         StudentGrade.student_id == student_id,
         StudentGrade.course_id == course_id,
@@ -308,7 +308,7 @@ def upsert_student_grade(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> GradeResponse:
-    verify_course_owner(db, course_id, teacher.id)
+    verify_course_owner(db, course_id, teacher)
 
     enrolled = db.query(Enrollment).filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id).first()
     if not enrolled:

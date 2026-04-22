@@ -91,7 +91,7 @@ def create_quiz(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    verify_chapter_owner(db, data.chapter_id, teacher.id)
+    verify_chapter_owner(db, data.chapter_id, teacher)
     max_attempts = data.max_attempts
     if data.quiz_type == "exam" and max_attempts is None:
         max_attempts = 1
@@ -439,6 +439,8 @@ def get_quiz_attempts(
 @router.get("/{quiz_id}/my-attempts", response_model=list[QuizAttemptResponse])
 def get_my_quiz_attempts(
     quiz_id: UUID,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -455,6 +457,8 @@ def get_my_quiz_attempts(
             QuizAttempt.user_id == current_user.id,
         )
         .order_by(QuizAttempt.started_at.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 
@@ -522,6 +526,8 @@ def grant_extra_attempts(
 @router.get("/{quiz_id}/extra-attempts", response_model=list[ExtraAttemptsResponse])
 def list_extra_attempts(
     quiz_id: UUID,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(200, ge=1, le=500),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
@@ -530,4 +536,11 @@ def list_extra_attempts(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     _verify_quiz_owner(db, quiz, teacher.id)
 
-    return db.query(QuizExtraAttempt).filter(QuizExtraAttempt.quiz_id == quiz_id).all()
+    return (
+        db.query(QuizExtraAttempt)
+        .filter(QuizExtraAttempt.quiz_id == quiz_id)
+        .order_by(QuizExtraAttempt.id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )

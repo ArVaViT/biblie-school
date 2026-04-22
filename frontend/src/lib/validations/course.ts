@@ -63,6 +63,3 @@ export const profileSchema = z.object({
 })
 
 export type CourseFormData = z.infer<typeof courseSchema>
-export type ModuleFormData = z.infer<typeof moduleSchema>
-export type ChapterFormData = z.infer<typeof chapterSchema>
-export type ProfileFormData = z.infer<typeof profileSchema>

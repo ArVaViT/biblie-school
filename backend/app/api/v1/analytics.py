@@ -15,7 +15,7 @@ def get_course_analytics(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    course = verify_course_owner(db, course_id, teacher.id)
+    course = verify_course_owner(db, course_id, teacher)
 
     enrollments = (
         db.query(Enrollment, User)

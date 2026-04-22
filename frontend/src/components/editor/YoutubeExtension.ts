@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core"
+import { toYouTubeEmbedUrl } from "@/lib/youtubeUrl"
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -6,19 +7,6 @@ declare module "@tiptap/core" {
       setYoutubeVideo: (options: { src: string }) => ReturnType
     }
   }
-}
-
-function extractEmbedUrl(input: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-  ]
-  for (const p of patterns) {
-    const m = input.match(p)
-    if (m) return `https://www.youtube.com/embed/${m[1]}`
-  }
-  return null
 }
 
 export const YoutubeEmbed = Node.create({
@@ -78,7 +66,7 @@ export const YoutubeEmbed = Node.create({
       setYoutubeVideo:
         (options) =>
         ({ commands }) => {
-          const embedUrl = extractEmbedUrl(options.src)
+          const embedUrl = toYouTubeEmbedUrl(options.src)
           if (!embedUrl) return false
           return commands.insertContent({
             type: this.name,

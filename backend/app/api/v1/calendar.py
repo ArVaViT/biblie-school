@@ -139,7 +139,7 @@ def create_course_event(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> CourseEventResponse:
-    verify_course_owner(db, course_id, teacher.id)
+    verify_course_owner(db, course_id, teacher)
     event = CourseEvent(
         course_id=course_id,
         title=data.title,
@@ -194,7 +194,7 @@ def update_course_event(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> CourseEventResponse:
-    verify_course_owner(db, course_id, teacher.id)
+    verify_course_owner(db, course_id, teacher)
     event = (
         db.query(CourseEvent)
         .filter(
@@ -222,7 +222,7 @@ def delete_course_event(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ) -> None:
-    verify_course_owner(db, course_id, teacher.id)
+    verify_course_owner(db, course_id, teacher)
     event = (
         db.query(CourseEvent)
         .filter(

@@ -127,9 +127,11 @@ export default function TeacherGradebook() {
     setError(null)
     setExpandedId(null)
     try {
-      const [course, rawGrades] = await Promise.all([
+      const [course, rawGrades, gradeSummary, progress] = await Promise.all([
         coursesService.getCourse(courseId),
         coursesService.getCourseGrades(courseId).catch(() => []),
+        coursesService.getGradeSummary(courseId).catch(() => null),
+        coursesService.getStudentProgress(courseId).catch(() => null),
       ])
       if (signal?.cancelled) return
       setCourseTitle(course.title)
@@ -143,20 +145,13 @@ export default function TeacherGradebook() {
       setManualGrades(gradeMap)
       setForms(formMap)
 
-      const [gradeSummary, progress] = await Promise.allSettled([
-        coursesService.getGradeSummary(courseId),
-        coursesService.getStudentProgress(courseId),
-      ])
-      if (signal?.cancelled) return
-
-      if (gradeSummary.status === "fulfilled") {
-        setSummary(gradeSummary.value)
-        setConfig(gradeSummary.value.config)
-        setConfigDraft(gradeSummary.value.config)
+      if (gradeSummary) {
+        setSummary(gradeSummary)
+        setConfig(gradeSummary.config)
+        setConfigDraft(gradeSummary.config)
       }
-
-      if (progress.status === "fulfilled") {
-        setProgressData(progress.value as ProgressResponse)
+      if (progress) {
+        setProgressData(progress as ProgressResponse)
       }
     } catch {
       if (!signal?.cancelled) setError("Failed to load gradebook. Please try again.")

@@ -319,32 +319,29 @@ def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrol
     if not enrollment:
         return None
 
-    total_gradable = (
-        db.query(func.count(Chapter.id))
+    # Single round-trip: count gradable chapters and the subset that this user
+    # has completed via a LEFT JOIN + COUNT FILTER.
+    row = (
+        db.query(
+            func.count(Chapter.id).label("total_gradable"),
+            func.count(ChapterProgress.id).filter(ChapterProgress.completed.is_(True)).label("completed_gradable"),
+        )
+        .select_from(Chapter)
         .join(Module, Chapter.module_id == Module.id)
+        .outerjoin(
+            ChapterProgress,
+            (ChapterProgress.chapter_id == Chapter.id) & (ChapterProgress.user_id == user_id),
+        )
         .filter(
             Module.course_id == course_id,
             Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES),
             Module.deleted_at.is_(None),
             Chapter.deleted_at.is_(None),
         )
-        .scalar()
-    ) or 0
-
-    completed_gradable = (
-        db.query(func.count(ChapterProgress.id))
-        .join(Chapter, Chapter.id == ChapterProgress.chapter_id)
-        .join(Module, Module.id == Chapter.module_id)
-        .filter(
-            Module.course_id == course_id,
-            Chapter.chapter_type.in_(GRADABLE_CHAPTER_TYPES),
-            Module.deleted_at.is_(None),
-            Chapter.deleted_at.is_(None),
-            ChapterProgress.user_id == user_id,
-            ChapterProgress.completed.is_(True),
-        )
-        .scalar()
-    ) or 0
+        .one()
+    )
+    total_gradable = row.total_gradable or 0
+    completed_gradable = row.completed_gradable or 0
 
     if total_gradable == 0:
         enrollment.progress = 0

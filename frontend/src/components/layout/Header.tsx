@@ -1,11 +1,12 @@
-import { useState } from "react"
+import { lazy, Suspense, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/useAuth"
 import { useTheme } from "@/context/useTheme"
 import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays, Sun, Moon, Award } from "lucide-react"
-import NotificationBell from "./NotificationBell"
 import { toProxyImage } from "@/lib/images"
+
+const NotificationBell = lazy(() => import("./NotificationBell"))
 
 export default function Header() {
   const { user } = useAuth()
@@ -60,7 +61,9 @@ export default function Header() {
                   </Button>
                 </Link>
               )}
-              <NotificationBell />
+              <Suspense fallback={<div className="h-8 w-8" />}>
+                <NotificationBell />
+              </Suspense>
               <Button
                 variant="ghost"
                 size="sm"
@@ -103,7 +106,7 @@ export default function Header() {
                 <Link to="/certificates" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Certificates</Link>
                 {isTeacher && <Link to="/teacher" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Manage Courses</Link>}
                 {user.role === "admin" && <Link to="/admin" className="px-3 py-2 rounded-md text-sm hover:bg-muted" onClick={() => setMobileOpen(false)}>Admin Panel</Link>}
-                <div className="px-3 py-1"><NotificationBell /></div>
+                <div className="px-3 py-1"><Suspense fallback={null}><NotificationBell /></Suspense></div>
                 <button
                   type="button"
                   onClick={() => { toggleTheme(); setMobileOpen(false) }}
