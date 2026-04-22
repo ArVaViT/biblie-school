@@ -19,6 +19,7 @@ Revision ID: 026_drop_legacy_media_columns
 Revises: 025_collapse_media_blocks_into_text
 Create Date: 2026-04-21
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa

@@ -39,10 +39,7 @@ _YT_ID_RE = (
 
 def _html_escape(expr: str) -> str:
     """Return a SQL expression that HTML-escapes ``expr`` in place."""
-    return (
-        f"replace(replace(replace(replace({expr},"
-        f"'&','&amp;'),'<','&lt;'),'>','&gt;'),'\"','&quot;')"
-    )
+    return f"replace(replace(replace(replace({expr},'&','&amp;'),'<','&lt;'),'>','&gt;'),'\"','&quot;')"
 
 
 def upgrade() -> None:

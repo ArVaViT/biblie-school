@@ -81,15 +81,12 @@ def upgrade() -> None:
     # Collapse the type enum down to the four things that are actually different
     # things (narrative vs. quiz vs. exam vs. assignment).
     op.execute(
-        "UPDATE chapters SET chapter_type = 'reading' "
-        "WHERE chapter_type IN ('video', 'audio', 'mixed', 'content')"
+        "UPDATE chapters SET chapter_type = 'reading' WHERE chapter_type IN ('video', 'audio', 'mixed', 'content')"
     )
 
     op.execute("ALTER TABLE chapters DROP CONSTRAINT IF EXISTS chapters_chapter_type_check")
     values = ", ".join(f"'{v}'" for v in NEW_ALLOWED)
-    op.execute(
-        f"ALTER TABLE chapters ADD CONSTRAINT chapters_chapter_type_check CHECK (chapter_type IN ({values}))"
-    )
+    op.execute(f"ALTER TABLE chapters ADD CONSTRAINT chapters_chapter_type_check CHECK (chapter_type IN ({values}))")
 
 
 def downgrade() -> None:
@@ -97,6 +94,4 @@ def downgrade() -> None:
     # round-trippable (we'd need to guess which blocks were "the" video/audio).
     op.execute("ALTER TABLE chapters DROP CONSTRAINT IF EXISTS chapters_chapter_type_check")
     values = ", ".join(f"'{v}'" for v in OLD_ALLOWED)
-    op.execute(
-        f"ALTER TABLE chapters ADD CONSTRAINT chapters_chapter_type_check CHECK (chapter_type IN ({values}))"
-    )
+    op.execute(f"ALTER TABLE chapters ADD CONSTRAINT chapters_chapter_type_check CHECK (chapter_type IN ({values}))")

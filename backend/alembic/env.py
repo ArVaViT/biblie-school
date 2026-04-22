@@ -38,9 +38,8 @@ def _ensure_wide_version_table(connection) -> None:
             "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
         )
     )
-    connection.execute(
-        text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)")
-    )
+    connection.execute(text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)"))
+
 
 config = context.config
 

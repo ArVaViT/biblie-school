@@ -30,11 +30,7 @@ _COURSE_TREE: "tuple" = (selectinload(Course.modules).selectinload(Module.chapte
 
 
 def get_courses(db: Session, *, skip: int = 0, limit: int = 100, search: str | None = None) -> list[Course]:
-    query = (
-        db.query(Course)
-        .options(*_COURSE_TREE)
-        .filter(Course.status == "published", Course.deleted_at.is_(None))
-    )
+    query = db.query(Course).options(*_COURSE_TREE).filter(Course.status == "published", Course.deleted_at.is_(None))
     if search:
         ts_query = func.plainto_tsquery("russian", search)
         ts_query_en = func.plainto_tsquery("english", search)
@@ -335,10 +331,7 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
     # Only clone live courses. Attempting to clone a trashed course should
     # 404 (mirrors the API-level visibility rules in get_course()).
     original = (
-        db.query(Course)
-        .options(*_COURSE_TREE)
-        .filter(Course.id == course_id, Course.deleted_at.is_(None))
-        .first()
+        db.query(Course).options(*_COURSE_TREE).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
     )
     if original is None:
         return None
@@ -502,9 +495,4 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
 
     db.commit()
 
-    return (
-        db.query(Course)
-        .options(*_COURSE_TREE)
-        .filter(Course.id == new_course_id)
-        .first()
-    )
+    return db.query(Course).options(*_COURSE_TREE).filter(Course.id == new_course_id).first()

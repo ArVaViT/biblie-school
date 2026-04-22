@@ -29,6 +29,7 @@ Revision ID: 028_drop_more_redundant_indexes
 Revises: 027_drop_redundant_indexes
 Create Date: 2026-04-22
 """
+
 from collections.abc import Sequence
 
 from alembic import op

@@ -25,6 +25,7 @@ Revision ID: 029_drop_course_unused_dates
 Revises: 028_drop_more_redundant_indexes
 Create Date: 2026-04-22
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa

@@ -23,6 +23,7 @@ Revision ID: 027_drop_redundant_indexes
 Revises: 026_drop_legacy_media_columns
 Create Date: 2026-04-21
 """
+
 from collections.abc import Sequence
 
 from alembic import op
