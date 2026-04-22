@@ -8,7 +8,6 @@ email-validator==2.3.0
 PyJWT==2.12.1
 python-multipart==0.0.26
 python-dotenv==1.2.2
-alembic==1.18.4
 bleach==6.3.0
 sentry-sdk[fastapi,sqlalchemy]==2.58.0
 pytest==9.0.3

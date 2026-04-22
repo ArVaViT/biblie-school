@@ -95,7 +95,6 @@ updates:
       sqlalchemy:
         patterns:
           - "sqlalchemy"
-          - "alembic"
           - "psycopg2*"
       testing:
         patterns:

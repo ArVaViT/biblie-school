@@ -89,15 +89,12 @@ jobs:
           if-no-files-found: warn
 
   # ---------------------------------------------------------------------------
-  # Postgres schema smoke test — validates that the current SQLAlchemy models
-  # can materialize a valid schema against real Postgres. We intentionally do
-  # NOT run `alembic upgrade head` here: the existing migration chain was
-  # authored incrementally on top of an already-migrated Supabase instance
-  # (columns like certificates.cohort_id, admin_approved_by, RLS policies
-  # targeting the `auth` schema, etc. predate 001_initial and live only in
-  # production), so applying all 16 migrations to a fresh Postgres is not a
-  # supported path. Schema-vs-model drift in production is monitored via the
-  # SQLite unit tests + live application smoke checks instead.
+  # Postgres schema smoke test — validates that the SQLAlchemy models can
+  # materialize a valid schema against real Postgres (not just SQLite).
+  # This is our cheapest guard against model/prod drift: if a column type or
+  # constraint would fail under Postgres, we catch it in CI before deploy.
+  # The production schema itself is managed by Supabase migrations (applied
+  # via the Supabase CLI / MCP), not from this workflow.
   # ---------------------------------------------------------------------------
   schema-smoke-postgres:
     runs-on: ubuntu-latest

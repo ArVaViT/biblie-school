@@ -11,10 +11,10 @@ class ChapterProgress(Base):
     __tablename__ = "chapter_progress"
     __table_args__ = (
         UniqueConstraint("user_id", "chapter_id", name="uq_progress_user_chapter"),
-        # Mirrors production CHECK. Keeping it declarative in the model means
-        # fresh Alembic-bootstrapped environments (and the SQLite test DB) also
-        # reject invalid values, so a regression like completion_type="quiz" is
-        # caught without having to go through the prod DB to find out.
+        # Mirrors the production CHECK so the SQLite test DB (bootstrapped
+        # from these models via ``Base.metadata.create_all``) rejects invalid
+        # values too. A regression like completion_type="quiz" is caught in
+        # tests without having to go through the prod DB to find out.
         CheckConstraint(
             "completion_type IN ('self', 'teacher', 'quiz')",
             name="chapter_progress_completion_type_check",

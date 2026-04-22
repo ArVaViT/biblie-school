@@ -11,7 +11,7 @@ A modern Learning Management System for Bible study courses.
 | Layer       | Technology |
 |-------------|------------|
 | Frontend    | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, TipTap |
-| Backend     | Python, FastAPI, SQLAlchemy, Pydantic, Alembic |
+| Backend     | Python, FastAPI, SQLAlchemy, Pydantic |
 | Database    | PostgreSQL (Supabase) |
 | Auth        | Supabase Auth (Google OAuth + email/password) |
 | Storage     | Supabase Storage |
@@ -56,17 +56,20 @@ cd ../backend && pip install -r requirements.txt
 ```bash
 cp backend/.env.example backend/.env            # fill in Supabase creds
 cp frontend/.env.example frontend/.env.local    # fill in VITE_* vars
-cp backend/alembic.ini.example backend/alembic.ini
 ```
 
 See each `.env.example` file for a description of every variable (and the
 Vercel-marketplace aliases accepted for `DATABASE_URL` and `SUPABASE_KEY`).
 
-### 3. Run migrations and start
+Schema is managed by Supabase migrations (applied via the Supabase CLI
+or MCP against the target project), not from the backend. Locally, the
+backend reads the schema through SQLAlchemy models; tests materialize it
+via `Base.metadata.create_all()` against an in-memory SQLite DB.
+
+### 3. Start the servers
 
 ```bash
-cd backend && alembic upgrade head
-uvicorn app.main:app --reload                   # API → http://localhost:8000
+cd backend && uvicorn app.main:app --reload     # API → http://localhost:8000
 
 # In another terminal
 cd frontend && npm run dev                      # SPA → http://localhost:5173
@@ -77,8 +80,9 @@ cd frontend && npm run dev                      # SPA → http://localhost:5173
 ## Testing
 
 ```bash
-# Backend — 396 tests, SQLite by default; CI also runs an Alembic round-trip
-# against a real Postgres service container.
+# Backend — 396 tests, SQLite by default; CI additionally materializes
+# the SQLAlchemy schema against a real Postgres service container as a
+# drift/type-compat smoke check.
 cd backend && python -m pytest tests/
 
 # Frontend — Vitest + jsdom.
@@ -89,14 +93,14 @@ cd frontend && npm run test:run
 
 ## CI, dependency hygiene & deployment
 
-- GitHub Actions run lint, typecheck, tests, Alembic migrations, `npm audit`
-  and `pip-audit` on every push to `main` and every PR — see
-  `.github/workflows/`.
+- GitHub Actions run lint, typecheck, tests, a Postgres schema-smoke
+  job, `npm audit` and `pip-audit` on every push to `main` and every
+  PR — see `.github/workflows/`.
 - Dependabot (`.github/dependabot.yml`) opens grouped update PRs weekly for
   npm, pip, and GitHub Actions.
 - Branch protection on `main` should require the `Frontend CI /
   lint-and-build`, `Backend CI / lint-and-test`, and `Backend CI /
-  migrations-postgres` checks before merge. (Configure once via the GitHub
-  repo settings — this can't be expressed in a workflow file.)
+  schema-smoke-postgres` checks before merge. (Configure once via the
+  GitHub repo settings — this can't be expressed in a workflow file.)
 - Both apps auto-deploy to Vercel from `main`. API routes are served under
   `/api/v1/*`; OpenAPI schema is at `/docs` when running locally.
