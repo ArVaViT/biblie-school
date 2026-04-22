@@ -18,7 +18,6 @@ vi.mock("@/services/courses", () => ({
 const toast = vi.fn()
 vi.mock("@/hooks/use-toast", () => ({
   toast: (...a: unknown[]) => toast(...a),
-  useToast: () => ({ toast }),
 }))
 
 import QuizTaker from "../QuizTaker"

@@ -17,6 +17,7 @@ import CertificateCard from "@/components/course/CertificateCard"
 import { Badge } from "@/components/ui/badge"
 import { Modal } from "@/components/patterns"
 import { toProxyImage } from "@/lib/images"
+import { isGradableChapterType } from "@/lib/chapterTypes"
 
 interface CourseMaterial {
   name: string
@@ -489,15 +490,14 @@ export default function CourseDetail() {
               const chapters = [...(module.chapters ?? [])].sort(
                 (a, b) => a.order_index - b.order_index,
               )
-              const GRADABLE_TYPES = new Set(["quiz", "exam", "assignment"])
-              const gradable = chapters.filter((ch) => GRADABLE_TYPES.has(ch.chapter_type ?? ""))
+              const gradable = chapters.filter((ch) => isGradableChapterType(ch.chapter_type))
               const gradableCount = gradable.length
 
               const isLocked = (() => {
                 if (idx === 0) return false
                 const prevModule = sortedModules[idx - 1]
                 if (!prevModule) return false
-                const prevChapters = (prevModule.chapters ?? []).filter((ch) => GRADABLE_TYPES.has(ch.chapter_type ?? ""))
+                const prevChapters = (prevModule.chapters ?? []).filter((ch) => isGradableChapterType(ch.chapter_type))
                 if (prevChapters.length === 0) return false
                 return !prevChapters.every((ch) => completedChapterIds.has(ch.id))
               })()

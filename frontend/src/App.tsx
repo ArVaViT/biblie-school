@@ -36,35 +36,19 @@ const ChapterEditor = lazy(() => import("./pages/Teacher/ChapterEditor"))
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"))
 const CalendarPage = lazy(() => import("./pages/Calendar/CalendarPage"))
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-  if (loading) return <PageSpinner />
-  if (!user) return <Navigate to="/login" replace />
-  return <>{children}</>
-}
+type RouteMode = "private" | "public" | "teacher" | "admin"
 
-function PublicRoute({ children }: { children: React.ReactNode }) {
+function Gate({ mode, children }: { mode: RouteMode; children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return <PageSpinner />
-  if (user) return <Navigate to="/" replace />
-  return <>{children}</>
-}
-
-function TeacherRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-  if (loading) return <PageSpinner />
+  if (mode === "public") {
+    return user ? <Navigate to="/" replace /> : <>{children}</>
+  }
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== "teacher" && user.role !== "admin") {
+  if (mode === "teacher" && user.role !== "teacher" && user.role !== "admin") {
     return <Navigate to="/" replace />
   }
-  return <>{children}</>
-}
-
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-  if (loading) return <PageSpinner />
-  if (!user) return <Navigate to="/login" replace />
-  if (user.role !== "admin") {
+  if (mode === "admin" && user.role !== "admin") {
     return <Navigate to="/" replace />
   }
   return <>{children}</>
@@ -100,9 +84,9 @@ function AppRoutes() {
       <ErrorBoundary>
         <Suspense fallback={<PageSpinner />}>
           <Routes>
-            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-            <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/login" element={<Gate mode="public"><Login /></Gate>} />
+            <Route path="/register" element={<Gate mode="public"><Register /></Gate>} />
+            <Route path="/forgot-password" element={<Gate mode="public"><ForgotPassword /></Gate>} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/confirm" element={<AuthCallback />} />
@@ -124,20 +108,20 @@ function AppRoutes() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/dashboard" element={<Navigate to="/" replace />} />
-              <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-              <Route path="/calendar" element={<PrivateRoute><CalendarPage /></PrivateRoute>} />
-              <Route path="/certificates" element={<PrivateRoute><CertificatesPage /></PrivateRoute>} />
-              <Route path="/courses/:id" element={<PrivateRoute><CourseDetail /></PrivateRoute>} />
-              <Route path="/courses/:courseId/modules/:moduleId" element={<PrivateRoute><ModuleView /></PrivateRoute>} />
-              <Route path="/courses/:courseId/modules/:moduleId/chapters/:chapterId" element={<PrivateRoute><ChapterView /></PrivateRoute>} />
-              <Route path="/teacher" element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
-              <Route path="/teacher/courses/:courseId" element={<TeacherRoute><CourseEditor /></TeacherRoute>} />
-              <Route path="/teacher/courses/:courseId/modules/:moduleId/edit" element={<TeacherRoute><ModuleEditor /></TeacherRoute>} />
-              <Route path="/teacher/courses/:courseId/modules/:moduleId/chapters/:chapterId/edit" element={<TeacherRoute><ChapterEditor /></TeacherRoute>} />
-              <Route path="/teacher/courses/:courseId/analytics" element={<TeacherRoute><TeacherAnalytics /></TeacherRoute>} />
-              <Route path="/teacher/courses/:courseId/gradebook" element={<TeacherRoute><TeacherGradebook /></TeacherRoute>} />
-              <Route path="/teacher/courses/:courseId/progress" element={<TeacherRoute><StudentProgress /></TeacherRoute>} />
-              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/profile" element={<Gate mode="private"><ProfilePage /></Gate>} />
+              <Route path="/calendar" element={<Gate mode="private"><CalendarPage /></Gate>} />
+              <Route path="/certificates" element={<Gate mode="private"><CertificatesPage /></Gate>} />
+              <Route path="/courses/:id" element={<Gate mode="private"><CourseDetail /></Gate>} />
+              <Route path="/courses/:courseId/modules/:moduleId" element={<Gate mode="private"><ModuleView /></Gate>} />
+              <Route path="/courses/:courseId/modules/:moduleId/chapters/:chapterId" element={<Gate mode="private"><ChapterView /></Gate>} />
+              <Route path="/teacher" element={<Gate mode="teacher"><TeacherDashboard /></Gate>} />
+              <Route path="/teacher/courses/:courseId" element={<Gate mode="teacher"><CourseEditor /></Gate>} />
+              <Route path="/teacher/courses/:courseId/modules/:moduleId/edit" element={<Gate mode="teacher"><ModuleEditor /></Gate>} />
+              <Route path="/teacher/courses/:courseId/modules/:moduleId/chapters/:chapterId/edit" element={<Gate mode="teacher"><ChapterEditor /></Gate>} />
+              <Route path="/teacher/courses/:courseId/analytics" element={<Gate mode="teacher"><TeacherAnalytics /></Gate>} />
+              <Route path="/teacher/courses/:courseId/gradebook" element={<Gate mode="teacher"><TeacherGradebook /></Gate>} />
+              <Route path="/teacher/courses/:courseId/progress" element={<Gate mode="teacher"><StudentProgress /></Gate>} />
+              <Route path="/admin" element={<Gate mode="admin"><AdminDashboard /></Gate>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

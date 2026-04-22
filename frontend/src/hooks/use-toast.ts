@@ -8,7 +8,7 @@ interface ToastOptions {
   variant?: Variant
 }
 
-function toast({ title, description, variant = "default" }: ToastOptions) {
+export function toast({ title, description, variant = "default" }: ToastOptions) {
   const body = title ?? description ?? ""
   const opts = title && description ? { description } : undefined
 
@@ -25,12 +25,3 @@ function toast({ title, description, variant = "default" }: ToastOptions) {
       return { id: String(sonnerToast(body, opts)) }
   }
 }
-
-function useToast() {
-  return {
-    toast,
-    dismiss: (toastId?: string | number) => sonnerToast.dismiss(toastId),
-  }
-}
-
-export { useToast, toast }

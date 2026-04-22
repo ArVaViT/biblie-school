@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/hooks/use-toast"
 import { getErrorDetail } from "@/lib/errorDetail"
+import { isGradableChapterType } from "@/lib/chapterTypes"
 import type {
   StudentProgressResponse,
   StudentProgressEntry,
@@ -585,7 +586,7 @@ function StudentRow({
                           <div className="flex items-center gap-2">
                             <p className="font-medium truncate">{chapterInfo?.title ?? quiz?.chapter_title ?? assignment?.chapter_title ?? chId}</p>
                           </div>
-                          {chapterInfo && ["quiz", "exam", "assignment"].includes(chapterInfo.chapter_type) && (
+                          {chapterInfo && isGradableChapterType(chapterInfo.chapter_type) && (
                             <p className="text-xs mt-0.5">
                               {chapterInfo.completed ? (
                                 <span className={chapterInfo.completed_by === "teacher"
@@ -650,7 +651,7 @@ function StudentRow({
                             </span>
                           </div>
                         )}
-                        {chapterInfo && ["quiz", "exam", "assignment"].includes(chapterInfo.chapter_type) && (
+                        {chapterInfo && isGradableChapterType(chapterInfo.chapter_type) && (
                           <Button
                             variant={chapterInfo.completed ? "outline" : "default"}
                             size="sm"

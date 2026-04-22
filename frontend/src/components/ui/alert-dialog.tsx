@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 import { buttonVariants } from "./buttonVariants"
 
 const AlertDialog = AlertDialogPrimitive.Root
-const AlertDialogTrigger = AlertDialogPrimitive.Trigger
 const AlertDialogPortal = AlertDialogPrimitive.Portal
 
 const AlertDialogOverlay = React.forwardRef<
@@ -103,7 +102,7 @@ const AlertDialogCancel = React.forwardRef<
 ))
 AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName
 
-export interface ConfirmOptions {
+interface ConfirmOptions {
   title: string
   description?: string
   confirmLabel?: string
@@ -111,7 +110,7 @@ export interface ConfirmOptions {
   tone?: "default" | "destructive"
 }
 
-export interface PromptOptions {
+interface PromptOptions {
   title: string
   description?: string
   placeholder?: string
@@ -260,16 +259,4 @@ export function useConfirm() {
 // eslint-disable-next-line react-refresh/only-export-components
 export function usePrompt() {
   return React.useContext(PromptContext)
-}
-
-export {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel,
 }
