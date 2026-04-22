@@ -58,7 +58,8 @@ class Course(Base):
     # ``order_by`` guarantees deterministic ordering whenever the relationship is
     # accessed, including via ``joinedload`` in ``get_course``. Without it
     # Postgres returns rows in whatever order the query plan chose, which
-    # surfaced on prod as chapters shown in reverse (see PLATFORM_ISSUES #2).
+    # surfaced on prod as chapters shown in reverse before the explicit
+    # ``order_index`` ordering was added.
     modules = relationship(
         "Module",
         back_populates="course",

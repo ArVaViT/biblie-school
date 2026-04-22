@@ -1,9 +1,9 @@
 """Replace ``chapter_blocks.file_url`` with ``file_bucket`` + ``file_path``.
 
-Background — Pt12 in docs/PLATFORM_ISSUES.md
---------------------------------------------
+Background
+----------
 ``chapter_blocks.file_url`` used to store a long-lived Supabase-signed URL
-(TTL: 1 year after the Pt6 mitigation). That URL embeds a token signed
+(TTL: 1 year, extended from 1 hour as a previous mitigation). That URL embeds a token signed
 with the current Supabase JWT secret. If the project's secret is ever
 rotated — deliberately or after a compromise — every signed URL across
 every course silently 403s and there is no way to re-mint them because

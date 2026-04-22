@@ -91,8 +91,8 @@ function FileBlockLink({
   const [opening, setOpening] = useState(false)
 
   // Sign on click so the URL is always valid against the current Supabase
-  // secret. Never store a pre-signed URL anywhere — see Pt12 in
-  // docs/PLATFORM_ISSUES.md for the full reasoning.
+  // secret. Never store a pre-signed URL anywhere — doing so would
+  // leak all historical signatures on every JWT rotation.
   const handleClick = useCallback(async () => {
     if (opening) return
     setOpening(true)

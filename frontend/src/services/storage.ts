@@ -111,7 +111,8 @@ export const storageService = {
    * Upload a file attached to a chapter block. The caller persists the
    * returned `{ bucket, path, name }` on the block and re-signs the URL
    * every time a student opens the file. Nothing JWT-secret-dependent
-   * is ever stored in the database — see Pt12 in docs/PLATFORM_ISSUES.md.
+   * is ever stored in the database, so rotating the Supabase JWT secret
+   * doesn't invalidate anything.
    */
   async uploadBlockFile(chapterId: string, file: File): Promise<UploadedBlockFile> {
     const timestamp = Date.now()
