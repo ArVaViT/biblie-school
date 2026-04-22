@@ -128,7 +128,7 @@ def list_all_users(
             "email": u.email,
             "full_name": u.full_name,
             "role": u.role,
-            "avatar_url": getattr(u, "avatar_url", None),
+            "avatar_url": u.avatar_url,
             "created_at": str(u.created_at),
         }
         for u in users

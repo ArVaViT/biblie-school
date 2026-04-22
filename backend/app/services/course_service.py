@@ -436,8 +436,8 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
                         chapter_id=new_chapter_id,
                         title=quiz.title,
                         description=quiz.description,
-                        quiz_type=getattr(quiz, "quiz_type", "quiz") or "quiz",
-                        max_attempts=getattr(quiz, "max_attempts", None),
+                        quiz_type=quiz.quiz_type or "quiz",
+                        max_attempts=quiz.max_attempts,
                         passing_score=quiz.passing_score,
                     )
                 )
