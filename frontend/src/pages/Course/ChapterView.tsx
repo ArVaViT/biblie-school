@@ -13,7 +13,6 @@ import {
   CheckCircle,
   Circle,
   Lock,
-  PlayCircle,
   Download,
   File,
 } from "lucide-react"
@@ -23,35 +22,7 @@ import {
   isGradableChapterType,
   normalizeChapterType,
 } from "@/lib/chapterTypes"
-import { parseYouTubeId } from "@/lib/youtubeUrl"
 import ChapterTypeBadge from "@/components/course/ChapterTypeBadge"
-
-function VideoEmbed({ url, title }: { url: string; title: string }) {
-  const videoId = parseYouTubeId(url)
-  if (videoId) {
-    return (
-      <div className="relative w-full overflow-hidden rounded-md border" style={{ paddingBottom: "56.25%" }}>
-        <iframe
-          className="absolute inset-0 h-full w-full"
-          src={`https://www.youtube.com/embed/${videoId}`}
-          title={title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-    )
-  }
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-    >
-      <PlayCircle className="h-4 w-4" /> Open video in new tab
-    </a>
-  )
-}
 
 const BlockRenderer = memo(function BlockRenderer({
   block,
@@ -74,14 +45,6 @@ const BlockRenderer = memo(function BlockRenderer({
           className="prose max-w-none"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
-      ) : null
-
-    case "video":
-      return block.video_url ? <VideoEmbed url={block.video_url} title="Video" /> : null
-
-    case "audio":
-      return block.video_url ? (
-        <audio src={block.video_url} controls preload="metadata" className="w-full" />
       ) : null
 
     case "quiz":

@@ -5,7 +5,7 @@ const ID_PATTERNS = [
   /(?:youtube-nocookie\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
 ]
 
-export function parseYouTubeId(url: string): string | null {
+function parseYouTubeId(url: string): string | null {
   for (const p of ID_PATTERNS) {
     const m = url.match(p)
     if (m && m[1]) return m[1]

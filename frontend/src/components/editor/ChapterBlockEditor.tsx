@@ -8,18 +8,19 @@ import { getErrorDetail } from "@/lib/errorDetail"
 import type { ChapterBlock } from "@/types"
 import { toast } from "@/hooks/use-toast"
 import {
-  Plus, Trash2, GripVertical, Save, Video, FileText,
-  ChevronDown, ChevronRight, Loader2, Type, Film,
-  HelpCircle, ClipboardList, Paperclip, Check, Headphones,
+  Plus, Trash2, GripVertical, Save, FileText,
+  ChevronDown, ChevronRight, Loader2, Type,
+  HelpCircle, ClipboardList, Paperclip, Check,
 } from "lucide-react"
 import QuizEditor from "@/components/quiz/QuizEditor"
 import AssignmentEditor from "@/components/assignment/AssignmentEditor"
 import { useConfirm } from "@/components/ui/alert-dialog"
 
+// Video and audio embeds live inside text blocks — the rich editor's toolbar
+// has dedicated buttons for both — so the block layer only needs the shapes
+// that aren't just HTML.
 const BLOCK_TYPES = [
   { value: "text", label: "Text", icon: Type },
-  { value: "video", label: "Video", icon: Film },
-  { value: "audio", label: "Audio", icon: Headphones },
   { value: "quiz", label: "Quiz", icon: HelpCircle },
   { value: "assignment", label: "Assignment", icon: ClipboardList },
   { value: "file", label: "File", icon: Paperclip },
@@ -43,7 +44,6 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
 
   const [editContent, setEditContent] = useState("")
-  const [editVideoUrl, setEditVideoUrl] = useState("")
   const [editFileUrl, setEditFileUrl] = useState("")
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "pending" | "saving" | "saved">("idle")
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -96,7 +96,6 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
   const initEditState = (block: ChapterBlock) => {
     setEditContent(block.content ?? "")
     editContentRef.current = block.content ?? ""
-    setEditVideoUrl(block.video_url ?? "")
     setEditFileUrl(block.file_url ?? "")
   }
 
@@ -158,11 +157,6 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
     try {
       const payload: Partial<ChapterBlock> = {}
       if (block.block_type === "text") payload.content = editContent
-      // Audio and video both use ``video_url`` as their media URL — a later
-      // DB cleanup pass may rename this column to ``media_url``.
-      if (block.block_type === "video" || block.block_type === "audio") {
-        payload.video_url = editVideoUrl.trim() || null
-      }
       if (block.block_type === "file") payload.file_url = editFileUrl.trim() || null
 
       const updated = await coursesService.updateBlock(block.id, payload)
@@ -351,64 +345,6 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
                           </span>
                         )}
                       </div>
-                    </>
-                  )}
-
-                  {block.block_type === "video" && (
-                    <>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs flex items-center gap-1.5">
-                          <Video className="h-3.5 w-3.5" />
-                          Video URL
-                        </Label>
-                        <Input
-                          value={editVideoUrl}
-                          onChange={(e) => setEditVideoUrl(e.target.value)}
-                          placeholder="https://www.youtube.com/watch?v=..."
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => saveBlock(block)}
-                        disabled={savingBlock === block.id}
-                      >
-                        {savingBlock === block.id ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                        ) : (
-                          <Save className="h-3.5 w-3.5 mr-1.5" />
-                        )}
-                        Save Video
-                      </Button>
-                    </>
-                  )}
-
-                  {block.block_type === "audio" && (
-                    <>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs flex items-center gap-1.5">
-                          <Headphones className="h-3.5 w-3.5" />
-                          Audio URL
-                        </Label>
-                        <Input
-                          value={editVideoUrl}
-                          onChange={(e) => setEditVideoUrl(e.target.value)}
-                          placeholder="https://example.com/lesson.mp3"
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => saveBlock(block)}
-                        disabled={savingBlock === block.id}
-                      >
-                        {savingBlock === block.id ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                        ) : (
-                          <Save className="h-3.5 w-3.5 mr-1.5" />
-                        )}
-                        Save Audio
-                      </Button>
                     </>
                   )}
 

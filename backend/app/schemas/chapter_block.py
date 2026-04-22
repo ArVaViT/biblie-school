@@ -4,7 +4,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-BLOCK_TYPES = Literal["text", "video", "audio", "quiz", "assignment", "file"]
+# ``video`` / ``audio`` block types were collapsed into ``text`` by migration
+# 025 — the rich text editor embeds them via its toolbar so the separate block
+# kinds were pure duplication.
+BLOCK_TYPES = Literal["text", "quiz", "assignment", "file"]
 
 
 class BlockCreate(BaseModel):

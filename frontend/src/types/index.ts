@@ -204,7 +204,7 @@ export interface Certificate {
   requested_at: string
 }
 
-export type BlockType = 'text' | 'video' | 'audio' | 'quiz' | 'assignment' | 'file'
+export type BlockType = 'text' | 'quiz' | 'assignment' | 'file'
 
 export interface ChapterBlock {
   id: string

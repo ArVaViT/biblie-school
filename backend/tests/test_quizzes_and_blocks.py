@@ -200,18 +200,18 @@ def test_create_block_text(client: TestClient, db: Session):
     assert body["chapter_id"] == "ch-1"
 
 
-def test_create_block_video(client: TestClient, db: Session):
+def test_create_block_file(client: TestClient, db: Session):
     _seed_course(db)
     resp = client.post(
         "/api/v1/blocks/chapter/ch-1",
         json={
-            "block_type": "video",
+            "block_type": "file",
             "order_index": 1,
-            "video_url": "https://example.com/vid.mp4",
+            "file_url": "https://example.com/handout.pdf",
         },
     )
     assert resp.status_code == 201
-    assert resp.json()["video_url"] == "https://example.com/vid.mp4"
+    assert resp.json()["file_url"] == "https://example.com/handout.pdf"
 
 
 def test_create_block_student_forbidden(student_client: TestClient, db: Session):
