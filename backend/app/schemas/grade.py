@@ -23,9 +23,6 @@ class GradeResponse(BaseModel):
     updated_at: datetime | None = None
 
 
-# --- Grading Configuration ---
-
-
 class GradingConfigResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -45,9 +42,6 @@ class GradingConfigUpdate(BaseModel):
         if total != 100:
             raise ValueError(f"Weights must sum to 100, got {total}")
         return self
-
-
-# --- Calculated Grade ---
 
 
 class GradeBreakdown(BaseModel):

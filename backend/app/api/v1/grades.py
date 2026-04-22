@@ -35,9 +35,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/grades", tags=["grades"])
 
 
-# ── Grading Configuration ──────────────────────────────────────────
-
-
 @router.get("/course/{course_id}/config", response_model=GradingConfigResponse)
 def get_grading_config(
     course_id: str,
@@ -74,9 +71,6 @@ def update_grading_config(
     db.commit()
     db.refresh(course)
     return GradingConfigResponse.model_validate(course)
-
-
-# ── Calculated Grades ──────────────────────────────────────────────
 
 
 @router.get(

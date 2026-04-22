@@ -602,6 +602,7 @@ export default function CourseDetail() {
       {id && (
         <div className="mt-6">
           <CertificateCard
+            key={id}
             courseId={id}
             progress={enrollment.progress}
             certificate={certificate}

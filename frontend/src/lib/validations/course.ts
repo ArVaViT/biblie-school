@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { CHAPTER_TYPES as CANONICAL_CHAPTER_TYPES } from "@/lib/chapterTypes"
+import { CHAPTER_TYPES } from "@/lib/chapterTypes"
 
 /**
  * Frontend validation schemas. Ranges intentionally mirror the Pydantic
@@ -14,10 +14,6 @@ const optionalString = (max: number) =>
     .max(max)
     .optional()
     .or(z.literal(""))
-
-// Re-exported from ``@/lib/chapterTypes`` so the Zod schema and the runtime
-// metadata never drift out of sync. Mirrors ``backend/app/schemas/course.py``.
-export const CHAPTER_TYPES = CANONICAL_CHAPTER_TYPES
 
 export const courseSchema = z.object({
   title: z

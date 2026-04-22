@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
+import { useAuth } from "@/context/useAuth"
 import type { Module } from "@/types"
 import {
   ArrowLeft,
@@ -19,6 +20,7 @@ import ChapterTypeBadge from "@/components/course/ChapterTypeBadge"
 
 export default function ModuleView() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>()
+  const { user } = useAuth()
   const [module, setModule] = useState<Module | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +52,7 @@ export default function ModuleView() {
     }
     load()
     return () => { cancelled = true }
-  }, [courseId, moduleId])
+  }, [courseId, moduleId, user?.id])
 
   const sortedChapters = useMemo(
     () => [...(module?.chapters ?? [])].sort((a, b) => a.order_index - b.order_index),

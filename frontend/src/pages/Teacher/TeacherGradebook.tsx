@@ -17,8 +17,6 @@ import {
   Download,
 } from "lucide-react"
 
-// ── Types ───────────────────────────────────────────────────────────
-
 type SortField = "name" | "quiz" | "assignment" | "participation" | "final" | "letter"
 type SortDir = "asc" | "desc"
 type ActiveTab = "summary" | "table"
@@ -66,8 +64,6 @@ interface GradeForm {
   comment: string
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────
-
 const LETTER_ORDER: Record<string, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 }
 
 function letterColor(letter: string) {
@@ -89,8 +85,6 @@ function chapterTypeIcon(type: string) {
     default: return <FileText className="h-3 w-3" />
   }
 }
-
-// ── Main Component ───────────────────────────────────────────────────
 
 export default function TeacherGradebook() {
   const { courseId } = useParams<{ courseId: string }>()
@@ -166,8 +160,6 @@ export default function TeacherGradebook() {
     return () => { signal.cancelled = true }
   }, [load])
 
-  // ── Config save ─────────────────────────────────────────────────
-
   const configTotal = configDraft.quiz_weight + configDraft.assignment_weight + configDraft.participation_weight
   const configValid = configTotal === 100
 
@@ -186,8 +178,6 @@ export default function TeacherGradebook() {
       setSavingConfig(false)
     }
   }
-
-  // ── Manual grade ────────────────────────────────────────────────
 
   const toggleExpand = (userId: string) => {
     if (expandedId === userId) {
@@ -227,8 +217,6 @@ export default function TeacherGradebook() {
     }
   }
 
-  // ── Sorting ─────────────────────────────────────────────────────
-
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"))
@@ -257,8 +245,6 @@ export default function TeacherGradebook() {
     return list
   }, [summary, sortField, sortDir])
 
-  // ── CSV Export ──────────────────────────────────────────────────
-
   const [exporting, setExporting] = useState(false)
 
   const handleExportCSV = async () => {
@@ -280,13 +266,9 @@ export default function TeacherGradebook() {
     }
   }
 
-  // ── Stats ───────────────────────────────────────────────────────
-
   const classAvg = summary?.class_average ?? 0
   const studentCount = summary?.students.length ?? 0
   const gradedCount = manualGrades.size
-
-  // ── Sort header helper ──────────────────────────────────────────
 
   function SortHeader({ field, label, className }: { field: SortField; label: string; className?: string }) {
     const active = sortField === field
@@ -304,8 +286,6 @@ export default function TeacherGradebook() {
       </button>
     )
   }
-
-  // ── Grade Table data ────────────────────────────────────────────
 
   const moduleChapterMap = useMemo(() => {
     if (!progressData) return new Map<string, ChapterInfo[]>()
@@ -344,8 +324,6 @@ export default function TeacherGradebook() {
     if (!progressData) return []
     return [...progressData.students].sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? ""))
   }, [progressData])
-
-  // ── Render ──────────────────────────────────────────────────────
 
   if (loading) {
     return <PageSpinner />
@@ -675,8 +653,6 @@ export default function TeacherGradebook() {
     </div>
   )
 }
-
-// ── Grade Table View ─────────────────────────────────────────────────
 
 interface GradeTableViewProps {
   progressData: ProgressResponse | null

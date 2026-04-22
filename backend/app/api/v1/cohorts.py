@@ -91,7 +91,7 @@ def create_cohort(
     db.add(cohort)
     db.commit()
     db.refresh(cohort)
-    return _cohort_to_response(cohort, _count_students_in_cohort(db, cohort.id))
+    return _cohort_to_response(cohort, 0)
 
 
 @router.put("/{cohort_id}", response_model=CohortResponse)

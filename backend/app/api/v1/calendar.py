@@ -133,10 +133,6 @@ def get_calendar_events(
     return events
 
 
-# ---------------------------------------------------------------------------
-# Teacher CRUD for course events
-# ---------------------------------------------------------------------------
-
 event_router = APIRouter(prefix="/courses", tags=["calendar"])
 
 

@@ -61,11 +61,6 @@ class EnrollRequest(BaseModel):
 router = APIRouter(prefix="/courses", tags=["courses"])
 
 
-# ---------------------------------------------------------------------------
-# Public course endpoints
-# ---------------------------------------------------------------------------
-
-
 @router.get("", response_model=list[CourseSummary])
 def list_courses(
     response: Response,
@@ -190,11 +185,6 @@ def get_module_detail(
     return module
 
 
-# ---------------------------------------------------------------------------
-# Teacher course CRUD
-# ---------------------------------------------------------------------------
-
-
 @router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
 def create_new_course(
     data: CourseCreate,
@@ -254,11 +244,6 @@ def remove_course(
     delete_course(db, course)
 
 
-# ---------------------------------------------------------------------------
-# Course cloning
-# ---------------------------------------------------------------------------
-
-
 @router.post(
     "/{course_id}/clone",
     response_model=CourseResponse,
@@ -288,11 +273,6 @@ def clone_existing_course(
             detail="Failed to clone course",
         )
     return new_course
-
-
-# ---------------------------------------------------------------------------
-# Teacher module CRUD
-# ---------------------------------------------------------------------------
 
 
 @router.post(
@@ -343,11 +323,6 @@ def remove_module(
             detail=f"Module '{module_id}' not found in course '{course_id}'",
         )
     delete_module(db, module)
-
-
-# ---------------------------------------------------------------------------
-# Teacher chapter CRUD
-# ---------------------------------------------------------------------------
 
 
 @router.post(
@@ -423,11 +398,6 @@ def remove_chapter(
     delete_chapter(db, chapter)
 
 
-# ---------------------------------------------------------------------------
-# Enrollment
-# ---------------------------------------------------------------------------
-
-
 @router.post("/{course_id}/enroll", response_model=EnrollmentResponse)
 def enroll_course(
     course_id: str,
@@ -498,11 +468,6 @@ def enroll_course(
         request=request,
     )
     return enrollment
-
-
-# ---------------------------------------------------------------------------
-# Soft delete: restore & permanent delete
-# ---------------------------------------------------------------------------
 
 
 @router.post("/{course_id}/restore", response_model=CourseResponse)

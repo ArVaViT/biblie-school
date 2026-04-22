@@ -21,10 +21,6 @@ from app.schemas.course import (
     ModuleUpdate,
 )
 
-# ---------------------------------------------------------------------------
-# Courses
-# ---------------------------------------------------------------------------
-
 
 def _summary_load_options():
     """Eager-load modules+chapters but SKIP the big ``Chapter.content`` column.
@@ -135,11 +131,6 @@ def permanently_delete_course(db: Session, course: Course) -> None:
     db.commit()
 
 
-# ---------------------------------------------------------------------------
-# Modules
-# ---------------------------------------------------------------------------
-
-
 def get_module(db: Session, course_id: str, module_id: str) -> Module | None:
     return (
         db.query(Module)
@@ -193,11 +184,6 @@ def delete_module(db: Session, module: Module) -> None:
     for chapter in module.chapters:
         chapter.deleted_at = now
     db.commit()
-
-
-# ---------------------------------------------------------------------------
-# Chapters
-# ---------------------------------------------------------------------------
 
 
 def get_chapter(db: Session, course_id: str, module_id: str, chapter_id: str) -> Chapter | None:
@@ -256,11 +242,6 @@ def update_chapter(db: Session, chapter: Chapter, data: ChapterUpdate) -> Chapte
 def delete_chapter(db: Session, chapter: Chapter) -> None:
     chapter.deleted_at = datetime.now(UTC)
     db.commit()
-
-
-# ---------------------------------------------------------------------------
-# Enrollments
-# ---------------------------------------------------------------------------
 
 
 def enroll_user_in_course(db: Session, user_id: str, course_id: str, cohort_id: str | None = None) -> Enrollment:
@@ -350,11 +331,6 @@ def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrol
         enrollment.progress = round((completed_gradable / total_gradable) * 100)
     db.flush()
     return enrollment
-
-
-# ---------------------------------------------------------------------------
-# Course cloning
-# ---------------------------------------------------------------------------
 
 
 def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Course | None:

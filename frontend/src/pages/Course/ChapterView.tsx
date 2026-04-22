@@ -4,6 +4,7 @@ import { sanitizeHtml as sanitize } from "@/lib/sanitize"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
+import { useAuth } from "@/context/useAuth"
 import type { Module, Chapter, ChapterBlock } from "@/types"
 import {
   ArrowLeft,
@@ -232,6 +233,7 @@ export default function ChapterView() {
     moduleId: string
     chapterId: string
   }>()
+  const { user } = useAuth()
 
   const [mod, setMod] = useState<Module | null>(null)
   const [loading, setLoading] = useState(true)
@@ -268,7 +270,7 @@ export default function ChapterView() {
     }
     load()
     return () => { cancelled = true }
-  }, [courseId, moduleId])
+  }, [courseId, moduleId, user?.id])
 
   const sortedChapters = useMemo(
     () => [...(mod?.chapters ?? [])].sort((a, b) => a.order_index - b.order_index),

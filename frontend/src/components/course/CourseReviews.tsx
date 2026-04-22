@@ -16,17 +16,21 @@ export default function CourseReviews({ courseId }: Props) {
   const { user } = useAuth()
   const [reviews, setReviews] = useState<CourseReview[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const loadReviews = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoading(true)
+    setLoadError(false)
     try {
       const data = await coursesService.getCourseReviews(courseId)
       if (signal?.cancelled) return
       setReviews(data)
     } catch {
-      if (!signal?.cancelled) toast({ title: "Failed to load reviews", variant: "destructive" })
+      if (signal?.cancelled) return
+      setLoadError(true)
+      toast({ title: "Failed to load reviews", variant: "destructive" })
     } finally {
       if (!signal?.cancelled) setLoading(false)
     }
@@ -83,6 +87,13 @@ export default function CourseReviews({ courseId }: Props) {
       <CardContent className="space-y-6">
         {loading ? (
           <PageSpinner variant="section" />
+        ) : loadError ? (
+          <div className="flex flex-col items-center gap-2 py-8">
+            <p className="text-sm text-muted-foreground">Couldn't load reviews.</p>
+            <Button variant="outline" size="sm" onClick={() => loadReviews()}>
+              Retry
+            </Button>
+          </div>
         ) : reviews.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             No reviews yet.

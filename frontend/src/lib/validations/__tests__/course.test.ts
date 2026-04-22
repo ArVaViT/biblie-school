@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest"
 import {
-  CHAPTER_TYPES,
   chapterSchema,
   courseSchema,
   moduleSchema,
   profileSchema,
 } from "../course"
+import { CHAPTER_TYPES } from "@/lib/chapterTypes"
 
 describe("courseSchema", () => {
   it("accepts a valid minimal course", () => {
