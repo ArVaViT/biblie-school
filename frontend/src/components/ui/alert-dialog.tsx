@@ -1,23 +1,113 @@
 import * as React from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "./buttonVariants"
+
+const AlertDialog = AlertDialogPrimitive.Root
+const AlertDialogTrigger = AlertDialogPrimitive.Trigger
+const AlertDialogPortal = AlertDialogPrimitive.Portal
+
+const AlertDialogOverlay = React.forwardRef<
+  React.ComponentRef<typeof AlertDialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Overlay
+    ref={ref}
+    className={cn(
+      "fixed inset-0 z-50 bg-black/70 backdrop-blur-[1px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className,
+    )}
+    {...props}
+  />
+))
+AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
+
+const AlertDialogContent = React.forwardRef<
+  React.ComponentRef<typeof AlertDialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPortal>
+    <AlertDialogOverlay />
+    <AlertDialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 shadow-lg sm:rounded-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        className,
+      )}
+      {...props}
+    />
+  </AlertDialogPortal>
+))
+AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
+
+function AlertDialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("flex flex-col gap-1.5 text-left", className)} {...props} />
+}
+
+function AlertDialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+      {...props}
+    />
+  )
+}
+
+const AlertDialogTitle = React.forwardRef<
+  React.ComponentRef<typeof AlertDialogPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Title
+    ref={ref}
+    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+    {...props}
+  />
+))
+AlertDialogTitle.displayName = AlertDialogPrimitive.Title.displayName
+
+const AlertDialogDescription = React.forwardRef<
+  React.ComponentRef<typeof AlertDialogPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Description
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName
+
+const AlertDialogAction = React.forwardRef<
+  React.ComponentRef<typeof AlertDialogPrimitive.Action>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> & {
+    variant?: "default" | "destructive"
+  }
+>(({ className, variant = "default", ...props }, ref) => (
+  <AlertDialogPrimitive.Action
+    ref={ref}
+    className={cn(buttonVariants({ variant }), className)}
+    {...props}
+  />
+))
+AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName
+
+const AlertDialogCancel = React.forwardRef<
+  React.ComponentRef<typeof AlertDialogPrimitive.Cancel>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Cancel
+    ref={ref}
+    className={cn(buttonVariants({ variant: "outline" }), className)}
+    {...props}
+  />
+))
+AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName
 
 export interface ConfirmOptions {
   title: string
   description?: string
   confirmLabel?: string
   cancelLabel?: string
-  /**
-   * When "destructive", the confirm button uses the destructive variant. This
-   * is the default for delete flows.
-   */
   tone?: "default" | "destructive"
 }
 
@@ -26,19 +116,12 @@ interface ConfirmState extends ConfirmOptions {
   resolve?: (value: boolean) => void
 }
 
-const ConfirmContext = React.createContext<(opts: ConfirmOptions) => Promise<boolean>>(async () => false)
+const ConfirmContext = React.createContext<(opts: ConfirmOptions) => Promise<boolean>>(
+  async () => false,
+)
 
-/**
- * Provider that renders a single shared AlertDialog and exposes `useConfirm()`.
- * The underlying Radix Dialog provides focus-trapping, ESC-to-close, and
- * restoration of focus to the trigger element — replacing native
- * `window.confirm` which is synchronous and bypasses the event loop.
- */
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = React.useState<ConfirmState>({
-    open: false,
-    title: "",
-  })
+  const [state, setState] = React.useState<ConfirmState>({ open: false, title: "" })
 
   const confirm = React.useCallback(
     (opts: ConfirmOptions) =>
@@ -59,34 +142,34 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      <Dialog
+      <AlertDialog
         open={state.open}
         onOpenChange={(open) => {
           if (!open) handleDone(false)
         }}
       >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{state.title}</DialogTitle>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{state.title}</AlertDialogTitle>
             {state.description && (
-              <DialogDescription className="whitespace-pre-line">
+              <AlertDialogDescription className="whitespace-pre-line">
                 {state.description}
-              </DialogDescription>
+              </AlertDialogDescription>
             )}
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => handleDone(false)} autoFocus>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => handleDone(false)}>
               {state.cancelLabel ?? "Cancel"}
-            </Button>
-            <Button
+            </AlertDialogCancel>
+            <AlertDialogAction
               variant={state.tone === "destructive" ? "destructive" : "default"}
               onClick={() => handleDone(true)}
             >
               {state.confirmLabel ?? "Confirm"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ConfirmContext.Provider>
   )
 }
@@ -94,4 +177,16 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 // eslint-disable-next-line react-refresh/only-export-components
 export function useConfirm() {
   return React.useContext(ConfirmContext)
+}
+
+export {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
 }
