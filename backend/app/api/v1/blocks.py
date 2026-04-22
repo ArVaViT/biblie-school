@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, require_teacher, verify_chapter_access, verify_chapter_owner
 from app.core.database import get_db
+from app.core.sanitize import sanitize_string
 from app.models.chapter_block import ChapterBlock
 from app.models.user import User
 from app.schemas.chapter_block import BlockCreate, BlockReorderItem, BlockResponse, BlockUpdate
@@ -31,11 +32,16 @@ def create_block(
     db: Session = Depends(get_db),
 ):
     verify_chapter_owner(db, chapter_id, teacher)
+    # Defence-in-depth: the frontend runs DOMPurify before sending, but a
+    # direct API caller can bypass that. We re-sanitize here so stored block
+    # HTML is safe to render for every downstream consumer (admin preview,
+    # exports, emailed digests) — not only the main React app.
+    content = sanitize_string(data.content) if data.content else data.content
     block = ChapterBlock(
         chapter_id=chapter_id,
         block_type=data.block_type,
         order_index=data.order_index,
-        content=data.content,
+        content=content,
         quiz_id=data.quiz_id,
         assignment_id=data.assignment_id,
         file_url=data.file_url,
@@ -68,6 +74,8 @@ def update_block(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
     verify_chapter_owner(db, block.chapter_id, teacher)
     for field, value in data.model_dump(exclude_unset=True).items():
+        if field == "content" and value:
+            value = sanitize_string(value)
         setattr(block, field, value)
     try:
         db.commit()

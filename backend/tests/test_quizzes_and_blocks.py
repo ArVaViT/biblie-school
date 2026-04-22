@@ -299,6 +299,22 @@ def test_update_block_anon_unauthorized(anon_client: TestClient):
     assert resp.status_code == 401
 
 
+def test_create_block_sanitizes_html_server_side(client: TestClient, db: Session):
+    """A direct API caller bypasses the frontend's DOMPurify. The server
+    must still strip ``<script>`` and event handlers before persisting."""
+    _seed_course(db)
+    malicious = "<p>ok</p><script>alert('xss')</script><img src=x onerror=alert(1)>"
+    resp = client.post(
+        "/api/v1/blocks/chapter/ch-1",
+        json={"block_type": "text", "order_index": 0, "content": malicious},
+    )
+    assert resp.status_code == 201
+    stored = resp.json()["content"]
+    assert "<script>" not in stored
+    assert "onerror" not in stored
+    assert "<p>ok</p>" in stored
+
+
 # ── DELETE /api/v1/blocks/{block_id} ──────────────────────────────────────
 
 
