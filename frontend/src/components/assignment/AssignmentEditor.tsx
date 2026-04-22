@@ -468,7 +468,7 @@ function SubmissionGrader({
         </div>
 
         {submission.content && (
-          <div className="rounded bg-background p-2 text-sm whitespace-pre-wrap border">
+          <div className="rounded border bg-background p-2 text-sm whitespace-pre-wrap text-wrap-safe">
             {submission.content}
           </div>
         )}

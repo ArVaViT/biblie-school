@@ -25,7 +25,7 @@ export default function AnnouncementBanner() {
     <div className="border-b border-border bg-muted/40">
       <div className="container mx-auto flex items-center gap-3 px-4 py-2.5">
         <Megaphone className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 text-wrap-safe">
           <span className="text-sm font-medium text-foreground">{announcement.title}</span>
           {announcement.content && (
             <span className="ml-2 text-sm text-muted-foreground">

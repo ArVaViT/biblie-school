@@ -404,8 +404,10 @@ export default function ChapterView() {
         <div className="mb-3">
           <ChapterTypeBadge type={chapterType} />
         </div>
-        <h1 className="text-3xl font-bold font-serif tracking-tight mb-1">{chapter.title}</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="mb-1 font-serif text-3xl font-bold tracking-tight text-wrap-safe">
+          {chapter.title}
+        </h1>
+        <p className="text-sm text-muted-foreground text-wrap-safe">
           Chapter {currentIdx + 1} of {sortedChapters.length}
           {mod.title && <> &middot; {mod.title}</>}
         </p>

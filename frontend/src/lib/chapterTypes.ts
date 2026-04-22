@@ -112,7 +112,7 @@ export const CHAPTER_TYPE_META: Record<ChapterType, ChapterTypeMeta> = {
 }
 
 /** Chapter types whose completion gates the next chapter when ``is_locked`` is on. */
-export const GRADABLE_CHAPTER_TYPES: ReadonlySet<ChapterType> = new Set([
+const GRADABLE_CHAPTER_TYPES: ReadonlySet<ChapterType> = new Set([
   "quiz",
   "exam",
   "assignment",

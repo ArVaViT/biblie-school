@@ -140,11 +140,13 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
     <div className="border rounded-lg bg-card mt-6">
       <div className="p-5 border-b">
         <div className="flex items-center gap-2 mb-1">
-          <ClipboardList className="h-5 w-5 text-muted-foreground" />
-          <h3 className="font-semibold text-base">{quiz.title}</h3>
+          <ClipboardList className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <h3 className="min-w-0 flex-1 text-base font-semibold text-wrap-safe">{quiz.title}</h3>
         </div>
         {quiz.description && (
-          <p className="text-sm text-muted-foreground ml-7">{quiz.description}</p>
+          <p className="ml-7 text-sm text-muted-foreground text-wrap-safe whitespace-pre-line">
+            {quiz.description}
+          </p>
         )}
         <div className="flex items-center gap-4 ml-7 mt-2 text-xs text-muted-foreground">
           <span>{sortedQuestions.length} question{sortedQuestions.length !== 1 ? "s" : ""}</span>
@@ -284,11 +286,11 @@ function QuestionCard({
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-2">
-        <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0 mt-0.5">
+        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
           {index + 1}
         </span>
-        <div>
-          <p className="text-sm font-medium">{question.question_text}</p>
+        <div className="min-w-0 flex-1 text-wrap-safe">
+          <p className="text-sm font-medium whitespace-pre-line">{question.question_text}</p>
           <span className="text-xs text-muted-foreground">{question.points} pt{question.points !== 1 ? "s" : ""}</span>
         </div>
       </div>
@@ -415,12 +417,14 @@ function ResultsView({
               }`}
             >
               <div className="flex items-start gap-2 mb-2">
-                <span className="flex items-center justify-center h-5 w-5 rounded-full bg-muted text-xs font-semibold shrink-0">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                   {idx + 1}
                 </span>
-                <p className="text-sm font-medium">{q.question_text}</p>
+                <p className="min-w-0 flex-1 text-sm font-medium text-wrap-safe whitespace-pre-line">
+                  {q.question_text}
+                </p>
                 {isCorrect !== null && (
-                  <span className="ml-auto shrink-0">
+                  <span className="shrink-0">
                     {isCorrect ? (
                       <CheckCircle className="h-4 w-4 text-success" />
                     ) : (

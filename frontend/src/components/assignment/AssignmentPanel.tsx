@@ -193,14 +193,14 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
                   <MessageSquare className="h-3 w-3" />
                   Instructor Feedback
                 </div>
-                <p className="text-sm">{submission.feedback}</p>
+                <p className="text-sm text-wrap-safe whitespace-pre-wrap">{submission.feedback}</p>
               </div>
             )}
 
             {submission.content && (
               <div className="rounded-md border bg-muted/30 p-3">
                 <p className="text-xs font-medium text-muted-foreground mb-1">Your Submission</p>
-                <p className="text-sm whitespace-pre-wrap">{submission.content}</p>
+                <p className="text-sm text-wrap-safe whitespace-pre-wrap">{submission.content}</p>
               </div>
             )}
           </div>

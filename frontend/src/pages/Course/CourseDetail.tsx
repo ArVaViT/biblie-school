@@ -15,6 +15,7 @@ import CourseAnnouncements from "@/components/announcements/CourseAnnouncements"
 import CourseReviews from "@/components/course/CourseReviews"
 import CertificateCard from "@/components/course/CertificateCard"
 import { Badge } from "@/components/ui/badge"
+import { Modal } from "@/components/patterns"
 import { toProxyImage } from "@/lib/images"
 
 interface CourseMaterial {
@@ -26,23 +27,6 @@ interface CourseMaterial {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
-}
-
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-
-function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
-  // See CourseEditor.Modal — delegates to Radix Dialog for accessible focus
-  // trapping and keyboard handling.
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-serif">{title}</DialogTitle>
-        </DialogHeader>
-        <div className="pt-2">{children}</div>
-      </DialogContent>
-    </Dialog>
-  )
 }
 
 function getCohortEnrollmentStatus(cohort: Cohort) {
@@ -123,9 +107,8 @@ export default function CourseDetail() {
     }
     load()
     return () => { cancelled = true }
-    // Reload only when identity changes, not on every `user` object reference.
-    // Supabase rewrites the whole object on every TOKEN_REFRESHED tick, which
-    // used to refetch the entire course detail every ~55 minutes mid-session.
+    // Reload only when user identity changes — Supabase rewrites `user` on
+    // every TOKEN_REFRESHED tick, which would otherwise refetch mid-session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user?.id])
 
@@ -255,12 +238,12 @@ export default function CourseDetail() {
           </div>
         )}
 
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight mb-3 text-wrap-safe">
           {course.title}
         </h1>
 
         {course.description && (
-          <p className="text-muted-foreground leading-relaxed mb-6">
+          <p className="text-muted-foreground leading-relaxed mb-6 whitespace-pre-line text-wrap-safe">
             {course.description}
           </p>
         )}
@@ -408,7 +391,7 @@ export default function CourseDetail() {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1 text-wrap-safe">
             {course.title}
           </h1>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -529,7 +512,7 @@ export default function CourseDetail() {
                 >
                   <CardHeader className="py-3 px-4">
                     <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                      <CardTitle className="flex min-w-0 items-center gap-2 text-sm font-medium">
                         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                           isLocked
                             ? "bg-muted text-muted-foreground"
@@ -539,8 +522,8 @@ export default function CourseDetail() {
                         }`}>
                           {isLocked ? <Lock className="h-3 w-3" /> : allComplete ? <CheckCircle className="h-3 w-3" /> : idx + 1}
                         </span>
-                        <span className="truncate">{module.title}</span>
-                        <span className="text-xs font-normal text-muted-foreground whitespace-nowrap">
+                        <span className="min-w-0 flex-1 truncate">{module.title}</span>
+                        <span className="shrink-0 whitespace-nowrap text-xs font-normal text-muted-foreground">
                           {gradableCount > 0 ? `${completedInModule}/${gradableCount}` : `${chapters.length} ch.`}
                         </span>
                       </CardTitle>
@@ -565,7 +548,7 @@ export default function CourseDetail() {
                       </p>
                     )}
                     {module.description && (
-                      <CardDescription className="text-xs ml-8 mt-0.5">
+                      <CardDescription className="ml-8 mt-0.5 text-xs text-wrap-safe">
                         {module.description}
                       </CardDescription>
                     )}

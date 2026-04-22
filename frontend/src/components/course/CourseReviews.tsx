@@ -151,7 +151,7 @@ export default function CourseReviews({ courseId }: Props) {
                   </div>
                 </div>
                 {review.comment && (
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-sm leading-relaxed text-muted-foreground text-wrap-safe whitespace-pre-line">
                     {review.comment}
                   </p>
                 )}

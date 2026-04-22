@@ -191,6 +191,8 @@ export function InlineEdit({
       <span className={cn("inline-block w-full", className)}>
         <span
           className={cn(
+            "text-wrap-safe",
+            multiline && "whitespace-pre-line",
             sizeClasses[size],
             isEmpty && "text-muted-foreground italic",
             textClassName,
@@ -209,7 +211,8 @@ export function InlineEdit({
         onClick={start}
         aria-label={ariaLabel ?? `Edit ${placeholder.toLowerCase()}`}
         className={cn(
-          "flex-1 min-w-0 cursor-text rounded-md px-2 py-1 text-left transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "flex-1 min-w-0 cursor-text rounded-md px-2 py-1 text-left transition-colors text-wrap-safe hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          multiline && "whitespace-pre-line",
           sizeClasses[size],
           isEmpty && "text-muted-foreground italic",
           textClassName,

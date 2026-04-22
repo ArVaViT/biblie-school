@@ -76,9 +76,11 @@ function CourseCard({ course }: CourseCardProps) {
           )}
         </div>
         <CardHeader className="pb-2">
-          <CardTitle className="font-serif text-lg leading-snug line-clamp-2">{course.title}</CardTitle>
+          <CardTitle className="font-serif text-lg leading-snug line-clamp-2 text-wrap-safe">
+            {course.title}
+          </CardTitle>
           {course.description && (
-            <CardDescription className="line-clamp-2 text-xs leading-relaxed">
+            <CardDescription className="line-clamp-2 text-xs leading-relaxed text-wrap-safe">
               {course.description}
             </CardDescription>
           )}

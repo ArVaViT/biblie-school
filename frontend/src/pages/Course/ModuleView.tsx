@@ -107,9 +107,11 @@ export default function ModuleView() {
       </Link>
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight mb-1">{module.title}</h1>
+        <h1 className="mb-1 text-2xl font-bold tracking-tight text-wrap-safe">{module.title}</h1>
         {module.description && (
-          <p className="text-sm text-muted-foreground leading-relaxed">{module.description}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground text-wrap-safe whitespace-pre-line">
+            {module.description}
+          </p>
         )}
       </div>
 
@@ -192,13 +194,15 @@ export default function ModuleView() {
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center gap-2">
+                      <CardTitle className="flex min-w-0 items-center gap-2 text-base">
                         <Lock className="h-5 w-5 text-muted-foreground/50 shrink-0" />
-                        <span className="text-muted-foreground">{chapter.title}</span>
+                        <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                          {chapter.title}
+                        </span>
                         {chapter.chapter_type && (
                           <ChapterTypeBadge type={chapter.chapter_type} size="sm" />
                         )}
-                        <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground/30 shrink-0" />
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" />
                       </CardTitle>
                     </CardHeader>
                   </Card>
@@ -216,7 +220,7 @@ export default function ModuleView() {
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center gap-2">
+                      <CardTitle className="flex min-w-0 items-center gap-2 text-base">
                         {isGradable ? (
                           isCompleted ? (
                             <CheckCircle className="h-5 w-5 shrink-0 text-success" />
@@ -226,13 +230,13 @@ export default function ModuleView() {
                             <Circle className="h-5 w-5 shrink-0 text-muted-foreground/40" />
                           )
                         ) : null}
-                        <span className={isCompleted ? "text-muted-foreground" : ""}>
+                        <span className={`min-w-0 flex-1 truncate ${isCompleted ? "text-muted-foreground" : ""}`}>
                           {chapter.title}
                         </span>
                         {chapter.chapter_type && (
                           <ChapterTypeBadge type={chapter.chapter_type} size="sm" />
                         )}
-                        <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground/40 shrink-0" />
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/40" />
                       </CardTitle>
                     </CardHeader>
                   </Card>

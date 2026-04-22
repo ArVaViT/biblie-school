@@ -113,6 +113,14 @@
     from { width: 0; }
     to { width: 100%; }
   }
+  /* Safe wrapping for any user-entered text — breaks unbroken long
+     strings (URLs, pasted tokens, keysmash) at ANY character rather
+     than overflowing its container. Use on every surface that renders
+     user content (titles, descriptions, usernames, etc.). */
+  .text-wrap-safe {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
 }
 
 /* ===== Prose — editorial reader =====
@@ -122,6 +130,7 @@
 .prose {
   @apply text-foreground;
   max-width: 68ch;
+  overflow-wrap: anywhere;
 }
 .prose h1 { @apply font-serif text-3xl font-semibold tracking-tight mt-10 mb-4; }
 .prose h2 { @apply font-serif text-2xl font-semibold tracking-tight mt-8 mb-3; }

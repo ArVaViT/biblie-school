@@ -24,30 +24,9 @@ import {
   Download, Paperclip, Users, CheckCircle, CalendarDays, GripVertical,
   MoreHorizontal, Pencil,
 } from "lucide-react"
-import { InlineEdit } from "@/components/patterns/InlineEdit"
-import { InlineEditCover } from "@/components/patterns/InlineEditCover"
-import { PageHeader } from "@/components/patterns/PageHeader"
-import { EmptyState } from "@/components/patterns/EmptyState"
+import { InlineEdit, InlineEditCover, PageHeader, EmptyState, Modal } from "@/components/patterns"
 
 interface MaterialFile { name: string; path: string; size?: number }
-
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-
-function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
-  // Radix Dialog already provides a focus trap, ESC-to-close, outside-click
-  // dismissal, and inert backdrop — all behaviours the hand-rolled version
-  // was missing.
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-serif">{title}</DialogTitle>
-        </DialogHeader>
-        <div className="pt-2">{children}</div>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 function StatusBadge({ start, end }: { start: string; end: string }) {
   if (!start && !end) return <Badge variant="muted">Not set</Badge>
@@ -612,8 +591,12 @@ export default function CourseEditor() {
                 <div key={a.id} className="flex items-start gap-3 p-3 border rounded-lg">
                   <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-info" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{a.title}</p>
-                    {a.content && <p className="text-xs text-muted-foreground mt-0.5">{a.content}</p>}
+                    <p className="text-sm font-medium text-wrap-safe">{a.title}</p>
+                    {a.content && (
+                      <p className="mt-0.5 text-xs text-muted-foreground text-wrap-safe whitespace-pre-line">
+                        {a.content}
+                      </p>
+                    )}
                     <time className="text-[10px] text-muted-foreground/60 mt-1 block">{new Date(a.created_at).toLocaleString()}</time>
                   </div>
                   <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0" onClick={() => deleteAnn(a.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
