@@ -13,7 +13,6 @@ from app.models.certificate import Certificate
 from app.models.chapter_progress import ChapterProgress
 from app.models.course import Course
 from app.models.enrollment import Enrollment
-from app.models.file import File
 from app.models.notification import Notification
 from app.models.quiz import QuizAnswer, QuizAttempt
 from app.models.review import CourseReview
@@ -87,11 +86,6 @@ def delete_my_account(
 
         db.query(Course).filter(Course.created_by == uid).update(
             {Course.created_by: None},
-            synchronize_session=False,
-        )
-
-        db.query(File).filter(File.user_id == uid).update(
-            {File.user_id: None},
             synchronize_session=False,
         )
 

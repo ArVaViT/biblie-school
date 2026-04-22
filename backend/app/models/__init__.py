@@ -8,7 +8,6 @@ from app.models.cohort import Cohort
 from app.models.course import Chapter, Course, Module
 from app.models.course_event import CourseEvent
 from app.models.enrollment import Enrollment
-from app.models.file import File
 from app.models.notification import Notification
 from app.models.prerequisite import CoursePrerequisite
 from app.models.quiz import Quiz, QuizAnswer, QuizAttempt, QuizOption, QuizQuestion
@@ -31,7 +30,6 @@ __all__ = [
     "CoursePrerequisite",
     "CourseReview",
     "Enrollment",
-    "File",
     "Module",
     "Notification",
     "Quiz",

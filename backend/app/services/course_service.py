@@ -116,9 +116,6 @@ def restore_course(db: Session, course: Course) -> Course:
 
 
 def permanently_delete_course(db: Session, course: Course) -> None:
-    from app.models.file import File
-
-    db.query(File).filter(File.course_id == course.id).update({File.course_id: None}, synchronize_session=False)
     db.delete(course)
     db.commit()
 

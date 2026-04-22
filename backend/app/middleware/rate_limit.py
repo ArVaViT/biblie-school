@@ -20,10 +20,9 @@ We considered three strategies for rate limiting in this deployment:
    the recommended hard limit for `/api/v1/auth/*` in production. Configure
    via Vercel Dashboard → Firewall → Rate Limit Rules:
        - 10 requests / 60s for `/api/v1/auth/login` and `/auth/register`
-       - 20 requests / 60s for `/api/v1/files/upload`
 
 Decision: keep this in-memory limiter as per-instance defense, point
-production at Vercel WAF for the hard auth/file limits, and revisit
+production at Vercel WAF for the hard auth limits, and revisit
 Upstash if the user count crosses 1000 active/day.
 
 ## IP detection

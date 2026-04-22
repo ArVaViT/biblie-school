@@ -11,11 +11,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
     SUPABASE_URL: str
-    # Server-side Supabase key (storage uploads, admin queries). Also read
-    # from the legacy SUPABASE_KEY env var for backwards compatibility with
-    # early deployments — see load_alternative_env_vars() below.
+    # Server-side Supabase key (admin queries only — e.g. reading auth.users
+    # to sync ``profiles`` rows). Also read from the legacy SUPABASE_KEY env
+    # var for backwards compatibility with early deployments — see
+    # load_alternative_env_vars() below.
     SUPABASE_SERVICE_ROLE_KEY: str | None = Field(default=None, description="Supabase service-role key (server-only)")
-    SUPABASE_STORAGE_BUCKET: str = "files"
 
     DATABASE_URL: str | None = Field(default=None, description="Database connection URL")
 

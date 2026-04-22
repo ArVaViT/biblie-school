@@ -110,31 +110,25 @@ chapters = relationship(
 
 ---
 
-## 5. 🟡 Medium — Два не совпадающих пути загрузки файлов
+## 5. ✅ **RESOLVED** 🟡 Medium — Два не совпадающих пути загрузки файлов
 
-**Где:**
-- Фронт (`frontend/src/services/storage.ts`) грузит аватары/обложки/материалы **напрямую в Supabase Storage** через `supabase-js`, JWT пользователя.
-- Бэк (`backend/app/api/v1/files.py`, `POST /api/v1/files/upload`) принимает файл и пишет его **service-role ключом**, с magic-bytes-валидацией и проверкой `course_id` на владельца.
-
-**Проблема:** строгая проверка magic bytes и размера **применяется только** к бэкенд-пути, а все реальные загрузки учителя идут мимо него. Правило «только владелец курса или teacher/admin может писать» на бэке есть, но в Storage оно повторяется через политики — два источника правды, из которых один легко забыть обновить.
-
-**Рекомендация:** зафиксировать один путь. Если оставляем прямую заливку в Storage — перенести magic-bytes-валидацию в Edge Function или в post-upload хук. Если оставляем бэк — отключить прямую заливку в фронте.
+**Fix:** бэкенд-эндпоинт `POST /api/v1/files/upload` вместе с `file_service.py`, моделью `File`, таблицей `public.files` (была пуста в Supabase), `SUPABASE_STORAGE_BUCKET` и тестами удалён. Frontend и так никогда его не звал — все реальные загрузки (аватары, обложки, материалы, inline-картинки) идут напрямую в Supabase Storage из `frontend/src/services/storage.ts` по JWT пользователя. Два источника правды схлопнулись в один. Magic-byte-валидация была защитой на мёртвом пути, так что её удаление не меняет реальный уровень безопасности; Supabase Storage RLS-политики на бакетах `avatars` / `course-assets` / `course-materials` по-прежнему контролируют доступ.
 
 ---
 
-## 6. 🟡 Medium — `POST /api/v1/files/upload` не возвращает стабильный URL
+## 6. 🟠 High — `createSignedUrl` со сроком 1 час → ссылки на материалы протухают
 
-**Где:** эндпоинт отдаёт `{id, name, url, file_type}` без указания, публичный URL это, подписанный или signed-to-expire. У `storage.ts` для бакета `course-materials` стоит `expiresIn: 3600` → через час ссылка умирает.
+**Где:** `frontend/src/services/storage.ts::uploadCourseMaterial` и `getSignedMaterialUrl` просят Supabase signed URL с `expiresIn: 3600`.
 
-**Что видит учитель:** загружаю PDF, вставляю ссылку в блок «file» урока, через час студенты видят `Unauthorized`.
+**Что видит учитель:** загружаю PDF, вставляю ссылку в блок `file` главы. Через час студент получает `Unauthorized` при клике по той же ссылке.
 
-**Обход в сидере:** я прошу Supabase signed URL с `expiresIn: 60*60*24*365` (год). Это не решение, а откладывание проблемы.
+**Почему так сложилось:** лениво. Прямо сейчас всё, что учитель прикладывает — хостится в приватном бакете. Правильный URL можно подписать только на ~7 дней максимум (ограничение Supabase) и продлевать сервер-сайд.
 
-**Рекомендация:**
+**Рекомендация (сохраняется):**
 
-- в UI блока «file» — не хранить прямую URL, хранить `{bucket, object_path}` и генерировать свежий signed URL при каждом клике студента;
-- или перевести `course-materials` в публичный бакет с подписанной raw-URL;
-- и возвращать из `POST /files/upload` поля `{bucket, object_path, url_type, expires_at}`.
+- Блок `file` в БД хранит `{bucket, object_path}`, а не подписанный URL.
+- При рендере главы фронт запрашивает свежий signed URL у бэкенда (один короткий эндпоинт или через расширенный `GET /blocks/chapter/{id}`), и он выдаётся с коротким TTL на запрос.
+- Перевести `course-materials` в публичный бакет и хранить прямой публичный URL — тоже валидный вариант, но ломает приватность загруженных материалов.
 
 ---
 
@@ -238,4 +232,9 @@ async def upload_file(
 - Удалена папка `scripts/` целиком: `seed_acts_course.py`, `acts_content.py`, `build_sources_pdf.py`, `assets/acts_sources.{md,pdf}` и `ruff.toml`. Курсы создаются руками через UI, одноразовый сидер «Деяний» в репозитории не нужен.
 - `scripts/PLATFORM_ISSUES.md` перенесён в `docs/PLATFORM_ISSUES.md` — это документация, не исполняемый код.
 - Pt1 помечен **OBSOLETE**: программная авторизация скриптов больше не нужна.
-- Открытыми остаются архитектурные: **Pt5**, **Pt6**, **Pt11**, **Pt12**.
+
+**2026-04-22 (сессия repo cleanup, продолжение):**
+
+- Добавлен серверный sanitize на путь `POST /blocks/chapter/{id}` и `PUT /blocks/{id}`. Прямой API-вызов уже не может сохранить `<script>` в `chapter_blocks.content`.
+- **Pt5 RESOLVED**: удалён дохлый backend-путь `POST /api/v1/files/upload` со всей обвязкой (эндпоинт, `file_service.py`, модель `File`, таблица `public.files` в Supabase, `SUPABASE_STORAGE_BUCKET`, тесты, ссылки в `.env.example` и `rate_limit.py`). Фронт его никогда не звал, прод-таблица была пуста. Миграция `030_drop_files_table`.
+- Открытыми остаются: **Pt6** (подписанные URL на материалы протухают через час), **Pt11** (нет `essay` как типа вопроса), **Pt12** (signed URL в `file_url` блока завязан на текущий Supabase-секрет).

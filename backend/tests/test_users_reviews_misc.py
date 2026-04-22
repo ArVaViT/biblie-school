@@ -1,9 +1,8 @@
 """Comprehensive tests for Users, Reviews, Prerequisites, Analytics,
-Files, Health, Audit, and Modules/Chapters endpoints.
+Health, Audit, and Modules/Chapters endpoints.
 """
 
 import uuid
-from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -565,59 +564,6 @@ class TestCourseAnalytics:
         assert body["total_students"] == 0
         assert body["avg_progress"] == 0.0
         assert body["completion_count"] == 0
-
-
-# ===================================================================
-# FILES — POST /api/v1/files/upload
-# ===================================================================
-
-
-class TestFileUpload:
-    def test_upload_pdf(self, client: TestClient, db: Session):
-        fake_meta = MagicMock()
-        fake_meta.id = "file-1"
-        fake_meta.name = "test.pdf"
-        fake_meta.url = "https://storage.example.com/test.pdf"
-        fake_meta.file_type = "application/pdf"
-
-        with patch("app.api.v1.files.upload_file_to_storage", return_value=fake_meta):
-            resp = client.post(
-                "/api/v1/files/upload",
-                files={"file": ("test.pdf", b"%PDF-1.4 test content", "application/pdf")},
-            )
-        assert resp.status_code == 200
-        body = resp.json()
-        assert body["id"] == "file-1"
-        assert body["name"] == "test.pdf"
-
-    def test_unsupported_mime_type_rejected(self, client: TestClient):
-        resp = client.post(
-            "/api/v1/files/upload",
-            files={"file": ("evil.exe", b"MZ\x00\x00", "application/x-msdownload")},
-        )
-        assert resp.status_code == 415
-
-    def test_upload_image(self, client: TestClient, db: Session):
-        fake_meta = MagicMock()
-        fake_meta.id = "file-2"
-        fake_meta.name = "photo.png"
-        fake_meta.url = "https://storage.example.com/photo.png"
-        fake_meta.file_type = "image/png"
-
-        with patch("app.api.v1.files.upload_file_to_storage", return_value=fake_meta):
-            resp = client.post(
-                "/api/v1/files/upload",
-                files={"file": ("photo.png", b"\x89PNG\r\n", "image/png")},
-            )
-        assert resp.status_code == 200
-        assert resp.json()["file_type"] == "image/png"
-
-    def test_anon_cannot_upload(self, anon_client: TestClient):
-        resp = anon_client.post(
-            "/api/v1/files/upload",
-            files={"file": ("test.pdf", b"test", "application/pdf")},
-        )
-        assert resp.status_code in (401, 403)
 
 
 # ===================================================================
