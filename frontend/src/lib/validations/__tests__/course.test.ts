@@ -108,13 +108,6 @@ describe("chapterSchema", () => {
     expect(result.data.requires_completion).toBe(false)
   })
 
-  it("rejects content above 500k characters", () => {
-    const result = chapterSchema.safeParse({
-      title: "C",
-      content: "a".repeat(500_001),
-    })
-    expect(result.success).toBe(false)
-  })
 })
 
 describe("profileSchema", () => {

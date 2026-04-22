@@ -36,7 +36,6 @@ def create_block(
         block_type=data.block_type,
         order_index=data.order_index,
         content=data.content,
-        video_url=data.video_url,
         quiz_id=data.quiz_id,
         assignment_id=data.assignment_id,
         file_url=data.file_url,

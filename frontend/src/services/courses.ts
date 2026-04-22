@@ -33,7 +33,6 @@ type ChapterBlockCreateData = {
   block_type: BlockType
   order_index?: number
   content?: string | null
-  video_url?: string | null
   quiz_id?: string | null
   assignment_id?: string | null
   file_url?: string | null
@@ -248,7 +247,7 @@ export const coursesService = {
   async createChapter(
     courseId: string,
     moduleId: string,
-    data: { title: string; content?: string; video_url?: string; order_index?: number },
+    data: { title: string; order_index?: number; chapter_type?: string },
   ): Promise<Chapter> {
     const response = await api.post<Chapter>(
       `/courses/${courseId}/modules/${moduleId}/chapters`,
@@ -263,7 +262,7 @@ export const coursesService = {
     courseId: string,
     moduleId: string,
     chapterId: string,
-    data: { title?: string; content?: string; video_url?: string; order_index?: number; chapter_type?: string; requires_completion?: boolean; is_locked?: boolean },
+    data: { title?: string; order_index?: number; chapter_type?: string; requires_completion?: boolean; is_locked?: boolean },
   ): Promise<Chapter> {
     const response = await api.put<Chapter>(
       `/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}`,

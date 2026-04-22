@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, memo, type ReactNode } from "react"
+import { useEffect, useState, useCallback, useMemo, memo } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { sanitizeHtml as sanitize } from "@/lib/sanitize"
 import PageSpinner from "@/components/ui/PageSpinner"
@@ -82,40 +82,40 @@ const BlockRenderer = memo(function BlockRenderer({
 })
 
 /**
- * Renders the shared "show custom blocks if the chapter has them, otherwise
- * fall back to a static per-type view" pattern. Every content-carrying chapter
- * type (reading, video, audio, mixed) needs this exact handling,
- * so centralising it cuts out ~60 lines of duplication.
+ * Renders the reading chapter body — loader, list of blocks, empty state.
+ * Centralised so the page component stays declarative.
  */
 function ChapterBodyBlocks({
   loading,
   blocks,
-  fallback,
   onProgressChanged,
   onAssignmentCountLoaded,
 }: {
   loading: boolean
   blocks: ChapterBlock[]
-  fallback: ReactNode
   onProgressChanged?: () => void
   onAssignmentCountLoaded?: (count: number) => void
 }) {
   if (loading) return <PageSpinner variant="section" />
-  if (blocks.length > 0) {
+  if (blocks.length === 0) {
     return (
-      <div className="space-y-6">
-        {blocks.map((block) => (
-          <BlockRenderer
-            key={block.id}
-            block={block}
-            onProgressChanged={onProgressChanged}
-            onAssignmentCountLoaded={onAssignmentCountLoaded}
-          />
-        ))}
-      </div>
+      <p className="text-muted-foreground text-center py-8">
+        No content has been added to this chapter yet.
+      </p>
     )
   }
-  return <>{fallback}</>
+  return (
+    <div className="space-y-6">
+      {blocks.map((block) => (
+        <BlockRenderer
+          key={block.id}
+          block={block}
+          onProgressChanged={onProgressChanged}
+          onAssignmentCountLoaded={onAssignmentCountLoaded}
+        />
+      ))}
+    </div>
+  )
 }
 
 function ChapterNav({
@@ -290,11 +290,6 @@ export default function ChapterView() {
     setHasAssignments((prev) => (count > 0 ? true : prev))
   }, [])
 
-  const sanitizedChapterContent = useMemo(
-    () => (chapter?.content ? sanitize(chapter.content) : ""),
-    [chapter?.content],
-  )
-
   if (loading) {
     return <PageSpinner />
   }
@@ -346,13 +341,6 @@ export default function ChapterView() {
 
   const chapterType = normalizeChapterType(chapter.chapter_type)
 
-  const proseFallback = sanitizedChapterContent ? (
-    <div
-      className="prose max-w-none"
-      dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
-    />
-  ) : null
-
   return (
     <div className="container mx-auto px-4 py-6 max-w-3xl">
       <Link to={`/courses/${courseId}/modules/${moduleId}`}>
@@ -382,13 +370,6 @@ export default function ChapterView() {
             blocks={chapterBlocks}
             onProgressChanged={refreshCompletion}
             onAssignmentCountLoaded={handleAssignmentCountLoaded}
-            fallback={
-              proseFallback ?? (
-                <p className="text-muted-foreground text-center py-8">
-                  No content has been added to this chapter yet.
-                </p>
-              )
-            }
           />
         )}
 

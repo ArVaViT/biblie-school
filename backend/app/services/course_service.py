@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, defer, joinedload, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.constants import GRADABLE_CHAPTER_TYPES
 from app.models.assignment import Assignment
@@ -23,12 +23,14 @@ from app.schemas.course import (
 
 
 def _summary_load_options():
-    """Eager-load modules+chapters but SKIP the big ``Chapter.content`` column.
+    """Eager-load modules + chapters for list endpoints.
 
-    Catalog / list endpoints never render the body; deferring saves a lot of
-    bytes on the wire and in the Postgres read.
+    After migration 026 ``Chapter`` has no wide columns — the body lives on
+    ``chapter_blocks`` rows — so there's nothing left to ``defer``. Kept as
+    a helper so the call sites stay consistent and any future slimming
+    (e.g. a dedicated summary column set) has a natural home.
     """
-    return selectinload(Course.modules).selectinload(Module.chapters).options(defer(Chapter.content))
+    return selectinload(Course.modules).selectinload(Module.chapters)
 
 
 def get_courses(db: Session, *, skip: int = 0, limit: int = 100, search: str | None = None) -> list[Course]:
@@ -218,8 +220,6 @@ def create_chapter(db: Session, module_id: str, data: ChapterCreate) -> Chapter:
         id=str(uuid.uuid4()),
         module_id=module_id,
         title=data.title,
-        content=data.content,
-        video_url=data.video_url,
         order_index=order_index,
         chapter_type=data.chapter_type,
         requires_completion=data.requires_completion,
@@ -283,7 +283,6 @@ def get_user_courses(
             joinedload(Enrollment.course)
             .selectinload(Course.modules)
             .selectinload(Module.chapters)
-            .options(defer(Chapter.content))
         )
         .filter(Enrollment.user_id == user_id, Course.deleted_at.is_(None))
         .order_by(Enrollment.enrolled_at.desc())
@@ -428,8 +427,6 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
                 id=new_chapter_id,
                 module_id=new_module_id,
                 title=chapter.title,
-                content=chapter.content,
-                video_url=chapter.video_url,
                 order_index=chapter.order_index,
                 chapter_type=chapter.chapter_type,
                 requires_completion=chapter.requires_completion,
@@ -507,7 +504,6 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
                         block_type=block.block_type,
                         order_index=block.order_index,
                         content=block.content,
-                        video_url=block.video_url,
                         quiz_id=quiz_id_map.get(str(block.quiz_id)) if block.quiz_id else None,
                         assignment_id=assignment_id_map.get(str(block.assignment_id)) if block.assignment_id else None,
                         file_url=block.file_url,

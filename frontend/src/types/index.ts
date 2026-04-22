@@ -48,8 +48,6 @@ export interface Chapter {
   id: string
   module_id: string
   title: string
-  content: string | null
-  video_url: string | null
   order_index: number
   chapter_type: ChapterType
   requires_completion: boolean
@@ -212,7 +210,6 @@ export interface ChapterBlock {
   block_type: BlockType
   order_index: number
   content: string | null
-  video_url: string | null
   quiz_id: string | null
   assignment_id: string | null
   file_url: string | null

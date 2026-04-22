@@ -346,8 +346,6 @@ def create_new_chapter(
         )
     if data.title:
         data.title = sanitize_string(data.title)
-    if data.content:
-        data.content = sanitize_string(data.content)
     return create_chapter(db, module_id, data)
 
 
@@ -372,8 +370,6 @@ def update_existing_chapter(
         )
     if data.title:
         data.title = sanitize_string(data.title)
-    if data.content:
-        data.content = sanitize_string(data.content)
     return update_chapter(db, chapter, data)
 
 

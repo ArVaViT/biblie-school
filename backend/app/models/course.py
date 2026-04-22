@@ -37,7 +37,7 @@ class Course(Base):
         ),
     )
 
-    id = Column(String, primary_key=True, index=True)
+    id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
@@ -85,8 +85,10 @@ class Module(Base):
         ),
     )
 
-    id = Column(String, primary_key=True, index=True)
-    course_id = Column(String, ForeignKey("courses.id"), nullable=False, index=True)
+    id = Column(String, primary_key=True)
+    # The composite ``ix_modules_course_id_order`` covers plain ``course_id``
+    # lookups via its leading column, so no single-column FK index here.
+    course_id = Column(String, ForeignKey("courses.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
     order_index = Column(Integer, default=0, nullable=False)
@@ -117,11 +119,11 @@ class Chapter(Base):
         ),
     )
 
-    id = Column(String, primary_key=True, index=True)
-    module_id = Column(String, ForeignKey("modules.id"), nullable=False, index=True)
+    id = Column(String, primary_key=True)
+    # Covered by the composite ``ix_chapters_module_id_order`` — same reason
+    # as ``Module.course_id``.
+    module_id = Column(String, ForeignKey("modules.id"), nullable=False)
     title = Column(String, nullable=False)
-    content = Column(String, nullable=True)
-    video_url = Column(String, nullable=True)
     order_index = Column(Integer, default=0, nullable=False)
     chapter_type = Column(String, default="reading", nullable=False)
     requires_completion = Column(Boolean, default=False, nullable=False)

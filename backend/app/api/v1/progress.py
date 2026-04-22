@@ -158,15 +158,11 @@ def get_course_student_progress(
 
     all_assignment_ids = [a.id for al in assignment_map.values() for a in al]
 
-    assignment_to_chapter: dict = {}
     assignment_to_chapter_str: dict[str, str] = {}
-    assignment_by_id: dict = {}
     assignment_by_id_str: dict[str, Assignment] = {}
     for ch_id, als in assignment_map.items():
         for a in als:
-            assignment_to_chapter[a.id] = ch_id
             assignment_to_chapter_str[str(a.id)] = str(ch_id)
-            assignment_by_id[a.id] = a
             assignment_by_id_str[str(a.id)] = a
 
     # Latest submission per (student, assignment) — use MIN/MAX aggregate so
@@ -310,7 +306,7 @@ def get_course_student_progress(
                     "id": str(ch.id),
                     "title": ch.title,
                     "module_id": str(ch.module_id),
-                    "chapter_type": "reading" if (ch.chapter_type or "reading") == "content" else ch.chapter_type,
+                    "chapter_type": ch.chapter_type or "reading",
                     "requires_completion": bool(getattr(ch, "requires_completion", False)),
                     "completed": cp is not None,
                     "completed_by": cp.completion_type if cp else None,

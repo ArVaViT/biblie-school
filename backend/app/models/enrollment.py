@@ -15,7 +15,7 @@ class Enrollment(Base):
         Index("ix_enrollments_cohort_id", "cohort_id"),
     )
 
-    id = Column(String, primary_key=True, index=True)
+    id = Column(String, primary_key=True)
     user_id = Column(PgUUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
     course_id = Column(String, ForeignKey("courses.id"), nullable=False)
     cohort_id = Column(PgUUID(as_uuid=True), ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True)

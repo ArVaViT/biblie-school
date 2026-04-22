@@ -42,8 +42,6 @@ export const chapterSchema = z.object({
     .trim()
     .min(1, "Title is required")
     .max(300, "Title must be 300 characters or fewer"),
-  content: optionalString(500_000),
-  video_url: optionalString(2048),
   order_index: z.number().int().min(0).default(0),
   chapter_type: z.enum(CHAPTER_TYPES).default("reading"),
   requires_completion: z.boolean().default(false),

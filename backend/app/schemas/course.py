@@ -12,8 +12,6 @@ CHAPTER_TYPES = Literal["reading", "quiz", "exam", "assignment"]
 
 class ChapterBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)
-    content: str | None = Field(None, max_length=500_000)
-    video_url: str | None = Field(None, max_length=2048)
     order_index: int = 0
     chapter_type: CHAPTER_TYPES = "reading"
     requires_completion: bool = False
@@ -26,8 +24,6 @@ class ChapterCreate(ChapterBase):
 
 class ChapterUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=300)
-    content: str | None = Field(None, max_length=500_000)
-    video_url: str | None = Field(None, max_length=2048)
     order_index: int | None = None
     chapter_type: CHAPTER_TYPES | None = None
     requires_completion: bool | None = None
@@ -39,13 +35,12 @@ class ChapterResponse(ChapterBase):
 
     id: str
     module_id: str
-    chapter_type: CHAPTER_TYPES = "reading"
-    requires_completion: bool = False
-    is_locked: bool = False
 
 
 class ChapterSummary(BaseModel):
-    """Chapter fields safe to include in catalog/list responses (no body content)."""
+    """Chapter fields for list responses — identical to ``ChapterResponse``
+    now that no body content lives on the chapter row. Kept as a separate
+    type so future slimming (e.g. dropping ``chapter_type``) is easy."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -134,11 +129,9 @@ class CourseResponse(CourseBase):
 
 
 class CourseSummary(CourseBase):
-    """Catalog / list-view course — full structure minus chapter body content.
-
-    Chapter ``content`` columns can reach 500k characters each, so loading and
-    serialising them in list endpoints balloons responses into the megabytes.
-    Full tree stays available via ``GET /courses/{id}``.
+    """Catalog / list-view course. Kept as a separate shape from
+    ``CourseResponse`` so that if we later decide to, say, omit modules/
+    chapters from list responses entirely, we can do that in one place.
     """
 
     model_config = ConfigDict(from_attributes=True)

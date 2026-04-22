@@ -12,7 +12,7 @@ class File(Base):
         Index("ix_files_user_id", "user_id"),
     )
 
-    id = Column(String, primary_key=True, index=True)
+    id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     url = Column(String, nullable=False)
     file_type = Column(String, nullable=False)

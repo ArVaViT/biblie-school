@@ -18,8 +18,10 @@ class UserRole(enum.StrEnum):
 class User(Base):
     __tablename__ = "profiles"
 
-    id = Column(PgUUID(as_uuid=True), primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
+    id = Column(PgUUID(as_uuid=True), primary_key=True)
+    # ``unique=True`` already creates a B-tree; a second ``index=True`` would
+    # just duplicate writes. Same logic applies to every other unique column.
+    email = Column(String, unique=True, nullable=False)
     full_name = Column(String, nullable=True)
     role = Column(String, default=UserRole.STUDENT.value, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
