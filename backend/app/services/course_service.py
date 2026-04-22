@@ -66,10 +66,22 @@ def get_course(db: Session, course_id: str, include_deleted: bool = False) -> Co
     return query.first()
 
 
-def get_teacher_courses(db: Session, teacher_id: str, *, deleted_only: bool = False) -> list[Course]:
+def get_teacher_courses(
+    db: Session,
+    teacher_id: str,
+    *,
+    deleted_only: bool = False,
+    skip: int = 0,
+    limit: int | None = None,
+) -> list[Course]:
     query = db.query(Course).options(_summary_load_options()).filter(Course.created_by == teacher_id)
     query = query.filter(Course.deleted_at.isnot(None)) if deleted_only else query.filter(Course.deleted_at.is_(None))
-    return query.order_by(Course.created_at.desc()).all()
+    query = query.order_by(Course.created_at.desc())
+    if skip:
+        query = query.offset(skip)
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
 
 
 def create_course(db: Session, data: CourseCreate, user_id: str) -> Course:
@@ -276,8 +288,14 @@ def enroll_user_in_course(db: Session, user_id: str, course_id: str, cohort_id: 
     return enrollment
 
 
-def get_user_courses(db: Session, user_id: str) -> list[Enrollment]:
-    return (
+def get_user_courses(
+    db: Session,
+    user_id: str,
+    *,
+    skip: int = 0,
+    limit: int | None = None,
+) -> list[Enrollment]:
+    query = (
         db.query(Enrollment)
         .options(
             joinedload(Enrollment.course)
@@ -287,8 +305,12 @@ def get_user_courses(db: Session, user_id: str) -> list[Enrollment]:
         )
         .filter(Enrollment.user_id == user_id)
         .order_by(Enrollment.enrolled_at.desc())
-        .all()
     )
+    if skip:
+        query = query.offset(skip)
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
 
 
 def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrollment | None:

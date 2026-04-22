@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -95,7 +96,9 @@ def create_quiz(
     if data.quiz_type == "exam" and max_attempts is None:
         max_attempts = 1
 
+    quiz_id_val = uuid.uuid4()
     quiz = Quiz(
+        id=quiz_id_val,
         chapter_id=data.chapter_id,
         title=data.title,
         description=data.description,
@@ -104,40 +107,37 @@ def create_quiz(
         passing_score=data.passing_score,
     )
     db.add(quiz)
-    db.flush()
 
     for q_data in data.questions:
-        question = QuizQuestion(
-            quiz_id=quiz.id,
-            question_text=q_data.question_text,
-            question_type=q_data.question_type,
-            order_index=q_data.order_index,
-            points=q_data.points,
-        )
-        db.add(question)
-        db.flush()
-
-        for o_data in q_data.options:
-            option = QuizOption(
-                question_id=question.id,
-                option_text=o_data.option_text,
-                is_correct=o_data.is_correct,
-                order_index=o_data.order_index,
+        question_id = uuid.uuid4()
+        db.add(
+            QuizQuestion(
+                id=question_id,
+                quiz_id=quiz_id_val,
+                question_text=q_data.question_text,
+                question_type=q_data.question_type,
+                order_index=q_data.order_index,
+                points=q_data.points,
             )
-            db.add(option)
+        )
+        for o_data in q_data.options:
+            db.add(
+                QuizOption(
+                    question_id=question_id,
+                    option_text=o_data.option_text,
+                    is_correct=o_data.is_correct,
+                    order_index=o_data.order_index,
+                )
+            )
 
     db.commit()
-    quiz_id = quiz.id
     reloaded = (
         db.query(Quiz)
         .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
-        .filter(Quiz.id == quiz_id)
+        .filter(Quiz.id == quiz_id_val)
         .first()
     )
     if reloaded is None:
-        # Row was just committed but vanished before reload (extremely rare
-        # race, e.g. concurrent admin purge). Fail cleanly instead of
-        # letting the response-model validator crash with ``None``.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     return reloaded
 

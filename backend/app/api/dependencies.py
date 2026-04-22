@@ -81,6 +81,22 @@ async def require_admin(
     return current_user
 
 
+def assert_course_owner(course: Course, user: User, *, allow_admin: bool = True) -> None:
+    """Raise 403 unless ``user`` owns ``course`` (or is admin and allowed).
+
+    Use when the caller already holds the ``Course`` row; otherwise prefer
+    :func:`verify_course_owner`.
+    """
+    if str(course.created_by) == str(user.id):
+        return
+    if allow_admin and user.role == UserRole.ADMIN.value:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You do not own this course",
+    )
+
+
 def verify_course_owner(db: Session, course_id: str, teacher_id, *, allow_admin: bool = True) -> Course:
     # Soft-deleted courses are treated as "not found" for ownership checks
     # so deleted courses cannot be edited / enrolled into / have modules

@@ -317,7 +317,7 @@ export interface StudentChapterInfo {
   id: string
   title: string
   module_id: string
-  chapter_type: string
+  chapter_type: ChapterType
   requires_completion: boolean
   completed: boolean
   completed_by: 'teacher' | 'self' | 'quiz' | null

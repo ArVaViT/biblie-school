@@ -31,11 +31,13 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me/courses", response_model=list[EnrollmentSummaryResponse])
 def get_my_courses(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     # Dashboard view: slim payload (chapter body content stripped).
-    return get_user_courses(db, current_user.id)
+    return get_user_courses(db, current_user.id, skip=skip, limit=limit)
 
 
 @router.get("/me/export-data")

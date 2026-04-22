@@ -41,19 +41,36 @@ function extractYouTubeId(url: string): string | null {
   return null
 }
 
-function YouTubeEmbed({ url, title }: { url: string; title: string }) {
+/**
+ * Renders a YouTube iframe for recognised URLs, or a simple "open in new tab"
+ * link otherwise. Before this existed we returned ``null`` from a YouTube-only
+ * embed for any non-YouTube URL (Vimeo, raw .mp4, custom hosting) and the
+ * student saw a blank space where the video should have been.
+ */
+function VideoEmbed({ url, title }: { url: string; title: string }) {
   const videoId = extractYouTubeId(url)
-  if (!videoId) return null
+  if (videoId) {
+    return (
+      <div className="relative w-full overflow-hidden rounded-xl shadow-sm" style={{ paddingBottom: "56.25%" }}>
+        <iframe
+          className="absolute inset-0 h-full w-full"
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title={title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    )
+  }
   return (
-    <div className="relative w-full overflow-hidden rounded-xl shadow-sm" style={{ paddingBottom: "56.25%" }}>
-      <iframe
-        className="absolute inset-0 h-full w-full"
-        src={`https://www.youtube.com/embed/${videoId}`}
-        title={title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
-    </div>
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+    >
+      <PlayCircle className="h-4 w-4" /> Open video in new tab
+    </a>
   )
 }
 
@@ -71,9 +88,11 @@ function ChapterTypeBadge({ type }: { type: string }) {
 const BlockRenderer = memo(function BlockRenderer({
   block,
   onProgressChanged,
+  onAssignmentCountLoaded,
 }: {
   block: ChapterBlock
   onProgressChanged?: () => void
+  onAssignmentCountLoaded?: (count: number) => void
 }) {
   const sanitizedContent = useMemo(
     () => (block.content ? sanitize(block.content) : ""),
@@ -89,21 +108,8 @@ const BlockRenderer = memo(function BlockRenderer({
         />
       ) : null
 
-    case "video": {
-      if (!block.video_url) return null
-      const embed = <YouTubeEmbed url={block.video_url} title="Video" />
-      if (embed) return embed
-      return (
-        <a
-          href={block.video_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-sm text-primary hover:underline"
-        >
-          <PlayCircle className="h-4 w-4" /> Open video in new tab
-        </a>
-      )
-    }
+    case "video":
+      return block.video_url ? <VideoEmbed url={block.video_url} title="Video" /> : null
 
     case "quiz":
       return block.quiz_id ? (
@@ -116,11 +122,9 @@ const BlockRenderer = memo(function BlockRenderer({
           chapterId={block.chapter_id}
           assignmentId={block.assignment_id}
           onSubmitted={onProgressChanged}
+          onCountLoaded={onAssignmentCountLoaded}
         />
       ) : null
-    // NOTE: ``quizId``/``assignmentId`` above let the block render a specific
-    // quiz/assignment instead of falling back to the chapter-level default.
-    // Support is added on the child components in this commit.
 
     case "file":
       return block.file_url ? (
@@ -152,18 +156,25 @@ function ChapterBodyBlocks({
   blocks,
   fallback,
   onProgressChanged,
+  onAssignmentCountLoaded,
 }: {
   loading: boolean
   blocks: ChapterBlock[]
   fallback: ReactNode
   onProgressChanged?: () => void
+  onAssignmentCountLoaded?: (count: number) => void
 }) {
   if (loading) return <PageSpinner variant="section" />
   if (blocks.length > 0) {
     return (
       <div className="space-y-6">
         {blocks.map((block) => (
-          <BlockRenderer key={block.id} block={block} onProgressChanged={onProgressChanged} />
+          <BlockRenderer
+            key={block.id}
+            block={block}
+            onProgressChanged={onProgressChanged}
+            onAssignmentCountLoaded={onAssignmentCountLoaded}
+          />
         ))}
       </div>
     )
@@ -301,24 +312,20 @@ export default function ChapterView() {
 
     const needsBlocks = BLOCK_BASED_CHAPTER_TYPES.has(normalizeChapterType(chapter.chapter_type))
 
-    if (needsBlocks) setLoadingBlocks(true)
-    else setChapterBlocks([])
+    if (!needsBlocks) {
+      setChapterBlocks([])
+      return
+    }
 
-    const blocksPromise = needsBlocks
-      ? coursesService.getChapterBlocks(chapter.id).catch(() => [] as ChapterBlock[])
-      : Promise.resolve(null)
-    const assignmentsPromise = coursesService
-      .getChapterAssignments(chapter.id)
-      .catch(() => [] as { id: string }[])
-
-    Promise.all([blocksPromise, assignmentsPromise]).then(([blocks, assignments]) => {
-      if (cancelled) return
-      if (blocks !== null) {
-        setChapterBlocks(blocks.sort((a: ChapterBlock, b: ChapterBlock) => a.order_index - b.order_index))
-      }
-      setHasAssignments(assignments.length > 0)
-      setLoadingBlocks(false)
-    })
+    setLoadingBlocks(true)
+    coursesService
+      .getChapterBlocks(chapter.id)
+      .catch(() => [] as ChapterBlock[])
+      .then((blocks) => {
+        if (cancelled) return
+        setChapterBlocks(blocks.sort((a, b) => a.order_index - b.order_index))
+        setLoadingBlocks(false)
+      })
 
     return () => { cancelled = true }
   }, [chapter])
@@ -343,6 +350,10 @@ export default function ChapterView() {
       // non-critical
     }
   }, [chapter, courseId])
+
+  const handleAssignmentCountLoaded = useCallback((count: number) => {
+    setHasAssignments((prev) => (count > 0 ? true : prev))
+  }, [])
 
   const sanitizedChapterContent = useMemo(
     () => (chapter?.content ? sanitize(chapter.content) : ""),
@@ -398,8 +409,6 @@ export default function ChapterView() {
     )
   }
 
-  // ``chapter_type`` may legitimately be ``"content"`` on legacy rows — the
-  // normaliser collapses that (and any unknown value) back to ``"reading"``.
   const chapterType = normalizeChapterType(chapter.chapter_type)
 
   const proseFallback = sanitizedChapterContent ? (
@@ -435,6 +444,7 @@ export default function ChapterView() {
             loading={loadingBlocks}
             blocks={chapterBlocks}
             onProgressChanged={refreshCompletion}
+            onAssignmentCountLoaded={handleAssignmentCountLoaded}
             fallback={
               proseFallback ?? (
                 <p className="text-muted-foreground text-center py-8">
@@ -447,11 +457,12 @@ export default function ChapterView() {
 
         {chapterType === "video" && (
           <>
-            {chapter.video_url && <YouTubeEmbed url={chapter.video_url} title={chapter.title} />}
+            {chapter.video_url && <VideoEmbed url={chapter.video_url} title={chapter.title} />}
             <ChapterBodyBlocks
               loading={loadingBlocks}
               blocks={chapterBlocks}
               onProgressChanged={refreshCompletion}
+              onAssignmentCountLoaded={handleAssignmentCountLoaded}
               fallback={proseFallback}
             />
           </>
@@ -474,6 +485,7 @@ export default function ChapterView() {
               loading={loadingBlocks}
               blocks={chapterBlocks}
               onProgressChanged={refreshCompletion}
+              onAssignmentCountLoaded={handleAssignmentCountLoaded}
               fallback={
                 sanitizedChapterContent ? (
                   <div>
@@ -496,7 +508,11 @@ export default function ChapterView() {
         )}
 
         {chapterType === "assignment" && (
-          <AssignmentPanel chapterId={chapter.id} onSubmitted={refreshCompletion} />
+          <AssignmentPanel
+            chapterId={chapter.id}
+            onSubmitted={refreshCompletion}
+            onCountLoaded={handleAssignmentCountLoaded}
+          />
         )}
 
         {chapterType === "discussion" && (
@@ -517,6 +533,7 @@ export default function ChapterView() {
               loading={loadingBlocks}
               blocks={chapterBlocks}
               onProgressChanged={refreshCompletion}
+              onAssignmentCountLoaded={handleAssignmentCountLoaded}
               fallback={null}
             />
             <div>
@@ -545,12 +562,17 @@ export default function ChapterView() {
             loading={loadingBlocks}
             blocks={chapterBlocks}
             onProgressChanged={refreshCompletion}
+            onAssignmentCountLoaded={handleAssignmentCountLoaded}
             fallback={
               <>
-                {chapter.video_url && <YouTubeEmbed url={chapter.video_url} title={chapter.title} />}
+                {chapter.video_url && <VideoEmbed url={chapter.video_url} title={chapter.title} />}
                 {proseFallback}
                 <QuizTaker chapterId={chapter.id} onSubmitted={refreshCompletion} />
-                <AssignmentPanel chapterId={chapter.id} onSubmitted={refreshCompletion} />
+                <AssignmentPanel
+                  chapterId={chapter.id}
+                  onSubmitted={refreshCompletion}
+                  onCountLoaded={handleAssignmentCountLoaded}
+                />
               </>
             }
           />

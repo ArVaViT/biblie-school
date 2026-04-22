@@ -310,7 +310,7 @@ def get_course_student_progress(
                     "id": str(ch.id),
                     "title": ch.title,
                     "module_id": str(ch.module_id),
-                    "chapter_type": ch.chapter_type or "reading",
+                    "chapter_type": "reading" if (ch.chapter_type or "reading") == "content" else ch.chapter_type,
                     "requires_completion": bool(getattr(ch, "requires_completion", False)),
                     "completed": cp is not None,
                     "completed_by": cp.completion_type if cp else None,

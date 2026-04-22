@@ -64,7 +64,11 @@ export const coursesService = {
   },
 
   async getModule(courseId: string, moduleId: string): Promise<Module> {
+    const key = `courses:module:${courseId}:${moduleId}`
+    const cached = cacheGet<Module>(key)
+    if (cached) return cached
     const response = await api.get<Module>(`/courses/${courseId}/modules/${moduleId}`)
+    cacheSet(key, response.data, 3 * 60 * 1000)
     return response.data
   },
 
@@ -165,6 +169,7 @@ export const coursesService = {
     await api.delete(`/courses/${id}`)
     cacheInvalidate(`courses:detail:${id}`)
     cacheInvalidatePrefix("courses:list:")
+    cacheInvalidatePrefix(`courses:module:${id}:`)
   },
 
   async getTrashedCourses(): Promise<Course[]> {
@@ -182,6 +187,7 @@ export const coursesService = {
     await api.delete(`/courses/${id}/permanent`)
     cacheInvalidate(`courses:detail:${id}`)
     cacheInvalidatePrefix("courses:list:")
+    cacheInvalidatePrefix(`courses:module:${id}:`)
   },
 
   async cloneCourse(id: string): Promise<Course> {
@@ -197,6 +203,7 @@ export const coursesService = {
   ): Promise<Module> {
     const response = await api.post<Module>(`/courses/${courseId}/modules`, data)
     cacheInvalidate(`courses:detail:${courseId}`)
+    cacheInvalidatePrefix(`courses:module:${courseId}:`)
     return response.data
   },
 
@@ -207,12 +214,14 @@ export const coursesService = {
   ): Promise<Module> {
     const response = await api.put<Module>(`/courses/${courseId}/modules/${moduleId}`, data)
     cacheInvalidate(`courses:detail:${courseId}`)
+    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
     return response.data
   },
 
   async deleteModule(courseId: string, moduleId: string): Promise<void> {
     await api.delete(`/courses/${courseId}/modules/${moduleId}`)
     cacheInvalidate(`courses:detail:${courseId}`)
+    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
   },
 
   // Teacher CRUD — Chapters
@@ -226,6 +235,7 @@ export const coursesService = {
       data,
     )
     cacheInvalidate(`courses:detail:${courseId}`)
+    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
     return response.data
   },
 
@@ -240,6 +250,7 @@ export const coursesService = {
       data,
     )
     cacheInvalidate(`courses:detail:${courseId}`)
+    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
     return response.data
   },
 
@@ -250,6 +261,7 @@ export const coursesService = {
   ): Promise<void> {
     await api.delete(`/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}`)
     cacheInvalidate(`courses:detail:${courseId}`)
+    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
   },
 
   // Announcements

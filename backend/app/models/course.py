@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -26,6 +26,11 @@ class Course(Base):
     __table_args__ = (
         Index("ix_courses_created_by", "created_by"),
         Index("ix_courses_status", "status"),
+        Index(
+            "ix_courses_created_by_active",
+            "created_by",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
         CheckConstraint(
             "quiz_weight + assignment_weight + participation_weight = 100",
             name="ck_courses_weights_sum_100",
@@ -70,7 +75,15 @@ class Course(Base):
 
 class Module(Base):
     __tablename__ = "modules"
-    __table_args__ = (Index("ix_modules_course_id_order", "course_id", "order_index"),)
+    __table_args__ = (
+        Index("ix_modules_course_id_order", "course_id", "order_index"),
+        Index(
+            "ix_modules_course_id_order_active",
+            "course_id",
+            "order_index",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
 
     id = Column(String, primary_key=True, index=True)
     course_id = Column(String, ForeignKey("courses.id"), nullable=False, index=True)
@@ -94,7 +107,15 @@ class Module(Base):
 
 class Chapter(Base):
     __tablename__ = "chapters"
-    __table_args__ = (Index("ix_chapters_module_id_order", "module_id", "order_index"),)
+    __table_args__ = (
+        Index("ix_chapters_module_id_order", "module_id", "order_index"),
+        Index(
+            "ix_chapters_module_id_order_active",
+            "module_id",
+            "order_index",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
 
     id = Column(String, primary_key=True, index=True)
     module_id = Column(String, ForeignKey("modules.id"), nullable=False, index=True)

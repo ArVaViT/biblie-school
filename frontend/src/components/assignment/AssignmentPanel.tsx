@@ -22,16 +22,14 @@ import {
 
 interface AssignmentPanelProps {
   chapterId: string
-  /**
-   * When rendered from a ``ChapterBlock`` linked to a specific assignment,
-   * pass ``block.assignment_id`` so the panel only shows that one. Otherwise
-   * every assignment in the chapter is listed.
-   */
+  /** Filter down to a single assignment when rendered from a ChapterBlock. */
   assignmentId?: string
   onSubmitted?: () => void
+  /** Fires once after fetch with the number of assignments visible in this panel. */
+  onCountLoaded?: (count: number) => void
 }
 
-export default function AssignmentPanel({ chapterId, assignmentId, onSubmitted }: AssignmentPanelProps) {
+export default function AssignmentPanel({ chapterId, assignmentId, onSubmitted, onCountLoaded }: AssignmentPanelProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [submissionsMap, setSubmissionsMap] = useState<Record<string, AssignmentSubmission | null>>({})
   const [loading, setLoading] = useState(true)
@@ -47,6 +45,7 @@ export default function AssignmentPanel({ chapterId, assignmentId, onSubmitted }
         if (cancelled) return
         const data = assignmentId ? all.filter((a) => a.id === assignmentId) : all
         setAssignments(data)
+        onCountLoaded?.(data.length)
 
         if (data.length > 0) {
           const subResults = await Promise.all(
@@ -68,6 +67,7 @@ export default function AssignmentPanel({ chapterId, assignmentId, onSubmitted }
     }
     load()
     return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountLoaded is unstable by design
   }, [chapterId, assignmentId])
 
   if (loading) {

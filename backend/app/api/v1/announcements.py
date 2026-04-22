@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user, require_teacher
+from app.api.dependencies import assert_course_owner, get_current_user, require_teacher
 from app.core.database import get_db
 from app.models.announcement import Announcement
 from app.models.course import Course
@@ -83,11 +83,13 @@ def create_announcement(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Course '{data.course_id}' not found",
             )
-        if str(course.created_by) != str(teacher.id) and teacher.role != UserRole.ADMIN.value:
+        try:
+            assert_course_owner(course, teacher)
+        except HTTPException:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only create announcements for your own courses",
-            )
+            ) from None
     else:
         course = None
 

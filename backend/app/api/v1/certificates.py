@@ -8,12 +8,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user, require_admin, require_teacher
+from app.api.dependencies import assert_course_owner, get_current_user, require_admin, require_teacher
 from app.core.database import get_db
 from app.models.certificate import Certificate
 from app.models.course import Course
 from app.models.enrollment import Enrollment
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.schemas.certificate import CertificateResponse, CertificateVerifyResponse
 from app.services.audit_service import log_action
 from app.services.notification_service import create_notification
@@ -172,11 +172,18 @@ def teacher_approve_certificate(
             detail=f"Certificate is not pending (current status: {cert.status})",
         )
     course = db.query(Course).filter(Course.id == cert.course_id, Course.deleted_at.is_(None)).first()
-    if not course or str(course.created_by) != str(teacher.id):
+    if not course:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only approve certificates for your own courses",
         )
+    try:
+        assert_course_owner(course, teacher, allow_admin=False)
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only approve certificates for your own courses",
+        ) from None
     cert.status = "teacher_approved"
     cert.teacher_approved_at = datetime.now(UTC)
     cert.teacher_approved_by = teacher.id
@@ -242,12 +249,18 @@ def reject_certificate(
             detail=f"Certificate cannot be rejected (current status: {cert.status})",
         )
     course = db.query(Course).filter(Course.id == cert.course_id).first()
-    if current_user.role != UserRole.ADMIN.value:
-        if not course or str(course.created_by) != str(current_user.id):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only reject certificates for your own courses",
-            )
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only reject certificates for your own courses",
+        )
+    try:
+        assert_course_owner(course, current_user)
+    except HTTPException:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only reject certificates for your own courses",
+        ) from None
     cert.status = "rejected"
 
     course_title = course.title if course else "a course"

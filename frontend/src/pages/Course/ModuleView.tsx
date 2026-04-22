@@ -45,16 +45,13 @@ export default function ModuleView() {
       setLoading(true)
       setError(null)
       try {
-        const mod = await coursesService.getModule(courseId, moduleId)
+        const [mod, completedChapterIds] = await Promise.all([
+          coursesService.getModule(courseId, moduleId),
+          coursesService.getMyChapterProgress(courseId).catch(() => [] as string[]),
+        ])
         if (cancelled) return
         setModule(mod)
-
-        try {
-          const completedChapterIds = await coursesService.getMyChapterProgress(courseId)
-          if (!cancelled) setCompletedIds(new Set(completedChapterIds))
-        } catch {
-          // non-critical
-        }
+        setCompletedIds(new Set(completedChapterIds))
       } catch {
         if (!cancelled) setError("Failed to load module. Please try again.")
       } finally {

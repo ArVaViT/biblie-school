@@ -5,7 +5,13 @@ from pydantic import BaseModel
 from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user, get_optional_user, require_teacher, verify_course_owner
+from app.api.dependencies import (
+    assert_course_owner,
+    get_current_user,
+    get_optional_user,
+    require_teacher,
+    verify_course_owner,
+)
 from app.core.database import get_db
 from app.core.sanitize import sanitize_string
 from app.models.cohort import Cohort
@@ -80,18 +86,22 @@ def list_courses(
 
 @router.get("/my", response_model=list[CourseSummary])
 def list_my_courses(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     current_user: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    return get_teacher_courses(db, current_user.id)
+    return get_teacher_courses(db, current_user.id, skip=skip, limit=limit)
 
 
 @router.get("/my/trash", response_model=list[CourseSummary])
 def list_my_trashed_courses(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     current_user: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    return get_teacher_courses(db, current_user.id, deleted_only=True)
+    return get_teacher_courses(db, current_user.id, deleted_only=True, skip=skip, limit=limit)
 
 
 @router.get("/{course_id}/enrollment-status")
@@ -207,11 +217,7 @@ def update_existing_course(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only edit your own courses",
-        )
+    assert_course_owner(course, teacher, allow_admin=False)
     if data.title:
         data.title = sanitize_string(data.title)
     old_status = course.status
@@ -237,11 +243,7 @@ def remove_course(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only delete your own courses",
-        )
+    assert_course_owner(course, teacher, allow_admin=False)
     log_action(db, teacher.id, "delete", "course", course_id, details={"title": course.title}, request=request)
     delete_course(db, course)
 
@@ -509,8 +511,7 @@ def restore_deleted_course(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     if course.deleted_at is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Course is not deleted")
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only restore your own courses")
+    assert_course_owner(course, teacher, allow_admin=False)
     result = restore_course(db, course)
     log_action(db, teacher.id, "restore", "course", course_id, request=request)
     return result
@@ -526,8 +527,7 @@ def permanently_remove_course(
     course = get_course(db, course_id, include_deleted=True)
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
-    if str(course.created_by) != str(teacher.id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own courses")
+    assert_course_owner(course, teacher, allow_admin=False)
     if course.deleted_at is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

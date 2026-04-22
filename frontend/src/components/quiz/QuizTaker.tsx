@@ -54,17 +54,19 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
 
     const load = async () => {
       try {
-        const q = await coursesService.getChapterQuiz(chapterId)
+        const [q, preloadedAttempts] = quizId
+          ? await Promise.all([
+              coursesService.getChapterQuiz(chapterId),
+              coursesService.getMyQuizAttempts(quizId).catch(() => [] as QuizAttempt[]),
+            ])
+          : [await coursesService.getChapterQuiz(chapterId), null]
         if (cancelled) return
-        // If the caller pinned a specific quiz (e.g. from a ``ChapterBlock``),
-        // only accept that one. Currently a chapter carries a single quiz so
-        // this is mostly defensive, but it future-proofs the UI against a
-        // chapter having multiple quizzes where ``getChapterQuiz`` would
-        // return an arbitrary first hit.
         const resolved = quizId && q && q.id !== quizId ? null : q
         setQuiz(resolved)
         if (resolved) {
-          const att = await coursesService.getMyQuizAttempts(resolved.id).catch(() => [] as QuizAttempt[])
+          const att =
+            preloadedAttempts ??
+            (await coursesService.getMyQuizAttempts(resolved.id).catch(() => [] as QuizAttempt[]))
           if (!cancelled) setAttempts(att)
         }
       } catch {
