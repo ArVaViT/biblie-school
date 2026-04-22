@@ -115,75 +115,63 @@
   }
 }
 
-/* ===== Prose Typography =====
-   Tailwind's Preflight resets lists and headings. We don't ship
-   @tailwindcss/typography, so re-establish the bits we actually use
-   in rendered chapter content. */
-.prose h1 { @apply text-2xl font-serif font-bold mt-6 mb-3; }
-.prose h2 { @apply text-xl font-serif font-bold mt-6 mb-3; }
-.prose h3 { @apply text-lg font-semibold mt-5 mb-2; }
-.prose h4 { @apply text-base font-semibold mt-4 mb-2; }
-.prose p { @apply my-3 leading-relaxed; }
-.prose ul { @apply my-3 pl-6; list-style: disc outside; }
-.prose ol { @apply my-3 pl-6; list-style: decimal outside; }
-.prose li { @apply my-1; }
+/* ===== Prose — editorial reader =====
+   We re-establish just the bits Tailwind's Preflight resets.
+   Headings are serif (Fraunces), body is sans (Inter), colours come from
+   our semantic tokens so both themes work with one rule set. */
+.prose {
+  @apply text-foreground;
+  max-width: 68ch;
+}
+.prose h1 { @apply font-serif text-3xl font-semibold tracking-tight mt-10 mb-4; }
+.prose h2 { @apply font-serif text-2xl font-semibold tracking-tight mt-8 mb-3; }
+.prose h3 { @apply font-serif text-xl font-semibold mt-6 mb-2; }
+.prose h4 { @apply text-base font-semibold mt-5 mb-2; }
+.prose p  { @apply my-4; line-height: 1.7; }
+.prose ul { @apply my-4 pl-6; list-style: disc outside; }
+.prose ol { @apply my-4 pl-6; list-style: decimal outside; }
+.prose li { @apply my-1.5; }
 .prose li > p { @apply my-1; }
 .prose li::marker { @apply text-muted-foreground; }
 .prose strong { @apply font-semibold text-foreground; }
 .prose em { @apply italic; }
 .prose blockquote {
-  @apply my-3 pl-4 italic text-muted-foreground border-l-2 border-border;
+  @apply my-6 pl-5 italic text-muted-foreground border-l-2 border-border;
 }
 .prose a {
-  @apply text-accent underline underline-offset-2 hover:opacity-80;
+  @apply text-primary underline underline-offset-4 decoration-primary/40 hover:decoration-primary;
 }
-.prose hr { @apply my-6 border-border; }
+.prose hr { @apply my-8 border-border; }
 .prose code {
-  @apply px-1 py-0.5 rounded bg-muted text-sm font-mono;
+  @apply px-1.5 py-0.5 rounded bg-muted text-[0.9em] font-mono;
 }
+.prose pre {
+  @apply my-4 p-4 rounded-md bg-muted text-sm font-mono overflow-x-auto;
+}
+.prose pre code { @apply p-0 bg-transparent; }
+.prose img { @apply my-6 rounded-md; }
 .prose > *:first-child { @apply mt-0; }
 .prose > *:last-child { @apply mb-0; }
 
-/* ===== Callout Blocks ===== */
+/* ===== Callouts — editorial, no emoji =====
+   We keep the .callout + .callout-{variant} classes because they are
+   already written into existing chapter HTML. Only the visual language
+   changes: a thin accent rule, a very light tinted surface, zero emoji. */
 .callout {
-  @apply relative rounded-lg border-l-4 px-5 py-4 my-4;
+  @apply my-6 rounded-md border border-border bg-muted/30 px-5 py-4;
+  border-left-width: 3px;
 }
 .callout > *:first-child { @apply mt-0; }
 .callout > *:last-child { @apply mb-0; }
-
-.callout-info {
-  @apply border-l-blue-500 bg-blue-50 dark:bg-blue-950/30;
-}
-.callout-verse {
-  @apply border-l-amber-500 bg-amber-50 dark:bg-amber-950/30;
-}
-.callout-takeaway {
-  @apply border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/30;
-}
-.callout-warning {
-  @apply border-l-red-500 bg-red-50 dark:bg-red-950/30;
-}
-
-/* Small icon accent before first content element; the inner <h3>
-   already labels the section in the content's native language. */
-.callout::before {
-  @apply inline-block text-lg leading-none mr-2 align-middle;
-}
-.callout-info::before { content: "ℹ️"; }
-.callout-verse::before { content: "📖"; }
-.callout-takeaway::before { content: "💡"; }
-.callout-warning::before { content: "⚠️"; }
-
-/* Make the inner heading render on the same line as the icon so the
-   callout reads as "icon + section title" instead of two stacked labels. */
 .callout > h3:first-child,
 .callout > h4:first-child {
-  @apply inline; font-weight: 600;
+  @apply mt-0 mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground;
 }
-.callout > h3:first-child + *,
-.callout > h4:first-child + * {
-  @apply mt-3;
-}
+
+.callout-info     { border-left-color: hsl(var(--info)); }
+.callout-verse    { border-left-color: hsl(var(--accent)); background-color: hsl(var(--accent) / 0.06); }
+.callout-takeaway { border-left-color: hsl(var(--success)); }
+.callout-warning  { border-left-color: hsl(var(--warning)); background-color: hsl(var(--warning) / 0.08); }
 
 /* ===== YouTube Embed ===== */
 .youtube-embed-wrapper {

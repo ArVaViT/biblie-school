@@ -134,7 +134,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose-base max-w-none min-h-[200px] px-4 py-3 focus:outline-none",
+          "prose max-w-none min-h-[200px] px-4 py-3 focus:outline-none",
       },
       handleDrop: (view, event, _slice, moved) => {
         if (moved || !event.dataTransfer?.files?.length) return false;

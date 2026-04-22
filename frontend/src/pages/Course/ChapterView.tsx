@@ -30,17 +30,11 @@ import {
 import { parseYouTubeId } from "@/lib/youtubeUrl"
 import ChapterTypeBadge from "@/components/course/ChapterTypeBadge"
 
-/**
- * Renders a YouTube iframe for recognised URLs, or a simple "open in new tab"
- * link otherwise. Before this existed we returned ``null`` from a YouTube-only
- * embed for any non-YouTube URL (Vimeo, raw .mp4, custom hosting) and the
- * student saw a blank space where the video should have been.
- */
 function VideoEmbed({ url, title }: { url: string; title: string }) {
   const videoId = parseYouTubeId(url)
   if (videoId) {
     return (
-      <div className="relative w-full overflow-hidden rounded-xl shadow-sm" style={{ paddingBottom: "56.25%" }}>
+      <div className="relative w-full overflow-hidden rounded-md border" style={{ paddingBottom: "56.25%" }}>
         <iframe
           className="absolute inset-0 h-full w-full"
           src={`https://www.youtube.com/embed/${videoId}`}
@@ -81,7 +75,7 @@ const BlockRenderer = memo(function BlockRenderer({
     case "text":
       return sanitizedContent ? (
         <div
-          className="prose prose-sm dark:prose-invert max-w-none"
+          className="prose max-w-none"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       ) : null
@@ -392,7 +386,7 @@ export default function ChapterView() {
 
   const proseFallback = sanitizedChapterContent ? (
     <div
-      className="prose dark:prose-invert max-w-none"
+      className="prose max-w-none"
       dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
     />
   ) : null
@@ -450,9 +444,9 @@ export default function ChapterView() {
         {chapterType === "audio" && (
           <>
             {chapter.video_url && (
-              <div className="rounded-xl border bg-card p-6">
+              <div className="rounded-md border bg-card p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Headphones className="h-5 w-5 text-teal-600" />
+                  <Headphones className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium text-sm">Audio Lesson</span>
                 </div>
                 <audio controls className="w-full" src={chapter.video_url}>
@@ -472,7 +466,7 @@ export default function ChapterView() {
                       Transcript
                     </h3>
                     <div
-                      className="prose dark:prose-invert max-w-none"
+                      className="prose max-w-none"
                       dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
                     />
                   </div>
@@ -497,13 +491,13 @@ export default function ChapterView() {
         {chapterType === "discussion" && (
           <div className="space-y-4">
             {chapter.content && (
-              <div className="rounded-xl border bg-card p-6">
+              <div className="rounded-md border bg-card p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="h-5 w-5 text-cyan-600" />
+                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium text-sm">Discussion Prompt</span>
                 </div>
                 <div
-                  className="prose dark:prose-invert max-w-none"
+                  className="prose max-w-none"
                   dangerouslySetInnerHTML={{ __html: sanitizedChapterContent }}
                 />
               </div>
@@ -526,9 +520,9 @@ export default function ChapterView() {
                 placeholder="Share your thoughts on this topic..."
                 className="w-full min-h-[160px] p-4 text-sm bg-muted/30 border rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
               />
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-3 flex items-start gap-3">
-                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-800 dark:text-amber-300">
+              <div className="mt-3 flex items-start gap-3 rounded-md border-l-[3px] border-l-warning bg-warning/10 px-4 py-3">
+                <Info className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                <p className="text-sm text-foreground">
                   Discussion responses are for personal reflection and are not saved.
                 </p>
               </div>
