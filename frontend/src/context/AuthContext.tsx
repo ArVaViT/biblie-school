@@ -1,21 +1,8 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react"
-import type { User } from "@/types"
 import { supabase } from "@/lib/supabase"
 import { authService } from "@/services/auth"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
+import type { User } from "@/types"
 import { AuthContext } from "./auth-context"
-
-function userFromSupabase(su: SupabaseUser): User {
-  return {
-    id: su.id,
-    email: su.email ?? "",
-    full_name: su.user_metadata?.full_name ?? null,
-    avatar_url: su.user_metadata?.avatar_url ?? null,
-    role: su.user_metadata?.role ?? "student",
-    created_at: su.created_at,
-    updated_at: su.updated_at ?? "",
-  }
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -67,17 +54,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (event, session) => {
         if (!mounted.current) return
 
+        // We deliberately do NOT seed user state from ``userFromSupabase`` on
+        // SIGNED_IN / INITIAL_SESSION: that value reads role from
+        // ``user_metadata`` which is unreliable (often stale or missing, so
+        // teachers/admins get demoted to student for one render). The
+        // authoritative role lives in the ``profiles`` row that
+        // ``enrichProfile`` loads. Tab refocus triggers SIGNED_IN with the
+        // same user — if we already have them loaded we refresh silently
+        // without toggling ``loading``, which avoids both a spinner flash
+        // and a brief <Gate> redirect to "/".
         if (event === "INITIAL_SESSION") {
           if (session?.user) {
-            setUser(userFromSupabase(session.user))
             enrichProfile(session.user.id, session.user.email ?? "")
+          } else {
+            setLoading(false)
           }
-          setLoading(false)
           return
         }
 
         if (event === "SIGNED_IN" && session?.user) {
-          setUser(userFromSupabase(session.user))
+          if (activeUserId.current !== session.user.id) {
+            setLoading(true)
+          }
           enrichProfile(session.user.id, session.user.email ?? "")
           return
         }
@@ -90,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === "SIGNED_OUT") {
           activeUserId.current = null
           setUser(null)
+          setLoading(false)
         }
       },
     )
@@ -101,8 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [enrichProfile])
 
   const login = useCallback(async (email: string, password: string) => {
-    const { user: su } = await authService.login(email, password)
-    if (su) setUser(userFromSupabase(su))
+    // Don't eagerly setUser from ``user_metadata`` — the SIGNED_IN event that
+    // fires immediately after will load the authoritative profile.
+    await authService.login(email, password)
   }, [])
 
   const register = useCallback(
@@ -126,7 +126,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (mounted.current) setUser(null)
       return
     }
-    setUser(userFromSupabase(session.user))
     enrichProfile(session.user.id, session.user.email ?? "")
   }, [enrichProfile])
 
