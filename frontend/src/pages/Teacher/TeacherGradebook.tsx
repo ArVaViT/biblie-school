@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useParams, useSearchParams, Link } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
@@ -17,9 +17,11 @@ import {
   Download,
 } from "lucide-react"
 
-type SortField = "name" | "quiz" | "assignment" | "participation" | "final" | "letter"
+const SORT_FIELDS = ["name", "quiz", "assignment", "participation", "final", "letter"] as const
+type SortField = (typeof SORT_FIELDS)[number]
 type SortDir = "asc" | "desc"
-type ActiveTab = "summary" | "table"
+const TABS = ["summary", "table"] as const
+type ActiveTab = (typeof TABS)[number]
 
 interface ChapterInfo {
   id: string
@@ -88,77 +90,91 @@ function chapterTypeIcon(type: string) {
 
 export default function TeacherGradebook() {
   const { courseId } = useParams<{ courseId: string }>()
+  const [params, setParams] = useSearchParams()
+  const activeTab: ActiveTab = (TABS as readonly string[]).includes(params.get("tab") ?? "")
+    ? (params.get("tab") as ActiveTab)
+    : "summary"
+  const sortField: SortField = (SORT_FIELDS as readonly string[]).includes(params.get("sort") ?? "")
+    ? (params.get("sort") as SortField)
+    : "name"
+  const sortDir: SortDir = params.get("dir") === "desc" ? "desc" : "asc"
+
+  const setActiveTab = (next: ActiveTab) => setParams((p) => {
+    const n = new URLSearchParams(p)
+    if (next === "summary") n.delete("tab"); else n.set("tab", next)
+    return n
+  }, { replace: true })
+
+  const applySort = (field: SortField, dir: SortDir) => setParams((p) => {
+    const n = new URLSearchParams(p)
+    if (field === "name") n.delete("sort"); else n.set("sort", field)
+    if (dir === "asc") n.delete("dir"); else n.set("dir", dir)
+    return n
+  }, { replace: true })
+
   const [courseTitle, setCourseTitle] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<ActiveTab>("summary")
 
-  // Grading config
   const [config, setConfig] = useState<GradingConfig>({ quiz_weight: 30, assignment_weight: 50, participation_weight: 20 })
   const [configDraft, setConfigDraft] = useState<GradingConfig>(config)
   const [configOpen, setConfigOpen] = useState(false)
   const [savingConfig, setSavingConfig] = useState(false)
 
-  // Grade summary
   const [summary, setSummary] = useState<GradeSummaryResponse | null>(null)
   const [manualGrades, setManualGrades] = useState<Map<string, StudentGrade>>(new Map())
 
-  // Progress data (for grade table)
   const [progressData, setProgressData] = useState<ProgressResponse | null>(null)
 
-  // Manual grade forms
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [forms, setForms] = useState<Map<string, GradeForm>>(new Map())
   const [saving, setSaving] = useState<string | null>(null)
 
-  // Sort state
-  const [sortField, setSortField] = useState<SortField>("name")
-  const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [reloadKey, setReloadKey] = useState(0)
+  const reload = useCallback(() => setReloadKey((k) => k + 1), [])
 
-  const load = useCallback(async (signal?: { cancelled: boolean }) => {
+  useEffect(() => {
     if (!courseId) return
+    let cancelled = false
     setLoading(true)
     setError(null)
     setExpandedId(null)
-    try {
-      const [course, rawGrades, gradeSummary, progress] = await Promise.all([
-        coursesService.getCourse(courseId),
-        coursesService.getCourseGrades(courseId).catch(() => []),
-        coursesService.getGradeSummary(courseId).catch(() => null),
-        coursesService.getStudentProgress(courseId).catch(() => null),
-      ])
-      if (signal?.cancelled) return
-      setCourseTitle(course.title)
+    ;(async () => {
+      try {
+        const [course, rawGrades, gradeSummary, progress] = await Promise.all([
+          coursesService.getCourse(courseId),
+          coursesService.getCourseGrades(courseId).catch(() => []),
+          coursesService.getGradeSummary(courseId).catch(() => null),
+          coursesService.getStudentProgress(courseId).catch(() => null),
+        ])
+        if (cancelled) return
+        setCourseTitle(course.title)
 
-      const gradeMap = new Map<string, StudentGrade>()
-      const formMap = new Map<string, GradeForm>()
-      for (const g of rawGrades ?? []) {
-        gradeMap.set(g.student_id, g)
-        formMap.set(g.student_id, { grade: g.grade ?? "", comment: g.comment ?? "" })
-      }
-      setManualGrades(gradeMap)
-      setForms(formMap)
+        const gradeMap = new Map<string, StudentGrade>()
+        const formMap = new Map<string, GradeForm>()
+        for (const g of rawGrades ?? []) {
+          gradeMap.set(g.student_id, g)
+          formMap.set(g.student_id, { grade: g.grade ?? "", comment: g.comment ?? "" })
+        }
+        setManualGrades(gradeMap)
+        setForms(formMap)
 
-      if (gradeSummary) {
-        setSummary(gradeSummary)
-        setConfig(gradeSummary.config)
-        setConfigDraft(gradeSummary.config)
+        if (gradeSummary) {
+          setSummary(gradeSummary)
+          setConfig(gradeSummary.config)
+          setConfigDraft(gradeSummary.config)
+        }
+        if (progress) {
+          setProgressData(progress as ProgressResponse)
+        }
+      } catch {
+        if (!cancelled) setError("Failed to load gradebook. Please try again.")
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      if (progress) {
-        setProgressData(progress as ProgressResponse)
-      }
-    } catch {
-      if (!signal?.cancelled) setError("Failed to load gradebook. Please try again.")
-    } finally {
-      if (!signal?.cancelled) setLoading(false)
-    }
-  }, [courseId])
-
-  useEffect(() => {
-    const signal = { cancelled: false }
-    load(signal)
-    return () => { signal.cancelled = true }
-  }, [load])
+    })()
+    return () => { cancelled = true }
+  }, [courseId, reloadKey])
 
   const configTotal = configDraft.quiz_weight + configDraft.assignment_weight + configDraft.participation_weight
   const configValid = configTotal === 100
@@ -219,10 +235,9 @@ export default function TeacherGradebook() {
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+      applySort(field, sortDir === "asc" ? "desc" : "asc")
     } else {
-      setSortField(field)
-      setSortDir(field === "name" ? "asc" : "desc")
+      applySort(field, field === "name" ? "asc" : "desc")
     }
   }
 
@@ -337,7 +352,7 @@ export default function TeacherGradebook() {
           <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
           <p className="text-sm text-muted-foreground mb-4">{error}</p>
           <div className="flex gap-3">
-            <Button onClick={() => load()} size="sm" variant="outline">Try again</Button>
+            <Button onClick={reload} size="sm" variant="outline">Try again</Button>
             <Link to="/teacher">
               <Button size="sm" variant="ghost">
                 <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />Back to courses

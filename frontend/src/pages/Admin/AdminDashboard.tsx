@@ -44,8 +44,9 @@ type Tab = "overview" | "audit"
 
 const TABS: readonly Tab[] = ["overview", "audit"]
 
-const ACTION_OPTIONS = ["create", "update", "delete", "publish", "enroll", "approve", "reject", "grade"]
-const RESOURCE_OPTIONS = ["course", "module", "chapter", "enrollment", "certificate", "assignment_submission", "user"]
+const ACTION_OPTIONS = ["create", "update", "delete", "publish", "enroll", "approve", "reject", "grade"] as const
+const RESOURCE_OPTIONS = ["course", "module", "chapter", "enrollment", "certificate", "assignment_submission", "user"] as const
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
 const actionBadgeClass: Record<string, string> = {
   create: "bg-success/15 text-success",
@@ -76,80 +77,92 @@ export default function AdminDashboard() {
   const [adminCerts, setAdminCerts] = useState<(Certificate & { student_name?: string; course_title?: string; approved_by_name?: string; approved_at?: string })[]>([])
   const [certActionId, setCertActionId] = useState<string | null>(null)
 
-  // Audit log state
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([])
   const [auditTotal, setAuditTotal] = useState(0)
-  const [auditPage, setAuditPage] = useState(1)
   const [auditLoading, setAuditLoading] = useState(false)
-  const [auditAction, setAuditAction] = useState("")
-  const [auditResource, setAuditResource] = useState("")
-  const [auditDateFrom, setAuditDateFrom] = useState("")
-  const [auditDateTo, setAuditDateTo] = useState("")
   const auditPageSize = 25
 
-  const load = async (signal?: { cancelled: boolean }) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const [allUsers, coursesCount, enrollmentsCount, certs] = await Promise.all([
-        coursesService.getAllUsers(),
-        supabase.from("courses").select("id", { count: "exact", head: true }),
-        supabase.from("enrollments").select("id", { count: "exact", head: true }),
-        coursesService.getAdminPendingCerts().catch(() => []),
-      ])
-      if (signal?.cancelled) return
+  const pickOption = <T extends readonly string[]>(val: string | null, opts: T): T[number] | "" =>
+    val && (opts as readonly string[]).includes(val) ? (val as T[number]) : ""
 
-      setUsers(allUsers as ProfileRow[])
-      setStats({
-        users: allUsers.length,
-        courses: coursesCount.count ?? 0,
-        enrollments: enrollmentsCount.count ?? 0,
-      })
-      setAdminCerts(certs)
-    } catch {
-      if (!signal?.cancelled) setError("Failed to load admin data. Please try again.")
-    } finally {
-      if (!signal?.cancelled) setLoading(false)
-    }
-  }
+  const auditAction = pickOption(params.get("ax"), ACTION_OPTIONS)
+  const auditResource = pickOption(params.get("ar"), RESOURCE_OPTIONS)
+  const auditDateFrom = ISO_DATE.test(params.get("af") ?? "") ? params.get("af")! : ""
+  const auditDateTo = ISO_DATE.test(params.get("at") ?? "") ? params.get("at")! : ""
+  const rawPage = Number.parseInt(params.get("ap") ?? "1", 10)
+  const auditPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1
 
-  const loadAuditLogs = useCallback(async (signal?: { cancelled: boolean }) => {
-    setAuditLoading(true)
-    try {
-      const params: Record<string, string | number> = {
-        page: auditPage,
-        page_size: auditPageSize,
+  const updateAudit = (patch: Record<string, string | null>, opts: { resetPage?: boolean } = {}) =>
+    setParams((prev) => {
+      const n = new URLSearchParams(prev)
+      for (const [k, v] of Object.entries(patch)) {
+        if (v) n.set(k, v); else n.delete(k)
       }
-      if (auditAction) params.action = auditAction
-      if (auditResource) params.resource_type = auditResource
-      if (auditDateFrom) params.date_from = new Date(auditDateFrom).toISOString()
-      if (auditDateTo) params.date_to = new Date(auditDateTo + "T23:59:59").toISOString()
+      if (opts.resetPage) n.delete("ap")
+      return n
+    }, { replace: true })
 
-      const data = await coursesService.getAuditLogs(params)
-      if (signal?.cancelled) return
-      setAuditLogs(data.items ?? [])
-      setAuditTotal(data.total ?? 0)
-    } catch (error: unknown) {
-      if (signal?.cancelled) return
-      const detail = getErrorDetail(error) || "The audit_logs table may not exist yet. Deploy the latest migration."
-      toast({ title: `Audit log error: ${detail}`, variant: "destructive" })
-    } finally {
-      if (!signal?.cancelled) setAuditLoading(false)
-    }
-  }, [auditPage, auditAction, auditResource, auditDateFrom, auditDateTo])
+  const [reloadKey, setReloadKey] = useState(0)
+  const reload = useCallback(() => setReloadKey((k) => k + 1), [])
 
   useEffect(() => {
-    const signal = { cancelled: false }
-    load(signal)
-    return () => { signal.cancelled = true }
-  }, [])
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    ;(async () => {
+      try {
+        const [allUsers, coursesCount, enrollmentsCount, certs] = await Promise.all([
+          coursesService.getAllUsers(),
+          supabase.from("courses").select("id", { count: "exact", head: true }),
+          supabase.from("enrollments").select("id", { count: "exact", head: true }),
+          coursesService.getAdminPendingCerts().catch(() => []),
+        ])
+        if (cancelled) return
+        setUsers(allUsers as ProfileRow[])
+        setStats({
+          users: allUsers.length,
+          courses: coursesCount.count ?? 0,
+          enrollments: enrollmentsCount.count ?? 0,
+        })
+        setAdminCerts(certs)
+      } catch {
+        if (!cancelled) setError("Failed to load admin data. Please try again.")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [reloadKey])
 
   useEffect(() => {
     if (tab !== "audit") return
-    const signal = { cancelled: false }
-    loadAuditLogs(signal)
-    return () => { signal.cancelled = true }
-  }, [tab, loadAuditLogs])
+    let cancelled = false
+    setAuditLoading(true)
+    ;(async () => {
+      try {
+        const query: Record<string, string | number> = {
+          page: auditPage,
+          page_size: auditPageSize,
+        }
+        if (auditAction) query.action = auditAction
+        if (auditResource) query.resource_type = auditResource
+        if (auditDateFrom) query.date_from = new Date(auditDateFrom).toISOString()
+        if (auditDateTo) query.date_to = new Date(auditDateTo + "T23:59:59").toISOString()
+
+        const data = await coursesService.getAuditLogs(query)
+        if (cancelled) return
+        setAuditLogs(data.items ?? [])
+        setAuditTotal(data.total ?? 0)
+      } catch (error: unknown) {
+        if (cancelled) return
+        const detail = getErrorDetail(error) || "The audit_logs table may not exist yet. Deploy the latest migration."
+        toast({ title: `Audit log error: ${detail}`, variant: "destructive" })
+      } finally {
+        if (!cancelled) setAuditLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [tab, auditPage, auditAction, auditResource, auditDateFrom, auditDateTo])
 
   const setTab = (nextTab: Tab) => {
     const next = new URLSearchParams(params)
@@ -322,13 +335,8 @@ export default function AdminDashboard() {
     student: "bg-info/15 text-info",
   }
 
-  const resetAuditFilters = () => {
-    setAuditAction("")
-    setAuditResource("")
-    setAuditDateFrom("")
-    setAuditDateTo("")
-    setAuditPage(1)
-  }
+  const resetAuditFilters = () =>
+    updateAudit({ ax: null, ar: null, af: null, at: null, ap: null })
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -384,7 +392,7 @@ export default function AdminDashboard() {
             <Shield className="h-12 w-12 text-destructive/40 mb-4" />
             <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => load()} size="sm" variant="outline">
+            <Button onClick={reload} size="sm" variant="outline">
               Try again
             </Button>
           </CardContent>
@@ -719,7 +727,7 @@ export default function AdminDashboard() {
                   <label className="text-xs font-medium text-muted-foreground">Action</label>
                   <select
                     value={auditAction}
-                    onChange={(e) => { setAuditAction(e.target.value); setAuditPage(1) }}
+                    onChange={(e) => updateAudit({ ax: e.target.value || null }, { resetPage: true })}
                     className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">All actions</option>
@@ -732,7 +740,7 @@ export default function AdminDashboard() {
                   <label className="text-xs font-medium text-muted-foreground">Resource</label>
                   <select
                     value={auditResource}
-                    onChange={(e) => { setAuditResource(e.target.value); setAuditPage(1) }}
+                    onChange={(e) => updateAudit({ ar: e.target.value || null }, { resetPage: true })}
                     className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">All resources</option>
@@ -746,7 +754,7 @@ export default function AdminDashboard() {
                   <Input
                     type="date"
                     value={auditDateFrom}
-                    onChange={(e) => { setAuditDateFrom(e.target.value); setAuditPage(1) }}
+                    onChange={(e) => updateAudit({ af: e.target.value || null }, { resetPage: true })}
                     className="h-9 w-40"
                   />
                 </div>
@@ -755,7 +763,7 @@ export default function AdminDashboard() {
                   <Input
                     type="date"
                     value={auditDateTo}
-                    onChange={(e) => { setAuditDateTo(e.target.value); setAuditPage(1) }}
+                    onChange={(e) => updateAudit({ at: e.target.value || null }, { resetPage: true })}
                     className="h-9 w-40"
                   />
                 </div>
@@ -836,7 +844,7 @@ export default function AdminDashboard() {
                         variant="outline"
                         size="sm"
                         disabled={auditPage <= 1}
-                        onClick={() => setAuditPage((p) => p - 1)}
+                        onClick={() => updateAudit({ ap: auditPage - 1 <= 1 ? null : String(auditPage - 1) })}
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
@@ -844,7 +852,7 @@ export default function AdminDashboard() {
                         variant="outline"
                         size="sm"
                         disabled={auditPage >= totalAuditPages}
-                        onClick={() => setAuditPage((p) => p + 1)}
+                        onClick={() => updateAudit({ ap: String(auditPage + 1) })}
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>

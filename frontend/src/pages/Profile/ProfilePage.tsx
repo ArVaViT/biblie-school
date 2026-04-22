@@ -20,31 +20,84 @@ import { storageService } from "@/services/storage"
 import { coursesService } from "@/services/courses"
 import { profileSchema } from "@/lib/validations/course"
 import { toProxyImage } from "@/lib/images"
+import type { User } from "@/types"
 import {
   User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera,
   Loader2, Award, BookOpen, ArrowRight, LogOut, Moon, Sun,
   Download, AlertTriangle, Trash2,
 } from "lucide-react"
 
+function NameForm({ user, onSaved }: { user: User; onSaved: () => Promise<void> }) {
+  const [name, setName] = useState(user.full_name ?? "")
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState("")
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => () => { clearTimeout(savedTimerRef.current) }, [])
+
+  const handleSave = async () => {
+    setError("")
+    const result = profileSchema.safeParse({ full_name: name })
+    if (!result.success) {
+      setError(result.error.issues[0]?.message ?? "Invalid input")
+      return
+    }
+    setSaving(true)
+    try {
+      await usersService.updateProfile({ full_name: result.data.full_name })
+      await onSaved()
+      setName(result.data.full_name)
+      setSaved(true)
+      savedTimerRef.current = setTimeout(() => setSaved(false), 2000)
+    } catch {
+      setError("Failed to update profile")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="name">Full Name</Label>
+      <div className="flex gap-2">
+        <Input
+          id="name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value)
+            setSaved(false)
+            setError("")
+          }}
+        />
+        <Button onClick={handleSave} disabled={saving || saved} size="sm" className="shrink-0">
+          {saved ? (
+            <>
+              <Check className="h-4 w-4 mr-1.5" />
+              Saved
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-1.5" />
+              {saving ? "Saving..." : "Save"}
+            </>
+          )}
+        </Button>
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  )
+}
+
 export default function ProfilePage() {
   const { user, refreshUser, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
-  const [name, setName] = useState(user?.full_name ?? "")
-
-  useEffect(() => {
-    if (user?.full_name !== undefined) setName(user.full_name ?? "")
-  }, [user?.full_name])
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
   const [uploading, setUploading] = useState(false)
   const [certificateCount, setCertificateCount] = useState(0)
   const [completedCount, setCompletedCount] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>()
-
-  useEffect(() => () => { clearTimeout(saveTimerRef.current) }, [])
 
   const [exporting, setExporting] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -69,26 +122,6 @@ export default function ProfilePage() {
     loadStats()
     return () => { cancelled = true }
   }, [user?.id])
-
-  const handleSave = async () => {
-    setError("")
-    const result = profileSchema.safeParse({ full_name: name })
-    if (!result.success) {
-      setError(result.error.issues[0]?.message ?? "Invalid input")
-      return
-    }
-    setSaving(true)
-    try {
-      await usersService.updateProfile({ full_name: result.data.full_name })
-      await refreshUser()
-      setSaved(true)
-      saveTimerRef.current = setTimeout(() => setSaved(false), 2000)
-    } catch {
-      setError("Failed to update profile")
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -213,34 +246,8 @@ export default function ProfilePage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value)
-                    setSaved(false)
-                    setError("")
-                  }}
-                />
-                <Button onClick={handleSave} disabled={saving || saved} size="sm" className="shrink-0">
-                  {saved ? (
-                    <>
-                      <Check className="h-4 w-4 mr-1.5" />
-                      Saved
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-1.5" />
-                      {saving ? "Saving..." : "Save"}
-                    </>
-                  )}
-                </Button>
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-            </div>
+            <NameForm key={user.id} user={user} onSaved={refreshUser} />
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </CardContent>
         </Card>
 

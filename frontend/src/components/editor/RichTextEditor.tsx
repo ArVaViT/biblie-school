@@ -92,13 +92,7 @@ export default function RichTextEditor({
   const [showCalloutMenu, setShowCalloutMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
   const calloutMenuRef = useRef<HTMLDivElement>(null);
-  const mountedRef = useRef(true);
   const prompt = usePrompt();
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -147,21 +141,17 @@ export default function RichTextEditor({
         storageService
           .uploadContentImage(file)
           .then((url) => {
-            if (!mountedRef.current) return;
             const { schema } = view.state;
             const imageNode = schema.nodes.image;
             if (!imageNode) return;
             const node = imageNode.create({ src: url });
             const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
             if (pos) {
-              const tr = view.state.tr.insert(pos.pos, node);
-              view.dispatch(tr);
+              view.dispatch(view.state.tr.insert(pos.pos, node));
             }
           })
-          .catch(() => {
-            if (mountedRef.current) toast({ title: "Image upload failed", variant: "destructive" });
-          })
-          .finally(() => { if (mountedRef.current) setUploading(false); });
+          .catch(() => toast({ title: "Image upload failed", variant: "destructive" }))
+          .finally(() => setUploading(false));
         return true;
       },
       handlePaste: (view, event) => {
@@ -176,18 +166,14 @@ export default function RichTextEditor({
             storageService
               .uploadContentImage(file)
               .then((url) => {
-                if (!mountedRef.current) return;
                 const { schema } = view.state;
                 const imageNode = schema.nodes.image;
                 if (!imageNode) return;
                 const node = imageNode.create({ src: url });
-                const tr = view.state.tr.replaceSelectionWith(node);
-                view.dispatch(tr);
+                view.dispatch(view.state.tr.replaceSelectionWith(node));
               })
-              .catch(() => {
-                if (mountedRef.current) toast({ title: "Image upload failed", variant: "destructive" });
-              })
-              .finally(() => { if (mountedRef.current) setUploading(false); });
+              .catch(() => toast({ title: "Image upload failed", variant: "destructive" }))
+              .finally(() => setUploading(false));
             return true;
           }
         }
