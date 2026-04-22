@@ -361,7 +361,7 @@ export default function ModuleEditor() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className={`shrink-0 h-8 w-8 p-0 ${ch.is_locked ? "text-amber-600 hover:text-amber-700" : "text-muted-foreground"}`}
+                              className={`h-8 w-8 shrink-0 p-0 ${ch.is_locked ? "text-warning hover:text-warning" : "text-muted-foreground"}`}
                               onClick={() => toggleLock(ch)}
                               title={ch.is_locked ? "Unlock chapter" : "Lock chapter"}
                             >

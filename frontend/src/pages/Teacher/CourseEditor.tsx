@@ -610,7 +610,7 @@ export default function CourseEditor() {
             ? <p className="text-sm text-muted-foreground text-center py-4">No announcements yet.</p>
             : <div className="space-y-2 max-h-60 overflow-y-auto">{anns.map(a => (
                 <div key={a.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                  <Megaphone className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                  <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-info" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{a.title}</p>
                     {a.content && <p className="text-xs text-muted-foreground mt-0.5">{a.content}</p>}
@@ -697,7 +697,7 @@ export default function CourseEditor() {
                       <Pencil className="h-3 w-3" />
                     </Button>
                     {c.status === "active" && (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs text-emerald-600 hover:text-emerald-700" onClick={() => completeCohort(c.id)}>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs text-success hover:text-success" onClick={() => completeCohort(c.id)}>
                         <CheckCircle className="h-3 w-3" />
                       </Button>
                     )}
@@ -787,13 +787,13 @@ export default function CourseEditor() {
 
 function EventTypeBadge({ type }: { type: string }) {
   const styles: Record<string, string> = {
-    deadline: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
-    live_session: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-    exam: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
-    other: "bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-400",
+    deadline: "bg-destructive/15 text-destructive",
+    live_session: "bg-info/15 text-info",
+    exam: "bg-warning/15 text-warning",
+    other: "bg-muted text-muted-foreground",
   }
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${styles[type] ?? styles.other}`}>
+    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium capitalize ${styles[type] ?? styles.other}`}>
       {type.replace("_", " ")}
     </span>
   )
@@ -801,13 +801,13 @@ function EventTypeBadge({ type }: { type: string }) {
 
 function CohortStatusBadge({ status }: { status: Cohort["status"] }) {
   const styles: Record<Cohort["status"], string> = {
-    upcoming: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-    active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
-    completed: "bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-400",
-    archived: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    upcoming: "bg-info/15 text-info",
+    active: "bg-success/15 text-success",
+    completed: "bg-muted text-muted-foreground",
+    archived: "bg-warning/15 text-warning",
   }
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${styles[status]}`}>
+    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${styles[status]}`}>
       {status}
     </span>
   )

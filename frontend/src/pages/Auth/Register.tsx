@@ -111,8 +111,8 @@ export default function Register() {
       <AuthLayout heading="Account may exist" subheading="This email might already be registered">
         <div className="space-y-6 animate-fade-in">
           <div className="flex flex-col items-center text-center gap-4 py-4">
-            <div className="h-16 w-16 rounded-md bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-              <Mail className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-md bg-warning/10">
+              <Mail className="h-8 w-8 text-warning" />
             </div>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -154,13 +154,13 @@ export default function Register() {
       >
         <div className="space-y-6 animate-fade-in">
           <div className="flex flex-col items-center text-center gap-4 py-4">
-            <div className={`h-16 w-16 rounded-md flex items-center justify-center ${
-              isTeacher
-                ? "bg-amber-100 dark:bg-amber-900/30"
-                : "bg-primary/10"
-            }`}>
+            <div
+              className={`flex h-16 w-16 items-center justify-center rounded-md ${
+                isTeacher ? "bg-warning/10" : "bg-primary/10"
+              }`}
+            >
               {isTeacher ? (
-                <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                <Clock className="h-8 w-8 text-warning" />
               ) : (
                 <MailCheck className="h-8 w-8 text-primary" />
               )}
@@ -171,8 +171,8 @@ export default function Register() {
                 <br />Click the link in the email to activate your account.
               </p>
               {isTeacher && (
-                <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-                  <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+                <div className="mt-4 rounded-md border border-border border-l-[3px] border-l-warning bg-warning/5 p-3">
+                  <p className="text-sm leading-relaxed text-foreground">
                     After confirming your email, your teacher account will need to be approved by an administrator.
                     You'll be able to log in, but course creation tools will be available once approved.
                   </p>

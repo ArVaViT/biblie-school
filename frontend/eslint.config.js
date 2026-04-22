@@ -30,14 +30,36 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       '@typescript-eslint/no-explicit-any': 'error',
-      // eslint-plugin-react-hooks v7 ships experimental React Compiler rules
-      // that assume a codebase already migrated to the compiler's idioms.
-      // Keep the proven rules-of-hooks + exhaustive-deps on (defaults), and
-      // mute the compiler-preview ones until we adopt React Compiler.
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/immutability': 'off',
       'react-hooks/preserve-manual-memoization': 'off',
       'react-hooks/static-components': 'off',
+
+      // Editorial design guard rails — keep the UI on semantic tokens.
+      // See docs/DESIGN.md for the approved vocabulary.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "Literal[value=/\\b(?:bg|text|border|from|via|to|ring|fill|stroke|divide|placeholder|caret|accent|outline|shadow)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-\\d{2,3}\\b/]",
+          message:
+            'Use semantic tokens (primary / accent / success / warning / info / destructive / muted / border). Raw Tailwind palette classes are banned — see docs/DESIGN.md.',
+        },
+        {
+          // Block `window.alert|confirm|prompt` — `useConfirm()` + AlertDialog + sonner are the shared UX.
+          selector:
+            "CallExpression[callee.object.name='window'][callee.property.name=/^(alert|confirm|prompt)$/]",
+          message:
+            'Use <AlertDialog> / useConfirm() / sonner toasts — never native window dialogs.',
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'alert',
+          message: 'Use sonner (toast) — never native alert().',
+        },
+      ],
     },
   },
 )

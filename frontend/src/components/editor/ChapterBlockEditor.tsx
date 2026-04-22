@@ -340,7 +340,7 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
                           </span>
                         )}
                         {autoSaveStatus === "saved" && (
-                          <span className="flex items-center gap-1 text-xs text-green-600">
+                          <span className="flex items-center gap-1 text-xs text-success">
                             <Check className="h-3 w-3" />
                             Saved
                           </span>

@@ -111,65 +111,143 @@ export interface ConfirmOptions {
   tone?: "default" | "destructive"
 }
 
+export interface PromptOptions {
+  title: string
+  description?: string
+  placeholder?: string
+  defaultValue?: string
+  confirmLabel?: string
+  cancelLabel?: string
+  inputType?: "text" | "url"
+}
+
 interface ConfirmState extends ConfirmOptions {
   open: boolean
   resolve?: (value: boolean) => void
+}
+
+interface PromptState extends PromptOptions {
+  open: boolean
+  value: string
+  resolve?: (value: string | null) => void
 }
 
 const ConfirmContext = React.createContext<(opts: ConfirmOptions) => Promise<boolean>>(
   async () => false,
 )
 
+const PromptContext = React.createContext<(opts: PromptOptions) => Promise<string | null>>(
+  async () => null,
+)
+
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = React.useState<ConfirmState>({ open: false, title: "" })
+  const [confirmState, setConfirmState] = React.useState<ConfirmState>({ open: false, title: "" })
+  const [promptState, setPromptState] = React.useState<PromptState>({ open: false, title: "", value: "" })
 
   const confirm = React.useCallback(
     (opts: ConfirmOptions) =>
       new Promise<boolean>((resolve) => {
-        setState({ ...opts, open: true, resolve })
+        setConfirmState({ ...opts, open: true, resolve })
       }),
     [],
   )
 
-  const handleDone = React.useCallback(
+  const prompt = React.useCallback(
+    (opts: PromptOptions) =>
+      new Promise<string | null>((resolve) => {
+        setPromptState({ ...opts, open: true, value: opts.defaultValue ?? "", resolve })
+      }),
+    [],
+  )
+
+  const handleConfirmDone = React.useCallback(
     (value: boolean) => {
-      state.resolve?.(value)
-      setState((s) => ({ ...s, open: false, resolve: undefined }))
+      confirmState.resolve?.(value)
+      setConfirmState((s) => ({ ...s, open: false, resolve: undefined }))
     },
-    [state],
+    [confirmState],
+  )
+
+  const handlePromptDone = React.useCallback(
+    (value: string | null) => {
+      promptState.resolve?.(value)
+      setPromptState((s) => ({ ...s, open: false, resolve: undefined }))
+    },
+    [promptState],
   )
 
   return (
     <ConfirmContext.Provider value={confirm}>
-      {children}
-      <AlertDialog
-        open={state.open}
-        onOpenChange={(open) => {
-          if (!open) handleDone(false)
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{state.title}</AlertDialogTitle>
-            {state.description && (
-              <AlertDialogDescription className="whitespace-pre-line">
-                {state.description}
-              </AlertDialogDescription>
-            )}
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => handleDone(false)}>
-              {state.cancelLabel ?? "Cancel"}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              variant={state.tone === "destructive" ? "destructive" : "default"}
-              onClick={() => handleDone(true)}
+      <PromptContext.Provider value={prompt}>
+        {children}
+        <AlertDialog
+          open={confirmState.open}
+          onOpenChange={(open) => {
+            if (!open) handleConfirmDone(false)
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{confirmState.title}</AlertDialogTitle>
+              {confirmState.description && (
+                <AlertDialogDescription className="whitespace-pre-line">
+                  {confirmState.description}
+                </AlertDialogDescription>
+              )}
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => handleConfirmDone(false)}>
+                {confirmState.cancelLabel ?? "Cancel"}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant={confirmState.tone === "destructive" ? "destructive" : "default"}
+                onClick={() => handleConfirmDone(true)}
+              >
+                {confirmState.confirmLabel ?? "Confirm"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={promptState.open}
+          onOpenChange={(open) => {
+            if (!open) handlePromptDone(null)
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{promptState.title}</AlertDialogTitle>
+              {promptState.description && (
+                <AlertDialogDescription>{promptState.description}</AlertDialogDescription>
+              )}
+            </AlertDialogHeader>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                handlePromptDone(promptState.value)
+              }}
             >
-              {state.confirmLabel ?? "Confirm"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <input
+                autoFocus
+                type={promptState.inputType ?? "text"}
+                value={promptState.value}
+                onChange={(e) => setPromptState((s) => ({ ...s, value: e.target.value }))}
+                placeholder={promptState.placeholder}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <AlertDialogFooter className="mt-4">
+                <AlertDialogCancel type="button" onClick={() => handlePromptDone(null)}>
+                  {promptState.cancelLabel ?? "Cancel"}
+                </AlertDialogCancel>
+                <AlertDialogAction type="submit">
+                  {promptState.confirmLabel ?? "OK"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </form>
+          </AlertDialogContent>
+        </AlertDialog>
+      </PromptContext.Provider>
     </ConfirmContext.Provider>
   )
 }
@@ -177,6 +255,11 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 // eslint-disable-next-line react-refresh/only-export-components
 export function useConfirm() {
   return React.useContext(ConfirmContext)
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function usePrompt() {
+  return React.useContext(PromptContext)
 }
 
 export {

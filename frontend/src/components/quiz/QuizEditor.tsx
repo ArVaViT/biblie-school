@@ -270,7 +270,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
   return (
     <div className="space-y-4 mt-3">
       <div className="flex items-center gap-2 mb-2">
-        <ClipboardList className="h-4 w-4 text-blue-500" />
+        <ClipboardList className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">
           {existingQuiz ? `Edit ${chapterType === "exam" ? "Exam" : "Quiz"}` : `Create ${chapterType === "exam" ? "Exam" : "Quiz"}`}
         </span>
@@ -446,7 +446,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
                           key={opt.id}
                           className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs cursor-pointer ${
                             opt.is_correct
-                              ? "border-green-400 bg-green-50 dark:bg-green-950/20"
+                              ? "border-success/50 bg-success/10"
                               : "border-border"
                           }`}
                         >

@@ -29,6 +29,7 @@ import { Callout, type CalloutVariant } from "./CalloutExtension";
 import { YoutubeEmbed } from "./YoutubeExtension";
 import { storageService } from "@/services/storage";
 import { toast } from "@/hooks/use-toast";
+import { usePrompt } from "@/components/ui/alert-dialog";
 
 interface RichTextEditorProps {
   content: string;
@@ -76,10 +77,10 @@ const CALLOUT_VARIANTS: {
   icon: typeof Info;
   color: string;
 }[] = [
-  { value: "info", label: "Information", icon: Info, color: "text-blue-500" },
-  { value: "verse", label: "Bible Verse", icon: BookOpen, color: "text-amber-600" },
-  { value: "takeaway", label: "Key Takeaway", icon: Lightbulb, color: "text-emerald-500" },
-  { value: "warning", label: "Warning", icon: AlertTriangle, color: "text-red-500" },
+  { value: "info", label: "Information", icon: Info, color: "text-info" },
+  { value: "verse", label: "Bible Verse", icon: BookOpen, color: "text-accent" },
+  { value: "takeaway", label: "Key Takeaway", icon: Lightbulb, color: "text-success" },
+  { value: "warning", label: "Warning", icon: AlertTriangle, color: "text-warning" },
 ];
 
 export default function RichTextEditor({
@@ -92,6 +93,7 @@ export default function RichTextEditor({
   const [uploading, setUploading] = useState(false);
   const calloutMenuRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
+  const prompt = usePrompt();
 
   useEffect(() => {
     mountedRef.current = true;
@@ -205,17 +207,24 @@ export default function RichTextEditor({
     }
   }, [content, editor]);
 
-  const setLink = useCallback(() => {
+  const setLink = useCallback(async () => {
     if (!editor) return;
     const previousUrl = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("Enter URL", previousUrl ?? "https://");
+    const url = await prompt({
+      title: "Add link",
+      description: "Paste or type the URL you want to link to. Leave empty to remove an existing link.",
+      defaultValue: previousUrl ?? "https://",
+      placeholder: "https://…",
+      inputType: "url",
+      confirmLabel: "Apply",
+    });
     if (url === null) return;
     if (url === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
       return;
     }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  }, [editor]);
+  }, [editor, prompt]);
 
   const addImage = useCallback(() => {
     if (!editor) return;
@@ -230,21 +239,33 @@ export default function RichTextEditor({
         const url = await storageService.uploadContentImage(file);
         editor.chain().focus().setImage({ src: url }).run();
       } catch {
-        const url = window.prompt("Upload failed. Enter image URL instead:");
+        const url = await prompt({
+          title: "Upload failed",
+          description: "We couldn't upload the file. Paste an image URL instead, or cancel.",
+          placeholder: "https://…",
+          inputType: "url",
+          confirmLabel: "Insert",
+        });
         if (url) editor.chain().focus().setImage({ src: url }).run();
       } finally {
         setUploading(false);
       }
     };
     input.click();
-  }, [editor]);
+  }, [editor, prompt]);
 
-  const addYoutube = useCallback(() => {
+  const addYoutube = useCallback(async () => {
     if (!editor) return;
-    const url = window.prompt("Paste YouTube video URL");
+    const url = await prompt({
+      title: "Embed YouTube video",
+      description: "Paste the full YouTube URL (https://www.youtube.com/watch?v=…).",
+      placeholder: "https://www.youtube.com/watch?v=…",
+      inputType: "url",
+      confirmLabel: "Embed",
+    });
     if (!url) return;
     editor.chain().focus().setYoutubeVideo({ src: url }).run();
-  }, [editor]);
+  }, [editor, prompt]);
 
   const insertCallout = useCallback(
     (variant: CalloutVariant) => {

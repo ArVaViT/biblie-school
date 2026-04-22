@@ -65,8 +65,8 @@ export default function ResetPassword() {
     return (
       <AuthLayout heading="Password updated" subheading="You're all set">
         <div className="flex flex-col items-center text-center gap-4 py-6 animate-fade-in">
-          <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center">
-            <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle2 className="h-8 w-8 text-success" />
           </div>
           <p className="text-sm text-muted-foreground">
             Your password has been updated successfully.

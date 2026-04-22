@@ -120,7 +120,7 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
     <div className="space-y-4 mt-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-violet-500" />
+          <FileText className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Assignments ({assignments.length})</span>
         </div>
         <Button
@@ -447,9 +447,9 @@ function SubmissionGrader({
   }
 
   const statusColors: Record<string, string> = {
-    submitted: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    graded: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-    returned: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    submitted: "bg-info/15 text-info",
+    graded: "bg-success/15 text-success",
+    returned: "bg-warning/15 text-warning",
   }
 
   return (
@@ -478,7 +478,7 @@ function SubmissionGrader({
             href={submission.file_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            className="flex items-center gap-1 text-xs text-info hover:underline"
           >
             <FileText className="h-3 w-3" />
             View attached file

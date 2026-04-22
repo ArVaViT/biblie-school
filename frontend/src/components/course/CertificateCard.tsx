@@ -80,26 +80,22 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
 
   if (!certificate) {
     return (
-      <Card className="border-2 border-dashed border-amber-300/50 bg-gradient-to-br from-amber-50/50 to-yellow-50/30 dark:from-amber-950/20 dark:to-yellow-950/10 dark:border-amber-700/30">
+      <Card className="border-dashed border-l-[3px] border-l-accent">
         <CardContent className="py-6">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-              <Award className="h-7 w-7 text-amber-500" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted">
+              <Award className="h-6 w-6 text-muted-foreground" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-amber-900 dark:text-amber-200">
-                You completed this course!
+              <h3 className="font-serif text-base font-semibold">
+                You completed this course
               </h3>
-              <p className="text-sm text-amber-700/80 dark:text-amber-400/70 mt-0.5">
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 Request your certificate of completion for review.
               </p>
             </div>
-            <Button
-              onClick={handleRequest}
-              disabled={requesting}
-              className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white shadow-md"
-            >
-              <Sparkles className="h-4 w-4 mr-1.5" />
+            <Button onClick={handleRequest} disabled={requesting}>
+              <Sparkles className="mr-1.5 h-4 w-4" />
               {requesting ? "Requesting..." : "Request Certificate"}
             </Button>
           </div>
@@ -110,17 +106,15 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
 
   if (certificate.status === "pending") {
     return (
-      <Card className="border-amber-300/50 bg-gradient-to-br from-amber-50/50 to-yellow-50/30 dark:from-amber-950/20 dark:to-yellow-950/10 dark:border-amber-700/30">
+      <Card className="border-l-[3px] border-l-warning">
         <CardContent className="py-6">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-              <Clock className="h-7 w-7 text-amber-500 animate-pulse" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-warning/10">
+              <Clock className="h-6 w-6 animate-pulse text-warning" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-amber-900 dark:text-amber-200">
-                Awaiting teacher approval
-              </h3>
-              <p className="text-sm text-amber-700/80 dark:text-amber-400/70 mt-0.5">
+              <h3 className="font-serif text-base font-semibold">Awaiting teacher approval</h3>
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 Your certificate request has been submitted. Your instructor will review it shortly.
               </p>
             </div>
@@ -132,17 +126,15 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
 
   if (certificate.status === "teacher_approved") {
     return (
-      <Card className="border-blue-300/50 bg-gradient-to-br from-blue-50/50 to-sky-50/30 dark:from-blue-950/20 dark:to-sky-950/10 dark:border-blue-700/30">
+      <Card className="border-l-[3px] border-l-info">
         <CardContent className="py-6">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-              <Clock className="h-7 w-7 text-blue-500 animate-pulse" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-info/10">
+              <Clock className="h-6 w-6 animate-pulse text-info" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-blue-900 dark:text-blue-200">
-                Awaiting admin approval
-              </h3>
-              <p className="text-sm text-blue-700/80 dark:text-blue-400/70 mt-0.5">
+              <h3 className="font-serif text-base font-semibold">Awaiting admin approval</h3>
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 Your teacher has approved your certificate. It is now pending final admin approval.
               </p>
             </div>
@@ -154,43 +146,39 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
 
   if (certificate.status === "approved") {
     return (
-      <Card className="border-2 border-amber-400/60 bg-gradient-to-br from-amber-50/80 via-yellow-50/40 to-orange-50/30 dark:from-amber-950/30 dark:via-yellow-950/20 dark:to-orange-950/10 dark:border-amber-600/40 shadow-lg shadow-amber-100/50 dark:shadow-amber-900/20">
-        <CardContent className="py-6 space-y-5">
+      <Card className="border-l-[3px] border-l-accent">
+        <CardContent className="space-y-5 py-6">
           <div className="flex items-start gap-4">
-            <div className="h-14 w-14 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shrink-0 shadow-md">
-              <Award className="h-7 w-7 text-white" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-accent/15">
+              <Award className="h-6 w-6 text-accent" />
             </div>
-            <div className="flex-1 min-w-0 space-y-3">
+            <div className="min-w-0 flex-1 space-y-3">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-lg text-amber-900 dark:text-amber-200">
-                    Certificate Approved!
-                  </h3>
-                  <Sparkles className="h-4 w-4 text-amber-500" />
+                <div className="mb-1 flex items-center gap-2">
+                  <h3 className="font-serif text-lg font-semibold">Certificate approved</h3>
+                  <Sparkles className="h-4 w-4 text-accent" />
                 </div>
-                <p className="text-sm text-amber-700/80 dark:text-amber-400/70">
+                <p className="text-sm text-muted-foreground">
                   Congratulations! Your certificate has been approved.
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
                 <div>
-                  <p className="text-xs text-amber-600/70 dark:text-amber-500/60 mb-0.5">
-                    Certificate Number
-                  </p>
+                  <p className="mb-0.5 text-xs text-muted-foreground">Certificate number</p>
                   <div className="flex items-center gap-2">
-                    <code className="font-mono text-sm bg-white/60 dark:bg-black/20 px-2.5 py-1 rounded border border-amber-200/60 dark:border-amber-700/40 text-amber-900 dark:text-amber-200 select-all">
+                    <code className="select-all rounded border border-border bg-background px-2.5 py-1 font-mono text-sm">
                       {certificate.certificate_number}
                     </code>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 w-7 p-0 text-amber-600 hover:text-amber-700 dark:text-amber-400"
+                      className="h-7 w-7 p-0"
                       onClick={handleCopy}
                       aria-label="Copy certificate number"
                     >
                       {copied ? (
-                        <CheckCircle className="h-3.5 w-3.5" />
+                        <CheckCircle className="h-3.5 w-3.5 text-success" />
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
@@ -198,10 +186,8 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-amber-600/70 dark:text-amber-500/60 mb-0.5">
-                    Issue Date
-                  </p>
-                  <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                  <p className="mb-0.5 text-xs text-muted-foreground">Issue date</p>
+                  <p className="text-sm font-medium">
                     {certificate.issued_at
                       ? new Date(certificate.issued_at).toLocaleDateString(undefined, {
                           year: "numeric",
@@ -216,10 +202,8 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
           </div>
 
           {user && !reviewDone && (
-            <div className="border-t border-amber-300/40 dark:border-amber-700/30 pt-5 space-y-3">
-              <h4 className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                How was this course? Leave a review
-              </h4>
+            <div className="space-y-3 border-t border-border pt-5">
+              <h4 className="text-sm font-medium">How was this course? Leave a review</h4>
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((value) => (
                   <button
@@ -228,20 +212,20 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
                     onClick={() => setReviewRating(value)}
                     onMouseEnter={() => setReviewHover(value)}
                     onMouseLeave={() => setReviewHover(0)}
-                    className="focus:outline-none transition-transform hover:scale-110"
+                    className="transition-transform hover:scale-110 focus:outline-none"
                     aria-label={`Rate ${value} out of 5`}
                   >
                     <Star
                       className={`h-6 w-6 transition-colors ${
                         value <= (reviewHover || reviewRating)
-                          ? "fill-amber-400 text-amber-400"
-                          : "text-amber-300/40 dark:text-amber-700/40"
+                          ? "fill-warning text-warning"
+                          : "text-muted-foreground/30"
                       }`}
                     />
                   </button>
                 ))}
                 {reviewRating > 0 && (
-                  <span className="text-sm text-amber-700/70 dark:text-amber-400/60 ml-2">
+                  <span className="ml-2 text-sm text-muted-foreground">
                     {reviewRating}/5
                   </span>
                 )}
@@ -251,21 +235,16 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
                 onChange={(e) => setReviewComment(e.target.value)}
                 placeholder="Share your thoughts about this course... (optional)"
                 rows={3}
-                className="flex min-h-[80px] w-full rounded-md border border-amber-200/60 dark:border-amber-700/40 bg-white/60 dark:bg-black/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
-              <Button
-                onClick={handleReviewSubmit}
-                disabled={reviewSubmitting}
-                size="sm"
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white"
-              >
+              <Button onClick={handleReviewSubmit} disabled={reviewSubmitting} size="sm">
                 {reviewSubmitting ? "Submitting..." : "Submit Review"}
               </Button>
             </div>
           )}
 
           {reviewDone && (
-            <div className="border-t border-amber-300/40 dark:border-amber-700/30 pt-4 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
+            <div className="flex items-center gap-2 border-t border-border pt-4 text-sm text-success">
               <CheckCircle className="h-4 w-4" />
               Thank you for your review!
             </div>
@@ -277,27 +256,23 @@ export default function CertificateCard({ courseId, progress, certificate, onCer
 
   if (certificate.status === "rejected") {
     return (
-      <Card className="border-red-300/50 bg-gradient-to-br from-red-50/50 to-rose-50/30 dark:from-red-950/20 dark:to-rose-950/10 dark:border-red-700/30">
+      <Card className="border-l-[3px] border-l-destructive">
         <CardContent className="py-6">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-              <XCircle className="h-7 w-7 text-red-500" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-destructive/10">
+              <XCircle className="h-6 w-6 text-destructive" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-red-900 dark:text-red-200">
+              <h3 className="font-serif text-base font-semibold">
                 Certificate request was not approved
               </h3>
-              <p className="text-sm text-red-700/80 dark:text-red-400/70 mt-0.5">
-                Unfortunately, your certificate request was rejected. You may re-request after addressing any outstanding requirements.
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Unfortunately, your certificate request was rejected. You may re-request after
+                addressing any outstanding requirements.
               </p>
             </div>
-            <Button
-              onClick={handleRequest}
-              disabled={requesting}
-              variant="outline"
-              className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/30"
-            >
-              <RefreshCw className="h-4 w-4 mr-1.5" />
+            <Button onClick={handleRequest} disabled={requesting} variant="outline">
+              <RefreshCw className="mr-1.5 h-4 w-4" />
               {requesting ? "Requesting..." : "Re-request"}
             </Button>
           </div>
