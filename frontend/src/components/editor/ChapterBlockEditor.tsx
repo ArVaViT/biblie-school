@@ -116,6 +116,13 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
     const snapshot = editContentRef.current
     autoSaveTimer.current = setTimeout(async () => {
       if (!mountedRef.current) return
+      // Defer the write while the tab is hidden: saving will happen the
+      // next time the user is typing (or on explicit save). This avoids
+      // background tabs hammering the API for no user benefit.
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        setAutoSaveStatus("pending")
+        return
+      }
       setAutoSaveStatus("saving")
       try {
         const updated = await coursesService.updateBlock(blockId, { content: snapshot })

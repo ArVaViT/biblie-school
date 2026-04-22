@@ -47,7 +47,15 @@ def get_calendar_events(
 
     events: list[CalendarEvent] = []
 
-    modules = db.query(Module).filter(Module.course_id.in_(enrolled_course_ids), Module.due_date.isnot(None)).all()
+    modules = (
+        db.query(Module)
+        .filter(
+            Module.course_id.in_(enrolled_course_ids),
+            Module.due_date.isnot(None),
+            Module.deleted_at.is_(None),
+        )
+        .all()
+    )
     for m in modules:
         events.append(
             CalendarEvent(
@@ -66,7 +74,11 @@ def get_calendar_events(
     chapters = (
         db.query(Chapter.id, Module.course_id)
         .join(Module, Chapter.module_id == Module.id)
-        .filter(Module.course_id.in_(enrolled_course_ids))
+        .filter(
+            Module.course_id.in_(enrolled_course_ids),
+            Module.deleted_at.is_(None),
+            Chapter.deleted_at.is_(None),
+        )
         .all()
     )
     for ch_id, crs_id in chapters:
@@ -163,14 +175,15 @@ def list_course_events(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[CourseEventResponse]:
-    course = db.query(Course).filter(Course.id == course_id).first()
-    if not course:
+    # Narrow probe: only the columns needed for ownership + soft-delete checks.
+    course_row = db.query(Course.created_by).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
+    if not course_row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
-    is_owner = str(course.created_by) == str(current_user.id)
+    is_owner = str(course_row.created_by) == str(current_user.id)
     is_admin = current_user.role == UserRole.ADMIN.value
     if not is_owner and not is_admin:
         enrolled = (
-            db.query(Enrollment)
+            db.query(Enrollment.id)
             .filter(Enrollment.user_id == current_user.id, Enrollment.course_id == course_id)
             .first()
         )
@@ -179,8 +192,7 @@ def list_course_events(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You must be enrolled in this course to view events",
             )
-    events = db.query(CourseEvent).filter(CourseEvent.course_id == course_id).order_by(CourseEvent.event_date).all()
-    return events
+    return db.query(CourseEvent).filter(CourseEvent.course_id == course_id).order_by(CourseEvent.event_date).all()
 
 
 @event_router.put(

@@ -297,13 +297,14 @@ def get_user_courses(
 ) -> list[Enrollment]:
     query = (
         db.query(Enrollment)
+        .join(Course, Course.id == Enrollment.course_id)
         .options(
             joinedload(Enrollment.course)
             .selectinload(Course.modules)
             .selectinload(Module.chapters)
             .options(defer(Chapter.content))
         )
-        .filter(Enrollment.user_id == user_id)
+        .filter(Enrollment.user_id == user_id, Course.deleted_at.is_(None))
         .order_by(Enrollment.enrolled_at.desc())
     )
     if skip:

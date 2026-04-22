@@ -74,23 +74,31 @@ export const coursesService = {
 
   // Cohorts
   async getCourseCohorts(courseId: string): Promise<Cohort[]> {
+    const key = `cohorts:course:${courseId}`
+    const cached = cacheGet<Cohort[]>(key)
+    if (cached) return cached
     const response = await api.get<Cohort[]>(`/cohorts/course/${courseId}`)
+    cacheSet(key, response.data, 2 * 60 * 1000)
     return response.data
   },
   async createCohort(courseId: string, data: CohortMutation): Promise<Cohort> {
     const response = await api.post<Cohort>(`/cohorts/course/${courseId}`, data)
+    cacheInvalidate(`cohorts:course:${courseId}`)
     return response.data
   },
   async updateCohort(cohortId: string, data: Partial<CohortMutation>): Promise<Cohort> {
     const response = await api.put<Cohort>(`/cohorts/${cohortId}`, data)
+    cacheInvalidatePrefix("cohorts:course:")
     return response.data
   },
   async deleteCohort(cohortId: string): Promise<void> {
     await api.delete(`/cohorts/${cohortId}`)
+    cacheInvalidatePrefix("cohorts:course:")
   },
-  
+
   async completeCohort(cohortId: string): Promise<void> {
     await api.post(`/cohorts/${cohortId}/complete`)
+    cacheInvalidatePrefix("cohorts:course:")
   },
 
   // Enrollment
@@ -145,13 +153,18 @@ export const coursesService = {
 
   // Teacher CRUD — Courses
   async getTeacherCourses(): Promise<Course[]> {
+    const key = "courses:teacher"
+    const cached = cacheGet<Course[]>(key)
+    if (cached) return cached
     const response = await api.get<Course[]>("/courses/my")
+    cacheSet(key, response.data, 60 * 1000)
     return response.data
   },
 
   async createCourse(data: { title: string; description?: string; image_url?: string }): Promise<Course> {
     const response = await api.post<Course>("/courses", data)
     cacheInvalidatePrefix("courses:list:")
+    cacheInvalidate("courses:teacher")
     return response.data
   },
 
@@ -162,6 +175,7 @@ export const coursesService = {
     const response = await api.put<Course>(`/courses/${id}`, data)
     cacheInvalidate(`courses:detail:${id}`)
     cacheInvalidatePrefix("courses:list:")
+    cacheInvalidate("courses:teacher")
     return response.data
   },
 
@@ -170,6 +184,7 @@ export const coursesService = {
     cacheInvalidate(`courses:detail:${id}`)
     cacheInvalidatePrefix("courses:list:")
     cacheInvalidatePrefix(`courses:module:${id}:`)
+    cacheInvalidate("courses:teacher")
   },
 
   async getTrashedCourses(): Promise<Course[]> {
@@ -180,6 +195,7 @@ export const coursesService = {
   async restoreCourse(id: string): Promise<Course> {
     const response = await api.post<Course>(`/courses/${id}/restore`)
     cacheInvalidatePrefix("courses:list:")
+    cacheInvalidate("courses:teacher")
     return response.data
   },
 
@@ -188,11 +204,13 @@ export const coursesService = {
     cacheInvalidate(`courses:detail:${id}`)
     cacheInvalidatePrefix("courses:list:")
     cacheInvalidatePrefix(`courses:module:${id}:`)
+    cacheInvalidate("courses:teacher")
   },
 
   async cloneCourse(id: string): Promise<Course> {
     const response = await api.post<Course>(`/courses/${id}/clone`)
     cacheInvalidatePrefix("courses:list:")
+    cacheInvalidate("courses:teacher")
     return response.data
   },
 
@@ -288,27 +306,44 @@ export const coursesService = {
   },
 
   async getCourseGrades(courseId: string): Promise<StudentGrade[]> {
+    const key = `grades:course:${courseId}`
+    const cached = cacheGet<StudentGrade[]>(key)
+    if (cached) return cached
     const response = await api.get<StudentGrade[]>(`/grades/course/${courseId}`)
+    cacheSet(key, response.data, 60 * 1000)
     return response.data
   },
 
   async upsertGrade(courseId: string, studentId: string, data: { grade?: string; comment?: string }): Promise<StudentGrade> {
     const response = await api.put<StudentGrade>(`/grades/course/${courseId}/student/${studentId}`, data)
+    cacheInvalidate(`grades:course:${courseId}`)
+    cacheInvalidate(`grades:summary:${courseId}`)
+    cacheInvalidatePrefix("grades:my")
     return response.data
   },
 
   async getMyGrades(): Promise<StudentGrade[]> {
+    const key = "grades:my"
+    const cached = cacheGet<StudentGrade[]>(key)
+    if (cached) return cached
     const response = await api.get<StudentGrade[]>("/grades/my")
+    cacheSet(key, response.data, 60 * 1000)
     return response.data
   },
 
   async updateGradingConfig(courseId: string, data: GradingConfig): Promise<GradingConfig> {
     const response = await api.put<GradingConfig>(`/grades/course/${courseId}/config`, data)
+    cacheInvalidate(`grades:summary:${courseId}`)
+    cacheInvalidate(`grades:course:${courseId}`)
     return response.data
   },
 
   async getGradeSummary(courseId: string): Promise<GradeSummaryResponse> {
+    const key = `grades:summary:${courseId}`
+    const cached = cacheGet<GradeSummaryResponse>(key)
+    if (cached) return cached
     const response = await api.get<GradeSummaryResponse>(`/grades/course/${courseId}/summary`)
+    cacheSet(key, response.data, 60 * 1000)
     return response.data
   },
 
@@ -332,7 +367,25 @@ export const coursesService = {
       enrolled_at: string | null
     }>
   }> {
+    const key = `analytics:course:${courseId}`
+    const cached = cacheGet<{
+      course_id: string
+      course_title: string
+      total_students: number
+      avg_progress: number
+      completion_count: number
+      enrollments: Array<{
+        enrollment_id: string
+        user_id: string
+        full_name: string | null
+        email: string
+        progress: number
+        enrolled_at: string | null
+      }>
+    }>(key)
+    if (cached) return cached
     const response = await api.get(`/analytics/course/${courseId}`)
+    cacheSet(key, response.data, 30 * 1000)
     return response.data
   },
 
@@ -376,9 +429,13 @@ export const coursesService = {
     cacheInvalidate(`quiz:chapter:${data.chapter_id}`)
     return response.data
   },
-  async deleteQuiz(quizId: string): Promise<void> {
+  async deleteQuiz(quizId: string, chapterId?: string): Promise<void> {
     await api.delete(`/quizzes/${quizId}`)
-    cacheInvalidatePrefix("quiz:chapter:")
+    if (chapterId) {
+      cacheInvalidate(`quiz:chapter:${chapterId}`)
+    } else {
+      cacheInvalidatePrefix("quiz:chapter:")
+    }
   },
   async submitQuiz(quizId: string, answers: { question_id: string; selected_option_id?: string; text_answer?: string }[]): Promise<QuizAttempt> {
     const response = await api.post<QuizAttempt>(`/quizzes/${quizId}/submit`, { answers })
@@ -496,9 +553,13 @@ export const coursesService = {
 
   async teacherMarkComplete(chapterId: string, studentId: string): Promise<void> {
     await api.put(`/progress/chapter/${chapterId}/student/${studentId}/complete`)
+    cacheInvalidatePrefix("progress:students:")
+    cacheInvalidatePrefix("analytics:course:")
   },
   async teacherMarkIncomplete(chapterId: string, studentId: string): Promise<void> {
     await api.put(`/progress/chapter/${chapterId}/student/${studentId}/incomplete`)
+    cacheInvalidatePrefix("progress:students:")
+    cacheInvalidatePrefix("analytics:course:")
   },
 
   // Reviews
@@ -531,7 +592,11 @@ export const coursesService = {
   },
 
   async getStudentProgress(courseId: string): Promise<StudentProgressResponse> {
+    const key = `progress:students:${courseId}`
+    const cached = cacheGet<StudentProgressResponse>(key)
+    if (cached) return cached
     const response = await api.get<StudentProgressResponse>(`/progress/course/${courseId}/students`)
+    cacheSet(key, response.data, 30 * 1000)
     return response.data
   },
 
@@ -571,13 +636,21 @@ export const coursesService = {
 
   // Calendar
   async getCalendarEvents(courseId?: string): Promise<CalendarEvent[]> {
+    const key = `calendar:events:${courseId ?? "all"}`
+    const cached = cacheGet<CalendarEvent[]>(key)
+    if (cached) return cached
     const params = courseId ? { course_id: courseId } : undefined
     const response = await api.get<CalendarEvent[]>("/calendar/events", { params })
+    cacheSet(key, response.data, 60 * 1000)
     return response.data
   },
 
   async getCourseEvents(courseId: string): Promise<CourseEvent[]> {
+    const key = `calendar:course-events:${courseId}`
+    const cached = cacheGet<CourseEvent[]>(key)
+    if (cached) return cached
     const response = await api.get<CourseEvent[]>(`/courses/${courseId}/events`)
+    cacheSet(key, response.data, 2 * 60 * 1000)
     return response.data
   },
 
@@ -588,6 +661,8 @@ export const coursesService = {
     event_date: string
   }): Promise<CourseEvent> {
     const response = await api.post<CourseEvent>(`/courses/${courseId}/events`, data)
+    cacheInvalidate(`calendar:course-events:${courseId}`)
+    cacheInvalidatePrefix("calendar:events:")
     return response.data
   },
 
@@ -598,10 +673,14 @@ export const coursesService = {
     event_date?: string
   }): Promise<CourseEvent> {
     const response = await api.put<CourseEvent>(`/courses/${courseId}/events/${eventId}`, data)
+    cacheInvalidate(`calendar:course-events:${courseId}`)
+    cacheInvalidatePrefix("calendar:events:")
     return response.data
   },
 
   async deleteCourseEvent(courseId: string, eventId: string): Promise<void> {
     await api.delete(`/courses/${courseId}/events/${eventId}`)
+    cacheInvalidate(`calendar:course-events:${courseId}`)
+    cacheInvalidatePrefix("calendar:events:")
   },
 }

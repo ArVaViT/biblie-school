@@ -117,23 +117,30 @@ export default function NotificationBell() {
   }, [fetchUnreadCount])
 
   const loadMoreSignalRef = useRef<{ cancelled: boolean } | null>(null)
+  const lastFetchedAtRef = useRef<number>(0)
 
   useEffect(() => {
     if (!open) {
-      setNotifications([])
-      setPage(1)
-      setHasMore(false)
+      // Keep the already-loaded first page so reopening feels instant;
+      // only cancel in-flight "load more" so we don't append to stale state.
       setLoadingMore(false)
-      setLoadError(false)
       if (loadMoreSignalRef.current) loadMoreSignalRef.current.cancelled = true
       return
     }
     const signal = { cancelled: false }
-    fetchNotifications(1, signal)
+    const isStale = Date.now() - lastFetchedAtRef.current > 30_000
+    if (notifications.length === 0 || isStale) {
+      fetchNotifications(1, signal).then(() => {
+        if (!signal.cancelled) lastFetchedAtRef.current = Date.now()
+      })
+    }
     return () => {
       signal.cancelled = true
       if (loadMoreSignalRef.current) loadMoreSignalRef.current.cancelled = true
     }
+    // Intentionally do not depend on `notifications.length` — we only want
+    // to re-fetch on open/close transitions, not on every list mutation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, fetchNotifications])
 
   const handleLoadMore = useCallback(() => {

@@ -79,6 +79,16 @@ def require_admin(
     return current_user
 
 
+def _resolve_admin_flag(db: Session, teacher: User | str) -> bool:
+    """Return whether ``teacher`` holds the admin role.
+
+    Accepts either a hydrated ``User`` (no DB call) or a bare id (one SELECT).
+    """
+    if isinstance(teacher, User):
+        return teacher.role == UserRole.ADMIN.value
+    return bool(db.query(User.id).filter(User.id == teacher, User.role == UserRole.ADMIN.value).first())
+
+
 def assert_course_owner(course: Course, user: User, *, allow_admin: bool = True) -> None:
     """Raise 403 unless ``user`` owns ``course`` (or is admin and allowed).
 
@@ -111,14 +121,8 @@ def verify_course_owner(
     teacher_id = teacher.id if isinstance(teacher, User) else teacher
     if str(course.created_by) == str(teacher_id):
         return course
-    if allow_admin:
-        is_admin = (
-            teacher.role == UserRole.ADMIN.value
-            if isinstance(teacher, User)
-            else bool(db.query(User.id).filter(User.id == teacher_id, User.role == UserRole.ADMIN.value).first())
-        )
-        if is_admin:
-            return course
+    if allow_admin and _resolve_admin_flag(db, teacher):
+        return course
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="You do not own this course",
@@ -173,12 +177,7 @@ def verify_chapter_owner(db: Session, chapter_id: str, teacher: User | str) -> t
     teacher_id = teacher.id if isinstance(teacher, User) else teacher
     if str(course.created_by) == str(teacher_id):
         return chapter, str(course.id)
-    is_admin = (
-        teacher.role == UserRole.ADMIN.value
-        if isinstance(teacher, User)
-        else bool(db.query(User.id).filter(User.id == teacher_id, User.role == UserRole.ADMIN.value).first())
-    )
-    if not is_admin:
+    if not _resolve_admin_flag(db, teacher):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not own this course",

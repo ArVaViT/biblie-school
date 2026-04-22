@@ -221,7 +221,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
       onQuizSaved?.(quiz.id)
       setMaxAttempts(quiz.max_attempts ?? (chapterType === "exam" ? 1 : 3))
       if (oldQuizId) {
-        await coursesService.deleteQuiz(oldQuizId).catch(() => {
+        await coursesService.deleteQuiz(oldQuizId, chapterId).catch(() => {
           // Old quiz cleanup is best-effort; the new quiz was already saved
         })
       }
@@ -244,7 +244,7 @@ export default function QuizEditor({ chapterId, chapterType = "quiz", onQuizSave
     if (!ok) return
     setDeleting(true)
     try {
-      await coursesService.deleteQuiz(existingQuiz.id)
+      await coursesService.deleteQuiz(existingQuiz.id, chapterId)
       setExistingQuiz(null)
       setTitle("")
       setDescription("")

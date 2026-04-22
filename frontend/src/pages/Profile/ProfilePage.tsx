@@ -53,6 +53,7 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState("")
 
   useEffect(() => {
+    if (!user?.id) return
     let cancelled = false
     const loadStats = async () => {
       try {
@@ -67,7 +68,7 @@ export default function ProfilePage() {
     }
     loadStats()
     return () => { cancelled = true }
-  }, [])
+  }, [user?.id])
 
   const handleSave = async () => {
     setError("")

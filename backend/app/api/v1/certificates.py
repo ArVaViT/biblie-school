@@ -118,17 +118,14 @@ def list_pending_certificates(
     db: Session = Depends(get_db),
 ):
     """Teacher: list pending certificates for courses they teach."""
-    # Exclude trashed courses from the pending worklist — requests for
-    # deleted courses should not show up as actionable items.
-    teacher_course_ids = [
-        c.id for c in db.query(Course).filter(Course.created_by == teacher.id, Course.deleted_at.is_(None)).all()
-    ]
-    if not teacher_course_ids:
-        return []
+    # One query: join through Course with the ownership + soft-delete filter,
+    # instead of materializing a Python list of course ids for IN (...).
     return (
         db.query(Certificate)
+        .join(Course, Course.id == Certificate.course_id)
         .filter(
-            Certificate.course_id.in_(teacher_course_ids),
+            Course.created_by == teacher.id,
+            Course.deleted_at.is_(None),
             Certificate.status == "pending",
         )
         .order_by(Certificate.requested_at.asc())
