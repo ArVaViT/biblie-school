@@ -5,6 +5,9 @@
 .env.local
 .env.*.local
 
+# Local scratch
+.tmp-commit-msg.txt
+
 # Python
 __pycache__/
 *.py[cod]
