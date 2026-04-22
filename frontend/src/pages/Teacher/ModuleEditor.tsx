@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from "react"
-import { useParams, useNavigate, Link } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { coursesService } from "@/services/courses"
 import { getErrorDetail } from "@/lib/errorDetail"
 import type { Module, Chapter } from "@/types"
@@ -12,11 +13,13 @@ import { moduleSchema, chapterSchema } from "@/lib/validations/course"
 import { useConfirm } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import {
-  Plus, Trash2, ChevronRight,
-  Loader2, Pencil, CalendarDays, Lock, Unlock, GripVertical,
+  Plus, Trash2, Pencil, CalendarDays, Lock, Unlock, GripVertical,
 } from "lucide-react"
 
 import { getChapterTypeMeta } from "@/lib/chapterTypes"
+import { InlineEdit } from "@/components/patterns/InlineEdit"
+import { PageHeader } from "@/components/patterns/PageHeader"
+import { EmptyState } from "@/components/patterns/EmptyState"
 
 function chapterTypeBadge(type: string) {
   return getChapterTypeMeta(type).badgeColor
@@ -29,10 +32,7 @@ export default function ModuleEditor() {
 
   const [mod, setMod] = useState<Module | null>(null)
   const [loading, setLoading] = useState(true)
-  const [savingModule, setSavingModule] = useState(false)
 
-  const [modTitle, setModTitle] = useState("")
-  const [modDescription, setModDescription] = useState("")
   const [modDueDate, setModDueDate] = useState("")
 
   const load = useCallback(async (signal?: { cancelled: boolean }) => {
@@ -42,8 +42,6 @@ export default function ModuleEditor() {
       const data = await coursesService.getModule(courseId, moduleId)
       if (signal?.cancelled) return
       setMod(data)
-      setModTitle(data.title)
-      setModDescription(data.description ?? "")
       setModDueDate(data.due_date ? data.due_date.slice(0, 16) : "")
     } catch {
       if (signal?.cancelled) return
@@ -60,45 +58,36 @@ export default function ModuleEditor() {
     return () => { signal.cancelled = true }
   }, [load])
 
-  const saveModuleDetails = async (field: "title" | "description", value: string) => {
+  const saveModuleField = async (field: "title" | "description", value: string) => {
     if (!courseId || !moduleId) return
-    const trimmed = value.trim()
-    if (field === "title" && !trimmed) return
-    // Pick the relevant slice of moduleSchema so both the length cap and the
-    // trim rule match what the backend Pydantic schema enforces.
     const check = moduleSchema
       .pick({ title: true, description: true })
       .partial()
-      .safeParse({ [field]: trimmed })
+      .safeParse({ [field]: value })
     if (!check.success) {
       toast({
         title: check.error.issues[0]?.message ?? `Invalid ${field}`,
         variant: "destructive",
       })
-      return
+      throw new Error("validation")
     }
-    setSavingModule(true)
     try {
-      await coursesService.updateModule(courseId, moduleId, { [field]: trimmed })
-      setMod((prev) => (prev ? { ...prev, [field]: trimmed } : prev))
+      await coursesService.updateModule(courseId, moduleId, { [field]: value })
+      setMod((prev) => (prev ? { ...prev, [field]: value } : prev))
     } catch {
       toast({ title: "Failed to save module", variant: "destructive" })
-    } finally {
-      setSavingModule(false)
+      throw new Error("save failed")
     }
   }
 
   const saveDueDate = async (value: string) => {
     if (!courseId || !moduleId) return
-    setSavingModule(true)
     try {
       const due = value ? new Date(value).toISOString() : null
       await coursesService.updateModule(courseId, moduleId, { due_date: due })
       setMod((prev) => (prev ? { ...prev, due_date: due } : prev))
     } catch {
       toast({ title: "Failed to save due date", variant: "destructive" })
-    } finally {
-      setSavingModule(false)
     }
   }
 
@@ -264,47 +253,39 @@ export default function ModuleEditor() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Breadcrumb */}
-      <div className="mb-8">
-        <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Link to="/teacher" className="hover:text-foreground transition-colors">My Courses</Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <Link to={`/teacher/courses/${courseId}`} className="hover:text-foreground transition-colors">Course</Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-foreground font-medium truncate max-w-[200px]">{mod?.title || "Module"}</span>
-        </div>
-
-        {/* Module title / description */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Input
-              value={modTitle}
-              onChange={(e) => setModTitle(e.target.value)}
-              onBlur={() => saveModuleDetails("title", modTitle)}
-              className="font-serif text-2xl font-bold border-none shadow-none hover:border-border/50 hover:shadow-sm focus-visible:ring-1 h-auto py-1 px-2"
-              placeholder="Module title"
-            />
-            {savingModule && (
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
-            )}
-          </div>
-
-          <Input
-            value={modDescription}
-            onChange={(e) => setModDescription(e.target.value)}
-            onBlur={() => saveModuleDetails("description", modDescription)}
-            className="text-sm text-muted-foreground border-none shadow-none hover:border-border/50 hover:shadow-sm focus-visible:ring-1 h-auto py-1 px-2"
-            placeholder="Module description (optional)"
+      <PageHeader
+        backTo={`/teacher/courses/${courseId}`}
+        backLabel="Back to course"
+        title={
+          <InlineEdit
+            size="h1"
+            value={mod.title}
+            onSave={(v) => saveModuleField("title", v)}
+            required
+            placeholder="Untitled module"
+            ariaLabel="Edit module title"
+            maxLength={200}
           />
-
-          <div className="flex items-center gap-4 flex-wrap">
-            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+        }
+        description={
+          <InlineEdit
+            size="body"
+            multiline
+            value={mod.description ?? ""}
+            onSave={(v) => saveModuleField("description", v)}
+            placeholder="Add a module description"
+            ariaLabel="Edit module description"
+            maxLength={2000}
+          />
+        }
+        meta={
+          <>
+            <Badge variant="muted">
               {chapters.length} {chapters.length === 1 ? "chapter" : "chapters"}
-            </span>
-
+            </Badge>
             <div className="flex items-center gap-2">
               <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-              <Label className="text-xs text-muted-foreground">Due date:</Label>
+              <Label className="text-xs text-muted-foreground">Due date</Label>
               <Input
                 type="datetime-local"
                 value={modDueDate}
@@ -316,24 +297,30 @@ export default function ModuleEditor() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-[10px] text-muted-foreground"
-                  onClick={() => { setModDueDate(""); saveDueDate("") }}
+                  className="h-6 text-xs text-muted-foreground"
+                  onClick={() => { setModDueDate(""); void saveDueDate("") }}
                 >
                   Clear
                 </Button>
               )}
             </div>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      {/* Chapter List */}
       {chapters.length === 0 ? (
-        <Card className="border-dashed mb-6">
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <p>No chapters yet. Add your first chapter to start building this module.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Pencil />}
+          title="No chapters yet"
+          description="Add your first chapter to start building this module."
+          action={
+            <Button onClick={addChapter} size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add chapter
+            </Button>
+          }
+          className="mb-6"
+        />
       ) : (
         <DragDropContext onDragEnd={handleChapterDragEnd}>
           <Droppable droppableId="chapters">

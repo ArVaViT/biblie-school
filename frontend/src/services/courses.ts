@@ -167,7 +167,14 @@ export const coursesService = {
 
   async updateCourse(
     id: string,
-    data: { title?: string; description?: string; image_url?: string; status?: string; enrollment_start?: string | null; enrollment_end?: string | null },
+    data: {
+      title?: string
+      description?: string | null
+      image_url?: string | null
+      status?: string
+      enrollment_start?: string | null
+      enrollment_end?: string | null
+    },
   ): Promise<Course> {
     const response = await api.put<Course>(`/courses/${id}`, data)
     cacheInvalidate(`courses:detail:${id}`)

@@ -1,21 +1,33 @@
 import { useEffect, useState, useCallback, useRef } from "react"
-import { useParams, useNavigate, Link } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
 import type { Course, Announcement, Cohort, CourseEvent } from "@/types"
 import { toast } from "@/hooks/use-toast"
-import { toProxyImage } from "@/lib/images"
 import { useConfirm } from "@/components/ui/alert-dialog"
 import {
-  Pencil, Calendar, Megaphone, Plus, Trash2,
-  Layers, Save, Upload, Image, Loader2, X, Eye, EyeOff, BookOpen, ChevronRight,
+  Calendar, Megaphone, Plus, Trash2,
+  Layers, Save, Loader2, X, Eye, EyeOff,
   Download, Paperclip, Users, CheckCircle, CalendarDays, GripVertical,
+  MoreHorizontal, Pencil,
 } from "lucide-react"
+import { InlineEdit } from "@/components/patterns/InlineEdit"
+import { InlineEditCover } from "@/components/patterns/InlineEditCover"
+import { PageHeader } from "@/components/patterns/PageHeader"
+import { EmptyState } from "@/components/patterns/EmptyState"
 
 interface MaterialFile { name: string; path: string; size?: number }
 
@@ -38,11 +50,13 @@ function Modal({ open, onClose, title, children }: { open: boolean; onClose: () 
 }
 
 function StatusBadge({ start, end }: { start: string; end: string }) {
-  if (!start && !end) return <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Not set</span>
-  const now = new Date(), s = start ? new Date(start) : null, e = end ? new Date(end) : null
-  if (s && now < s) return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">Upcoming</span>
-  if (e && now > e) return <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">Closed</span>
-  return <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">Open</span>
+  if (!start && !end) return <Badge variant="muted">Not set</Badge>
+  const now = new Date()
+  const s = start ? new Date(start) : null
+  const e = end ? new Date(end) : null
+  if (s && now < s) return <Badge variant="info">Upcoming</Badge>
+  if (e && now > e) return <Badge variant="destructive">Closed</Badge>
+  return <Badge variant="success">Open</Badge>
 }
 
 const ta = "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -54,11 +68,6 @@ export default function CourseEditor() {
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [imageUrl, setImageUrl] = useState("")
-  const [uploadingCover, setUploadingCover] = useState(false)
-  const coverRef = useRef<HTMLInputElement>(null)
   const [enrollStart, setEnrollStart] = useState("")
   const [enrollEnd, setEnrollEnd] = useState("")
   const [anns, setAnns] = useState<Announcement[]>([])
@@ -68,7 +77,7 @@ export default function CourseEditor() {
   const [mats, setMats] = useState<MaterialFile[]>([])
   const [uploadingMat, setUploadingMat] = useState(false)
   const matRef = useRef<HTMLInputElement>(null)
-  const [modal, setModal] = useState<"details" | "enroll" | "announce" | "materials" | "cohorts" | "events" | null>(null)
+  const [modal, setModal] = useState<"enroll" | "announce" | "materials" | "cohorts" | "events" | null>(null)
   const [cohorts, setCohorts] = useState<Cohort[]>([])
   const [cohortForm, setCohortForm] = useState<{ name: string; start_date: string; end_date: string; enrollment_start: string; enrollment_end: string; max_students: string }>({ name: "", start_date: "", end_date: "", enrollment_start: "", enrollment_end: "", max_students: "" })
   const [editingCohortId, setEditingCohortId] = useState<string | null>(null)
@@ -90,8 +99,9 @@ export default function CourseEditor() {
         coursesService.getCourseEvents(courseId).catch(() => []),
       ])
       if (signal?.cancelled) return
-      setCourse(d); setTitle(d.title); setDescription(d.description ?? ""); setImageUrl(d.image_url ?? "")
-      setEnrollStart(d.enrollment_start?.slice(0, 16) ?? ""); setEnrollEnd(d.enrollment_end?.slice(0, 16) ?? "")
+      setCourse(d)
+      setEnrollStart(d.enrollment_start?.slice(0, 16) ?? "")
+      setEnrollEnd(d.enrollment_end?.slice(0, 16) ?? "")
       setMats(mats); setAnns(anns); setCohorts(cohorts); setCourseEvents(events)
     } catch { if (!signal?.cancelled) navigate("/teacher") } finally { if (!signal?.cancelled) setLoading(false) }
   }, [courseId, navigate])
@@ -102,14 +112,43 @@ export default function CourseEditor() {
     return () => { signal.cancelled = true }
   }, [load])
 
-  const saveDetails = useCallback(async () => {
-    if (!courseId || !title.trim()) return
-    setSaving(true)
+  const savePatch = useCallback(
+    async (patch: Parameters<typeof coursesService.updateCourse>[1]) => {
+      if (!courseId) return
+      try {
+        const u = await coursesService.updateCourse(courseId, patch)
+        setCourse(p => p ? { ...p, ...u } : p)
+        toast({ title: "Saved", variant: "success" })
+      } catch {
+        toast({ title: "Failed to save", variant: "destructive" })
+        throw new Error("save failed")
+      }
+    },
+    [courseId],
+  )
+
+  const uploadCover = useCallback(
+    async (file: File) => {
+      if (!courseId) throw new Error("no course")
+      const url = await storageService.uploadCourseImage(courseId, file)
+      await coursesService.updateCourse(courseId, { image_url: url })
+      setCourse(p => p ? { ...p, image_url: url } : p)
+      toast({ title: "Cover updated", variant: "success" })
+      return url
+    },
+    [courseId],
+  )
+
+  const removeCover = useCallback(async () => {
+    if (!courseId) return
     try {
-      const u = await coursesService.updateCourse(courseId, { title: title.trim(), description: description.trim() || undefined, image_url: imageUrl.trim() || undefined })
-      setCourse(p => p ? { ...p, ...u } : p); toast({ title: "Saved", variant: "success" }); setModal(null)
-    } catch { toast({ title: "Failed to save", variant: "destructive" }) } finally { setSaving(false) }
-  }, [courseId, title, description, imageUrl])
+      await coursesService.updateCourse(courseId, { image_url: null })
+      setCourse(p => p ? { ...p, image_url: null } : p)
+      toast({ title: "Cover removed", variant: "success" })
+    } catch {
+      toast({ title: "Failed to remove cover", variant: "destructive" })
+    }
+  }, [courseId])
 
   const saveEnrollment = useCallback(async () => {
     if (!courseId) return
@@ -122,16 +161,16 @@ export default function CourseEditor() {
   }, [courseId, enrollStart, enrollEnd])
 
   useEffect(() => {
+    if (modal !== "enroll") return
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault()
-        if (modal === "details") saveDetails()
-        else if (modal === "enroll") saveEnrollment()
+        void saveEnrollment()
       }
     }
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [modal, saveDetails, saveEnrollment])
+  }, [modal, saveEnrollment])
 
   const togglePublish = async () => {
     if (!courseId || !course) return
@@ -141,17 +180,6 @@ export default function CourseEditor() {
       setCourse(p => p ? { ...p, status: next } : p)
       toast({ title: next === "published" ? "Published" : "Unpublished", variant: "success" })
     } catch { toast({ title: "Failed", variant: "destructive" }) }
-  }
-
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file || !courseId) return
-    setUploadingCover(true)
-    try {
-      const url = await storageService.uploadCourseImage(courseId, file)
-      setImageUrl(url); await coursesService.updateCourse(courseId, { image_url: url })
-      setCourse(p => p ? { ...p, image_url: url } : p)
-    } catch { toast({ title: "Upload failed", variant: "destructive" }) }
-    finally { setUploadingCover(false); if (coverRef.current) coverRef.current.value = "" }
   }
 
   const addModule = async () => {
@@ -422,54 +450,97 @@ export default function CourseEditor() {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-        <Link to="/teacher" className="hover:text-foreground transition-colors">My Courses</Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground font-medium truncate max-w-[200px]">{course?.title || "Course"}</span>
-      </div>
-
-      {/* Course Header */}
-      <div className="rounded-xl overflow-hidden border mb-8">
-        <div className="h-48 bg-muted">
-          {course.image_url
-            ? <img src={toProxyImage(course.image_url)} alt={course.title} className="w-full h-full object-cover" />
-            : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5"><BookOpen className="h-16 w-16 text-primary/20" /></div>}
-        </div>
-        <div className="p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="font-serif text-2xl font-bold tracking-tight truncate">{course.title}</h1>
-              {course.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{course.description}</p>}
-            </div>
-            <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${pub ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"}`}>
-              {pub ? "Published" : "Draft"}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 mt-4 pt-4 border-t">
-            <Button variant="outline" size="sm" onClick={() => setModal("details")}><Pencil className="h-3.5 w-3.5 mr-1.5" />Edit Details</Button>
-            <Button variant="outline" size="sm" onClick={() => setModal("enroll")}><Calendar className="h-3.5 w-3.5 mr-1.5" />Enrollment</Button>
-            <Button variant="outline" size="sm" onClick={() => setModal("announce")}><Megaphone className="h-3.5 w-3.5 mr-1.5" />Announcements</Button>
-            <Button variant="outline" size="sm" onClick={() => setModal("materials")}><Paperclip className="h-3.5 w-3.5 mr-1.5" />Materials</Button>
-            <Button variant="outline" size="sm" onClick={() => { resetEventForm(); setModal("events") }}><CalendarDays className="h-3.5 w-3.5 mr-1.5" />Events</Button>
-            <Button variant="outline" size="sm" onClick={() => { resetCohortForm(); setModal("cohorts") }}><Users className="h-3.5 w-3.5 mr-1.5" />Cohorts</Button>
-            <div className="flex-1" />
+      <PageHeader
+        backTo="/teacher"
+        backLabel="My courses"
+        cover={
+          <InlineEditCover
+            value={course.image_url}
+            onUpload={uploadCover}
+            onRemove={removeCover}
+            alt={course.title}
+          />
+        }
+        title={
+          <InlineEdit
+            size="h1"
+            value={course.title}
+            onSave={(v) => savePatch({ title: v })}
+            required
+            placeholder="Untitled course"
+            ariaLabel="Edit course title"
+            maxLength={200}
+          />
+        }
+        description={
+          <InlineEdit
+            size="body"
+            multiline
+            value={course.description ?? ""}
+            onSave={(v) => savePatch({ description: v || null })}
+            placeholder="Add a course description"
+            ariaLabel="Edit course description"
+            maxLength={2000}
+          />
+        }
+        meta={
+          <Badge variant={pub ? "success" : "warning"} className="uppercase tracking-wide">
+            {pub ? "Published" : "Draft"}
+          </Badge>
+        }
+        actions={
+          <>
             <Button variant="outline" size="sm" onClick={togglePublish}>
-              {pub ? <EyeOff className="h-3.5 w-3.5 mr-1.5" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}{pub ? "Unpublish" : "Publish"}
+              {pub ? <EyeOff className="h-3.5 w-3.5 mr-1.5" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
+              {pub ? "Unpublish" : "Publish"}
             </Button>
-          </div>
-        </div>
-      </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" aria-label="More actions">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setModal("enroll")}>
+                  <Calendar /> Enrollment
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setModal("announce")}>
+                  <Megaphone /> Announcements
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setModal("materials")}>
+                  <Paperclip /> Materials
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => { resetEventForm(); setModal("events") }}>
+                  <CalendarDays /> Events
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { resetCohortForm(); setModal("cohorts") }}>
+                  <Users /> Cohorts
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
 
-      {/* Modules */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-serif text-xl font-semibold flex items-center gap-2"><Layers className="h-5 w-5 text-primary/60" />Modules</h2>
-        <Button onClick={addModule} size="sm" variant="outline"><Plus className="h-4 w-4 mr-1.5" />Add Module</Button>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-serif text-xl font-semibold flex items-center gap-2">
+          <Layers className="h-5 w-5 text-primary/60" />
+          Modules
+        </h2>
+        <Button onClick={addModule} size="sm" variant="outline">
+          <Plus className="h-4 w-4 mr-1.5" />
+          Add module
+        </Button>
       </div>
 
       {modules.length === 0 ? (
-        <Card className="border-dashed p-12 text-center text-muted-foreground">
-          <Layers className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" /><p>No modules yet. Add your first module to start building.</p>
-        </Card>
+        <EmptyState
+          icon={<Layers />}
+          title="No modules yet"
+          description="Add your first module to start building the course."
+          action={<Button onClick={addModule} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add module</Button>}
+        />
       ) : (
         <DragDropContext onDragEnd={handleModuleDragEnd}>
           <Droppable droppableId="modules">
@@ -508,36 +579,6 @@ export default function CourseEditor() {
           </Droppable>
         </DragDropContext>
       )}
-
-      {/* Edit Details Modal */}
-      <Modal open={modal === "details"} onClose={() => setModal(null)} title="Edit Course Details">
-        <div className="space-y-4">
-          <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={e => setTitle(e.target.value)} /></div>
-          <div className="space-y-2"><Label>Description</Label>
-            <textarea className={ta} value={description} onChange={e => setDescription(e.target.value)} /></div>
-          <div className="space-y-2">
-            <Label>Cover Image</Label>
-            {imageUrl ? (
-              <div className="relative w-full h-36 rounded-lg overflow-hidden border">
-                <img src={toProxyImage(imageUrl)} alt="Cover" className="w-full h-full object-cover" />
-                <button type="button" onClick={() => coverRef.current?.click()} className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                  {uploadingCover ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : <span className="text-white text-sm flex items-center gap-1.5"><Image className="h-4 w-4" />Change</span>}
-                </button>
-              </div>
-            ) : (
-              <button type="button" onClick={() => coverRef.current?.click()} disabled={uploadingCover}
-                className="w-full h-28 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                {uploadingCover ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Upload className="h-5 w-5" /><span className="text-sm">Upload cover</span></>}
-              </button>
-            )}
-            <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
-            <p className="text-xs text-muted-foreground mt-2">Recommended: 1200×630px, JPG or PNG, max 5MB</p>
-          </div>
-          <Button onClick={saveDetails} disabled={saving || !title.trim()} className="w-full">
-            <Save className="h-4 w-4 mr-1.5" />{saving ? "Saving…" : "Save Details"}
-          </Button>
-        </div>
-      </Modal>
 
       {/* Enrollment Modal */}
       <Modal open={modal === "enroll"} onClose={() => setModal(null)} title="Enrollment Period">
