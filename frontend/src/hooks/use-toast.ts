@@ -8,20 +8,16 @@ interface ToastOptions {
   variant?: Variant
 }
 
+const SONNER_BY_VARIANT: Record<Variant, (message: string, opts?: { description?: string }) => string | number> = {
+  default: sonnerToast,
+  destructive: sonnerToast.error,
+  success: sonnerToast.success,
+  warning: sonnerToast.warning,
+  info: sonnerToast.info,
+}
+
 export function toast({ title, description, variant = "default" }: ToastOptions) {
   const body = title ?? description ?? ""
   const opts = title && description ? { description } : undefined
-
-  switch (variant) {
-    case "destructive":
-      return { id: String(sonnerToast.error(body, opts)) }
-    case "success":
-      return { id: String(sonnerToast.success(body, opts)) }
-    case "warning":
-      return { id: String(sonnerToast.warning(body, opts)) }
-    case "info":
-      return { id: String(sonnerToast.info(body, opts)) }
-    default:
-      return { id: String(sonnerToast(body, opts)) }
-  }
+  SONNER_BY_VARIANT[variant](body, opts)
 }

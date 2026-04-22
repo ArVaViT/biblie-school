@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useEffect, useMemo, useState } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { useDebouncedSearchParam } from "@/hooks/useDebouncedSearchParam"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
@@ -18,6 +19,9 @@ import { useConfirm } from "@/components/ui/alert-dialog"
 export default function TeacherDashboard() {
   const navigate = useNavigate()
   const confirm = useConfirm()
+  const [params, setParams] = useSearchParams()
+  const showTrash = params.get("trash") === "1"
+  const { input: searchInput, setInput: setSearchInput, value: urlQuery, maxLength: MAX_SEARCH_LEN } = useDebouncedSearchParam()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -27,13 +31,17 @@ export default function TeacherDashboard() {
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [cloningId, setCloningId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState("")
   const [trashedCourses, setTrashedCourses] = useState<Course[]>([])
-  const [showTrash, setShowTrash] = useState(false)
   const [trashLoading, setTrashLoading] = useState(false)
   const [restoringId, setRestoringId] = useState<string | null>(null)
   const [pendingCerts, setPendingCerts] = useState<(Certificate & { student_name?: string; course_title?: string })[]>([])
   const [certActionId, setCertActionId] = useState<string | null>(null)
+
+  const filteredCourses = useMemo(() => {
+    const q = urlQuery.trim().toLowerCase()
+    if (!q) return courses
+    return courses.filter((c) => c.title.toLowerCase().includes(q))
+  }, [courses, urlQuery])
 
   const handleApproveCert = async (certId: string) => {
     setCertActionId(certId)
@@ -149,16 +157,23 @@ export default function TeacherDashboard() {
     }
   }
 
-  const loadTrash = async () => {
+  useEffect(() => {
+    if (!showTrash) return
+    const signal = { cancelled: false }
     setTrashLoading(true)
-    try {
-      const data = await coursesService.getTrashedCourses()
-      setTrashedCourses(data)
-    } catch {
-      toast({ title: "Failed to load trash", variant: "destructive" })
-    } finally {
-      setTrashLoading(false)
-    }
+    coursesService
+      .getTrashedCourses()
+      .then((data) => { if (!signal.cancelled) setTrashedCourses(data) })
+      .catch(() => { if (!signal.cancelled) toast({ title: "Failed to load trash", variant: "destructive" }) })
+      .finally(() => { if (!signal.cancelled) setTrashLoading(false) })
+    return () => { signal.cancelled = true }
+  }, [showTrash])
+
+  const toggleTrash = () => {
+    const next = new URLSearchParams(params)
+    if (showTrash) next.delete("trash")
+    else next.set("trash", "1")
+    setParams(next, { replace: true })
   }
 
   const handleRestore = async (id: string) => {
@@ -359,16 +374,15 @@ export default function TeacherDashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search courses..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value.slice(0, MAX_SEARCH_LEN))}
+                maxLength={MAX_SEARCH_LEN}
                 className="max-w-sm pl-9"
               />
             </div>
           )}
           <div className="space-y-4">
-          {courses
-            .filter(c => !search.trim() || c.title.toLowerCase().includes(search.toLowerCase()))
-            .map((course) => (
+          {filteredCourses.map((course) => (
             <Card key={course.id} className="group hover:shadow-md transition-shadow">
               <div className="flex items-start gap-4 p-6">
                 {course.image_url ? (
@@ -477,7 +491,7 @@ export default function TeacherDashboard() {
       {/* Trash Section */}
       <div className="mt-12 border-t pt-8">
         <button
-          onClick={() => { const willShow = !showTrash; setShowTrash(willShow); if (willShow) loadTrash() }}
+          onClick={toggleTrash}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <Archive className="h-4 w-4" />

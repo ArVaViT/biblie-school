@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react"
-import { Navigate } from "react-router-dom"
+import { Navigate, useSearchParams } from "react-router-dom"
+import { useDebouncedSearchParam } from "@/hooks/useDebouncedSearchParam"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context/useAuth"
@@ -41,6 +42,8 @@ interface Stats {
 
 type Tab = "overview" | "audit"
 
+const TABS: readonly Tab[] = ["overview", "audit"]
+
 const ACTION_OPTIONS = ["create", "update", "delete", "publish", "enroll", "approve", "reject", "grade"]
 const RESOURCE_OPTIONS = ["course", "module", "chapter", "enrollment", "certificate", "assignment_submission", "user"]
 
@@ -58,12 +61,14 @@ const actionBadgeClass: Record<string, string> = {
 export default function AdminDashboard() {
   const { user } = useAuth()
   const confirm = useConfirm()
-  const [tab, setTab] = useState<Tab>("overview")
+  const [params, setParams] = useSearchParams()
+  const rawTab = params.get("tab")
+  const tab: Tab = TABS.includes(rawTab as Tab) ? (rawTab as Tab) : "overview"
+  const { input: searchInput, setInput: setSearchInput, value: urlQuery, maxLength: MAX_SEARCH_LEN } = useDebouncedSearchParam()
   const [users, setUsers] = useState<ProfileRow[]>([])
   const [stats, setStats] = useState<Stats>({ users: 0, courses: 0, enrollments: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState("")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkRole, setBulkRole] = useState<UserRole>("student")
@@ -146,15 +151,22 @@ export default function AdminDashboard() {
     return () => { signal.cancelled = true }
   }, [tab, loadAuditLogs])
 
+  const setTab = (nextTab: Tab) => {
+    const next = new URLSearchParams(params)
+    if (nextTab === "overview") next.delete("tab")
+    else next.set("tab", nextTab)
+    setParams(next, { replace: true })
+  }
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return users
-    const q = search.toLowerCase()
+    const q = urlQuery.trim().toLowerCase()
+    if (!q) return users
     return users.filter(
       (u) =>
         u.full_name?.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q),
     )
-  }, [users, search])
+  }, [users, urlQuery])
   const userMap = useMemo(() => {
     const map: Record<string, string> = {}
     for (const u of users) map[u.id] = u.full_name || u.email
@@ -570,8 +582,9 @@ export default function AdminDashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value.slice(0, MAX_SEARCH_LEN))}
+                maxLength={MAX_SEARCH_LEN}
                 className="pl-9"
               />
             </div>
@@ -584,7 +597,7 @@ export default function AdminDashboard() {
             <div className="flex flex-col items-center py-16 text-center">
               <Users className="h-12 w-12 text-muted-foreground/40 mb-3" />
               <p className="text-muted-foreground">
-                {search ? "No users match your search" : "No users found"}
+                {urlQuery ? "No users match your search" : "No users found"}
               </p>
             </div>
           ) : filtered.length >= USERS_VIRTUAL_THRESHOLD ? (

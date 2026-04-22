@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
@@ -85,17 +85,14 @@ export default function CalendarPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [currentDate, setCurrentDate] = useState(() => new Date())
   const [selectedDay, setSelectedDay] = useState<Date | null>(() => new Date())
-  const [filterCourseId, setFilterCourseId] = useState<string>(
-    () => sessionStorage.getItem("calendar:filterCourseId") ?? "",
-  )
-
-  useEffect(() => {
-    if (filterCourseId) {
-      sessionStorage.setItem("calendar:filterCourseId", filterCourseId)
-    } else {
-      sessionStorage.removeItem("calendar:filterCourseId")
-    }
-  }, [filterCourseId])
+  const [params, setParams] = useSearchParams()
+  const filterCourseId = (params.get("course") ?? "").slice(0, 64)
+  const setFilterCourseId = (id: string) => {
+    const next = new URLSearchParams(params)
+    if (id) next.set("course", id.slice(0, 64))
+    else next.delete("course")
+    setParams(next, { replace: true })
+  }
 
   useEffect(() => {
     let cancelled = false

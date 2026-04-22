@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { coursesService } from "@/services/courses"
 import type { Course, Enrollment, StudentGrade } from "@/types"
 import { useAuth } from "@/context/useAuth"
+import { useDebouncedSearchParam } from "@/hooks/useDebouncedSearchParam"
 import CourseCard from "@/components/course/CourseCard"
 import CourseCardSkeleton from "@/components/skeletons/CourseCardSkeleton"
 import { Search, BookOpen, LogIn, ArrowRight, CheckCircle } from "lucide-react"
@@ -165,36 +166,29 @@ function MyCoursesSection() {
 
 export default function HomePage() {
   const { user } = useAuth()
+  const { input, setInput, value: query, maxLength } = useDebouncedSearchParam()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState("")
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300)
-    return () => clearTimeout(timer)
-  }, [search])
-
-  const load = useCallback(async (signal?: { cancelled: boolean }) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await coursesService.getCourses(debouncedSearch || undefined)
-      if (signal?.cancelled) return
-      setCourses(data)
-    } catch {
-      if (!signal?.cancelled) setError("Failed to load courses. Please try again later.")
-    } finally {
-      if (!signal?.cancelled) setLoading(false)
-    }
-  }, [debouncedSearch])
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     const signal = { cancelled: false }
-    load(signal)
+    setLoading(true)
+    setError(null)
+    coursesService
+      .getCourses(query || undefined)
+      .then((data) => {
+        if (!signal.cancelled) setCourses(data)
+      })
+      .catch(() => {
+        if (!signal.cancelled) setError("Failed to load courses. Please try again later.")
+      })
+      .finally(() => {
+        if (!signal.cancelled) setLoading(false)
+      })
     return () => { signal.cancelled = true }
-  }, [load])
+  }, [query, reloadKey])
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -213,8 +207,9 @@ export default function HomePage() {
         <div className="relative max-w-md mx-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={input}
+            onChange={(e) => setInput(e.target.value.slice(0, maxLength))}
+            maxLength={maxLength}
             placeholder="Search courses..."
             className="pl-9 rounded-md"
             aria-label="Search courses"
@@ -247,7 +242,7 @@ export default function HomePage() {
           <h3 className="font-serif text-lg font-medium mb-1">Something went wrong</h3>
           <p className="text-sm text-muted-foreground mb-4">{error}</p>
           <button
-            onClick={() => load()}
+            onClick={() => setReloadKey((k) => k + 1)}
             className="text-sm text-primary hover:underline"
           >
             Try again
@@ -257,10 +252,10 @@ export default function HomePage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <BookOpen className="h-12 w-12 text-muted-foreground/30 mb-4" />
           <h3 className="font-serif text-lg font-medium mb-1">
-            {debouncedSearch ? "No courses found" : "No courses yet"}
+            {query ? "No courses found" : "No courses yet"}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {debouncedSearch
+            {query
               ? "Try a different search term"
               : "Check back soon for new courses"}
           </p>

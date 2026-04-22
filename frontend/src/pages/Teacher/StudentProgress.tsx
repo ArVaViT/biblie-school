@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react"
 import { useParams, Link } from "react-router-dom"
+import { useDebouncedSearchParam } from "@/hooks/useDebouncedSearchParam"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,9 +42,9 @@ type ChapterInfo = StudentChapterInfo
 
 export default function StudentProgress() {
   const { courseId } = useParams<{ courseId: string }>()
+  const { input: searchInput, setInput: setSearchInput, value: search, maxLength } = useDebouncedSearchParam()
   const [data, setData] = useState<ProgressData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<"name" | "progress" | "last_activity">("name")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
@@ -305,8 +306,9 @@ export default function StudentProgress() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search students by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value.slice(0, maxLength))}
+          maxLength={maxLength}
           className="pl-10"
         />
       </div>
