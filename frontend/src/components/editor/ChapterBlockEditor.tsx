@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast"
 import {
   Plus, Trash2, GripVertical, Save, Video, FileText,
   ChevronDown, ChevronRight, Loader2, Type, Film,
-  HelpCircle, ClipboardList, Paperclip, Check,
+  HelpCircle, ClipboardList, Paperclip, Check, Headphones,
 } from "lucide-react"
 import QuizEditor from "@/components/quiz/QuizEditor"
 import AssignmentEditor from "@/components/assignment/AssignmentEditor"
@@ -19,6 +19,7 @@ import { useConfirm } from "@/components/ui/alert-dialog"
 const BLOCK_TYPES = [
   { value: "text", label: "Text", icon: Type },
   { value: "video", label: "Video", icon: Film },
+  { value: "audio", label: "Audio", icon: Headphones },
   { value: "quiz", label: "Quiz", icon: HelpCircle },
   { value: "assignment", label: "Assignment", icon: ClipboardList },
   { value: "file", label: "File", icon: Paperclip },
@@ -157,7 +158,11 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
     try {
       const payload: Partial<ChapterBlock> = {}
       if (block.block_type === "text") payload.content = editContent
-      if (block.block_type === "video") payload.video_url = editVideoUrl.trim() || null
+      // Audio and video both use ``video_url`` as their media URL — a later
+      // DB cleanup pass may rename this column to ``media_url``.
+      if (block.block_type === "video" || block.block_type === "audio") {
+        payload.video_url = editVideoUrl.trim() || null
+      }
       if (block.block_type === "file") payload.file_url = editFileUrl.trim() || null
 
       const updated = await coursesService.updateBlock(block.id, payload)
@@ -374,6 +379,35 @@ export default function ChapterBlockEditor({ chapterId }: Props) {
                           <Save className="h-3.5 w-3.5 mr-1.5" />
                         )}
                         Save Video
+                      </Button>
+                    </>
+                  )}
+
+                  {block.block_type === "audio" && (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs flex items-center gap-1.5">
+                          <Headphones className="h-3.5 w-3.5" />
+                          Audio URL
+                        </Label>
+                        <Input
+                          value={editVideoUrl}
+                          onChange={(e) => setEditVideoUrl(e.target.value)}
+                          placeholder="https://example.com/lesson.mp3"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => saveBlock(block)}
+                        disabled={savingBlock === block.id}
+                      >
+                        {savingBlock === block.id ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Save className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        Save Audio
                       </Button>
                     </>
                   )}

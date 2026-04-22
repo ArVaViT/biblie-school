@@ -81,6 +81,11 @@ const BlockRenderer = memo(function BlockRenderer({
     case "video":
       return block.video_url ? <VideoEmbed url={block.video_url} title="Video" /> : null
 
+    case "audio":
+      return block.video_url ? (
+        <audio src={block.video_url} controls preload="metadata" className="w-full" />
+      ) : null
+
     case "quiz":
       return block.quiz_id ? (
         <QuizTaker chapterId={block.chapter_id} quizId={block.quiz_id} onSubmitted={onProgressChanged} />

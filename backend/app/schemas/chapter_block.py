@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-BLOCK_TYPES = Literal["text", "video", "quiz", "assignment", "file"]
+BLOCK_TYPES = Literal["text", "video", "audio", "quiz", "assignment", "file"]
 
 
 class BlockCreate(BaseModel):
