@@ -80,7 +80,7 @@ class AdminUserRow(BaseModel):
     full_name: str | None
     role: str
     avatar_url: str | None
-    created_at: datetime
+    created_at: datetime | None
 
 
 @router.get("/admin/users", response_model=list[AdminUserRow])
