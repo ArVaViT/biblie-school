@@ -1,10 +1,15 @@
-from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Index, Integer, String, Text, text
-from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Text, func, text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import TypeDecorator
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.enrollment import Enrollment
 
 
 class TSVector(TypeDecorator):
@@ -37,36 +42,35 @@ class Course(Base):
         ),
     )
 
-    id = Column(String, primary_key=True)
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    image_url = Column(String, nullable=True)
-    status = Column(String, default="draft", nullable=False)
-    created_by = Column(PgUUID(as_uuid=True), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True)
-    enrollment_start = Column(DateTime(timezone=True), nullable=True)
-    enrollment_end = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    id: Mapped[str] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column()
+    description: Mapped[str | None] = mapped_column()
+    image_url: Mapped[str | None] = mapped_column()
+    status: Mapped[str] = mapped_column(default="draft")
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("profiles.id", ondelete="SET NULL"))
+    enrollment_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    enrollment_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    quiz_weight = Column(Integer, nullable=False, default=30, server_default="30")
-    assignment_weight = Column(Integer, nullable=False, default=50, server_default="50")
-    participation_weight = Column(Integer, nullable=False, default=20, server_default="20")
+    quiz_weight: Mapped[int] = mapped_column(default=30, server_default="30")
+    assignment_weight: Mapped[int] = mapped_column(default=50, server_default="50")
+    participation_weight: Mapped[int] = mapped_column(default=20, server_default="20")
 
-    search_vector = Column(TSVector(), nullable=True)
+    search_vector: Mapped[str | None] = mapped_column(TSVector())
 
     # ``order_by`` guarantees deterministic ordering whenever the relationship is
     # accessed, including via ``joinedload`` in ``get_course``. Without it
     # Postgres returns rows in whatever order the query plan chose, which
     # surfaced on prod as chapters shown in reverse before the explicit
     # ``order_index`` ordering was added.
-    modules = relationship(
-        "Module",
+    modules: Mapped[list["Module"]] = relationship(
         back_populates="course",
         cascade="all, delete-orphan",
         order_by="Module.order_index",
     )
-    enrollments = relationship("Enrollment", back_populates="course", cascade="all, delete-orphan")
+    enrollments: Mapped[list["Enrollment"]] = relationship(back_populates="course", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Course id={self.id!r} title={self.title!r}>"
@@ -84,19 +88,18 @@ class Module(Base):
         ),
     )
 
-    id = Column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(primary_key=True)
     # The composite ``ix_modules_course_id_order`` covers plain ``course_id``
     # lookups via its leading column, so no single-column FK index here.
-    course_id = Column(String, ForeignKey("courses.id"), nullable=False)
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    order_index = Column(Integer, default=0, nullable=False)
-    due_date = Column(DateTime(timezone=True), nullable=True)
-    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id"))
+    title: Mapped[str] = mapped_column()
+    description: Mapped[str | None] = mapped_column()
+    order_index: Mapped[int] = mapped_column(default=0)
+    due_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    course = relationship("Course", back_populates="modules")
-    chapters = relationship(
-        "Chapter",
+    course: Mapped["Course"] = relationship(back_populates="modules")
+    chapters: Mapped[list["Chapter"]] = relationship(
         back_populates="module",
         cascade="all, delete-orphan",
         order_by="Chapter.order_index",
@@ -118,18 +121,18 @@ class Chapter(Base):
         ),
     )
 
-    id = Column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(primary_key=True)
     # Covered by the composite ``ix_chapters_module_id_order`` — same reason
     # as ``Module.course_id``.
-    module_id = Column(String, ForeignKey("modules.id"), nullable=False)
-    title = Column(String, nullable=False)
-    order_index = Column(Integer, default=0, nullable=False)
-    chapter_type = Column(String, default="reading", nullable=False)
-    requires_completion = Column(Boolean, default=False, nullable=False)
-    is_locked = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    module_id: Mapped[str] = mapped_column(ForeignKey("modules.id"))
+    title: Mapped[str] = mapped_column()
+    order_index: Mapped[int] = mapped_column(default=0)
+    chapter_type: Mapped[str] = mapped_column(default="reading")
+    requires_completion: Mapped[bool] = mapped_column(default=False)
+    is_locked: Mapped[bool] = mapped_column(default=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    module = relationship("Module", back_populates="chapters")
+    module: Mapped["Module"] = relationship(back_populates="chapters")
 
     def __repr__(self) -> str:
         return f"<Chapter id={self.id!r} title={self.title!r} module_id={self.module_id!r}>"

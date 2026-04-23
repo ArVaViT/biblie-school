@@ -147,7 +147,7 @@ def get_course_detail(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Course '{course_id}' not found",
             )
-    return course
+    return course  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.get("/{course_id}/modules/{module_id}", response_model=ModuleResponse)
@@ -182,7 +182,7 @@ def get_module_detail(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Module '{module_id}' not found in course '{course_id}'",
         )
-    return module
+    return module  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
@@ -196,7 +196,7 @@ def create_new_course(
         data.title = sanitize_string(data.title)
     course = create_course(db, data, teacher.id)
     log_action(db, teacher.id, "create", "course", course.id, request=request)
-    return course
+    return course  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.put("/{course_id}", response_model=CourseResponse)
@@ -218,12 +218,12 @@ def update_existing_course(
         data.title = sanitize_string(data.title)
     old_status = course.status
     result = update_course(db, course, data)
-    details = {}
+    details: dict[str, object] = {}
     if data.status and data.status != old_status:
         details = {"old_status": old_status, "new_status": data.status}
     action = "publish" if data.status == "published" and old_status != "published" else "update"
     log_action(db, teacher.id, action, "course", course_id, details=details or None, request=request)
-    return result
+    return result  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -272,7 +272,7 @@ def clone_existing_course(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to clone course",
         )
-    return new_course
+    return new_course  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.post(
@@ -287,7 +287,7 @@ def create_new_module(
     db: Session = Depends(get_db),
 ) -> ModuleResponse:
     verify_course_owner(db, course_id, teacher.id, allow_admin=False)
-    return create_module(db, course_id, data)
+    return create_module(db, course_id, data)  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.put("/{course_id}/modules/{module_id}", response_model=ModuleResponse)
@@ -305,7 +305,7 @@ def update_existing_module(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Module '{module_id}' not found in course '{course_id}'",
         )
-    return update_module(db, module, data)
+    return update_module(db, module, data)  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.delete("/{course_id}/modules/{module_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -346,7 +346,7 @@ def create_new_chapter(
         )
     if data.title:
         data.title = sanitize_string(data.title)
-    return create_chapter(db, module_id, data)
+    return create_chapter(db, module_id, data)  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.put(
@@ -370,7 +370,7 @@ def update_existing_chapter(
         )
     if data.title:
         data.title = sanitize_string(data.title)
-    return update_chapter(db, chapter, data)
+    return update_chapter(db, chapter, data)  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.delete(
@@ -463,7 +463,7 @@ def enroll_course(
         details={"course_id": course_id},
         request=request,
     )
-    return enrollment
+    return enrollment  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.post("/{course_id}/restore", response_model=CourseResponse)
@@ -481,7 +481,7 @@ def restore_deleted_course(
     assert_course_owner(course, teacher, allow_admin=False)
     result = restore_course(db, course)
     log_action(db, teacher.id, "restore", "course", course_id, request=request)
-    return result
+    return result  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.delete("/{course_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)

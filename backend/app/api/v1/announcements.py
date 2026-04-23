@@ -67,7 +67,7 @@ def list_announcements(
         )
     # Admin without course_id sees all announcements (paginated, capped by limit).
 
-    return query.order_by(Announcement.created_at.desc()).offset(skip).limit(limit).all()
+    return query.order_by(Announcement.created_at.desc()).offset(skip).limit(limit).all()  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.post("", response_model=AnnouncementResponse, status_code=status.HTTP_201_CREATED)
@@ -119,7 +119,7 @@ def create_announcement(
 
     db.commit()
     db.refresh(announcement)
-    return announcement
+    return announcement  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.put("/{announcement_id}", response_model=AnnouncementResponse)
@@ -148,7 +148,7 @@ def update_announcement(
 
     db.commit()
     db.refresh(announcement)
-    return announcement
+    return announcement  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)

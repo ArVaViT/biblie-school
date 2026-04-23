@@ -1,8 +1,8 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
@@ -11,14 +11,16 @@ class Assignment(Base):
     __tablename__ = "assignments"
     __table_args__ = (Index("ix_assignments_chapter_id", "chapter_id"),)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    chapter_id = Column(String, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False)
-    title = Column(String(255), nullable=False)
-    description = Column(Text)
-    max_score = Column(Integer, nullable=False, default=100)
-    due_date = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    chapter_id: Mapped[str] = mapped_column(ForeignKey("chapters.id", ondelete="CASCADE"))
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text)
+    max_score: Mapped[int] = mapped_column(default=100)
+    due_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class AssignmentSubmission(Base):
@@ -28,14 +30,14 @@ class AssignmentSubmission(Base):
         Index("ix_assignment_subs_assignment_id", "assignment_id"),
     )
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    assignment_id = Column(UUID(as_uuid=True), ForeignKey("assignments.id", ondelete="CASCADE"), nullable=False)
-    student_id = Column(UUID(as_uuid=True), nullable=False)
-    content = Column(Text)
-    file_url = Column(Text)
-    submitted_at = Column(DateTime(timezone=True), server_default=func.now())
-    status = Column(String(20), nullable=False, default="submitted")
-    grade = Column(Integer)
-    feedback = Column(Text)
-    graded_by = Column(UUID(as_uuid=True))
-    graded_at = Column(DateTime(timezone=True))
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    assignment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assignments.id", ondelete="CASCADE"))
+    student_id: Mapped[uuid.UUID] = mapped_column()
+    content: Mapped[str | None] = mapped_column(Text)
+    file_url: Mapped[str | None] = mapped_column(Text)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    status: Mapped[str] = mapped_column(String(20), default="submitted")
+    grade: Mapped[int | None] = mapped_column()
+    feedback: Mapped[str | None] = mapped_column(Text)
+    graded_by: Mapped[uuid.UUID | None] = mapped_column()
+    graded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

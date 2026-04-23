@@ -57,6 +57,7 @@ def get_calendar_events(
         .all()
     )
     for m in modules:
+        assert m.due_date is not None
         events.append(
             CalendarEvent(
                 id=f"module-{m.id}",
@@ -100,6 +101,7 @@ def get_calendar_events(
             .all()
         )
         for a in assignments:
+            assert a.due_date is not None
             crs_id = ch_to_course.get(a.chapter_id, "")
             events.append(
                 CalendarEvent(
@@ -159,7 +161,7 @@ def create_course_event(
     db.add(event)
     db.commit()
     db.refresh(event)
-    return event
+    return event  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @event_router.get(
@@ -188,7 +190,7 @@ def list_course_events(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You must be enrolled in this course to view events",
             )
-    return db.query(CourseEvent).filter(CourseEvent.course_id == course_id).order_by(CourseEvent.event_date).all()
+    return db.query(CourseEvent).filter(CourseEvent.course_id == course_id).order_by(CourseEvent.event_date).all()  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @event_router.put(
@@ -217,7 +219,7 @@ def update_course_event(
         setattr(event, field, value)
     db.commit()
     db.refresh(event)
-    return event
+    return event  # type: ignore[return-value]  # FastAPI serializes via from_attributes
 
 
 @event_router.delete(

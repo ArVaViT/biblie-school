@@ -55,9 +55,7 @@ jobs:
       - name: Check formatting with Ruff
         run: ruff format app/ tests/ --check
 
-      # Static type check — scoped to app/schemas and app/core in mypy.ini.
-      # Schemas are the API contract boundary so stricter typing pays off there;
-      # other modules can opt in as they are annotated.
+      # Static type check — covers the entire app/ directory (mypy.ini).
       - name: Type-check with mypy
         run: mypy --config-file mypy.ini
 

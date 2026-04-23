@@ -1,9 +1,8 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -12,18 +11,19 @@ class Quiz(Base):
     __tablename__ = "quizzes"
     __table_args__ = (Index("ix_quizzes_chapter_id", "chapter_id"),)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    chapter_id = Column(String, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False)
-    title = Column(String(255), nullable=False)
-    description = Column(Text)
-    quiz_type = Column(String(20), nullable=False, default="quiz", server_default="quiz")
-    max_attempts = Column(Integer, nullable=True)
-    passing_score = Column(Integer, nullable=False, default=70)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    chapter_id: Mapped[str] = mapped_column(ForeignKey("chapters.id", ondelete="CASCADE"))
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text)
+    quiz_type: Mapped[str] = mapped_column(String(20), default="quiz", server_default="quiz")
+    max_attempts: Mapped[int | None] = mapped_column()
+    passing_score: Mapped[int] = mapped_column(default=70)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
-    questions = relationship(
-        "QuizQuestion",
+    questions: Mapped[list["QuizQuestion"]] = relationship(
         back_populates="quiz",
         cascade="all, delete-orphan",
         order_by="QuizQuestion.order_index",
@@ -34,19 +34,18 @@ class QuizQuestion(Base):
     __tablename__ = "quiz_questions"
     __table_args__ = (Index("ix_quiz_questions_quiz_id_order", "quiz_id", "order_index"),)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    quiz_id = Column(UUID(as_uuid=True), ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)
-    question_text = Column(Text, nullable=False)
-    question_type = Column(String(20), nullable=False, default="multiple_choice")
-    order_index = Column(Integer, nullable=False, default=0)
-    points = Column(Integer, nullable=False, default=1)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    quiz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("quizzes.id", ondelete="CASCADE"))
+    question_text: Mapped[str] = mapped_column(Text)
+    question_type: Mapped[str] = mapped_column(String(20), default="multiple_choice")
+    order_index: Mapped[int] = mapped_column(default=0)
+    points: Mapped[int] = mapped_column(default=1)
     # Only meaningful for ``essay`` — UX hint rendered on the student's textarea.
-    min_words = Column(Integer, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    min_words: Mapped[int | None] = mapped_column()
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    quiz = relationship("Quiz", back_populates="questions")
-    options = relationship(
-        "QuizOption",
+    quiz: Mapped["Quiz"] = relationship(back_populates="questions")
+    options: Mapped[list["QuizOption"]] = relationship(
         back_populates="question",
         cascade="all, delete-orphan",
         order_by="QuizOption.order_index",
@@ -57,13 +56,13 @@ class QuizOption(Base):
     __tablename__ = "quiz_options"
     __table_args__ = (Index("ix_quiz_options_question_id", "question_id"),)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    question_id = Column(UUID(as_uuid=True), ForeignKey("quiz_questions.id", ondelete="CASCADE"), nullable=False)
-    option_text = Column(Text, nullable=False)
-    is_correct = Column(Boolean, nullable=False, default=False)
-    order_index = Column(Integer, nullable=False, default=0)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("quiz_questions.id", ondelete="CASCADE"))
+    option_text: Mapped[str] = mapped_column(Text)
+    is_correct: Mapped[bool] = mapped_column(default=False)
+    order_index: Mapped[int] = mapped_column(default=0)
 
-    question = relationship("QuizQuestion", back_populates="options")
+    question: Mapped["QuizQuestion"] = relationship(back_populates="options")
 
 
 class QuizAttempt(Base):
@@ -73,39 +72,31 @@ class QuizAttempt(Base):
         Index("ix_quiz_attempts_quiz_id", "quiz_id"),
     )
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    quiz_id = Column(UUID(as_uuid=True), ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("profiles.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    score = Column(Integer)
-    max_score = Column(Integer)
-    passed = Column(Boolean)
-    started_at = Column(DateTime(timezone=True), server_default=func.now())
-    completed_at = Column(DateTime(timezone=True))
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    quiz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("quizzes.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id", ondelete="CASCADE"))
+    score: Mapped[int | None] = mapped_column()
+    max_score: Mapped[int | None] = mapped_column()
+    passed: Mapped[bool | None] = mapped_column()
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    answers = relationship("QuizAnswer", back_populates="attempt", cascade="all, delete-orphan")
+    answers: Mapped[list["QuizAnswer"]] = relationship(back_populates="attempt", cascade="all, delete-orphan")
 
 
 class QuizExtraAttempt(Base):
     __tablename__ = "quiz_extra_attempts"
     __table_args__ = (Index("ix_quiz_extra_attempts_quiz_user", "quiz_id", "user_id", unique=True),)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    quiz_id = Column(UUID(as_uuid=True), ForeignKey("quizzes.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("profiles.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    extra_attempts = Column(Integer, nullable=False, default=1)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    quiz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("quizzes.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id", ondelete="CASCADE"))
+    extra_attempts: Mapped[int] = mapped_column(default=1)
     # granted_by stays nullable=False but intentionally has no FK: we never want
     # a student's extra-attempt grant to disappear because an admin account was
     # later deleted. Keep as a loose reference.
-    granted_by = Column(UUID(as_uuid=True), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    granted_by: Mapped[uuid.UUID] = mapped_column()
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class QuizAnswer(Base):
@@ -115,15 +106,15 @@ class QuizAnswer(Base):
         Index("ix_quiz_answers_question_id", "question_id"),
     )
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    attempt_id = Column(UUID(as_uuid=True), ForeignKey("quiz_attempts.id", ondelete="CASCADE"), nullable=False)
-    question_id = Column(UUID(as_uuid=True), ForeignKey("quiz_questions.id", ondelete="CASCADE"), nullable=False)
-    selected_option_id = Column(UUID(as_uuid=True), ForeignKey("quiz_options.id", ondelete="SET NULL"))
-    text_answer = Column(Text)
-    is_correct = Column(Boolean)
-    points_earned = Column(Integer, nullable=False, default=0)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    attempt_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("quiz_attempts.id", ondelete="CASCADE"))
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("quiz_questions.id", ondelete="CASCADE"))
+    selected_option_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("quiz_options.id", ondelete="SET NULL"))
+    text_answer: Mapped[str | None] = mapped_column(Text)
+    is_correct: Mapped[bool | None] = mapped_column()
+    points_earned: Mapped[int] = mapped_column(default=0)
     # Teacher feedback for manually-graded answers; null until a teacher
     # actually grades it (see PATCH /quizzes/answers/{id}).
-    grader_comment = Column(Text)
+    grader_comment: Mapped[str | None] = mapped_column(Text)
 
-    attempt = relationship("QuizAttempt", back_populates="answers")
+    attempt: Mapped["QuizAttempt"] = relationship(back_populates="answers")

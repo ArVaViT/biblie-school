@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -79,7 +81,7 @@ def require_admin(
     return current_user
 
 
-def _resolve_admin_flag(db: Session, teacher: User | str) -> bool:
+def _resolve_admin_flag(db: Session, teacher: User | str | UUID) -> bool:
     """Return whether ``teacher`` holds the admin role.
 
     Accepts either a hydrated ``User`` (no DB call) or a bare id (one SELECT).
@@ -108,7 +110,7 @@ def assert_course_owner(course: Course, user: User, *, allow_admin: bool = True)
 def verify_course_owner(
     db: Session,
     course_id: str,
-    teacher: User | str,
+    teacher: User | str | UUID,
     *,
     allow_admin: bool = True,
 ) -> Course:

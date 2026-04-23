@@ -62,4 +62,4 @@ def list_audit_logs(
     total = q.count()
     items = q.order_by(AuditLog.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
 
-    return AuditLogPage(items=items, total=total, page=page, page_size=page_size)
+    return AuditLogPage(items=items, total=total, page=page, page_size=page_size)  # type: ignore[arg-type]  # FastAPI serializes via from_attributes

@@ -1,8 +1,8 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
+from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
@@ -17,15 +17,15 @@ class Certificate(Base):
         Index("ix_certificates_status", "status"),
     )
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
-    course_id = Column(String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
-    issued_at = Column(DateTime(timezone=True), server_default=func.now())
-    certificate_number = Column(String(50), nullable=True, unique=True)
-    status = Column(String(20), default="pending", nullable=False)
-    requested_at = Column(DateTime(timezone=True), server_default=func.now())
-    teacher_approved_at = Column(DateTime(timezone=True), nullable=True)
-    teacher_approved_by = Column(UUID(as_uuid=True), nullable=True)
-    admin_approved_at = Column(DateTime(timezone=True), nullable=True)
-    admin_approved_by = Column(UUID(as_uuid=True), nullable=True)
-    cohort_id = Column(UUID(as_uuid=True), nullable=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column()
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"))
+    issued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    certificate_number: Mapped[str | None] = mapped_column(String(50), unique=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    teacher_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    teacher_approved_by: Mapped[uuid.UUID | None] = mapped_column()
+    admin_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    admin_approved_by: Mapped[uuid.UUID | None] = mapped_column()
+    cohort_id: Mapped[uuid.UUID | None] = mapped_column()

@@ -1,6 +1,7 @@
 import uuid
 from collections import defaultdict
 from datetime import UTC, datetime
+from uuid import UUID
 
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
@@ -56,7 +57,7 @@ def get_course(db: Session, course_id: str, include_deleted: bool = False) -> Co
 
 def get_teacher_courses(
     db: Session,
-    teacher_id: str,
+    teacher_id: str | UUID,
     *,
     deleted_only: bool = False,
     skip: int = 0,
@@ -72,7 +73,7 @@ def get_teacher_courses(
     return query.all()
 
 
-def create_course(db: Session, data: CourseCreate, user_id: str) -> Course:
+def create_course(db: Session, data: CourseCreate, user_id: str | UUID) -> Course:
     course = Course(
         id=str(uuid.uuid4()),
         title=data.title,
@@ -230,7 +231,7 @@ def delete_chapter(db: Session, chapter: Chapter) -> None:
     db.commit()
 
 
-def enroll_user_in_course(db: Session, user_id: str, course_id: str, cohort_id: str | None = None) -> Enrollment:
+def enroll_user_in_course(db: Session, user_id: str | UUID, course_id: str, cohort_id: str | None = None) -> Enrollment:
     existing = db.query(Enrollment).filter(Enrollment.user_id == user_id, Enrollment.course_id == course_id).first()
     if existing:
         return existing
@@ -257,7 +258,7 @@ def enroll_user_in_course(db: Session, user_id: str, course_id: str, cohort_id: 
 
 def get_user_courses(
     db: Session,
-    user_id: str,
+    user_id: str | UUID,
     *,
     skip: int = 0,
     limit: int | None = None,
@@ -278,7 +279,7 @@ def get_user_courses(
     return query.all()
 
 
-def sync_enrollment_progress(db: Session, user_id: str, course_id: str) -> Enrollment | None:
+def sync_enrollment_progress(db: Session, user_id: str | UUID, course_id: str | UUID) -> Enrollment | None:
     db.flush()
     enrollment = db.query(Enrollment).filter(Enrollment.user_id == user_id, Enrollment.course_id == course_id).first()
     if not enrollment:
@@ -360,8 +361,8 @@ def clone_course(db: Session, course_id: str, teacher_id: str | uuid.UUID) -> Co
         quizzes_by_chapter[q.chapter_id].append(q)
 
     questions_by_quiz: dict[str, list[QuizQuestion]] = defaultdict(list)
-    for q in all_questions:
-        questions_by_quiz[str(q.quiz_id)].append(q)
+    for qq in all_questions:
+        questions_by_quiz[str(qq.quiz_id)].append(qq)
 
     options_by_question: dict[str, list[QuizOption]] = defaultdict(list)
     for o in all_options:

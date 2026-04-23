@@ -103,7 +103,7 @@ def get_course_student_progress(
 
     all_quiz_ids = [q.id for qs in quiz_map.values() for q in qs]
 
-    quiz_to_chapter: dict = {}
+    quiz_to_chapter: dict[object, str] = {}
     for ch_id, qs in quiz_map.items():
         for q in qs:
             quiz_to_chapter[q.id] = ch_id
@@ -135,16 +135,16 @@ def get_course_student_progress(
         )
         for row in quiz_aggs:
             uid = str(row.user_id)
-            ch_id = quiz_to_chapter.get(row.quiz_id)
-            if ch_id is None:
+            resolved_ch_id = quiz_to_chapter.get(row.quiz_id)
+            if resolved_ch_id is None:
                 continue
-            ch_key = (uid, str(ch_id))
+            ch_key = (uid, str(resolved_ch_id))
             attempts_by_user_chapter_count[ch_key] = attempts_by_user_chapter_count.get(ch_key, 0) + int(
                 row.attempts or 0
             )
             score = int(row.best_score or 0)
             entry = {
-                "chapter_id": str(ch_id),
+                "chapter_id": str(resolved_ch_id),
                 "quiz_id": str(row.quiz_id),
                 "score": score,
                 "max_score": int(row.best_max_score or 0),
@@ -212,10 +212,10 @@ def get_course_student_progress(
     # per-student render loop below.
     subs_by_user_chapter: dict[tuple[str, str], list[dict]] = {}
     for (uid, aid), sub in latest_sub_by_user_assignment.items():
-        ch_id = assignment_to_chapter_str.get(aid)
-        if ch_id is None:
+        asgn_ch_id = assignment_to_chapter_str.get(aid)
+        if asgn_ch_id is None:
             continue
-        subs_by_user_chapter.setdefault((uid, ch_id), []).append(sub)
+        subs_by_user_chapter.setdefault((uid, asgn_ch_id), []).append(sub)
 
     all_progress = (
         (

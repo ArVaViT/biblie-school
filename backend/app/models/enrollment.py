@@ -1,9 +1,15 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import DateTime, ForeignKey, Index, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.course import Course
+    from app.models.user import User
 
 
 class Enrollment(Base):
@@ -17,15 +23,15 @@ class Enrollment(Base):
         Index("ix_enrollments_cohort_id", "cohort_id"),
     )
 
-    id = Column(String, primary_key=True)
-    user_id = Column(PgUUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
-    course_id = Column(String, ForeignKey("courses.id"), nullable=False)
-    cohort_id = Column(PgUUID(as_uuid=True), ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True)
-    enrolled_at = Column(DateTime(timezone=True), server_default=func.now())
-    progress = Column(Integer, default=0, nullable=False)
+    id: Mapped[str] = mapped_column(primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("profiles.id"))
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id"))
+    cohort_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("cohorts.id", ondelete="SET NULL"))
+    enrolled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    progress: Mapped[int] = mapped_column(default=0)
 
-    user = relationship("User", back_populates="enrollments")
-    course = relationship("Course", back_populates="enrollments")
+    user: Mapped["User"] = relationship(back_populates="enrollments")
+    course: Mapped["Course"] = relationship(back_populates="enrollments")
 
     def __repr__(self) -> str:
         return f"<Enrollment id={self.id!r} user_id={self.user_id} course_id={self.course_id!r}>"

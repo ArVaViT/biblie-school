@@ -194,7 +194,7 @@ def calculate_all_student_grades(db: Session, course: Course):
     # Batch: best quiz scores per student per quiz
     quiz_scores: dict[str, list[float]] = {str(sid): [] for sid in student_ids}
     if quiz_ids:
-        rows = (
+        quiz_rows = (
             db.query(
                 QuizAttempt.user_id,
                 QuizAttempt.quiz_id,
@@ -208,14 +208,14 @@ def calculate_all_student_grades(db: Session, course: Course):
             .group_by(QuizAttempt.user_id, QuizAttempt.quiz_id)
             .all()
         )
-        for r in rows:
-            if r.best is not None:
-                quiz_scores.setdefault(str(r.user_id), []).append(float(r.best))
+        for qr in quiz_rows:
+            if qr.best is not None:
+                quiz_scores.setdefault(str(qr.user_id), []).append(float(qr.best))
 
     # Batch: best assignment grade per student per assignment
     asgn_scores: dict[str, list[float]] = {str(sid): [] for sid in student_ids}
     if assignment_ids:
-        rows = (
+        asgn_rows = (
             db.query(
                 AssignmentSubmission.student_id,
                 AssignmentSubmission.assignment_id,
@@ -235,14 +235,14 @@ def calculate_all_student_grades(db: Session, course: Course):
             )
             .all()
         )
-        for r in rows:
-            pct = (float(r.best_grade) / r.max_score * 100.0) if r.max_score else 0.0
-            asgn_scores.setdefault(str(r.student_id), []).append(pct)
+        for ar in asgn_rows:
+            pct = (float(ar.best_grade) / ar.max_score * 100.0) if ar.max_score else 0.0
+            asgn_scores.setdefault(str(ar.student_id), []).append(pct)
 
     # Batch: chapter completion counts per student
     completion_counts: dict[str, int] = {}
     if chapter_ids:
-        rows = (
+        comp_rows = (
             db.query(ChapterProgress.user_id, sqlfunc.count(ChapterProgress.id))
             .filter(
                 ChapterProgress.user_id.in_(student_ids),
@@ -252,7 +252,7 @@ def calculate_all_student_grades(db: Session, course: Course):
             .group_by(ChapterProgress.user_id)
             .all()
         )
-        for uid, cnt in rows:
+        for uid, cnt in comp_rows:
             completion_counts[str(uid)] = cnt
 
     # Manual grades

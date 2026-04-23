@@ -2,6 +2,7 @@ import uuid
 from collections.abc import Iterable
 from typing import Any
 
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
 from app.models.notification import Notification
@@ -61,5 +62,5 @@ def create_notifications_bulk(
     ]
     if not payloads:
         return 0
-    db.bulk_insert_mappings(Notification, payloads)
+    db.bulk_insert_mappings(inspect(Notification), payloads)
     return len(payloads)

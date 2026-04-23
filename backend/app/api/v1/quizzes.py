@@ -412,6 +412,7 @@ def submit_quiz(
 
     db.commit()
     db.refresh(attempt)
+    assert attempt.started_at is not None
 
     return QuizAttemptResponse(
         id=attempt.id,

@@ -1,8 +1,9 @@
 import uuid
+from datetime import datetime
+from typing import Any
 
-from sqlalchemy import JSON, Column, DateTime, Index, String
-from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.sql import func
+from sqlalchemy import JSON, DateTime, Index, String, func
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
@@ -10,15 +11,15 @@ from app.core.database import Base
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id = Column(PgUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(PgUUID(as_uuid=True), nullable=True)
-    action = Column(String(50), nullable=False)
-    resource_type = Column(String(50), nullable=False)
-    resource_id = Column(String, nullable=False)
-    details = Column(JSON, nullable=True)
-    ip_address = Column(String(45), nullable=True)
-    user_agent = Column(String(500), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column()
+    action: Mapped[str] = mapped_column(String(50))
+    resource_type: Mapped[str] = mapped_column(String(50))
+    resource_id: Mapped[str] = mapped_column()
+    details: Mapped[Any] = mapped_column(JSON, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         Index("ix_audit_logs_user_id", "user_id"),

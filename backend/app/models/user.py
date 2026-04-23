@@ -1,11 +1,15 @@
 import enum
+import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, String
-from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from sqlalchemy import DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.enrollment import Enrollment
 
 
 class UserRole(enum.StrEnum):
@@ -18,17 +22,17 @@ class UserRole(enum.StrEnum):
 class User(Base):
     __tablename__ = "profiles"
 
-    id = Column(PgUUID(as_uuid=True), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     # ``unique=True`` already creates a B-tree; a second ``index=True`` would
     # just duplicate writes. Same logic applies to every other unique column.
-    email = Column(String, unique=True, nullable=False)
-    full_name = Column(String, nullable=True)
-    role = Column(String, default=UserRole.STUDENT.value, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    avatar_url = Column(String, nullable=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    full_name: Mapped[str | None] = mapped_column()
+    role: Mapped[str] = mapped_column(default=UserRole.STUDENT.value)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    avatar_url: Mapped[str | None] = mapped_column()
 
-    enrollments = relationship("Enrollment", back_populates="user", cascade="all, delete-orphan")
+    enrollments: Mapped[list["Enrollment"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email!r} role={self.role!r}>"

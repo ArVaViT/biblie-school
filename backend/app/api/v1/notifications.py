@@ -36,7 +36,7 @@ def list_notifications(
     )
 
     return NotificationListResponse(
-        items=items,
+        items=items,  # type: ignore[arg-type]  # FastAPI serializes via from_attributes
         total=total,
         page=page,
         page_size=page_size,

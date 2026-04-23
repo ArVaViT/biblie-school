@@ -62,7 +62,7 @@ def list_cohorts(
         .group_by(Enrollment.cohort_id)
         .all()
     )
-    count_map = dict(counts)
+    count_map = {row[0]: row[1] for row in counts}
     return [_cohort_to_response(c, count_map.get(c.id, 0)) for c in cohorts]
 
 
