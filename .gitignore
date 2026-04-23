@@ -4,6 +4,11 @@
 !.env.example
 .env.local
 .env.*.local
+# Scratch files used when pulling envs for diagnostics — never commit
+*.env.*.check
+*.env.check
+backend/backend/
+frontend/frontend/
 
 # Local scratch
 .tmp-commit-msg.txt

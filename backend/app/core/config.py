@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
 
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,https://biblie-school-frontend.vercel.app"
+    CORS_ORIGIN_REGEX: str = (
+        r"^https://biblie-school-frontend(?:-[\w-]+)?\.vercel\.app$"
+        r"|^http://localhost:\d+$"
+    )
 
     @model_validator(mode="after")
     def load_alternative_env_vars(self):

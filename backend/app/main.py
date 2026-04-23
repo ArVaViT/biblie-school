@@ -2,12 +2,11 @@ import logging
 import os
 import time
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1 import api_router
 from app.core.config import settings
@@ -33,41 +32,6 @@ app = FastAPI(
     redoc_url=None if _IS_PRODUCTION else "/redoc",
 )
 
-cors_origins = settings.cors_origins_list or [
-    "http://localhost:3000",
-    "http://localhost:5173",
-]
-
-# credentials=True is not allowed with origin "*"
-allow_credentials = "*" not in cors_origins
-
-
-class OptionsMiddleware(BaseHTTPMiddleware):
-    """Handle OPTIONS preflight requests before FastAPI validation."""
-
-    async def dispatch(self, request: Request, call_next) -> Response:
-        if request.method == "OPTIONS":
-            origin = request.headers.get("origin", "*")
-            allowed_origin = "*"
-
-            if origin and origin != "*":
-                if cors_origins == ["*"] or origin in cors_origins:
-                    allowed_origin = origin
-
-            headers = {
-                "Access-Control-Allow-Origin": allowed_origin,
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
-                "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers",
-                "Access-Control-Max-Age": "3600",
-            }
-
-            if allow_credentials and allowed_origin != "*":
-                headers["Access-Control-Allow-Credentials"] = "true"
-
-            return Response(status_code=200, headers=headers)
-
-        return await call_next(request)
-
 
 app.add_middleware(SecurityHeadersMiddleware)
 
@@ -79,25 +43,21 @@ app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=5)
 
 app.add_middleware(RateLimitMiddleware, calls=100, window=60)
 
+# CORSMiddleware handles both the OPTIONS preflight and the ACAO headers on the
+# actual response. We match against an explicit allow-list plus a regex that
+# covers every Vercel alias for the frontend (production, branch, preview) and
+# any localhost port, so dev servers and PR previews keep working without env
+# changes.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
-    allow_credentials=allow_credentials,
+    allow_origins=settings.cors_origins_list,
+    allow_origin_regex=settings.CORS_ORIGIN_REGEX or None,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
-    allow_headers=[
-        "Content-Type",
-        "Authorization",
-        "Accept",
-        "Origin",
-        "X-Requested-With",
-        "Access-Control-Request-Method",
-        "Access-Control-Request-Headers",
-    ],
+    allow_headers=["*"],
     expose_headers=["Content-Disposition", "X-Request-Id"],
     max_age=3600,
 )
-
-app.add_middleware(OptionsMiddleware)
 
 app.include_router(api_router, prefix="/api/v1")
 
@@ -105,12 +65,10 @@ app.include_router(api_router, prefix="/api/v1")
 @app.exception_handler(IntegrityError)
 async def integrity_error_handler(request: Request, exc: IntegrityError):
     # Constraint violations (unique/foreign-key/check) mean the request
-    # conflicts with current state — not that the database is down. Surfacing
-    # these as 503 hid real client-side bugs (duplicate keys, stale refs)
-    # behind a generic outage message.
-    # We pull the pgcode and constraint name off ``exc.orig`` so log search can
-    # jump straight to the offending constraint instead of fishing through the
-    # full rendered SQL statement.
+    # conflicts with current state — not that the database is down. We pull the
+    # pgcode and constraint name off ``exc.orig`` so log search can jump
+    # straight to the offending constraint instead of fishing through the full
+    # rendered SQL statement.
     orig = getattr(exc, "orig", None)
     pgcode = getattr(orig, "pgcode", None)
     diag = getattr(orig, "diag", None)
@@ -173,16 +131,8 @@ async def health() -> dict:
 
 
 @app.get("/favicon.ico", include_in_schema=False)
-@app.options("/favicon.ico", include_in_schema=False)
-async def favicon() -> Response:
-    return Response(status_code=204)
-
-
-@app.get("/vite.svg", include_in_schema=False)
-@app.options("/vite.svg", include_in_schema=False)
 @app.get("/favicon.png", include_in_schema=False)
-@app.options("/favicon.png", include_in_schema=False)
 @app.get("/favicon.svg", include_in_schema=False)
-@app.options("/favicon.svg", include_in_schema=False)
+@app.get("/vite.svg", include_in_schema=False)
 async def static_icons() -> Response:
     return Response(status_code=204)

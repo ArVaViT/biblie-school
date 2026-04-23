@@ -26,7 +26,7 @@ function getPublicUrl(bucket: string, path: string): string {
   return `/img/${bucket}/${path}`
 }
 
-export interface UploadedBlockFile {
+interface UploadedBlockFile {
   bucket: string
   path: string
   name: string

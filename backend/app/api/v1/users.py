@@ -1,5 +1,6 @@
 import logging
 import uuid as _uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
@@ -73,23 +74,32 @@ def _purge_user(db: Session, uid: _uuid.UUID) -> None:
     db.query(User).filter(User.id == uid).delete(synchronize_session=False)
 
 
-@router.get("/admin/users")
+class AdminUserRow(BaseModel):
+    id: str
+    email: str
+    full_name: str | None
+    role: str
+    avatar_url: str | None
+    created_at: datetime
+
+
+@router.get("/admin/users", response_model=list[AdminUserRow])
 def list_all_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(200, ge=1, le=500),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
-) -> list[dict]:
+) -> list[AdminUserRow]:
     users = db.query(User).order_by(User.created_at.desc()).offset(skip).limit(limit).all()
     return [
-        {
-            "id": str(u.id),
-            "email": u.email,
-            "full_name": u.full_name,
-            "role": u.role,
-            "avatar_url": u.avatar_url,
-            "created_at": str(u.created_at),
-        }
+        AdminUserRow(
+            id=str(u.id),
+            email=u.email,
+            full_name=u.full_name,
+            role=u.role,
+            avatar_url=u.avatar_url,
+            created_at=u.created_at,
+        )
         for u in users
     ]
 
