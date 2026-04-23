@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase"
 import { authService } from "@/services/auth"
 import type { User } from "@/types"
 import { AuthContext } from "./auth-context"
+import { setDatadogUser, clearDatadogUser } from "@/lib/datadog"
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -28,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false)
             return
           }
-          setUser({
+          const nextUser = {
             id: data.id,
             email: data.email || email,
             full_name: data.full_name,
@@ -36,6 +37,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: data.role,
             created_at: data.created_at,
             updated_at: data.updated_at,
+          }
+          setUser(nextUser)
+          // Attach the authenticated user to the current RUM session so
+          // every downstream view/action/error/replay is tagged with
+          // user.id / user.email / user.name / user.role.
+          setDatadogUser({
+            id: nextUser.id,
+            email: nextUser.email,
+            name: nextUser.full_name,
+            role: nextUser.role,
           })
           setLoading(false)
         },
@@ -88,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === "SIGNED_OUT") {
           activeUserId.current = null
           setUser(null)
+          clearDatadogUser()
           setLoading(false)
         }
       },
@@ -132,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     try { await authService.logout() } catch { /* ignore */ }
     setUser(null)
+    clearDatadogUser()
   }, [])
 
   const value = useMemo(

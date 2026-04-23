@@ -1,5 +1,10 @@
 import { lazy, Suspense } from "react"
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { BrowserRouter, Route, Navigate, useLocation } from "react-router-dom"
+// Use Datadog's drop-in <Routes> so RUM views are keyed by the route
+// *template* ("/courses/:id") instead of the concrete URL — analytics
+// aggregate across ids, and navigation between routes stays inside the
+// same RUM session instead of spawning a new one per URL.
+import { Routes } from "@datadog/browser-rum-react/react-router-v6"
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/react"
 import { AuthProvider } from "./context/AuthContext"
