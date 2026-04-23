@@ -1,12 +1,9 @@
 import { lazy, Suspense } from "react"
 import { BrowserRouter, Route, Navigate, useLocation } from "react-router-dom"
-// Use Datadog's drop-in <Routes> so RUM views are keyed by the route
-// *template* ("/courses/:id") instead of the concrete URL — analytics
-// aggregate across ids, and navigation between routes stays inside the
-// same RUM session instead of spawning a new one per URL.
+// Datadog's drop-in <Routes> keys RUM views by the route template
+// ("/courses/:id") instead of the concrete URL, so analytics aggregate across
+// ids and navigation stays inside a single RUM session.
 import { Routes } from "@datadog/browser-rum-react/react-router-v6"
-import { Analytics } from "@vercel/analytics/react"
-import { SpeedInsights } from "@vercel/speed-insights/react"
 import { AuthProvider } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import { useAuth } from "./context/useAuth"
@@ -153,11 +150,6 @@ export default function App() {
           </ConfirmProvider>
         </AuthProvider>
       </ThemeProvider>
-      {/* Vercel Analytics (page views) + Speed Insights (Web Vitals).
-          Both only emit from the deployed *.vercel.app domain — local dev
-          silently no-ops, so there's no need to gate these behind env vars. */}
-      <Analytics />
-      <SpeedInsights />
     </BrowserRouter>
   )
 }
