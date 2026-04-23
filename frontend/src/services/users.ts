@@ -8,7 +8,7 @@ export const usersService = {
 
     const { data: profile, error } = await supabase
       .from("profiles")
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update(data)
       .eq("id", session.user.id)
       .select()
       .single()
