@@ -23,7 +23,16 @@ if TYPE_CHECKING:
 # chained ``joinedload`` would produce: one IN query per level means the
 # catalog page fetches ~3 rows of wire instead of ``courses * modules *
 # chapters`` when a course has many chapters.
-_COURSE_TREE: tuple = (selectinload(Course.modules).selectinload(Module.chapters),)
+#
+# The ``.and_()`` filters strip soft-deleted children at load time so the
+# course tree mirrors what students actually see. Trash and restore flows
+# operate via bulk UPDATEs (see ``_courses.delete_course`` / ``restore_course``)
+# so they don't depend on this filtered relationship.
+_COURSE_TREE: tuple = (
+    selectinload(Course.modules.and_(Module.deleted_at.is_(None))).selectinload(
+        Module.chapters.and_(Chapter.deleted_at.is_(None))
+    ),
+)
 
 
 def get_courses(
@@ -78,7 +87,7 @@ def get_teacher_courses(
 def get_module(db: Session, course_id: str, module_id: str) -> Module | None:
     return (
         db.query(Module)
-        .options(joinedload(Module.chapters))
+        .options(joinedload(Module.chapters.and_(Chapter.deleted_at.is_(None))))
         .filter(
             Module.id == module_id,
             Module.course_id == course_id,
