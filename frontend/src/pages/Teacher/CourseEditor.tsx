@@ -1,102 +1,145 @@
-import { useEffect, useState, useCallback, useRef } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
+import type { DropResult } from "@hello-pangea/dnd"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
-import type { Course, Announcement, Cohort, CourseEvent } from "@/types"
+import type {
+  Announcement,
+  Cohort,
+  Course,
+  CourseEvent,
+} from "@/types"
 import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/ui/alert-dialog"
 import {
-  Calendar, Megaphone, Plus, Trash2,
-  Layers, Save, Loader2, X, Eye, EyeOff,
-  Download, Paperclip, Users, CheckCircle, CalendarDays, GripVertical,
-  MoreHorizontal, Pencil,
+  Calendar,
+  CalendarDays,
+  Eye,
+  EyeOff,
+  Megaphone,
+  MoreHorizontal,
+  Paperclip,
+  Users,
 } from "lucide-react"
-import { InlineEdit, InlineEditCover, PageHeader, EmptyState, ErrorState, Modal } from "@/components/patterns"
+import {
+  ErrorState,
+  InlineEdit,
+  InlineEditCover,
+  PageHeader,
+} from "@/components/patterns"
+import {
+  AnnouncementsModal,
+  CohortsModal,
+  CourseEditorSkeleton,
+  EnrollmentModal,
+  EventsModal,
+  MaterialsModal,
+  ModulesList,
+} from "./editor"
+import {
+  EMPTY_COHORT_FORM,
+  EMPTY_EVENT_FORM,
+  type CohortFormState,
+  type CourseEditorModal,
+  type EventFormState,
+  type MaterialFile,
+} from "./editor/types"
 
-interface MaterialFile { name: string; path: string; size?: number }
-
-function StatusBadge({ start, end }: { start: string; end: string }) {
-  if (!start && !end) return <Badge variant="muted">Not set</Badge>
-  const now = new Date()
-  const s = start ? new Date(start) : null
-  const e = end ? new Date(end) : null
-  if (s && now < s) return <Badge variant="info">Upcoming</Badge>
-  if (e && now > e) return <Badge variant="destructive">Closed</Badge>
-  return <Badge variant="success">Open</Badge>
-}
-
-const ta = "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
+/**
+ * Course editor: the one place teachers edit everything about a course.
+ *
+ * This file is intentionally a thin orchestrator. It owns every piece of
+ * mutable state (course, announcements, materials, cohorts, events, which
+ * modal is open) and dispatches mutations through the service layer; the
+ * rendering of each concern lives in `editor/*` so the main file stays a
+ * readable list of handlers + a JSX skeleton.
+ */
 export default function CourseEditor() {
   const { courseId } = useParams<{ courseId: string }>()
   const navigate = useNavigate()
   const confirm = useConfirm()
+
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [modal, setModal] = useState<CourseEditorModal>(null)
+
   const [enrollStart, setEnrollStart] = useState("")
   const [enrollEnd, setEnrollEnd] = useState("")
-  const [anns, setAnns] = useState<Announcement[]>([])
+  const [savingEnrollment, setSavingEnrollment] = useState(false)
+
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [annTitle, setAnnTitle] = useState("")
   const [annContent, setAnnContent] = useState("")
   const [postingAnn, setPostingAnn] = useState(false)
-  const [mats, setMats] = useState<MaterialFile[]>([])
+
+  const [materials, setMaterials] = useState<MaterialFile[]>([])
   const [uploadingMat, setUploadingMat] = useState(false)
-  const matRef = useRef<HTMLInputElement>(null)
-  const [modal, setModal] = useState<"enroll" | "announce" | "materials" | "cohorts" | "events" | null>(null)
+  const materialInputRef = useRef<HTMLInputElement>(null)
+
   const [cohorts, setCohorts] = useState<Cohort[]>([])
-  const [cohortForm, setCohortForm] = useState<{ name: string; start_date: string; end_date: string; enrollment_start: string; enrollment_end: string; max_students: string }>({ name: "", start_date: "", end_date: "", enrollment_start: "", enrollment_end: "", max_students: "" })
+  const [cohortForm, setCohortForm] = useState<CohortFormState>(EMPTY_COHORT_FORM)
   const [editingCohortId, setEditingCohortId] = useState<string | null>(null)
   const [savingCohort, setSavingCohort] = useState(false)
+
   const [courseEvents, setCourseEvents] = useState<CourseEvent[]>([])
-  const [eventForm, setEventForm] = useState<{ title: string; description: string; event_type: string; event_date: string }>({ title: "", description: "", event_type: "other", event_date: "" })
+  const [eventForm, setEventForm] = useState<EventFormState>(EMPTY_EVENT_FORM)
   const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [savingEvent, setSavingEvent] = useState(false)
 
-  const load = useCallback(async (signal?: { cancelled: boolean }) => {
-    if (!courseId) return
-    setLoading(true)
-    try {
-      const [d, mats, anns, cohorts, events] = await Promise.all([
-        coursesService.getCourse(courseId),
-        storageService.listCourseMaterials(courseId).catch(() => []),
-        coursesService.getAnnouncements(courseId).catch(() => []),
-        coursesService.getCourseCohorts(courseId).catch(() => []),
-        coursesService.getCourseEvents(courseId).catch(() => []),
-      ])
-      if (signal?.cancelled) return
-      setCourse(d)
-      setEnrollStart(d.enrollment_start?.slice(0, 16) ?? "")
-      setEnrollEnd(d.enrollment_end?.slice(0, 16) ?? "")
-      setMats(mats); setAnns(anns); setCohorts(cohorts); setCourseEvents(events)
-    } catch { if (!signal?.cancelled) navigate("/teacher") } finally { if (!signal?.cancelled) setLoading(false) }
-  }, [courseId, navigate])
+  const [reorderingModules, setReorderingModules] = useState(false)
+
+  const load = useCallback(
+    async (signal?: { cancelled: boolean }) => {
+      if (!courseId) return
+      setLoading(true)
+      try {
+        const [courseData, mats, anns, chs, events] = await Promise.all([
+          coursesService.getCourse(courseId),
+          storageService.listCourseMaterials(courseId).catch(() => []),
+          coursesService.getAnnouncements(courseId).catch(() => []),
+          coursesService.getCourseCohorts(courseId).catch(() => []),
+          coursesService.getCourseEvents(courseId).catch(() => []),
+        ])
+        if (signal?.cancelled) return
+        setCourse(courseData)
+        setEnrollStart(courseData.enrollment_start?.slice(0, 16) ?? "")
+        setEnrollEnd(courseData.enrollment_end?.slice(0, 16) ?? "")
+        setMaterials(mats)
+        setAnnouncements(anns)
+        setCohorts(chs)
+        setCourseEvents(events)
+      } catch {
+        if (!signal?.cancelled) navigate("/teacher")
+      } finally {
+        if (!signal?.cancelled) setLoading(false)
+      }
+    },
+    [courseId, navigate],
+  )
 
   useEffect(() => {
     const signal = { cancelled: false }
-    load(signal)
-    return () => { signal.cancelled = true }
+    void load(signal)
+    return () => {
+      signal.cancelled = true
+    }
   }, [load])
 
   const savePatch = useCallback(
     async (patch: Parameters<typeof coursesService.updateCourse>[1]) => {
       if (!courseId) return
       try {
-        const u = await coursesService.updateCourse(courseId, patch)
-        setCourse(p => p ? { ...p, ...u } : p)
+        const updated = await coursesService.updateCourse(courseId, patch)
+        setCourse((p) => (p ? { ...p, ...updated } : p))
         toast({ title: "Saved", variant: "success" })
       } catch {
         toast({ title: "Failed to save", variant: "destructive" })
@@ -111,7 +154,7 @@ export default function CourseEditor() {
       if (!courseId) throw new Error("no course")
       const url = await storageService.uploadCourseImage(courseId, file)
       await coursesService.updateCourse(courseId, { image_url: url })
-      setCourse(p => p ? { ...p, image_url: url } : p)
+      setCourse((p) => (p ? { ...p, image_url: url } : p))
       toast({ title: "Cover updated", variant: "success" })
       return url
     },
@@ -122,7 +165,7 @@ export default function CourseEditor() {
     if (!courseId) return
     try {
       await coursesService.updateCourse(courseId, { image_url: null })
-      setCourse(p => p ? { ...p, image_url: null } : p)
+      setCourse((p) => (p ? { ...p, image_url: null } : p))
       toast({ title: "Cover removed", variant: "success" })
     } catch {
       toast({ title: "Failed to remove cover", variant: "destructive" })
@@ -131,44 +174,51 @@ export default function CourseEditor() {
 
   const saveEnrollment = useCallback(async () => {
     if (!courseId) return
-    setSaving(true)
+    setSavingEnrollment(true)
     try {
-      await coursesService.updateCourse(courseId, { enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null, enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null })
-      setCourse(p => p ? { ...p, enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null, enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null } : p)
-      toast({ title: "Enrollment saved", variant: "success" }); setModal(null)
-    } catch { toast({ title: "Failed to save", variant: "destructive" }) } finally { setSaving(false) }
-  }, [courseId, enrollStart, enrollEnd])
-
-  useEffect(() => {
-    if (modal !== "enroll") return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault()
-        void saveEnrollment()
+      const payload = {
+        enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null,
+        enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null,
       }
+      await coursesService.updateCourse(courseId, payload)
+      setCourse((p) => (p ? { ...p, ...payload } : p))
+      toast({ title: "Enrollment saved", variant: "success" })
+      setModal(null)
+    } catch {
+      toast({ title: "Failed to save", variant: "destructive" })
+    } finally {
+      setSavingEnrollment(false)
     }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [modal, saveEnrollment])
+  }, [courseId, enrollStart, enrollEnd])
 
   const togglePublish = async () => {
     if (!courseId || !course) return
-    const next = course.status === "published" ? "draft" as const : "published" as const
+    const next = course.status === "published" ? ("draft" as const) : ("published" as const)
     try {
       await coursesService.updateCourse(courseId, { status: next })
-      setCourse(p => p ? { ...p, status: next } : p)
-      toast({ title: next === "published" ? "Published" : "Unpublished", variant: "success" })
-    } catch { toast({ title: "Failed", variant: "destructive" }) }
+      setCourse((p) => (p ? { ...p, status: next } : p))
+      toast({
+        title: next === "published" ? "Published" : "Unpublished",
+        variant: "success",
+      })
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
   }
 
   const addModule = async () => {
     if (!courseId) return
     const order = course?.modules?.length ?? 0
     try {
-      const m = await coursesService.createModule(courseId, { title: `Module ${order + 1}`, order_index: order })
-      setCourse(p => p ? { ...p, modules: [...(p.modules ?? []), { ...m, chapters: [] }] } : p)
+      const m = await coursesService.createModule(courseId, {
+        title: `Module ${order + 1}`,
+        order_index: order,
+      })
+      setCourse((p) => (p ? { ...p, modules: [...(p.modules ?? []), { ...m, chapters: [] }] } : p))
       toast({ title: "Module added", variant: "success" })
-    } catch { toast({ title: "Failed", variant: "destructive" }) }
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
   }
 
   const removeModule = async (id: string) => {
@@ -182,17 +232,29 @@ export default function CourseEditor() {
     if (!ok) return
     try {
       await coursesService.deleteModule(courseId, id)
-      setCourse(p => p ? { ...p, modules: p.modules?.filter(m => m.id !== id) } : p)
-    } catch { toast({ title: "Failed", variant: "destructive" }) }
+      setCourse((p) => (p ? { ...p, modules: p.modules?.filter((m) => m.id !== id) } : p))
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
   }
 
   const postAnnouncement = async () => {
     if (!courseId || !annTitle.trim()) return
     setPostingAnn(true)
     try {
-      const a = await coursesService.createAnnouncement({ title: annTitle.trim(), content: annContent.trim(), course_id: courseId })
-      setAnns(p => [a, ...p]); setAnnTitle(""); setAnnContent("")
-    } catch { toast({ title: "Failed", variant: "destructive" }) } finally { setPostingAnn(false) }
+      const a = await coursesService.createAnnouncement({
+        title: annTitle.trim(),
+        content: annContent.trim(),
+        course_id: courseId,
+      })
+      setAnnouncements((p) => [a, ...p])
+      setAnnTitle("")
+      setAnnContent("")
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    } finally {
+      setPostingAnn(false)
+    }
   }
 
   const deleteAnn = async (id: string) => {
@@ -202,24 +264,42 @@ export default function CourseEditor() {
       tone: "destructive",
     })
     if (!ok) return
-    try { await coursesService.deleteAnnouncement(id); setAnns(p => p.filter(a => a.id !== id)) }
-    catch { toast({ title: "Failed", variant: "destructive" }) }
+    try {
+      await coursesService.deleteAnnouncement(id)
+      setAnnouncements((p) => p.filter((a) => a.id !== id))
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
   }
 
   const handleMatUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file || !courseId) return
+    const file = e.target.files?.[0]
+    if (!file || !courseId) return
     setUploadingMat(true)
-    try { await storageService.uploadCourseMaterial(courseId, file); setMats(await storageService.listCourseMaterials(courseId)) }
-    catch { toast({ title: "Upload failed", variant: "destructive" }) }
-    finally { setUploadingMat(false); if (matRef.current) matRef.current.value = "" }
+    try {
+      await storageService.uploadCourseMaterial(courseId, file)
+      setMaterials(await storageService.listCourseMaterials(courseId))
+    } catch {
+      toast({ title: "Upload failed", variant: "destructive" })
+    } finally {
+      setUploadingMat(false)
+      if (materialInputRef.current) materialInputRef.current.value = ""
+    }
   }
 
-  const dlMat = async (m: MaterialFile) => {
-    try { window.open(await storageService.getSignedMaterialUrl(m.path), "_blank", "noopener,noreferrer") }
-    catch { toast({ title: "Download failed", variant: "destructive" }) }
+  const downloadMaterial = async (m: MaterialFile) => {
+    try {
+      window.open(
+        await storageService.getSignedMaterialUrl(m.path),
+        "_blank",
+        "noopener,noreferrer",
+      )
+    } catch {
+      toast({ title: "Download failed", variant: "destructive" })
+    }
   }
 
-  const delMat = async (m: MaterialFile) => {
+  const deleteMaterial = async (m: MaterialFile) => {
     const ok = await confirm({
       title: "Delete material?",
       description: `"${m.name}" will be permanently removed.`,
@@ -227,12 +307,16 @@ export default function CourseEditor() {
       tone: "destructive",
     })
     if (!ok) return
-    try { await storageService.deleteCourseMaterial(m.path); setMats(p => p.filter(x => x.path !== m.path)) }
-    catch { toast({ title: "Failed", variant: "destructive" }) }
+    try {
+      await storageService.deleteCourseMaterial(m.path)
+      setMaterials((p) => p.filter((x) => x.path !== m.path))
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
   }
 
   const resetCohortForm = () => {
-    setCohortForm({ name: "", start_date: "", end_date: "", enrollment_start: "", enrollment_end: "", max_students: "" })
+    setCohortForm(EMPTY_COHORT_FORM)
     setEditingCohortId(null)
   }
 
@@ -249,29 +333,37 @@ export default function CourseEditor() {
   }
 
   const saveCohort = async () => {
-    if (!courseId || !cohortForm.name.trim() || !cohortForm.start_date || !cohortForm.end_date) return
+    if (!courseId || !cohortForm.name.trim() || !cohortForm.start_date || !cohortForm.end_date)
+      return
     setSavingCohort(true)
     const payload = {
       name: cohortForm.name.trim(),
       start_date: cohortForm.start_date,
       end_date: cohortForm.end_date,
-      enrollment_start: cohortForm.enrollment_start ? new Date(cohortForm.enrollment_start).toISOString() : null,
-      enrollment_end: cohortForm.enrollment_end ? new Date(cohortForm.enrollment_end).toISOString() : null,
+      enrollment_start: cohortForm.enrollment_start
+        ? new Date(cohortForm.enrollment_start).toISOString()
+        : null,
+      enrollment_end: cohortForm.enrollment_end
+        ? new Date(cohortForm.enrollment_end).toISOString()
+        : null,
       max_students: cohortForm.max_students ? parseInt(cohortForm.max_students) : null,
     }
     try {
       if (editingCohortId) {
         const updated = await coursesService.updateCohort(editingCohortId, payload)
-        setCohorts(p => p.map(c => c.id === editingCohortId ? updated : c))
+        setCohorts((p) => p.map((c) => (c.id === editingCohortId ? updated : c)))
         toast({ title: "Cohort updated", variant: "success" })
       } else {
         const created = await coursesService.createCohort(courseId, payload)
-        setCohorts(p => [...p, created])
+        setCohorts((p) => [...p, created])
         toast({ title: "Cohort created", variant: "success" })
       }
       resetCohortForm()
-    } catch { toast({ title: "Failed to save cohort", variant: "destructive" }) }
-    finally { setSavingCohort(false) }
+    } catch {
+      toast({ title: "Failed to save cohort", variant: "destructive" })
+    } finally {
+      setSavingCohort(false)
+    }
   }
 
   const deleteCohort = async (id: string) => {
@@ -283,9 +375,11 @@ export default function CourseEditor() {
     if (!ok) return
     try {
       await coursesService.deleteCohort(id)
-      setCohorts(p => p.filter(c => c.id !== id))
+      setCohorts((p) => p.filter((c) => c.id !== id))
       toast({ title: "Cohort deleted", variant: "success" })
-    } catch { toast({ title: "Failed", variant: "destructive" }) }
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
   }
 
   const completeCohort = async (id: string) => {
@@ -297,24 +391,28 @@ export default function CourseEditor() {
     if (!ok) return
     try {
       await coursesService.completeCohort(id)
-      setCohorts(p => p.map(c => c.id === id ? { ...c, status: "completed" as const } : c))
+      setCohorts((p) =>
+        p.map((c) => (c.id === id ? { ...c, status: "completed" as const } : c)),
+      )
       toast({ title: "Cohort completed", variant: "success" })
-    } catch { toast({ title: "Failed", variant: "destructive" }) }
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
   }
 
   const resetEventForm = () => {
-    setEventForm({ title: "", description: "", event_type: "other", event_date: "" })
+    setEventForm(EMPTY_EVENT_FORM)
     setEditingEventId(null)
   }
 
-  const startEditEvent = (e: CourseEvent) => {
+  const startEditEvent = (ev: CourseEvent) => {
     setEventForm({
-      title: e.title,
-      description: e.description ?? "",
-      event_type: e.event_type,
-      event_date: e.event_date.slice(0, 16),
+      title: ev.title,
+      description: ev.description ?? "",
+      event_type: ev.event_type,
+      event_date: ev.event_date.slice(0, 16),
     })
-    setEditingEventId(e.id)
+    setEditingEventId(ev.id)
   }
 
   const saveEvent = async () => {
@@ -328,17 +426,24 @@ export default function CourseEditor() {
     }
     try {
       if (editingEventId) {
-        const updated = await coursesService.updateCourseEvent(courseId, editingEventId, payload)
-        setCourseEvents(p => p.map(e => e.id === editingEventId ? updated : e))
+        const updated = await coursesService.updateCourseEvent(
+          courseId,
+          editingEventId,
+          payload,
+        )
+        setCourseEvents((p) => p.map((ev) => (ev.id === editingEventId ? updated : ev)))
         toast({ title: "Event updated", variant: "success" })
       } else {
         const created = await coursesService.createCourseEvent(courseId, payload)
-        setCourseEvents(p => [...p, created])
+        setCourseEvents((p) => [...p, created])
         toast({ title: "Event created", variant: "success" })
       }
       resetEventForm()
-    } catch { toast({ title: "Failed to save event", variant: "destructive" }) }
-    finally { setSavingEvent(false) }
+    } catch {
+      toast({ title: "Failed to save event", variant: "destructive" })
+    } finally {
+      setSavingEvent(false)
+    }
   }
 
   const deleteEvent = async (id: string) => {
@@ -351,87 +456,72 @@ export default function CourseEditor() {
     if (!ok) return
     try {
       await coursesService.deleteCourseEvent(courseId, id)
-      setCourseEvents(p => p.filter(e => e.id !== id))
+      setCourseEvents((p) => p.filter((e) => e.id !== id))
       toast({ title: "Event deleted", variant: "success" })
-    } catch { toast({ title: "Failed", variant: "destructive" }) }
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
   }
 
-  const modules = [...(course?.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
-  const [reorderingModules, setReorderingModules] = useState(false)
+  const sortedModules = [...(course?.modules ?? [])].sort(
+    (a, b) => a.order_index - b.order_index,
+  )
 
-  const handleModuleDragEnd = useCallback(async (result: DropResult) => {
-    if (!result.destination || !courseId || reorderingModules) return
-    const from = result.source.index
-    const to = result.destination.index
-    if (from === to) return
+  const handleModuleDragEnd = useCallback(
+    async (result: DropResult) => {
+      if (!result.destination || !courseId || reorderingModules) return
+      const from = result.source.index
+      const to = result.destination.index
+      if (from === to) return
 
-    const reordered = Array.from(modules)
-    const [moved] = reordered.splice(from, 1)
-    if (!moved) return
-    reordered.splice(to, 0, moved)
+      const reordered = Array.from(sortedModules)
+      const [moved] = reordered.splice(from, 1)
+      if (!moved) return
+      reordered.splice(to, 0, moved)
 
-    setCourse(prev => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        modules: reordered.map((m, i) => ({ ...m, order_index: i })),
-      }
-    })
-
-    setReorderingModules(true)
-    try {
-      await Promise.all(
-        reordered.map((m, i) =>
-          m.order_index !== i
-            ? coursesService.updateModule(courseId, m.id, { order_index: i })
-            : null
-        ).filter(Boolean)
+      setCourse((prev) =>
+        prev
+          ? { ...prev, modules: reordered.map((m, i) => ({ ...m, order_index: i })) }
+          : prev,
       )
-    } catch {
-      toast({ title: "Failed to save module order", variant: "destructive" })
-      load()
-    } finally {
-      setReorderingModules(false)
-    }
-  }, [modules, courseId, load, reorderingModules])
 
-  if (loading) {
+      setReorderingModules(true)
+      try {
+        await Promise.all(
+          reordered
+            .map((m, i) =>
+              m.order_index !== i
+                ? coursesService.updateModule(courseId, m.id, { order_index: i })
+                : null,
+            )
+            .filter(Boolean),
+        )
+      } catch {
+        toast({ title: "Failed to save module order", variant: "destructive" })
+        void load()
+      } finally {
+        setReorderingModules(false)
+      }
+    },
+    [sortedModules, courseId, load, reorderingModules],
+  )
+
+  if (loading) return <CourseEditorSkeleton />
+  if (!course)
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="h-8 w-32 bg-muted rounded animate-pulse mb-6" />
-        <div className="rounded-lg border overflow-hidden mb-8">
-          <div className="h-48 bg-muted animate-pulse" />
-          <div className="p-6 space-y-3">
-            <div className="h-6 w-2/3 bg-muted rounded animate-pulse" />
-            <div className="h-4 w-1/2 bg-muted rounded animate-pulse" />
-            <div className="flex gap-2 mt-4">
-              <div className="h-8 w-24 bg-muted rounded animate-pulse" />
-              <div className="h-8 w-24 bg-muted rounded animate-pulse" />
-              <div className="h-8 w-24 bg-muted rounded animate-pulse" />
-            </div>
-          </div>
-        </div>
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 rounded-lg border bg-muted/30 animate-pulse" />
-          ))}
-        </div>
+      <div className="container mx-auto px-4">
+        <ErrorState
+          title="Course not found"
+          description="The course may have been deleted or you may not have access."
+          action={
+            <Button variant="outline" size="sm" onClick={() => navigate("/teacher")}>
+              Back to courses
+            </Button>
+          }
+        />
       </div>
     )
-  }
-  if (!course) return (
-    <div className="container mx-auto px-4">
-      <ErrorState
-        title="Course not found"
-        description="The course may have been deleted or you may not have access."
-        action={
-          <Button variant="outline" size="sm" onClick={() => navigate("/teacher")}>
-            Back to courses
-          </Button>
-        }
-      />
-    </div>
-  )
+
   const pub = course.status === "published"
 
   return (
@@ -477,7 +567,11 @@ export default function CourseEditor() {
         actions={
           <>
             <Button variant="outline" size="sm" onClick={togglePublish}>
-              {pub ? <EyeOff className="h-3.5 w-3.5 mr-1.5" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
+              {pub ? (
+                <EyeOff className="h-3.5 w-3.5 mr-1.5" />
+              ) : (
+                <Eye className="h-3.5 w-3.5 mr-1.5" />
+              )}
               {pub ? "Unpublish" : "Publish"}
             </Button>
             <DropdownMenu>
@@ -497,10 +591,20 @@ export default function CourseEditor() {
                   <Paperclip /> Materials
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => { resetEventForm(); setModal("events") }}>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    resetEventForm()
+                    setModal("events")
+                  }}
+                >
                   <CalendarDays /> Events
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => { resetCohortForm(); setModal("cohorts") }}>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    resetCohortForm()
+                    setModal("cohorts")
+                  }}
+                >
                   <Users /> Cohorts
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -509,296 +613,88 @@ export default function CourseEditor() {
         }
       />
 
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-serif text-xl font-semibold flex items-center gap-2">
-          <Layers className="h-5 w-5 text-primary/60" />
-          Modules
-        </h2>
-        <Button onClick={addModule} size="sm" variant="outline">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Add module
-        </Button>
-      </div>
+      <ModulesList
+        courseId={courseId ?? ""}
+        modules={sortedModules}
+        onDragEnd={handleModuleDragEnd}
+        onAdd={addModule}
+        onRemove={removeModule}
+      />
 
-      {modules.length === 0 ? (
-        <EmptyState
-          icon={<Layers />}
-          title="No modules yet"
-          description="Add your first module to start building the course."
-          action={<Button onClick={addModule} size="sm"><Plus className="h-4 w-4 mr-1.5" />Add module</Button>}
-        />
-      ) : (
-        <DragDropContext onDragEnd={handleModuleDragEnd}>
-          <Droppable droppableId="modules">
-            {(provided) => (
-              <div className="space-y-2" ref={provided.innerRef} {...provided.droppableProps}>
-                {modules.map((mod, i) => (
-                  <Draggable key={mod.id} draggableId={mod.id} index={i}>
-                    {(dragProvided, snapshot) => (
-                      <Card
-                        ref={dragProvided.innerRef}
-                        {...dragProvided.draggableProps}
-                        className={`group flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors cursor-pointer ${snapshot.isDragging ? "shadow-lg ring-2 ring-primary/20" : ""}`}
-                        onClick={() => navigate(`/teacher/courses/${courseId}/modules/${mod.id}/edit`)}
-                      >
-                        <div
-                          {...dragProvided.dragHandleProps}
-                          className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground shrink-0 transition-colors"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <GripVertical className="h-4 w-4" />
-                        </div>
-                        <span className="text-xs font-mono text-muted-foreground/50 w-6 text-right shrink-0">{i + 1}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{mod.title}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{mod.chapters?.length ?? 0} chapter{(mod.chapters?.length ?? 0) !== 1 ? "s" : ""}</p>
-                        </div>
-                        <Button variant="ghost" size="sm" className="opacity-60 group-hover:opacity-100 text-destructive hover:text-destructive shrink-0 transition-opacity"
-                          onClick={e => { e.stopPropagation(); removeModule(mod.id) }}><Trash2 className="h-3.5 w-3.5" /></Button>
-                      </Card>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-      )}
+      <EnrollmentModal
+        open={modal === "enroll"}
+        onClose={() => setModal(null)}
+        start={enrollStart}
+        end={enrollEnd}
+        onStartChange={setEnrollStart}
+        onEndChange={setEnrollEnd}
+        saving={savingEnrollment}
+        onSave={saveEnrollment}
+      />
 
-      {/* Enrollment Modal */}
-      <Modal open={modal === "enroll"} onClose={() => setModal(null)} title="Enrollment Period">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between"><Label className="font-medium">Status</Label><StatusBadge start={enrollStart} end={enrollEnd} /></div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5"><Label className="text-xs">Start</Label><Input type="datetime-local" value={enrollStart} onChange={e => setEnrollStart(e.target.value)} className="text-sm" /></div>
-            <div className="space-y-1.5"><Label className="text-xs">End</Label><Input type="datetime-local" value={enrollEnd} onChange={e => setEnrollEnd(e.target.value)} className="text-sm" /></div>
-          </div>
-          <Button onClick={saveEnrollment} disabled={saving} className="w-full"><Save className="h-4 w-4 mr-1.5" />{saving ? "Saving…" : "Save"}</Button>
-        </div>
-      </Modal>
-
-      {/* Announcements Modal */}
-      <Modal
+      <AnnouncementsModal
         open={modal === "announce"}
-        onClose={() => { setModal(null); setAnnTitle(""); setAnnContent("") }}
-        title="Announcements"
-      >
-        <div className="space-y-4">
-          <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
-            <Input value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder="Title" />
-            <textarea className={ta + " min-h-[60px]"} value={annContent} onChange={e => setAnnContent(e.target.value)} placeholder="Content (optional)" />
-            <Button size="sm" onClick={postAnnouncement} disabled={postingAnn || !annTitle.trim()}>
-              <Megaphone className="h-3.5 w-3.5 mr-1.5" />{postingAnn ? "Posting…" : "Post"}
-            </Button>
-          </div>
-          {anns.length === 0
-            ? <p className="text-sm text-muted-foreground text-center py-4">No announcements yet.</p>
-            : <div className="space-y-2 max-h-60 overflow-y-auto">{anns.map(a => (
-                <div key={a.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                  <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-info" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-wrap-safe">{a.title}</p>
-                    {a.content && (
-                      <p className="mt-0.5 text-xs text-muted-foreground text-wrap-safe whitespace-pre-line">
-                        {a.content}
-                      </p>
-                    )}
-                    <time className="text-[10px] text-muted-foreground/60 mt-1 block">{new Date(a.created_at).toLocaleString()}</time>
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0" onClick={() => deleteAnn(a.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                </div>
-              ))}</div>}
-        </div>
-      </Modal>
+        onClose={() => {
+          setModal(null)
+          setAnnTitle("")
+          setAnnContent("")
+        }}
+        announcements={announcements}
+        title={annTitle}
+        content={annContent}
+        onTitleChange={setAnnTitle}
+        onContentChange={setAnnContent}
+        posting={postingAnn}
+        onPost={postAnnouncement}
+        onDelete={deleteAnn}
+      />
 
-      {/* Materials Modal */}
-      <Modal open={modal === "materials"} onClose={() => setModal(null)} title="Course Materials">
-        <div className="space-y-4">
-          <Button variant="outline" size="sm" className="w-full" onClick={() => matRef.current?.click()} disabled={uploadingMat}>
-            {uploadingMat ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Paperclip className="h-4 w-4 mr-1.5" />}Upload File
-          </Button>
-          <input ref={matRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.mp3,.wav,.ogg,.mp4" className="hidden" onChange={handleMatUpload} />
-          {mats.length === 0
-            ? <p className="text-sm text-muted-foreground text-center py-6">No materials uploaded yet.</p>
-            : <div className="space-y-2 max-h-60 overflow-y-auto">{mats.map(m => (
-                <div key={m.path} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm flex-1 truncate">{m.name}</span>
-                  {m.size && <span className="text-xs text-muted-foreground shrink-0">{(m.size / 1024).toFixed(0)} KB</span>}
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={() => dlMat(m)}><Download className="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0" onClick={() => delMat(m)}><X className="h-3.5 w-3.5" /></Button>
-                </div>
-              ))}</div>}
-        </div>
-      </Modal>
+      <MaterialsModal
+        open={modal === "materials"}
+        onClose={() => setModal(null)}
+        materials={materials}
+        uploading={uploadingMat}
+        onUploadClick={() => materialInputRef.current?.click()}
+        onUploadChange={handleMatUpload}
+        onDownload={downloadMaterial}
+        onDelete={deleteMaterial}
+        fileInputRef={materialInputRef}
+      />
 
-      {/* Cohorts Modal */}
-      <Modal open={modal === "cohorts"} onClose={() => { setModal(null); resetCohortForm() }} title="Manage Cohorts">
-        <div className="space-y-4">
-          <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {editingCohortId ? "Edit Cohort" : "Create Cohort"}
-            </p>
-            <Input value={cohortForm.name} onChange={e => setCohortForm(p => ({ ...p, name: e.target.value }))} placeholder="Cohort name (e.g. Spring 2026)" />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><Label className="text-xs">Start Date</Label><Input type="date" value={cohortForm.start_date} onChange={e => setCohortForm(p => ({ ...p, start_date: e.target.value }))} className="text-sm" /></div>
-              <div className="space-y-1"><Label className="text-xs">End Date</Label><Input type="date" value={cohortForm.end_date} onChange={e => setCohortForm(p => ({ ...p, end_date: e.target.value }))} className="text-sm" /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><Label className="text-xs">Enrollment Start</Label><Input type="datetime-local" value={cohortForm.enrollment_start} onChange={e => setCohortForm(p => ({ ...p, enrollment_start: e.target.value }))} className="text-sm" /></div>
-              <div className="space-y-1"><Label className="text-xs">Enrollment End</Label><Input type="datetime-local" value={cohortForm.enrollment_end} onChange={e => setCohortForm(p => ({ ...p, enrollment_end: e.target.value }))} className="text-sm" /></div>
-            </div>
-            <div className="space-y-1"><Label className="text-xs">Max Students (optional)</Label><Input type="number" value={cohortForm.max_students} onChange={e => setCohortForm(p => ({ ...p, max_students: e.target.value }))} placeholder="Unlimited" className="text-sm" /></div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={saveCohort} disabled={savingCohort || !cohortForm.name.trim() || !cohortForm.start_date || !cohortForm.end_date}>
-                <Save className="h-3.5 w-3.5 mr-1.5" />{savingCohort ? "Saving…" : editingCohortId ? "Update Cohort" : "Create Cohort"}
-              </Button>
-              {editingCohortId && (
-                <Button size="sm" variant="ghost" onClick={resetCohortForm}>Cancel</Button>
-              )}
-            </div>
-          </div>
+      <CohortsModal
+        open={modal === "cohorts"}
+        onClose={() => {
+          setModal(null)
+          resetCohortForm()
+        }}
+        cohorts={cohorts}
+        form={cohortForm}
+        onFormChange={setCohortForm}
+        editingId={editingCohortId}
+        saving={savingCohort}
+        onSave={saveCohort}
+        onCancelEdit={resetCohortForm}
+        onEdit={startEditCohort}
+        onDelete={deleteCohort}
+        onComplete={completeCohort}
+      />
 
-          {cohorts.length === 0
-            ? <p className="text-sm text-muted-foreground text-center py-4">No cohorts yet.</p>
-            : <div className="space-y-2 max-h-72 overflow-y-auto">{cohorts.map(c => (
-                <div key={c.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-sm font-medium truncate">{c.name}</p>
-                      <CohortStatusBadge status={c.status} />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(c.start_date).toLocaleDateString()} &mdash; {new Date(c.end_date).toLocaleDateString()}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {c.student_count} student{c.student_count !== 1 ? "s" : ""}
-                      {c.max_students && ` / ${c.max_students} max`}
-                    </p>
-                    {c.enrollment_start && c.enrollment_end && (
-                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                        Enrollment: {new Date(c.enrollment_start).toLocaleDateString()} — {new Date(c.enrollment_end).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => startEditCohort(c)}>
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    {c.status === "active" && (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs text-success hover:text-success" onClick={() => completeCohort(c.id)}>
-                        <CheckCircle className="h-3 w-3" />
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteCohort(c.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}</div>}
-        </div>
-      </Modal>
-
-      {/* Events Modal */}
-      <Modal open={modal === "events"} onClose={() => { setModal(null); resetEventForm() }} title="Course Events">
-        <div className="space-y-4">
-          <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {editingEventId ? "Edit Event" : "Create Event"}
-            </p>
-            <Input value={eventForm.title} onChange={e => setEventForm(p => ({ ...p, title: e.target.value }))} placeholder="Event title" />
-            <textarea
-              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={eventForm.description}
-              onChange={e => setEventForm(p => ({ ...p, description: e.target.value }))}
-              placeholder="Description (optional)"
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Type</Label>
-                <select
-                  value={eventForm.event_type}
-                  onChange={e => setEventForm(p => ({ ...p, event_type: e.target.value }))}
-                  className="w-full text-sm border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="deadline">Deadline</option>
-                  <option value="live_session">Live Session</option>
-                  <option value="exam">Exam</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Date & Time</Label>
-                <Input type="datetime-local" value={eventForm.event_date} onChange={e => setEventForm(p => ({ ...p, event_date: e.target.value }))} className="text-sm" />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={saveEvent} disabled={savingEvent || !eventForm.title.trim() || !eventForm.event_date}>
-                <Save className="h-3.5 w-3.5 mr-1.5" />{savingEvent ? "Saving…" : editingEventId ? "Update Event" : "Create Event"}
-              </Button>
-              {editingEventId && (
-                <Button size="sm" variant="ghost" onClick={resetEventForm}>Cancel</Button>
-              )}
-            </div>
-          </div>
-
-          {courseEvents.length === 0
-            ? <p className="text-sm text-muted-foreground text-center py-4">No events yet.</p>
-            : <div className="space-y-2 max-h-72 overflow-y-auto">{courseEvents.map(e => (
-                <div key={e.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-sm font-medium truncate">{e.title}</p>
-                      <EventTypeBadge type={e.event_type} />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(e.event_date).toLocaleString()}
-                    </p>
-                    {e.description && (
-                      <p className="text-xs text-muted-foreground/70 mt-0.5 line-clamp-1">{e.description}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => startEditEvent(e)}>
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteEvent(e.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}</div>}
-        </div>
-      </Modal>
+      <EventsModal
+        open={modal === "events"}
+        onClose={() => {
+          setModal(null)
+          resetEventForm()
+        }}
+        events={courseEvents}
+        form={eventForm}
+        onFormChange={setEventForm}
+        editingId={editingEventId}
+        saving={savingEvent}
+        onSave={saveEvent}
+        onCancelEdit={resetEventForm}
+        onEdit={startEditEvent}
+        onDelete={deleteEvent}
+      />
     </div>
-  )
-}
-
-function EventTypeBadge({ type }: { type: string }) {
-  const styles: Record<string, string> = {
-    deadline: "bg-destructive/15 text-destructive",
-    live_session: "bg-info/15 text-info",
-    exam: "bg-warning/15 text-warning",
-    other: "bg-muted text-muted-foreground",
-  }
-  return (
-    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium capitalize ${styles[type] ?? styles.other}`}>
-      {type.replace("_", " ")}
-    </span>
-  )
-}
-
-function CohortStatusBadge({ status }: { status: Cohort["status"] }) {
-  const styles: Record<Cohort["status"], string> = {
-    upcoming: "bg-info/15 text-info",
-    active: "bg-success/15 text-success",
-    completed: "bg-muted text-muted-foreground",
-    archived: "bg-warning/15 text-warning",
-  }
-  return (
-    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${styles[status]}`}>
-      {status}
-    </span>
   )
 }
