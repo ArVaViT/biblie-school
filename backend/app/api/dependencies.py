@@ -91,20 +91,24 @@ def _resolve_admin_flag(db: Session, teacher: User | str | UUID) -> bool:
     return bool(db.query(User.id).filter(User.id == teacher, User.role == UserRole.ADMIN.value).first())
 
 
-def assert_course_owner(course: Course, user: User, *, allow_admin: bool = True) -> None:
+def assert_course_owner(
+    course: Course,
+    user: User,
+    *,
+    allow_admin: bool = True,
+    detail: str = "You do not own this course",
+) -> None:
     """Raise 403 unless ``user`` owns ``course`` (or is admin and allowed).
 
-    Use when the caller already holds the ``Course`` row; otherwise prefer
-    :func:`verify_course_owner`.
+    Callers can override ``detail`` to return a more specific 403 message
+    (e.g. "You can only approve certificates for your own courses"), which
+    avoids wrapping this call in a ``try/except HTTPException`` block.
     """
     if str(course.created_by) == str(user.id):
         return
     if allow_admin and user.role == UserRole.ADMIN.value:
         return
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="You do not own this course",
-    )
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
 
 def verify_course_owner(
