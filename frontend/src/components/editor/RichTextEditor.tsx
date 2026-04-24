@@ -30,7 +30,7 @@ import { Callout, type CalloutVariant } from "./CalloutExtension";
 import { YoutubeEmbed } from "./YoutubeExtension";
 import { AudioEmbed } from "./AudioExtension";
 import { storageService } from "@/services/storage";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 import { usePrompt } from "@/components/ui/alert-dialog";
 
 interface RichTextEditorProps {

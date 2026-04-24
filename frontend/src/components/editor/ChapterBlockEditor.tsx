@@ -6,7 +6,7 @@ import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
 import { getErrorDetail } from "@/lib/errorDetail"
 import type { ChapterBlock } from "@/types"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import {
   Plus, Trash2, GripVertical, Save, FileText,
   ChevronDown, ChevronRight, Loader2, Type,

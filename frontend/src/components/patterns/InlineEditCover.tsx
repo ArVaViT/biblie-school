@@ -2,7 +2,7 @@ import * as React from "react"
 import { ImagePlus, Loader2, Trash2, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toProxyImage } from "@/lib/images"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/ui/alert-dialog"
 
 interface InlineEditCoverProps {

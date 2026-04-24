@@ -5,7 +5,7 @@ import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import { useAuth } from "@/context/useAuth"
 import type { Module, Chapter, ChapterBlock } from "@/types"
 import {

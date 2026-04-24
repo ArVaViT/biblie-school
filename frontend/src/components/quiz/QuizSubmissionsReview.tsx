@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { coursesService } from "@/services/courses"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import { getErrorDetail } from "@/lib/errorDetail"
 import type { PendingAnswer } from "@/types"
 import { Button } from "@/components/ui/button"

@@ -10,7 +10,7 @@ import QuizEditor from "@/components/quiz/QuizEditor"
 import AssignmentEditor from "@/components/assignment/AssignmentEditor"
 import { coursesService } from "@/services/courses"
 import type { Chapter } from "@/types"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import { chapterSchema } from "@/lib/validations/course"
 import { useConfirm } from "@/components/ui/alert-dialog"
 import {
