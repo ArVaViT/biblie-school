@@ -1,4 +1,4 @@
-export type EventColorPalette = {
+type EventColorPalette = {
   dot: string;
   bg: string;
   text: string;
@@ -32,7 +32,7 @@ export const EVENT_COLORS: Record<string, EventColorPalette> = {
   },
 };
 
-export const FALLBACK_EVENT_COLOR: EventColorPalette = {
+const FALLBACK_EVENT_COLOR: EventColorPalette = {
   dot: "bg-muted-foreground/50",
   bg: "bg-muted",
   text: "text-muted-foreground",

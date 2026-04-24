@@ -7,7 +7,7 @@ import { EMPTY_EVENT_FORM, type EventFormState } from "./types"
 
 type Confirm = ReturnType<typeof useConfirm>
 
-export interface EventsSection {
+interface EventsSection {
   events: CourseEvent[]
   form: EventFormState
   setForm: (v: EventFormState) => void

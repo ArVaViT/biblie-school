@@ -2,7 +2,7 @@ import api from "./api"
 import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
 import type { Cohort } from "@/types"
 
-export type CohortMutation = {
+type CohortMutation = {
   name: string
   start_date: string
   end_date: string

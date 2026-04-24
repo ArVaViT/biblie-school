@@ -7,7 +7,7 @@ export interface CourseMaterial {
   created: string | null
 }
 
-export type CohortEnrollmentStatus = "not_started" | "closed" | "open" | "no_window"
+type CohortEnrollmentStatus = "not_started" | "closed" | "open" | "no_window"
 
 export function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(undefined, {
@@ -17,7 +17,7 @@ export function formatDate(dateStr: string): string {
   })
 }
 
-export function getCohortEnrollmentStatus(cohort: Cohort): CohortEnrollmentStatus {
+function getCohortEnrollmentStatus(cohort: Cohort): CohortEnrollmentStatus {
   const now = new Date()
   const start = cohort.enrollment_start ? new Date(cohort.enrollment_start) : null
   const end = cohort.enrollment_end ? new Date(cohort.enrollment_end) : null

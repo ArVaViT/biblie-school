@@ -1,5 +1,3 @@
 export { AddBlockMenu } from "./AddBlockMenu"
 export { BlockRow } from "./BlockRow"
-export { FileBlockEditor } from "./FileBlockEditor"
-export { TextBlockEditor } from "./TextBlockEditor"
-export { BLOCK_TYPES, blockIcon, blockLabel, type BlockType } from "./types"
+export { type BlockType } from "./types"

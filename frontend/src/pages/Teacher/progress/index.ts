@@ -6,5 +6,4 @@ export {
   completionRate,
   type SortColumn,
   type SortDirection,
-  type StudentData,
 } from "./helpers"

@@ -6,7 +6,7 @@ import type { useConfirm } from "@/components/ui/alert-dialog"
 
 type Confirm = ReturnType<typeof useConfirm>
 
-export interface AnnouncementsSection {
+interface AnnouncementsSection {
   announcements: Announcement[]
   title: string
   setTitle: (v: string) => void

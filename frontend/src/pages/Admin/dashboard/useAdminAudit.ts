@@ -11,7 +11,7 @@ import {
   RESOURCE_OPTIONS,
 } from "./constants"
 
-export const AUDIT_PAGE_SIZE = 25
+const AUDIT_PAGE_SIZE = 25
 
 interface UseAdminAuditArgs {
   /** When `false` the hook skips fetching — used to avoid loading the

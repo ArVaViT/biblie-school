@@ -216,6 +216,10 @@ const courseCrud = {
  * Backwards-compatible aggregate. Prefer the per-domain services for new code
  * — this facade exists solely so the long-lived `coursesService.*` call sites
  * across the app keep working while we migrate them file-by-file.
+ *
+ * The individual domain services are re-exported from their own modules
+ * (e.g. `import { quizzesService } from "@/services/quizzes"`); routing
+ * every one through this file would just add an import hop.
  */
 export const coursesService = {
   ...courseCrud,
@@ -234,22 +238,4 @@ export const coursesService = {
   ...quizzesService,
   ...reviewsService,
   ...analyticsService,
-}
-
-export {
-  adminUsersService,
-  announcementsService,
-  assignmentsService,
-  auditService,
-  blocksService,
-  calendarService,
-  certificatesService,
-  cohortsService,
-  enrollmentsService,
-  gradesService,
-  notificationsService,
-  progressService,
-  quizzesService,
-  reviewsService,
-  analyticsService,
 }

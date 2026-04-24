@@ -7,7 +7,7 @@ import { EMPTY_COHORT_FORM, type CohortFormState } from "./types"
 
 type Confirm = ReturnType<typeof useConfirm>
 
-export interface CohortsSection {
+interface CohortsSection {
   cohorts: Cohort[]
   form: CohortFormState
   setForm: (v: CohortFormState) => void

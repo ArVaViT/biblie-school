@@ -2,7 +2,7 @@ import api from "./api"
 import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
 import type { ChapterBlock, BlockType } from "@/types"
 
-export type ChapterBlockCreateData = {
+type ChapterBlockCreateData = {
   block_type: BlockType
   order_index?: number
   content?: string | null
@@ -13,7 +13,7 @@ export type ChapterBlockCreateData = {
   file_name?: string | null
 }
 
-export type ChapterBlockUpdateData = Partial<Omit<ChapterBlockCreateData, "block_type">> & {
+type ChapterBlockUpdateData = Partial<Omit<ChapterBlockCreateData, "block_type">> & {
   block_type?: BlockType
 }
 

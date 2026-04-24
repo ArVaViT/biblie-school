@@ -10,7 +10,7 @@ type Confirm = ReturnType<typeof useConfirm>
 
 type CoursePatch = Parameters<typeof coursesService.updateCourse>[1]
 
-export interface CourseData {
+interface CourseData {
   course: Course | null
   loading: boolean
   sortedModules: NonNullable<Course["modules"]>

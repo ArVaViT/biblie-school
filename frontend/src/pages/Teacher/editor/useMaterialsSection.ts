@@ -6,7 +6,7 @@ import type { MaterialFile } from "./types"
 
 type Confirm = ReturnType<typeof useConfirm>
 
-export interface MaterialsSection {
+interface MaterialsSection {
   materials: MaterialFile[]
   uploading: boolean
   inputRef: React.RefObject<HTMLInputElement>

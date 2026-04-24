@@ -18,7 +18,7 @@ export interface DraftQuestion {
 }
 
 let _uid = 0
-export function uid(): string {
+function uid(): string {
   return `draft-${++_uid}-${Date.now()}`
 }
 
