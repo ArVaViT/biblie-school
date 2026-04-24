@@ -83,13 +83,11 @@ def create_announcement(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Course '{data.course_id}' not found",
             )
-        try:
-            assert_course_owner(course, teacher)
-        except HTTPException:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only create announcements for your own courses",
-            ) from None
+        assert_course_owner(
+            course,
+            teacher,
+            detail="You can only create announcements for your own courses",
+        )
     else:
         course = None
 
