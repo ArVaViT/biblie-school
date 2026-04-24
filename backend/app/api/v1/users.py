@@ -1,6 +1,6 @@
 import logging
-import uuid as _uuid
 from datetime import datetime
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
@@ -25,7 +25,21 @@ from app.services.course_service import get_user_courses
 
 logger = logging.getLogger(__name__)
 
+VALID_ROLES = ("admin", "teacher", "pending_teacher", "student")
+
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+def _parse_user_uuid(user_id: str) -> UUID:
+    """Parse a path-parameter user id or raise 404.
+
+    Invalid UUIDs are indistinguishable from missing users at the API
+    surface, so we normalise both to "User not found".
+    """
+    try:
+        return UUID(user_id)
+    except ValueError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found") from None
 
 
 @router.get("/me/courses", response_model=list[EnrollmentSummaryResponse])
@@ -34,12 +48,12 @@ def get_my_courses(
     limit: int = Query(100, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
+) -> list[Enrollment]:
     # Dashboard view: slim payload (chapter body content stripped).
     return get_user_courses(db, current_user.id, skip=skip, limit=limit)
 
 
-def _purge_user(db: Session, uid: _uuid.UUID) -> None:
+def _purge_user(db: Session, uid: UUID) -> None:
     """Delete every row that belongs to ``uid`` and then the ``User`` itself.
 
     Shared by the admin-delete-user path. We walk the FKs manually instead of
@@ -116,23 +130,23 @@ def bulk_update_user_roles(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict:
-    if body.role not in ("admin", "teacher", "pending_teacher", "student"):
+    if body.role not in VALID_ROLES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid role")
     if len(body.user_ids) > 100:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Maximum 100 users per batch")
 
-    valid_uuids = []
+    valid_uuids: list[UUID] = []
     for uid_str in body.user_ids:
         try:
-            valid_uuids.append(_uuid.UUID(uid_str))
+            valid_uuids.append(UUID(uid_str))
         except ValueError:
             continue
 
     if not valid_uuids:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No valid user IDs provided")
 
-    admin_uuid = admin.id if isinstance(admin.id, _uuid.UUID) else _uuid.UUID(str(admin.id))
-    safe_uuids = [u for u in valid_uuids if u != admin_uuid]
+    # Admins must not demote themselves; silently skip their own id.
+    safe_uuids = [u for u in valid_uuids if u != admin.id]
 
     updated = db.query(User).filter(User.id.in_(safe_uuids)).update({User.role: body.role}, synchronize_session="fetch")
     db.commit()
@@ -158,14 +172,10 @@ def update_user_role(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict:
-    if role not in ("admin", "teacher", "pending_teacher", "student"):
+    if role not in VALID_ROLES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid role")
-    try:
-        uid = _uuid.UUID(user_id)
-    except ValueError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found") from None
-    admin_uuid = admin.id if isinstance(admin.id, _uuid.UUID) else _uuid.UUID(str(admin.id))
-    if uid == admin_uuid:
+    uid = _parse_user_uuid(user_id)
+    if uid == admin.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cannot change your own role")
     user = db.query(User).filter(User.id == uid).first()
     if not user:
@@ -186,7 +196,7 @@ def admin_delete_user(
     request: Request,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
-):
+) -> Response:
     """Hard-delete another user and all their owned rows.
 
     An admin cannot delete themselves via this route — that would leave the
@@ -195,13 +205,8 @@ def admin_delete_user(
     admin truly wants to leave, a direct SQL operation through Supabase is the
     right escape hatch.
     """
-    try:
-        uid = _uuid.UUID(user_id)
-    except ValueError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found") from None
-
-    admin_uuid = admin.id if isinstance(admin.id, _uuid.UUID) else _uuid.UUID(str(admin.id))
-    if uid == admin_uuid:
+    uid = _parse_user_uuid(user_id)
+    if uid == admin.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Admins cannot delete their own account")
 
     target = db.query(User).filter(User.id == uid).first()
