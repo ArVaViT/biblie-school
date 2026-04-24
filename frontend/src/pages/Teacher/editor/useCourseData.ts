@@ -1,0 +1,254 @@
+import { useCallback, useEffect, useMemo, useState } from "react"
+import type { DropResult } from "@hello-pangea/dnd"
+import { coursesService } from "@/services/courses"
+import { storageService } from "@/services/storage"
+import { toast } from "@/lib/toast"
+import type { Course } from "@/types"
+import type { useConfirm } from "@/components/ui/alert-dialog"
+
+type Confirm = ReturnType<typeof useConfirm>
+
+type CoursePatch = Parameters<typeof coursesService.updateCourse>[1]
+
+export interface CourseData {
+  course: Course | null
+  loading: boolean
+  sortedModules: NonNullable<Course["modules"]>
+  /** True when the course status is "published". */
+  published: boolean
+  enrollStart: string
+  setEnrollStart: (v: string) => void
+  enrollEnd: string
+  setEnrollEnd: (v: string) => void
+  savingEnrollment: boolean
+  savePatch: (patch: CoursePatch) => Promise<void>
+  uploadCover: (file: File) => Promise<string>
+  removeCover: () => Promise<void>
+  saveEnrollment: () => Promise<boolean>
+  togglePublish: () => Promise<void>
+  addModule: () => Promise<void>
+  removeModule: (id: string) => Promise<void>
+  reorderModules: (result: DropResult) => Promise<void>
+}
+
+/**
+ * Loads a course and exposes every mutation a teacher can make to the
+ * course itself (title, description, cover, publish status, enrollment
+ * window) and to its modules (create, delete, drag-to-reorder).
+ *
+ * The five modal concerns (announcements, materials, cohorts, events)
+ * each have their own hook so the editor page stays a thin orchestrator.
+ */
+export function useCourseData(
+  courseId: string | undefined,
+  confirm: Confirm,
+  onNotFound: () => void,
+): CourseData {
+  const [course, setCourse] = useState<Course | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [enrollStart, setEnrollStart] = useState("")
+  const [enrollEnd, setEnrollEnd] = useState("")
+  const [savingEnrollment, setSavingEnrollment] = useState(false)
+  const [reordering, setReordering] = useState(false)
+
+  const loadCourse = useCallback(
+    async (signal: { cancelled: boolean }) => {
+      if (!courseId) return
+      setLoading(true)
+      try {
+        const data = await coursesService.getCourse(courseId)
+        if (signal.cancelled) return
+        setCourse(data)
+        setEnrollStart(data.enrollment_start?.slice(0, 16) ?? "")
+        setEnrollEnd(data.enrollment_end?.slice(0, 16) ?? "")
+      } catch {
+        if (!signal.cancelled) onNotFound()
+      } finally {
+        if (!signal.cancelled) setLoading(false)
+      }
+    },
+    [courseId, onNotFound],
+  )
+
+  useEffect(() => {
+    const signal = { cancelled: false }
+    void loadCourse(signal)
+    return () => {
+      signal.cancelled = true
+    }
+  }, [loadCourse])
+
+  const savePatch = useCallback(
+    async (patch: CoursePatch) => {
+      if (!courseId) return
+      try {
+        const updated = await coursesService.updateCourse(courseId, patch)
+        setCourse((p) => (p ? { ...p, ...updated } : p))
+        toast({ title: "Saved", variant: "success" })
+      } catch {
+        toast({ title: "Failed to save", variant: "destructive" })
+        throw new Error("save failed")
+      }
+    },
+    [courseId],
+  )
+
+  const uploadCover = useCallback(
+    async (file: File) => {
+      if (!courseId) throw new Error("no course")
+      const url = await storageService.uploadCourseImage(courseId, file)
+      await coursesService.updateCourse(courseId, { image_url: url })
+      setCourse((p) => (p ? { ...p, image_url: url } : p))
+      toast({ title: "Cover updated", variant: "success" })
+      return url
+    },
+    [courseId],
+  )
+
+  const removeCover = useCallback(async () => {
+    if (!courseId) return
+    try {
+      await coursesService.updateCourse(courseId, { image_url: null })
+      setCourse((p) => (p ? { ...p, image_url: null } : p))
+      toast({ title: "Cover removed", variant: "success" })
+    } catch {
+      toast({ title: "Failed to remove cover", variant: "destructive" })
+    }
+  }, [courseId])
+
+  const saveEnrollment = useCallback(async () => {
+    if (!courseId) return false
+    setSavingEnrollment(true)
+    try {
+      const payload = {
+        enrollment_start: enrollStart ? new Date(enrollStart).toISOString() : null,
+        enrollment_end: enrollEnd ? new Date(enrollEnd).toISOString() : null,
+      }
+      await coursesService.updateCourse(courseId, payload)
+      setCourse((p) => (p ? { ...p, ...payload } : p))
+      toast({ title: "Enrollment saved", variant: "success" })
+      return true
+    } catch {
+      toast({ title: "Failed to save", variant: "destructive" })
+      return false
+    } finally {
+      setSavingEnrollment(false)
+    }
+  }, [courseId, enrollStart, enrollEnd])
+
+  const togglePublish = useCallback(async () => {
+    if (!courseId || !course) return
+    const next = course.status === "published" ? ("draft" as const) : ("published" as const)
+    try {
+      await coursesService.updateCourse(courseId, { status: next })
+      setCourse((p) => (p ? { ...p, status: next } : p))
+      toast({
+        title: next === "published" ? "Published" : "Unpublished",
+        variant: "success",
+      })
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
+  }, [courseId, course])
+
+  const addModule = useCallback(async () => {
+    if (!courseId) return
+    const order = course?.modules?.length ?? 0
+    try {
+      const m = await coursesService.createModule(courseId, {
+        title: `Module ${order + 1}`,
+        order_index: order,
+      })
+      setCourse((p) =>
+        p ? { ...p, modules: [...(p.modules ?? []), { ...m, chapters: [] }] } : p,
+      )
+      toast({ title: "Module added", variant: "success" })
+    } catch {
+      toast({ title: "Failed", variant: "destructive" })
+    }
+  }, [courseId, course?.modules?.length])
+
+  const removeModule = useCallback(
+    async (id: string) => {
+      if (!courseId) return
+      const ok = await confirm({
+        title: "Delete this module?",
+        description: "All chapters inside the module will also be removed.",
+        confirmLabel: "Delete",
+        tone: "destructive",
+      })
+      if (!ok) return
+      try {
+        await coursesService.deleteModule(courseId, id)
+        setCourse((p) => (p ? { ...p, modules: p.modules?.filter((m) => m.id !== id) } : p))
+      } catch {
+        toast({ title: "Failed", variant: "destructive" })
+      }
+    },
+    [courseId, confirm],
+  )
+
+  const sortedModules = useMemo(
+    () => [...(course?.modules ?? [])].sort((a, b) => a.order_index - b.order_index),
+    [course?.modules],
+  )
+
+  const reorderModules = useCallback(
+    async (result: DropResult) => {
+      if (!result.destination || !courseId || reordering) return
+      const from = result.source.index
+      const to = result.destination.index
+      if (from === to) return
+
+      const reordered = Array.from(sortedModules)
+      const [moved] = reordered.splice(from, 1)
+      if (!moved) return
+      reordered.splice(to, 0, moved)
+
+      setCourse((prev) =>
+        prev
+          ? { ...prev, modules: reordered.map((m, i) => ({ ...m, order_index: i })) }
+          : prev,
+      )
+
+      setReordering(true)
+      try {
+        await Promise.all(
+          reordered
+            .map((m, i) =>
+              m.order_index !== i
+                ? coursesService.updateModule(courseId, m.id, { order_index: i })
+                : null,
+            )
+            .filter(Boolean),
+        )
+      } catch {
+        toast({ title: "Failed to save module order", variant: "destructive" })
+        void loadCourse({ cancelled: false })
+      } finally {
+        setReordering(false)
+      }
+    },
+    [sortedModules, courseId, loadCourse, reordering],
+  )
+
+  return {
+    course,
+    loading,
+    sortedModules,
+    published: course?.status === "published",
+    enrollStart,
+    setEnrollStart,
+    enrollEnd,
+    setEnrollEnd,
+    savingEnrollment,
+    savePatch,
+    uploadCover,
+    removeCover,
+    saveEnrollment,
+    togglePublish,
+    addModule,
+    removeModule,
+    reorderModules,
+  }
+}
