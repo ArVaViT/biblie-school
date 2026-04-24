@@ -1,0 +1,135 @@
+import { Link } from "react-router-dom"
+import {
+  BarChart3,
+  BookOpen,
+  ClipboardList,
+  Copy,
+  Eye,
+  EyeOff,
+  Layers,
+  Pencil,
+  Trash2,
+  Users,
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { toProxyImage } from "@/lib/images"
+import type { Course } from "@/types"
+
+interface Props {
+  course: Course
+  togglingId: string | null
+  cloningId: string | null
+  onToggleStatus: (course: Course) => void
+  onClone: (id: string) => void
+  onDelete: (id: string) => void
+}
+
+export function CourseCard({
+  course,
+  togglingId,
+  cloningId,
+  onToggleStatus,
+  onClone,
+  onDelete,
+}: Props) {
+  return (
+    <Card className="group hover:shadow-md transition-shadow">
+      <div className="flex items-start gap-4 p-6">
+        {course.image_url ? (
+          <img
+            src={toProxyImage(course.image_url)}
+            alt={`${course.title} thumbnail`}
+            loading="lazy"
+            className="w-20 h-20 rounded-lg object-cover shrink-0"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-lg truncate">{course.title}</h3>
+            <Badge variant={course.status === "published" ? "success" : "warning"}>
+              {course.status === "published" ? "Published" : "Draft"}
+            </Badge>
+          </div>
+          {course.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+              {course.description}
+            </p>
+          )}
+          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Layers className="h-3.5 w-3.5" />
+              {course.modules?.length ?? 0} modules
+            </span>
+            <span>Created {new Date(course.created_at).toLocaleDateString()}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Link to={`/teacher/courses/${course.id}/analytics`}>
+            <Button variant="ghost" size="sm" title="Analytics">
+              <BarChart3 className="h-4 w-4" />
+              <span className="sr-only">Analytics</span>
+            </Button>
+          </Link>
+          <Link to={`/teacher/courses/${course.id}/gradebook`}>
+            <Button variant="ghost" size="sm" title="Gradebook">
+              <ClipboardList className="h-4 w-4" />
+              <span className="sr-only">Gradebook</span>
+            </Button>
+          </Link>
+          <Link to={`/teacher/courses/${course.id}/progress`}>
+            <Button variant="ghost" size="sm" title="Student Progress">
+              <Users className="h-4 w-4" />
+              <span className="sr-only">Progress</span>
+            </Button>
+          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            title={course.status === "published" ? "Unpublish" : "Publish"}
+            disabled={togglingId === course.id}
+            onClick={() => onToggleStatus(course)}
+          >
+            {course.status === "published" ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+            <span className="sr-only">
+              {course.status === "published" ? "Unpublish" : "Publish"}
+            </span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Clone course"
+            disabled={cloningId === course.id}
+            onClick={() => onClone(course.id)}
+          >
+            {cloningId === course.id ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+            <span className="sr-only">Clone</span>
+          </Button>
+          <Link to={`/teacher/courses/${course.id}`}>
+            <Button variant="ghost" size="sm" aria-label="Edit course">
+              <Pencil className="h-4 w-4" />
+              <span className="hidden sm:inline">Edit</span>
+            </Button>
+          </Link>
+          <Button variant="destructive" size="sm" onClick={() => onDelete(course.id)}>
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
+        </div>
+      </div>
+    </Card>
+  )
+}
