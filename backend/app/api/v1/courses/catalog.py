@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_optional_user, require_teacher
 from app.core.database import get_db
-from app.models.course import Course
+from app.models.course import Course, Module
 from app.models.user import User, UserRole
 from app.schemas.course import CourseResponse, CourseSummary, ModuleResponse
 from app.services.course_service import (
@@ -62,7 +62,7 @@ def get_course_detail(
     course_id: str,
     current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
-) -> CourseResponse:
+) -> Course:
     course = get_course(db, course_id)
     if not course:
         raise HTTPException(
@@ -77,8 +77,7 @@ def get_course_detail(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Course '{course_id}' not found",
             )
-    # FastAPI serializes via from_attributes.
-    return course  # type: ignore[return-value]
+    return course
 
 
 @router.get("/{course_id}/modules/{module_id}", response_model=ModuleResponse)
@@ -87,7 +86,7 @@ def get_module_detail(
     module_id: str,
     current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
-) -> ModuleResponse:
+) -> Module:
     # Lightweight access probe — avoids loading the whole course→modules→chapters
     # tree just to check publication state.
     course_row = (
@@ -113,5 +112,4 @@ def get_module_detail(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Module '{module_id}' not found in course '{course_id}'",
         )
-    # FastAPI serializes via from_attributes.
-    return module  # type: ignore[return-value]
+    return module

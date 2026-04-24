@@ -26,7 +26,7 @@ def list_announcements(
     limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[AnnouncementResponse]:
+) -> list[Announcement]:
     query = db.query(Announcement)
     is_admin = current_user.role in (UserRole.ADMIN.value, "admin")
 
@@ -67,7 +67,7 @@ def list_announcements(
         )
     # Admin without course_id sees all announcements (paginated, capped by limit).
 
-    return query.order_by(Announcement.created_at.desc()).offset(skip).limit(limit).all()  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return query.order_by(Announcement.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.post("", response_model=AnnouncementResponse, status_code=status.HTTP_201_CREATED)
@@ -75,7 +75,7 @@ def create_announcement(
     data: AnnouncementCreate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> AnnouncementResponse:
+) -> Announcement:
     if data.course_id:
         course = db.query(Course).filter(Course.id == data.course_id).first()
         if not course:
@@ -119,7 +119,7 @@ def create_announcement(
 
     db.commit()
     db.refresh(announcement)
-    return announcement  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return announcement
 
 
 @router.put("/{announcement_id}", response_model=AnnouncementResponse)
@@ -128,7 +128,7 @@ def update_announcement(
     data: AnnouncementUpdate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> AnnouncementResponse:
+) -> Announcement:
     announcement = db.query(Announcement).filter(Announcement.id == announcement_id).first()
     if not announcement:
         raise HTTPException(
@@ -148,7 +148,7 @@ def update_announcement(
 
     db.commit()
     db.refresh(announcement)
-    return announcement  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return announcement
 
 
 @router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)

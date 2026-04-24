@@ -220,9 +220,9 @@ def list_my_grades(
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[GradeResponse]:
+) -> list[StudentGrade]:
     return (
-        db.query(StudentGrade)  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+        db.query(StudentGrade)
         .filter(StudentGrade.student_id == current_user.id)
         .order_by(StudentGrade.graded_at.desc())
         .offset(skip)
@@ -236,7 +236,7 @@ def get_my_grade_for_course(
     course_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> GradeResponse:
+) -> StudentGrade:
     grade = (
         db.query(StudentGrade)
         .filter(
@@ -250,7 +250,7 @@ def get_my_grade_for_course(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No grade found for course '{course_id}'",
         )
-    return grade  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return grade
 
 
 @router.get("/course/{course_id}", response_model=list[GradeResponse])
@@ -261,12 +261,12 @@ def list_course_grades(
     limit: int = Query(100, ge=1, le=500),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> list[GradeResponse]:
+) -> list[StudentGrade]:
     verify_course_owner(db, course_id, teacher)
     query = db.query(StudentGrade).filter(StudentGrade.course_id == course_id)
     if cohort_id is not None:
         query = query.filter(StudentGrade.cohort_id == cohort_id)
-    return query.order_by(StudentGrade.graded_at.desc()).offset(skip).limit(limit).all()  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return query.order_by(StudentGrade.graded_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.get("/course/{course_id}/student/{student_id}", response_model=GradeResponse)
@@ -276,7 +276,7 @@ def get_student_grade(
     cohort_id: str | None = Query(None),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> GradeResponse:
+) -> StudentGrade:
     verify_course_owner(db, course_id, teacher)
     query = db.query(StudentGrade).filter(
         StudentGrade.student_id == student_id,
@@ -290,7 +290,7 @@ def get_student_grade(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No grade found for student '{student_id}' in course '{course_id}'",
         )
-    return grade  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return grade
 
 
 @router.put("/course/{course_id}/student/{student_id}", response_model=GradeResponse)
@@ -301,7 +301,7 @@ def upsert_student_grade(
     cohort_id: str | None = Query(None),
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> GradeResponse:
+) -> StudentGrade:
     verify_course_owner(db, course_id, teacher)
 
     enrolled = db.query(Enrollment).filter(Enrollment.user_id == student_id, Enrollment.course_id == course_id).first()
@@ -337,4 +337,4 @@ def upsert_student_grade(
 
     db.commit()
     db.refresh(grade)
-    return grade  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return grade

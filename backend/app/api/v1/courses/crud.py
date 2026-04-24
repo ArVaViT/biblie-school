@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import assert_course_owner, require_teacher
 from app.core.database import get_db
 from app.core.sanitize import sanitize_string
+from app.models.course import Course
 from app.models.user import User
 from app.schemas.course import CourseCreate, CourseResponse, CourseUpdate
 from app.services.audit_service import log_action
@@ -28,13 +29,12 @@ def create_new_course(
     request: Request,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> CourseResponse:
+) -> Course:
     if data.title:
         data.title = sanitize_string(data.title)
     course = create_course(db, data, teacher.id)
     log_action(db, teacher.id, "create", "course", course.id, request=request)
-    # FastAPI serializes via from_attributes.
-    return course  # type: ignore[return-value]
+    return course
 
 
 @router.put("/{course_id}", response_model=CourseResponse)
@@ -44,7 +44,7 @@ def update_existing_course(
     request: Request,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> CourseResponse:
+) -> Course:
     course = get_course(db, course_id)
     if not course:
         raise HTTPException(
@@ -63,7 +63,7 @@ def update_existing_course(
     # publication event from a generic update.
     action = "publish" if data.status == "published" and old_status != "published" else "update"
     log_action(db, teacher.id, action, "course", course_id, details=details or None, request=request)
-    return result  # type: ignore[return-value]
+    return result
 
 
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -93,7 +93,7 @@ def clone_existing_course(
     course_id: str,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> CourseResponse:
+) -> Course:
     course = get_course(db, course_id)
     if not course:
         raise HTTPException(
@@ -114,7 +114,7 @@ def clone_existing_course(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to clone course",
         )
-    return new_course  # type: ignore[return-value]
+    return new_course
 
 
 @router.post("/{course_id}/restore", response_model=CourseResponse)
@@ -123,7 +123,7 @@ def restore_deleted_course(
     request: Request,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> CourseResponse:
+) -> Course:
     course = get_course(db, course_id, include_deleted=True)
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
@@ -132,7 +132,7 @@ def restore_deleted_course(
     assert_course_owner(course, teacher, allow_admin=False)
     result = restore_course(db, course)
     log_action(db, teacher.id, "restore", "course", course_id, request=request)
-    return result  # type: ignore[return-value]
+    return result
 
 
 @router.delete("/{course_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)

@@ -35,12 +35,16 @@ def list_notifications(
         .all()
     )
 
-    return NotificationListResponse(
-        items=items,  # type: ignore[arg-type]  # FastAPI serializes via from_attributes
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    # Return a plain dict so FastAPI can wrap the ORM rows into
+    # ``NotificationListResponse`` via ``from_attributes``; constructing the
+    # Pydantic envelope directly would need an explicit ``model_validate``
+    # and fight with our mypy config.
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get("/unread-count", response_model=UnreadCountResponse)
