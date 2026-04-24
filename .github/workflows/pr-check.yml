@@ -66,7 +66,10 @@ jobs:
         run: |
           set -euo pipefail
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" pr-head || true)
+          # --diff-filter=d excludes deletions: we want to forbid *adding* or
+          # *modifying* secret files, not removing previously committed ones
+          # (removal is strictly a cleanup action and must stay easy).
+          CHANGED_FILES=$(git diff --name-only --diff-filter=d "$BASE_SHA" pr-head || true)
           FOUND=0
           while IFS= read -r f; do
             [ -z "$f" ] && continue
