@@ -17,7 +17,7 @@ import {
  * list. Small tenants keep the familiar semantic table; large tenants
  * avoid paying ~500 avatar images + <select>s worth of DOM on mount.
  */
-export const USERS_VIRTUAL_THRESHOLD = 50
+const USERS_VIRTUAL_THRESHOLD = 50
 
 interface Props {
   users: ProfileRow[]

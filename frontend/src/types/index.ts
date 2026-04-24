@@ -37,11 +37,6 @@ export interface Module {
   chapters?: Chapter[]
 }
 
-// ``ChapterType`` is defined in ``@/lib/chapterTypes`` alongside the rest of
-// the chapter-type metadata (labels, icons, colours); re-exported here because
-// most domain consumers import from ``@/types``.
-export type { ChapterType }
-
 export interface Chapter {
   id: string
   module_id: string
@@ -79,7 +74,7 @@ export interface GradingConfig {
   participation_weight: number
 }
 
-export interface GradeBreakdown {
+interface GradeBreakdown {
   quiz_avg: number
   quiz_weighted: number
   assignment_avg: number
@@ -115,7 +110,7 @@ export interface Announcement {
   updated_at: string
 }
 
-export interface QuizOption {
+interface QuizOption {
   id: string
   question_id: string
   option_text: string
@@ -318,8 +313,8 @@ export interface Profile {
   updated_at: string | null
 }
 
-export type CalendarEventType = 'deadline' | 'live_session' | 'exam' | 'other'
-export type CalendarEventSource = 'module_deadline' | 'assignment_deadline' | 'course_event'
+type CalendarEventType = 'deadline' | 'live_session' | 'exam' | 'other'
+type CalendarEventSource = 'module_deadline' | 'assignment_deadline' | 'course_event'
 
 export interface CalendarEvent {
   id: string

@@ -1,4 +1,3 @@
-export { EssayAnswer } from "./EssayAnswer"
 export { PreviousAttempts } from "./PreviousAttempts"
 export { QuestionPrompt } from "./QuestionPrompt"
 export { QuizHeader } from "./QuizHeader"

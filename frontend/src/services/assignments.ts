@@ -2,7 +2,7 @@ import api from "./api"
 import { cacheInvalidatePrefix } from "@/lib/cache"
 import type { Assignment, AssignmentSubmission } from "@/types"
 
-export type AssignmentCreateData = {
+type AssignmentCreateData = {
   chapter_id: string
   title: string
   description?: string | null

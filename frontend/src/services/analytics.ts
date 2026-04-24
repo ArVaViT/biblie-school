@@ -1,7 +1,7 @@
 import api from "./api"
 import { cacheGet, cacheSet } from "@/lib/cache"
 
-export interface CourseAnalyticsEnrollment {
+interface CourseAnalyticsEnrollment {
   enrollment_id: string
   user_id: string
   full_name: string | null
@@ -10,7 +10,7 @@ export interface CourseAnalyticsEnrollment {
   enrolled_at: string | null
 }
 
-export interface CourseAnalytics {
+interface CourseAnalytics {
   course_id: string
   course_title: string
   total_students: number

@@ -9,7 +9,7 @@ import type {
   PendingAnswer,
 } from "@/types"
 
-export type QuizCreateData = {
+type QuizCreateData = {
   chapter_id: string
   title: string
   description?: string | null
@@ -30,7 +30,7 @@ export type QuizCreateData = {
   }>
 }
 
-export type QuizSubmissionAnswer = {
+type QuizSubmissionAnswer = {
   question_id: string
   selected_option_id?: string
   text_answer?: string
