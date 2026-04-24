@@ -148,7 +148,7 @@ def create_course_event(
     data: CourseEventCreate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> CourseEventResponse:
+) -> CourseEvent:
     verify_course_owner(db, course_id, teacher)
     event = CourseEvent(
         course_id=course_id,
@@ -161,7 +161,7 @@ def create_course_event(
     db.add(event)
     db.commit()
     db.refresh(event)
-    return event  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return event
 
 
 @event_router.get(
@@ -172,7 +172,7 @@ def list_course_events(
     course_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[CourseEventResponse]:
+) -> list[CourseEvent]:
     # Narrow probe: only the columns needed for ownership + soft-delete checks.
     course_row = db.query(Course.created_by).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
     if not course_row:
@@ -190,7 +190,7 @@ def list_course_events(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You must be enrolled in this course to view events",
             )
-    return db.query(CourseEvent).filter(CourseEvent.course_id == course_id).order_by(CourseEvent.event_date).all()  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return db.query(CourseEvent).filter(CourseEvent.course_id == course_id).order_by(CourseEvent.event_date).all()
 
 
 @event_router.put(
@@ -203,7 +203,7 @@ def update_course_event(
     data: CourseEventUpdate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> CourseEventResponse:
+) -> CourseEvent:
     verify_course_owner(db, course_id, teacher)
     event = (
         db.query(CourseEvent)
@@ -219,7 +219,7 @@ def update_course_event(
         setattr(event, field, value)
     db.commit()
     db.refresh(event)
-    return event  # type: ignore[return-value]  # FastAPI serializes via from_attributes
+    return event
 
 
 @event_router.delete(

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import require_teacher, verify_course_owner
 from app.core.database import get_db
 from app.core.sanitize import sanitize_string
+from app.models.course import Chapter
 from app.models.user import User
 from app.schemas.course import ChapterCreate, ChapterResponse, ChapterUpdate
 from app.services.course_service import (
@@ -30,7 +31,7 @@ def create_new_chapter(
     data: ChapterCreate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> ChapterResponse:
+) -> Chapter:
     verify_course_owner(db, course_id, teacher.id, allow_admin=False)
     module = get_module(db, course_id, module_id)
     if not module:
@@ -40,8 +41,7 @@ def create_new_chapter(
         )
     if data.title:
         data.title = sanitize_string(data.title)
-    # FastAPI serializes via from_attributes.
-    return create_chapter(db, module_id, data)  # type: ignore[return-value]
+    return create_chapter(db, module_id, data)
 
 
 @router.put(
@@ -55,7 +55,7 @@ def update_existing_chapter(
     data: ChapterUpdate,
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
-) -> ChapterResponse:
+) -> Chapter:
     verify_course_owner(db, course_id, teacher.id, allow_admin=False)
     chapter = get_chapter(db, course_id, module_id, chapter_id)
     if not chapter:
@@ -65,8 +65,7 @@ def update_existing_chapter(
         )
     if data.title:
         data.title = sanitize_string(data.title)
-    # FastAPI serializes via from_attributes.
-    return update_chapter(db, chapter, data)  # type: ignore[return-value]
+    return update_chapter(db, chapter, data)
 
 
 @router.delete(

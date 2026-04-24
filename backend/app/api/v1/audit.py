@@ -45,7 +45,7 @@ def list_audit_logs(
     date_to: datetime | None = Query(None),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
-) -> AuditLogPage:
+) -> dict:
     q = db.query(AuditLog)
 
     if user_id:
@@ -62,4 +62,7 @@ def list_audit_logs(
     total = q.count()
     items = q.order_by(AuditLog.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
 
-    return AuditLogPage(items=items, total=total, page=page, page_size=page_size)  # type: ignore[arg-type]  # FastAPI serializes via from_attributes
+    # Return a plain dict so FastAPI hydrates ``AuditLogPage`` via
+    # ``from_attributes``; constructing the Pydantic envelope directly
+    # would need an explicit ``model_validate`` to pass mypy.
+    return {"items": items, "total": total, "page": page, "page_size": page_size}

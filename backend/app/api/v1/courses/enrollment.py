@@ -91,7 +91,7 @@ def enroll_course(
     body: EnrollRequest = EnrollRequest(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> EnrollmentResponse:
+) -> Enrollment:
     course = get_course(db, course_id)
     if not course:
         raise HTTPException(
@@ -132,5 +132,4 @@ def enroll_course(
         details={"course_id": course_id},
         request=request,
     )
-    # FastAPI serializes via from_attributes.
-    return enrollment  # type: ignore[return-value]
+    return enrollment
