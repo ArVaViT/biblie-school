@@ -1,0 +1,163 @@
+"""Course-level write endpoints: create / update / delete / clone / restore."""
+
+from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
+
+from app.api.dependencies import assert_course_owner, require_teacher
+from app.core.database import get_db
+from app.core.sanitize import sanitize_string
+from app.models.user import User
+from app.schemas.course import CourseCreate, CourseResponse, CourseUpdate
+from app.services.audit_service import log_action
+from app.services.course_service import (
+    clone_course,
+    create_course,
+    delete_course,
+    get_course,
+    permanently_delete_course,
+    restore_course,
+    update_course,
+)
+
+from ._router import router
+
+
+@router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
+def create_new_course(
+    data: CourseCreate,
+    request: Request,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> CourseResponse:
+    if data.title:
+        data.title = sanitize_string(data.title)
+    course = create_course(db, data, teacher.id)
+    log_action(db, teacher.id, "create", "course", course.id, request=request)
+    # FastAPI serializes via from_attributes.
+    return course  # type: ignore[return-value]
+
+
+@router.put("/{course_id}", response_model=CourseResponse)
+def update_existing_course(
+    course_id: str,
+    data: CourseUpdate,
+    request: Request,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> CourseResponse:
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
+    assert_course_owner(course, teacher, allow_admin=False)
+    if data.title:
+        data.title = sanitize_string(data.title)
+    old_status = course.status
+    result = update_course(db, course, data)
+    details: dict[str, object] = {}
+    if data.status and data.status != old_status:
+        details = {"old_status": old_status, "new_status": data.status}
+    # Special-case draft→published so the audit log distinguishes a
+    # publication event from a generic update.
+    action = "publish" if data.status == "published" and old_status != "published" else "update"
+    log_action(db, teacher.id, action, "course", course_id, details=details or None, request=request)
+    return result  # type: ignore[return-value]
+
+
+@router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_course(
+    course_id: str,
+    request: Request,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> None:
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
+    assert_course_owner(course, teacher, allow_admin=False)
+    log_action(db, teacher.id, "delete", "course", course_id, details={"title": course.title}, request=request)
+    delete_course(db, course)
+
+
+@router.post(
+    "/{course_id}/clone",
+    response_model=CourseResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def clone_existing_course(
+    course_id: str,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> CourseResponse:
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
+    # Drafts are only visible (and therefore clonable) to their owner,
+    # regardless of admin status.
+    is_owner = str(course.created_by) == str(teacher.id)
+    if course.status != "published" and not is_owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the owner can clone a draft course",
+        )
+    new_course = clone_course(db, course_id, str(teacher.id))
+    if not new_course:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to clone course",
+        )
+    return new_course  # type: ignore[return-value]
+
+
+@router.post("/{course_id}/restore", response_model=CourseResponse)
+def restore_deleted_course(
+    course_id: str,
+    request: Request,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> CourseResponse:
+    course = get_course(db, course_id, include_deleted=True)
+    if not course:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    if course.deleted_at is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Course is not deleted")
+    assert_course_owner(course, teacher, allow_admin=False)
+    result = restore_course(db, course)
+    log_action(db, teacher.id, "restore", "course", course_id, request=request)
+    return result  # type: ignore[return-value]
+
+
+@router.delete("/{course_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)
+def permanently_remove_course(
+    course_id: str,
+    request: Request,
+    teacher: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> None:
+    course = get_course(db, course_id, include_deleted=True)
+    if not course:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    assert_course_owner(course, teacher, allow_admin=False)
+    if course.deleted_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Course must be soft-deleted before permanent deletion",
+        )
+    log_action(
+        db,
+        teacher.id,
+        "permanent_delete",
+        "course",
+        course_id,
+        details={"title": course.title},
+        request=request,
+    )
+    permanently_delete_course(db, course)
