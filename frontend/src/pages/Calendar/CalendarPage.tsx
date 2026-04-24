@@ -12,9 +12,9 @@ import {
   Clock,
   BookOpen,
   Filter,
-  AlertTriangle,
   RefreshCw,
 } from "lucide-react"
+import { ErrorState } from "@/components/patterns"
 
 const EVENT_COLORS: Record<string, { dot: string; bg: string; text: string; border: string }> = {
   deadline: {
@@ -184,14 +184,16 @@ export default function CalendarPage() {
 
   if (fetchError) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <AlertTriangle className="h-12 w-12 text-destructive/60 mx-auto mb-4" />
-        <h2 className="text-lg font-medium mb-2">Something went wrong</h2>
-        <p className="text-sm text-muted-foreground mb-4">{fetchError}</p>
-        <Button variant="outline" size="sm" onClick={() => setRetryCount((c) => c + 1)}>
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Retry
-        </Button>
+      <div className="container mx-auto px-4">
+        <ErrorState
+          description={fetchError}
+          action={
+            <Button variant="outline" size="sm" onClick={() => setRetryCount((c) => c + 1)}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Retry
+            </Button>
+          }
+        />
       </div>
     )
   }

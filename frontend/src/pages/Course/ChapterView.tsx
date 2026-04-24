@@ -26,6 +26,7 @@ import {
   normalizeChapterType,
 } from "@/lib/chapterTypes"
 import ChapterTypeBadge from "@/components/course/ChapterTypeBadge"
+import { ErrorState } from "@/components/patterns"
 
 const BlockRenderer = memo(function BlockRenderer({
   block,
@@ -339,18 +340,22 @@ export default function ChapterView() {
 
   if (error || !mod || !chapter) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <Book className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-        <h2 className="text-lg font-medium mb-2">{error ?? "Chapter not found"}</h2>
-        {courseId && moduleId ? (
-          <Link to={`/courses/${courseId}/modules/${moduleId}`}>
-            <Button variant="outline" size="sm">Back to Module</Button>
-          </Link>
-        ) : (
-          <Link to="/">
-            <Button variant="outline" size="sm">Go Home</Button>
-          </Link>
-        )}
+      <div className="container mx-auto px-4">
+        <ErrorState
+          icon={<Book />}
+          title={error ?? "Chapter not found"}
+          action={
+            courseId && moduleId ? (
+              <Link to={`/courses/${courseId}/modules/${moduleId}`}>
+                <Button variant="outline" size="sm">Back to Module</Button>
+              </Link>
+            ) : (
+              <Link to="/">
+                <Button variant="outline" size="sm">Go Home</Button>
+              </Link>
+            )
+          }
+        />
       </div>
     )
   }

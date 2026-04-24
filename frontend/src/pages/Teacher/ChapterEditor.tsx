@@ -22,6 +22,7 @@ import {
   normalizeChapterType,
   type ChapterType,
 } from "@/lib/chapterTypes"
+import { ErrorState } from "@/components/patterns"
 
 const EDITOR_OPTIONS = CHAPTER_TYPES.map((value) => {
   const meta = CHAPTER_TYPE_META[value]
@@ -175,9 +176,20 @@ export default function ChapterEditor() {
   }
 
   if (!chapter) return (
-    <div className="container mx-auto px-4 py-16 text-center">
-      <p className="text-muted-foreground">Chapter not found or failed to load.</p>
-      <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)}>Back to module</Button>
+    <div className="container mx-auto px-4">
+      <ErrorState
+        title="Chapter not found"
+        description="The chapter may have been deleted or you may not have access."
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)}
+          >
+            Back to module
+          </Button>
+        }
+      />
     </div>
   )
 

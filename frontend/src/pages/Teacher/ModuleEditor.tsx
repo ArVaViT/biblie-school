@@ -17,9 +17,7 @@ import {
 } from "lucide-react"
 
 import { getChapterTypeMeta } from "@/lib/chapterTypes"
-import { InlineEdit } from "@/components/patterns/InlineEdit"
-import { PageHeader } from "@/components/patterns/PageHeader"
-import { EmptyState } from "@/components/patterns/EmptyState"
+import { EmptyState, ErrorState, InlineEdit, PageHeader } from "@/components/patterns"
 
 function chapterTypeBadge(type: string) {
   return getChapterTypeMeta(type).badgeColor
@@ -241,9 +239,16 @@ export default function ModuleEditor() {
   }
 
   if (!mod) return (
-    <div className="container mx-auto px-4 py-16 text-center">
-      <p className="text-muted-foreground">Module not found or failed to load.</p>
-      <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate(`/teacher/courses/${courseId}`)}>Back to course</Button>
+    <div className="container mx-auto px-4">
+      <ErrorState
+        title="Module not found"
+        description="The module may have been deleted or you may not have access."
+        action={
+          <Button variant="outline" size="sm" onClick={() => navigate(`/teacher/courses/${courseId}`)}>
+            Back to course
+          </Button>
+        }
+      />
     </div>
   )
 

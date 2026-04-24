@@ -24,7 +24,7 @@ import {
   Download, Paperclip, Users, CheckCircle, CalendarDays, GripVertical,
   MoreHorizontal, Pencil,
 } from "lucide-react"
-import { InlineEdit, InlineEditCover, PageHeader, EmptyState, Modal } from "@/components/patterns"
+import { InlineEdit, InlineEditCover, PageHeader, EmptyState, ErrorState, Modal } from "@/components/patterns"
 
 interface MaterialFile { name: string; path: string; size?: number }
 
@@ -420,9 +420,16 @@ export default function CourseEditor() {
     )
   }
   if (!course) return (
-    <div className="container mx-auto px-4 py-16 text-center">
-      <p className="text-muted-foreground">Course not found or failed to load.</p>
-      <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/teacher")}>Back to courses</Button>
+    <div className="container mx-auto px-4">
+      <ErrorState
+        title="Course not found"
+        description="The course may have been deleted or you may not have access."
+        action={
+          <Button variant="outline" size="sm" onClick={() => navigate("/teacher")}>
+            Back to courses
+          </Button>
+        }
+      />
     </div>
   )
   const pub = course.status === "published"

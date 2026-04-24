@@ -15,7 +15,7 @@ import CourseAnnouncements from "@/components/announcements/CourseAnnouncements"
 import CourseReviews from "@/components/course/CourseReviews"
 import CertificateCard from "@/components/course/CertificateCard"
 import { Badge } from "@/components/ui/badge"
-import { Modal } from "@/components/patterns"
+import { ErrorState, Modal } from "@/components/patterns"
 import { toProxyImage } from "@/lib/images"
 import { isGradableChapterType } from "@/lib/chapterTypes"
 
@@ -189,12 +189,16 @@ export default function CourseDetail() {
 
   if (error || !course) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-        <h2 className="text-lg font-medium mb-2">{error ?? "Course not found"}</h2>
-        <Link to="/">
-          <Button variant="outline" size="sm">Back to Courses</Button>
-        </Link>
+      <div className="container mx-auto px-4">
+        <ErrorState
+          icon={<BookOpen />}
+          title={error ?? "Course not found"}
+          action={
+            <Link to="/">
+              <Button variant="outline" size="sm">Back to Courses</Button>
+            </Link>
+          }
+        />
       </div>
     )
   }
