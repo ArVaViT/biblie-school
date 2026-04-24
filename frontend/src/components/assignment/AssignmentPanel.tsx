@@ -67,7 +67,10 @@ export default function AssignmentPanel({ chapterId, assignmentId, onSubmitted, 
     }
     load()
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountLoaded is unstable by design
+    // Callbacks (onSubmitted, onCountLoaded) are outputs of this effect, not
+    // inputs: refetching when the parent renders a new handler reference
+    // would cause spurious reloads on every chapter-level state change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterId, assignmentId])
 
   if (loading) {
