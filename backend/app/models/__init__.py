@@ -10,7 +10,14 @@ from app.models.course_event import CourseEvent
 from app.models.enrollment import Enrollment
 from app.models.notification import Notification
 from app.models.prerequisite import CoursePrerequisite
-from app.models.quiz import Quiz, QuizAnswer, QuizAttempt, QuizOption, QuizQuestion
+from app.models.quiz import (
+    Quiz,
+    QuizAnswer,
+    QuizAttempt,
+    QuizExtraAttempt,
+    QuizOption,
+    QuizQuestion,
+)
 from app.models.review import CourseReview
 from app.models.student_grade import StudentGrade
 from app.models.user import User, UserRole
@@ -35,6 +42,7 @@ __all__ = [
     "Quiz",
     "QuizAnswer",
     "QuizAttempt",
+    "QuizExtraAttempt",
     "QuizOption",
     "QuizQuestion",
     "StudentGrade",
