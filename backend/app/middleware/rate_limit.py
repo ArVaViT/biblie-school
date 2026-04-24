@@ -42,7 +42,6 @@ from app.core.http import get_client_ip
 
 ENDPOINT_LIMITS: dict[str, tuple[int, int]] = {
     "/api/v1/auth/": (10, 60),
-    "/api/v1/files": (20, 60),
 }
 
 MAX_BUCKETS = 10_000
