@@ -1,0 +1,32 @@
+# Normalize line endings to LF across all platforms to avoid noisy diffs.
+* text=auto eol=lf
+
+# Source code — explicit LF.
+*.py    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.mdc   text eol=lf
+*.sql   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.toml  text eol=lf
+*.sh    text eol=lf
+
+# Binary assets — never modify.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.svg   binary
+*.woff  binary
+*.woff2 binary
+*.pdf   binary
+*.zip   binary
