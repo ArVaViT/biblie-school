@@ -5,6 +5,7 @@ import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { ArrowLeft, Users, TrendingUp, Award, Calendar, BarChart3, ClipboardList, UserCheck } from "lucide-react"
+import { ErrorState } from "@/components/patterns"
 
 interface AnalyticsEnrollment {
   user_id: string
@@ -81,13 +82,18 @@ export default function TeacherAnalytics() {
   if (!analytics) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <p className="text-muted-foreground">Failed to load analytics.</p>
-        <Link to="/teacher">
-          <Button variant="ghost" className="mt-4">
-            <ArrowLeft className="h-4 w-4 mr-1.5" />
-            Back to courses
-          </Button>
-        </Link>
+        <ErrorState
+          icon={<BarChart3 />}
+          title="Failed to load analytics"
+          action={
+            <Link to="/teacher">
+              <Button variant="ghost">
+                <ArrowLeft className="h-4 w-4 mr-1.5" />
+                Back to courses
+              </Button>
+            </Link>
+          }
+        />
       </div>
     )
   }

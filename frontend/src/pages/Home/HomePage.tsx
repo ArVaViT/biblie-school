@@ -10,6 +10,7 @@ import { useDebouncedSearchParam } from "@/hooks/useDebouncedSearchParam"
 import CourseCard from "@/components/course/CourseCard"
 import CourseCardSkeleton from "@/components/skeletons/CourseCardSkeleton"
 import { Search, BookOpen, LogIn, ArrowRight, CheckCircle } from "lucide-react"
+import { EmptyState, ErrorState } from "@/components/patterns"
 
 function MyCoursesSection() {
   const { user } = useAuth()
@@ -237,29 +238,22 @@ export default function HomePage() {
           {Array.from({ length: 6 }).map((_, i) => <CourseCardSkeleton key={i} />)}
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <BookOpen className="h-12 w-12 text-destructive/40 mb-4" />
-          <h3 className="font-serif text-lg font-medium mb-1">Something went wrong</h3>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <button
-            onClick={() => setReloadKey((k) => k + 1)}
-            className="text-sm text-primary hover:underline"
-          >
-            Try again
-          </button>
-        </div>
+        <ErrorState
+          icon={<BookOpen />}
+          description={error}
+          action={
+            <Button variant="ghost" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
+              Try again
+            </Button>
+          }
+        />
       ) : courses.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <BookOpen className="h-12 w-12 text-muted-foreground/30 mb-4" />
-          <h3 className="font-serif text-lg font-medium mb-1">
-            {query ? "No courses found" : "No courses yet"}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {query
-              ? "Try a different search term"
-              : "Check back soon for new courses"}
-          </p>
-        </div>
+        <EmptyState
+          icon={<BookOpen />}
+          title={query ? "No courses found" : "No courses yet"}
+          description={query ? "Try a different search term" : "Check back soon for new courses"}
+          className="border-none bg-transparent py-20"
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
           {courses.map((course) => (

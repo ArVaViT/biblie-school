@@ -16,6 +16,7 @@ import {
   HelpCircle, GraduationCap, FileText, LayoutGrid,
   Download,
 } from "lucide-react"
+import { ErrorState } from "@/components/patterns"
 
 const SORT_FIELDS = ["name", "quiz", "assignment", "participation", "final", "letter"] as const
 type SortField = (typeof SORT_FIELDS)[number]
@@ -347,19 +348,23 @@ export default function TeacherGradebook() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Award className="h-12 w-12 text-destructive/40 mb-4" />
-          <h3 className="text-lg font-medium mb-1">Something went wrong</h3>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <div className="flex gap-3">
-            <Button onClick={reload} size="sm" variant="outline">Try again</Button>
+        <ErrorState
+          icon={<Award />}
+          description={error}
+          action={
+            <Button onClick={reload} size="sm" variant="outline">
+              Try again
+            </Button>
+          }
+          secondaryAction={
             <Link to="/teacher">
               <Button size="sm" variant="ghost">
-                <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />Back to courses
+                <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+                Back to courses
               </Button>
             </Link>
-          </div>
-        </div>
+          }
+        />
       </div>
     )
   }

@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { isGradableChapterType } from "@/lib/chapterTypes"
 import ChapterTypeBadge from "@/components/course/ChapterTypeBadge"
+import { ErrorState } from "@/components/patterns"
 
 export default function ModuleView() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>()
@@ -82,14 +83,16 @@ export default function ModuleView() {
 
   if (error || !module) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <Book className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-        <h2 className="text-lg font-medium mb-2">
-          {error ?? "Module not found"}
-        </h2>
-        <Link to={courseId ? `/courses/${courseId}` : "/"}>
-          <Button variant="outline" size="sm">Back to Course</Button>
-        </Link>
+      <div className="container mx-auto px-4">
+        <ErrorState
+          icon={<Book />}
+          title={error ?? "Module not found"}
+          action={
+            <Link to={courseId ? `/courses/${courseId}` : "/"}>
+              <Button variant="outline" size="sm">Back to Course</Button>
+            </Link>
+          }
+        />
       </div>
     )
   }

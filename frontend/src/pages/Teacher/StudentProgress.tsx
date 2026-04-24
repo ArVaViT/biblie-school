@@ -33,6 +33,7 @@ import {
   RotateCcw,
   Loader2,
 } from "lucide-react"
+import { ErrorState } from "@/components/patterns"
 
 type ProgressData = StudentProgressResponse
 type StudentData = StudentProgressEntry
@@ -187,21 +188,25 @@ export default function StudentProgress() {
 
   if (!data) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl text-center">
-        <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-        <h2 className="text-lg font-medium mb-2">Failed to load student progress</h2>
-        <p className="text-sm text-muted-foreground mb-4">The server may be temporarily unavailable. Please try again.</p>
-        <div className="flex justify-center gap-2">
-          <Button variant="outline" onClick={() => load()}>
-            Retry
-          </Button>
-          <Link to="/teacher">
-            <Button variant="ghost">
-              <ArrowLeft className="h-4 w-4 mr-1.5" />
-              Back to courses
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <ErrorState
+          icon={<Users />}
+          title="Failed to load student progress"
+          description="The server may be temporarily unavailable. Please try again."
+          action={
+            <Button variant="outline" onClick={() => load()}>
+              Retry
             </Button>
-          </Link>
-        </div>
+          }
+          secondaryAction={
+            <Link to="/teacher">
+              <Button variant="ghost">
+                <ArrowLeft className="h-4 w-4 mr-1.5" />
+                Back to courses
+              </Button>
+            </Link>
+          }
+        />
       </div>
     )
   }
