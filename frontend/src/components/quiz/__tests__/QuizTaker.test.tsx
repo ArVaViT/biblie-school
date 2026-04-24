@@ -16,7 +16,7 @@ vi.mock("@/services/courses", () => ({
 }))
 
 const toast = vi.fn()
-vi.mock("@/hooks/use-toast", () => ({
+vi.mock("@/lib/toast", () => ({
   toast: (...a: unknown[]) => toast(...a),
 }))
 

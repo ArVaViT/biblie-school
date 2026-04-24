@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase"
 import type { UserRole, Certificate, AuditLogEntry } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import {
   Users, BookOpen, GraduationCap, Shield, Search, Clock,
   CheckCircle, XCircle, Award, FileText, ChevronLeft, ChevronRight,

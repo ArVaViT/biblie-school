@@ -14,7 +14,7 @@ import {
   Loader2,
   BookOpen,
 } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import PageSpinner from "@/components/ui/PageSpinner"
 
 interface QuizTakerProps {

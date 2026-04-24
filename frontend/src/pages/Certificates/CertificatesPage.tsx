@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import type { Certificate, Enrollment } from "@/types"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import { Award, ArrowLeft, ScrollText } from "lucide-react"
 import PageSpinner from "@/components/ui/PageSpinner"
 

@@ -16,7 +16,7 @@ import {
 import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
 import type { Course, Announcement, Cohort, CourseEvent } from "@/types"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/ui/alert-dialog"
 import {
   Calendar, Megaphone, Plus, Trash2,

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
 import type { GradingConfig, GradeSummaryResponse, StudentGrade } from "@/types"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import {
   ArrowLeft, Save, Users, Award, MessageSquare,
   ChevronDown, ChevronRight, TrendingUp, Settings2,

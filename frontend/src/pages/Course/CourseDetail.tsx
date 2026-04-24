@@ -6,7 +6,7 @@ import { coursesService } from "@/services/courses"
 import { storageService } from "@/services/storage"
 import { useAuth } from "@/context/useAuth"
 import type { Course, Enrollment, Certificate, Cohort, CalendarEvent } from "@/types"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import {
   BookOpen, ArrowRight, CheckCircle, Users, Layers, ArrowLeft,
   CalendarDays, Clock, Lock, Download, Paperclip, Star, AlertTriangle,

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
 import { useAuth } from "@/context/useAuth"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import type { Certificate } from "@/types"
 import { Award, Copy, CheckCircle, Sparkles, Clock, XCircle, RefreshCw, Star } from "lucide-react"
 

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { coursesService } from "@/services/courses"
 import { getErrorDetail } from "@/lib/errorDetail"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import type { Assignment, AssignmentSubmission } from "@/types"
 import PageSpinner from "@/components/ui/PageSpinner"
 import {

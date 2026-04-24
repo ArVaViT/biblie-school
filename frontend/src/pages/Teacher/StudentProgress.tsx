@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { coursesService } from "@/services/courses"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/toast"
 import { getErrorDetail } from "@/lib/errorDetail"
 import { isGradableChapterType } from "@/lib/chapterTypes"
 import type {
