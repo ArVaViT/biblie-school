@@ -1,65 +1,63 @@
-import { useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { FileText, Loader2, Plus } from "lucide-react"
+import { useConfirm } from "@/components/ui/alert-dialog"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/lib/toast"
-import type { Assignment, AssignmentSubmission } from "@/types"
+import type { Assignment } from "@/types"
 import {
-  FileText,
-  Plus,
-  Trash2,
-  Save,
-  Loader2,
-  ChevronDown,
-  ChevronRight,
-  User,
-  MessageSquare,
-  Star,
-  Pencil,
-  X,
-} from "lucide-react"
-import { useConfirm } from "@/components/ui/alert-dialog"
+  AssignmentForm,
+  AssignmentItem,
+  EMPTY_ASSIGNMENT_FORM,
+  formStateToPayload,
+  type AssignmentFormState,
+} from "./editor"
 
 interface AssignmentEditorProps {
   chapterId: string
   onAssignmentCreated?: (assignmentId: string) => void
 }
 
-export default function AssignmentEditor({ chapterId, onAssignmentCreated }: AssignmentEditorProps) {
+/**
+ * Teacher-facing list of assignments for a chapter. Thin orchestrator:
+ * owns the list + "create" form state, and delegates each row (with its
+ * edit form and submissions grader) to `AssignmentItem`.
+ */
+export default function AssignmentEditor({
+  chapterId,
+  onAssignmentCreated,
+}: AssignmentEditorProps) {
   const confirm = useConfirm()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
 
-  const [newTitle, setNewTitle] = useState("")
-  const [newDesc, setNewDesc] = useState("")
-  const [newMaxScore, setNewMaxScore] = useState(100)
-  const [newDueDate, setNewDueDate] = useState("")
+  const [form, setForm] = useState<AssignmentFormState>(EMPTY_ASSIGNMENT_FORM)
   const [creating, setCreating] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    const load = async () => {
-      setLoading(true)
-      setFetchError(false)
-      try {
-        const data = await coursesService.getChapterAssignments(chapterId)
+    setLoading(true)
+    setFetchError(false)
+    coursesService
+      .getChapterAssignments(chapterId)
+      .then((data) => {
         if (!cancelled) setAssignments(data)
-      } catch {
+      })
+      .catch(() => {
         if (!cancelled) setFetchError(true)
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false)
-      }
+      })
+    return () => {
+      cancelled = true
     }
-    load()
-    return () => { cancelled = true }
   }, [chapterId])
 
   const handleCreate = async () => {
-    if (!newTitle.trim()) {
+    if (!form.title.trim()) {
       toast({ title: "Assignment title is required", variant: "destructive" })
       return
     }
@@ -67,17 +65,11 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
     try {
       const a = await coursesService.createAssignment({
         chapter_id: chapterId,
-        title: newTitle.trim(),
-        description: newDesc.trim() || null,
-        max_score: newMaxScore,
-        due_date: newDueDate || null,
+        ...formStateToPayload(form),
       })
       setAssignments((prev) => [...prev, a])
       onAssignmentCreated?.(a.id)
-      setNewTitle("")
-      setNewDesc("")
-      setNewMaxScore(100)
-      setNewDueDate("")
+      setForm(EMPTY_ASSIGNMENT_FORM)
       setShowCreate(false)
       toast({ title: "Assignment created", variant: "success" })
     } catch {
@@ -113,7 +105,11 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
   }
 
   if (fetchError) {
-    return <p className="text-sm text-destructive py-4 text-center">Failed to load assignments. Please try refreshing.</p>
+    return (
+      <p className="text-sm text-destructive py-4 text-center">
+        Failed to load assignments. Please try refreshing.
+      </p>
+    )
   }
 
   return (
@@ -127,7 +123,7 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
           variant="outline"
           size="sm"
           className="h-7 text-xs"
-          onClick={() => setShowCreate(!showCreate)}
+          onClick={() => setShowCreate((v) => !v)}
         >
           <Plus className="h-3 w-3 mr-1" />
           New Assignment
@@ -135,62 +131,14 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
       </div>
 
       {showCreate && (
-        <Card className="bg-muted/30">
-          <CardContent className="p-4 space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Title</Label>
-              <Input
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="e.g. Chapter Reflection Essay"
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Description (optional)</Label>
-              <textarea
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                placeholder="Assignment instructions..."
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
-              />
-            </div>
-            <div className="flex gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Max Score</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={newMaxScore}
-                  onChange={(e) => setNewMaxScore(Number(e.target.value) || 100)}
-                  className="h-8 text-sm w-24"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Due Date (optional)</Label>
-                <Input
-                  type="date"
-                  value={newDueDate}
-                  onChange={(e) => setNewDueDate(e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleCreate} disabled={creating}>
-                {creating ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                ) : (
-                  <Save className="h-3.5 w-3.5 mr-1.5" />
-                )}
-                {creating ? "Creating..." : "Create Assignment"}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setShowCreate(false)}>
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <AssignmentForm
+          value={form}
+          onChange={setForm}
+          onSubmit={handleCreate}
+          onCancel={() => setShowCreate(false)}
+          submitting={creating}
+          mode="create"
+        />
       )}
 
       {assignments.map((a) => (
@@ -198,7 +146,9 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
           key={a.id}
           assignment={a}
           onDelete={handleDelete}
-          onUpdate={(updated) => setAssignments((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))}
+          onUpdate={(updated) =>
+            setAssignments((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
+          }
         />
       ))}
 
@@ -208,328 +158,5 @@ export default function AssignmentEditor({ chapterId, onAssignmentCreated }: Ass
         </div>
       )}
     </div>
-  )
-}
-
-function AssignmentItem({
-  assignment,
-  onDelete,
-  onUpdate,
-}: {
-  assignment: Assignment
-  onDelete: (id: string) => void
-  onUpdate: (updated: Assignment) => void
-}) {
-  const [expanded, setExpanded] = useState(false)
-  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([])
-  const [loadingSubs, setLoadingSubs] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [editTitle, setEditTitle] = useState(assignment.title)
-  const [editDesc, setEditDesc] = useState(assignment.description ?? "")
-  const [editMaxScore, setEditMaxScore] = useState(assignment.max_score)
-  const [editDueDate, setEditDueDate] = useState(assignment.due_date?.slice(0, 10) ?? "")
-  const [updating, setUpdating] = useState(false)
-
-  const toggleExpand = async () => {
-    if (!expanded) {
-      setLoadingSubs(true)
-      try {
-        const subs = await coursesService.getSubmissions(assignment.id)
-        setSubmissions(subs)
-      } catch {
-        setSubmissions([])
-      } finally {
-        setLoadingSubs(false)
-      }
-    }
-    setExpanded(!expanded)
-  }
-
-  const startEdit = () => {
-    setEditTitle(assignment.title)
-    setEditDesc(assignment.description ?? "")
-    setEditMaxScore(assignment.max_score)
-    setEditDueDate(assignment.due_date?.slice(0, 10) ?? "")
-    setEditing(true)
-  }
-
-  const handleUpdate = async () => {
-    if (!editTitle.trim()) {
-      toast({ title: "Assignment title is required", variant: "destructive" })
-      return
-    }
-    setUpdating(true)
-    try {
-      const updated = await coursesService.updateAssignment(assignment.id, {
-        title: editTitle.trim(),
-        description: editDesc.trim() || null,
-        max_score: editMaxScore,
-        due_date: editDueDate || null,
-      })
-      onUpdate(updated)
-      setEditing(false)
-      toast({ title: "Assignment updated", variant: "success" })
-    } catch {
-      toast({ title: "Failed to update assignment", variant: "destructive" })
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  return (
-    <Card>
-      <div role="button" tabIndex={0} className="flex items-center gap-2 p-3 cursor-pointer select-none" onClick={toggleExpand} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleExpand() } }}>
-        {expanded ? (
-          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-        )}
-        <div className="flex-1 min-w-0">
-          <span className="text-sm font-medium">{assignment.title}</span>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span>Max: {assignment.max_score} pts</span>
-            {assignment.due_date && (
-              <span>Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
-            )}
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0 shrink-0"
-          onClick={(e) => {
-            e.stopPropagation()
-            startEdit()
-          }}
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive h-7 w-7 p-0 shrink-0"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete(assignment.id)
-          }}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-
-      {editing && (
-        <div className="border-t px-4 py-3">
-          <Card className="bg-muted/30">
-            <CardContent className="p-4 space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Title</Label>
-                <Input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Description (optional)</Label>
-                <textarea
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  placeholder="Assignment instructions..."
-                  className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
-                />
-              </div>
-              <div className="flex gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Max Score</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={editMaxScore}
-                    onChange={(e) => setEditMaxScore(Number(e.target.value) || 100)}
-                    className="h-8 text-sm w-24"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Due Date (optional)</Label>
-                  <Input
-                    type="date"
-                    value={editDueDate}
-                    onChange={(e) => setEditDueDate(e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={handleUpdate} disabled={updating}>
-                  {updating ? (
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  ) : (
-                    <Save className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  {updating ? "Updating..." : "Update Assignment"}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                  <X className="h-3.5 w-3.5 mr-1.5" />
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {expanded && (
-        <div className="border-t px-4 pb-4">
-          {assignment.description && (
-            <p className="text-xs text-muted-foreground py-2">{assignment.description}</p>
-          )}
-
-          {loadingSubs ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          ) : submissions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No submissions yet.</p>
-          ) : (
-            <div className="space-y-3 mt-3">
-              <h4 className="text-xs font-semibold text-muted-foreground">
-                Submissions ({submissions.length})
-              </h4>
-              {submissions.map((sub) => (
-                <SubmissionGrader
-                  key={sub.id}
-                  submission={sub}
-                  maxScore={assignment.max_score}
-                  onUpdate={(updated) => {
-                    setSubmissions((prev) =>
-                      prev.map((s) => (s.id === updated.id ? updated : s)),
-                    )
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </Card>
-  )
-}
-
-function SubmissionGrader({
-  submission,
-  maxScore,
-  onUpdate,
-}: {
-  submission: AssignmentSubmission
-  maxScore: number
-  onUpdate: (updated: AssignmentSubmission) => void
-}) {
-  const [grade, setGrade] = useState(submission.grade ?? 0)
-  const [feedback, setFeedback] = useState(submission.feedback ?? "")
-  const [status, setStatus] = useState(submission.status)
-  const [grading, setGrading] = useState(false)
-
-  const handleGrade = async () => {
-    setGrading(true)
-    try {
-      const updated = await coursesService.gradeSubmission(submission.id, {
-        grade,
-        feedback: feedback.trim() || undefined,
-        status,
-      })
-      onUpdate(updated)
-      toast({ title: "Submission graded", variant: "success" })
-    } catch {
-      toast({ title: "Failed to grade", variant: "destructive" })
-    } finally {
-      setGrading(false)
-    }
-  }
-
-  const statusColors: Record<string, string> = {
-    submitted: "bg-info/15 text-info",
-    graded: "bg-success/15 text-success",
-    returned: "bg-warning/15 text-warning",
-  }
-
-  return (
-    <Card className="bg-muted/20">
-      <CardContent className="p-3 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <User className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
-              {submission.student_id.slice(0, 8)}...
-            </span>
-          </div>
-          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusColors[submission.status]}`}>
-            {submission.status}
-          </span>
-        </div>
-
-        {submission.content && (
-          <div className="rounded border bg-background p-2 text-sm whitespace-pre-wrap text-wrap-safe">
-            {submission.content}
-          </div>
-        )}
-
-        {submission.file_url && (
-          <a
-            href={submission.file_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-info hover:underline"
-          >
-            <FileText className="h-3 w-3" />
-            View attached file
-          </a>
-        )}
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <Star className="h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              type="number"
-              min={0}
-              max={maxScore}
-              value={grade}
-              onChange={(e) => setGrade(Number(e.target.value))}
-              className="h-7 text-xs w-20"
-            />
-            <span className="text-xs text-muted-foreground">/ {maxScore}</span>
-          </div>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as AssignmentSubmission["status"])}
-            className="h-7 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="graded">Grade</option>
-            <option value="returned">Return for revision</option>
-          </select>
-        </div>
-
-        <div className="space-y-1">
-          <Label className="text-xs flex items-center gap-1">
-            <MessageSquare className="h-3 w-3" />
-            Feedback
-          </Label>
-          <textarea
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            placeholder="Optional feedback for the student..."
-            className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
-          />
-        </div>
-
-        <Button size="sm" className="h-7 text-xs" onClick={handleGrade} disabled={grading}>
-          {grading ? (
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-          ) : (
-            <Save className="h-3 w-3 mr-1" />
-          )}
-          {grading ? "Saving..." : "Save Grade"}
-        </Button>
-      </CardContent>
-    </Card>
   )
 }
