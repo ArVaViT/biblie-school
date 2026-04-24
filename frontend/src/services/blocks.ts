@@ -1,0 +1,54 @@
+import api from "./api"
+import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
+import type { ChapterBlock, BlockType } from "@/types"
+
+export type ChapterBlockCreateData = {
+  block_type: BlockType
+  order_index?: number
+  content?: string | null
+  quiz_id?: string | null
+  assignment_id?: string | null
+  file_bucket?: string | null
+  file_path?: string | null
+  file_name?: string | null
+}
+
+export type ChapterBlockUpdateData = Partial<Omit<ChapterBlockCreateData, "block_type">> & {
+  block_type?: BlockType
+}
+
+export const blocksService = {
+  async getChapterBlocks(chapterId: string): Promise<ChapterBlock[]> {
+    const key = `blocks:chapter:${chapterId}`
+    const cached = cacheGet<ChapterBlock[]>(key)
+    if (cached) return cached
+    const response = await api.get<ChapterBlock[]>(`/blocks/chapter/${chapterId}`)
+    cacheSet(key, response.data, 2 * 60 * 1000)
+    return response.data
+  },
+
+  async createBlock(chapterId: string, data: ChapterBlockCreateData): Promise<ChapterBlock> {
+    const response = await api.post<ChapterBlock>(`/blocks/chapter/${chapterId}`, data)
+    cacheInvalidate(`blocks:chapter:${chapterId}`)
+    return response.data
+  },
+
+  async updateBlock(blockId: string, data: ChapterBlockUpdateData): Promise<ChapterBlock> {
+    const response = await api.put<ChapterBlock>(`/blocks/${blockId}`, data)
+    cacheInvalidatePrefix("blocks:chapter:")
+    return response.data
+  },
+
+  async deleteBlock(blockId: string): Promise<void> {
+    await api.delete(`/blocks/${blockId}`)
+    cacheInvalidatePrefix("blocks:chapter:")
+  },
+
+  async reorderBlocks(
+    chapterId: string,
+    blocks: { id: string; order_index: number }[],
+  ): Promise<void> {
+    await api.put(`/blocks/chapter/${chapterId}/reorder`, blocks)
+    cacheInvalidate(`blocks:chapter:${chapterId}`)
+  },
+}
