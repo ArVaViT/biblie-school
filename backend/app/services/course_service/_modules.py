@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import func
 
-from app.models.course import Module
+from app.models.course import Chapter, Module
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -57,6 +57,11 @@ def update_module(db: Session, module: Module, data: ModuleUpdate) -> Module:
 def delete_module(db: Session, module: Module) -> None:
     now = datetime.now(UTC)
     module.deleted_at = now
-    for chapter in module.chapters:
-        chapter.deleted_at = now
+    # Bulk UPDATE so the cascade is one round trip regardless of chapter count
+    # and works whether ``module.chapters`` was eager-loaded with a deleted_at
+    # filter or not.
+    db.query(Chapter).filter(
+        Chapter.module_id == module.id,
+        Chapter.deleted_at.is_(None),
+    ).update({Chapter.deleted_at: now}, synchronize_session=False)
     db.commit()
