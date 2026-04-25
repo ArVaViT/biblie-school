@@ -12,7 +12,7 @@ Adding a new language is a three-step change:
 
 from __future__ import annotations
 
-from typing import Final, Literal, cast
+from typing import Final, Literal
 
 LocaleCode = Literal["ru", "en"]
 
@@ -30,9 +30,10 @@ def normalize_locale(value: str | None, *, fallback: LocaleCode = DEFAULT_LOCALE
     if not value:
         return fallback
     head = value.replace("_", "-").split("-", 1)[0].strip().lower()
-    if head in LOCALE_CODES:
-        # ``head`` is a runtime ``str`` that we just verified is a valid
-        # ``LocaleCode``; some mypy versions narrow this automatically and
-        # some don't, so use an explicit cast to be portable.
-        return cast("LocaleCode", head)
+    # Compare element-wise so the returned value is the typed ``LocaleCode``
+    # element from the tuple itself — no cast or ``type: ignore`` needed,
+    # and mypy versions that narrow ``in`` checks won't flag a redundancy.
+    for code in LOCALE_CODES:
+        if head == code:
+            return code
     return fallback
