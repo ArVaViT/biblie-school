@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react"
 import { BrowserRouter, Route, Navigate, useLocation } from "react-router-dom"
-import { useTranslation } from "react-i18next"
+import { Trans, useTranslation } from "react-i18next"
 import { Routes } from "@datadog/browser-rum-react/react-router-v6"
 import { AuthProvider } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
@@ -62,12 +62,17 @@ function PendingTeacherBanner() {
       <div className="container mx-auto px-4 py-3 text-center">
         <p className="text-sm text-foreground">
           {t("pendingTeacher.banner")}{" "}
-          <a
-            href="mailto:support@bibleschool.com"
-            className="underline font-medium hover:no-underline"
-          >
-            {t("pendingTeacher.support")}
-          </a>
+          <Trans
+            i18nKey="pendingTeacher.contactSupport"
+            components={{
+              supportLink: (
+                <a
+                  href="mailto:support@bibleschool.com"
+                  className="underline font-medium hover:no-underline"
+                />
+              ),
+            }}
+          />
         </p>
       </div>
     </div>

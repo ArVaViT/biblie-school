@@ -92,7 +92,6 @@
   },
   "pendingTeacher": {
     "banner": "Your teacher account is pending administrator approval. You can browse courses as a student in the meantime.",
-    "support": "support",
-    "contactSupport": "Contact {{support}} if you have questions."
+    "contactSupport": "Contact <supportLink>support</supportLink> if you have questions."
   }
 }

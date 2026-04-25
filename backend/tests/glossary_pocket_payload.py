@@ -10,8 +10,10 @@ is no separate user-facing seed script in the repo.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 # Tests only: fake same-origin path; real runs use storage upload (see dev_run_*, ``set_cover``).
 TEST_SEED_COVER_PATH = "/img/course-assets/00000000-0000-0000-0000-000000000000/cover.png"
