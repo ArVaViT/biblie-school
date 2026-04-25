@@ -20,6 +20,7 @@ from app.models.review import CourseReview
 from app.models.student_grade import StudentGrade
 from app.models.user import User
 from app.schemas.course import EnrollmentSummaryResponse
+from app.schemas.user import PreferredLocaleUpdate, UserResponse
 from app.services.audit_service import log_action
 from app.services.course_service import get_user_courses
 
@@ -51,6 +52,41 @@ def get_my_courses(
 ) -> list[Enrollment]:
     # Dashboard view: slim payload (chapter body content stripped).
     return get_user_courses(db, current_user.id, skip=skip, limit=limit)
+
+
+@router.patch("/me/preferences", response_model=UserResponse)
+def update_my_preferences(
+    body: PreferredLocaleUpdate,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    """Persist the user's preferred locale.
+
+    The frontend hits this whenever the language switcher changes so the
+    choice survives across devices. We audit-log the change because role-
+    elevated users (teachers/admins) flipping languages can affect what they
+    see in the editor and we want a paper trail for support tickets.
+    """
+    if current_user.preferred_locale == body.preferred_locale:
+        return current_user
+
+    previous = current_user.preferred_locale
+    current_user.preferred_locale = body.preferred_locale
+    db.commit()
+    db.refresh(current_user)
+
+    log_action(
+        db,
+        current_user.id,
+        "update",
+        "user_preferences",
+        str(current_user.id),
+        details={"preferred_locale": {"from": previous, "to": body.preferred_locale}},
+        request=request,
+    )
+
+    return current_user
 
 
 def _purge_user(db: Session, uid: UUID) -> None:

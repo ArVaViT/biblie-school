@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary'
 import { initDatadogRum } from './lib/datadog'
+// Side-effect import: configures i18next before any component mounts so
+// the very first render already has translations available.
+import './i18n/config'
 import '@fontsource-variable/inter/index.css'
 import '@fontsource-variable/fraunces/index.css'
 import './index.css'
@@ -24,4 +27,3 @@ ReactDOM.createRoot(rootEl).render(
     </ErrorBoundary>
   </React.StrictMode>,
 )
-

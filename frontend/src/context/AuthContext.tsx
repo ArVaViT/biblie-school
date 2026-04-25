@@ -35,9 +35,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             full_name: data.full_name,
             avatar_url: data.avatar_url ?? null,
             role: data.role,
+            preferred_locale: data.preferred_locale === "en" ? "en" : "ru",
             created_at: data.created_at,
             updated_at: data.updated_at,
-          }
+          } as const
           setUser(nextUser)
           // Attach the authenticated user to the current RUM session so
           // every downstream view/action/error/replay is tagged with

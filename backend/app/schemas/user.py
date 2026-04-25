@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.schemas.locale import DEFAULT_LOCALE, LocaleCode
+
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -14,5 +16,17 @@ class UserResponse(UserBase):
 
     id: UUID
     role: str
+    preferred_locale: LocaleCode = DEFAULT_LOCALE
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    avatar_url: str | None = None
+
+
+class PreferredLocaleUpdate(BaseModel):
+    """Body for ``PATCH /users/me/preferences``.
+
+    Kept as a dedicated schema so we can grow it (timezone, theme, …) without
+    breaking the existing endpoint contract.
+    """
+
+    preferred_locale: LocaleCode

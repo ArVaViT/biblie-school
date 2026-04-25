@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher"
 import { useAuth } from "@/context/useAuth"
 import { useTheme } from "@/context/useTheme"
 import { usersService } from "@/services/users"
@@ -14,11 +16,12 @@ import { profileSchema } from "@/lib/validations/course"
 import { toProxyImage } from "@/lib/images"
 import type { User } from "@/types"
 import {
-  User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera,
+  User as UserIcon, Mail, Shield, Calendar, Save, Check, Camera, Globe,
   Loader2, Award, BookOpen, ArrowRight, LogOut, Moon, Sun,
 } from "lucide-react"
 
 function NameForm({ user, onSaved }: { user: User; onSaved: () => Promise<void> }) {
+  const { t } = useTranslation()
   const [name, setName] = useState(user.full_name ?? "")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -42,7 +45,7 @@ function NameForm({ user, onSaved }: { user: User; onSaved: () => Promise<void> 
       setSaved(true)
       savedTimerRef.current = setTimeout(() => setSaved(false), 2000)
     } catch {
-      setError("Failed to update profile")
+      setError(t("profile.updateFailed"))
     } finally {
       setSaving(false)
     }
@@ -50,7 +53,7 @@ function NameForm({ user, onSaved }: { user: User; onSaved: () => Promise<void> 
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="name">Full Name</Label>
+      <Label htmlFor="name">{t("profile.fullName")}</Label>
       <div className="flex gap-2">
         <Input
           id="name"
@@ -65,12 +68,12 @@ function NameForm({ user, onSaved }: { user: User; onSaved: () => Promise<void> 
           {saved ? (
             <>
               <Check className="h-4 w-4 mr-1.5" />
-              Saved
+              {t("common.saved")}
             </>
           ) : (
             <>
               <Save className="h-4 w-4 mr-1.5" />
-              {saving ? "Saving..." : "Save"}
+              {saving ? t("common.saving") : t("common.save")}
             </>
           )}
         </Button>
@@ -84,6 +87,7 @@ export default function ProfilePage() {
   const { user, refreshUser, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [error, setError] = useState("")
   const [uploading, setUploading] = useState(false)
   const [certificateCount, setCertificateCount] = useState(0)
@@ -113,7 +117,7 @@ export default function ProfilePage() {
     if (!file || !user) return
 
     if (file.size > 2 * 1024 * 1024) {
-      setError("Image must be under 2 MB")
+      setError(t("profile.imageTooLarge"))
       return
     }
 
@@ -124,7 +128,7 @@ export default function ProfilePage() {
       await usersService.updateProfile({ avatar_url: url })
       await refreshUser()
     } catch {
-      setError("Failed to upload avatar")
+      setError(t("profile.uploadFailed"))
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ""
@@ -148,7 +152,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <h1 className="text-3xl font-bold tracking-tight mb-8">Profile</h1>
+      <h1 className="text-3xl font-bold tracking-tight mb-8">{t("profile.title")}</h1>
 
       <div className="space-y-6">
         <Card>
@@ -171,7 +175,7 @@ export default function ProfilePage() {
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  aria-label="Change avatar"
+                  aria-label={t("profile.changeAvatar")}
                   className="absolute -bottom-0.5 -right-0.5 h-6 w-6 rounded-full bg-primary text-primary-foreground shadow-sm flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
                 >
                   {uploading ? (
@@ -189,7 +193,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <CardTitle>{user.full_name || "User"}</CardTitle>
+                <CardTitle>{user.full_name || t("header.profile")}</CardTitle>
                 <CardDescription className="capitalize">{user.role}</CardDescription>
               </div>
             </div>
@@ -202,8 +206,8 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Learning Progress</CardTitle>
-            <CardDescription>Your achievements at a glance</CardDescription>
+            <CardTitle className="text-base">{t("profile.learningProgress")}</CardTitle>
+            <CardDescription>{t("profile.learningProgressDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
@@ -213,7 +217,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold leading-none">{completedCount}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Courses Completed</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{t("profile.coursesCompleted")}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-md border border-border p-3">
@@ -222,13 +226,13 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold leading-none">{certificateCount}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Certificates Earned</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{t("profile.certificatesEarned")}</p>
                 </div>
               </div>
             </div>
             {certificateCount > 0 && (
               <Link to="/certificates" className="mt-4 inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-                View all certificates
+                {t("profile.viewAllCertificates")}
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             )}
@@ -237,21 +241,21 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Account Details</CardTitle>
+            <CardTitle className="text-base">{t("profile.accountDetails")}</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="space-y-4">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
-                  <dt className="text-xs text-muted-foreground">Email</dt>
+                  <dt className="text-xs text-muted-foreground">{t("auth.email")}</dt>
                   <dd className="text-sm font-medium">{user.email}</dd>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
-                  <dt className="text-xs text-muted-foreground">Role</dt>
+                  <dt className="text-xs text-muted-foreground">{t("profile.role")}</dt>
                   <dd className="text-sm font-medium capitalize">{user.role}</dd>
                 </div>
               </div>
@@ -259,9 +263,9 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div>
-                    <dt className="text-xs text-muted-foreground">Member since</dt>
+                    <dt className="text-xs text-muted-foreground">{t("profile.memberSince")}</dt>
                     <dd className="text-sm font-medium">
-                      {new Date(user.created_at).toLocaleDateString("en-US", {
+                      {new Date(user.created_at).toLocaleDateString(user.preferred_locale === "en" ? "en-US" : "ru-RU", {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
@@ -276,28 +280,40 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Preferences</CardTitle>
+            <CardTitle className="text-base">{t("profile.preferences")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {theme === "dark" ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
                 <div>
-                  <p className="text-sm font-medium">Theme</p>
-                  <p className="text-xs text-muted-foreground">{theme === "dark" ? "Dark mode" : "Light mode"}</p>
+                  <p className="text-sm font-medium">{t("profile.theme")}</p>
+                  <p className="text-xs text-muted-foreground">{theme === "dark" ? t("profile.themeDark") : t("profile.themeLight")}</p>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={toggleTheme}>
                 {theme === "dark" ? <Sun className="h-3.5 w-3.5 mr-1.5" /> : <Moon className="h-3.5 w-3.5 mr-1.5" />}
-                {theme === "dark" ? "Light" : "Dark"}
+                {theme === "dark" ? t("profile.switchToLight") : t("profile.switchToDark")}
               </Button>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">{t("language.label")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {user.preferred_locale === "en" ? t("language.english") : t("language.russian")}
+                  </p>
+                </div>
+              </div>
+              <LanguageSwitcher />
             </div>
           </CardContent>
         </Card>
 
         <Button variant="destructive" className="w-full" onClick={handleLogout}>
           <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
+          {t("common.signOut")}
         </Button>
       </div>
     </div>

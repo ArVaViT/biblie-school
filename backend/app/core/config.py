@@ -28,6 +28,15 @@ class Settings(BaseSettings):
         r"|^http://localhost:\d+$"
     )
 
+    # Server-only translation-pipeline secrets. Never alias under ``VITE_*`` —
+    # the API key would leak into the public bundle. The pipeline is opt-in:
+    # when the key is absent the translation service degrades to a no-op so
+    # dev environments without billing can still run the rest of the app.
+    GEMINI_API_KEY: str | None = Field(default=None, description="Google AI Studio API key (server-only)")
+    GEMINI_MODEL: str = Field(default="gemini-flash-latest", description="Gemini model id used for translations")
+    GEMINI_TIMEOUT_SECONDS: float = Field(default=30.0, description="Per-request timeout for Gemini calls")
+    GEMINI_MAX_OUTPUT_TOKENS: int = Field(default=4096, description="Cap on generation length")
+
     @model_validator(mode="after")
     def load_alternative_env_vars(self):
         """Support alternative env var names from Vercel/Supabase integration."""

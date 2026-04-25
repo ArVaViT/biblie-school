@@ -28,6 +28,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(unique=True)
     full_name: Mapped[str | None] = mapped_column()
     role: Mapped[str] = mapped_column(default=UserRole.STUDENT.value)
+    # Per-user UI/content language. Drives both the i18n bundle on the
+    # frontend and which translated copy of course content gets served.
+    # The CHECK constraint in supabase/migrations/...add_profile_preferred_locale
+    # restricts this to ('ru', 'en'); keep the schema Literal in sync.
+    preferred_locale: Mapped[str] = mapped_column(default="ru")
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())
     avatar_url: Mapped[str | None] = mapped_column()

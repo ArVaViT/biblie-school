@@ -5,6 +5,7 @@ from app.models.certificate import Certificate
 from app.models.chapter_block import ChapterBlock
 from app.models.chapter_progress import ChapterProgress
 from app.models.cohort import Cohort
+from app.models.content_translation import ContentTranslation
 from app.models.course import Chapter, Course, Module
 from app.models.course_event import CourseEvent
 from app.models.enrollment import Enrollment
@@ -32,6 +33,7 @@ __all__ = [
     "ChapterBlock",
     "ChapterProgress",
     "Cohort",
+    "ContentTranslation",
     "Course",
     "CourseEvent",
     "CoursePrerequisite",
