@@ -94,7 +94,7 @@ technical expertise that volunteer-run organizations simply don't have.
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/ArVaViT/biblie-school.git
+git clone https://github.com/<your-username>/biblie-school.git
 cd biblie-school
 
 # Frontend
