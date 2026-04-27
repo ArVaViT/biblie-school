@@ -1,9 +1,12 @@
 """Map stored ``content_translations`` onto course read models for the API.
 
-Wave 1 only materializes course ``title`` / ``description``; the canonical
-source text still lives on ``courses.*``. When the reader's display locale
-differs from ``courses.source_locale`` and a matching ``content_translations``
-row exists (``status='ok'``), we substitute those strings in JSON responses.
+The requested UI locale (``Accept-Language``) maps to a ``content_translations``
+row per ``(entity_id, field, locale)`` when the translation pipeline (or
+manual human edits) materialised one with ``status='ok'``. We **always prefer**
+that text for the **same** display locale, even if ``courses.source_locale`` is
+set to the same code but the source columns still contain a different
+language (legacy authoring drift). The canonical text still lives on
+``courses.*`` for owners/admins and as a fallback when no row exists.
 
 Authoring views (owner + admin) always see the source columns so editors are
 not surprised by machine translations when the UI is in another language.
@@ -70,9 +73,12 @@ def pick_localized_text(
     overlay: dict[tuple[str, str], str],
     display_locale: LocaleCode,
 ) -> str:
+    key = (course.id, field)
+    if key in overlay:
+        return overlay[key]
     if normalize_locale(course.source_locale) == display_locale:
         return base
-    return overlay.get((course.id, field), base)
+    return overlay.get(key, base)
 
 
 def _localize_optional_description(
@@ -81,11 +87,14 @@ def _localize_optional_description(
     overlay: dict[tuple[str, str], str],
     display_locale: LocaleCode,
 ) -> str | None:
+    dkey = (course.id, "description")
+    if dkey in overlay:
+        return overlay[dkey]
     if base is not None:
         return pick_localized_text(course, "description", base, overlay, display_locale)
     if normalize_locale(course.source_locale) == display_locale:
         return None
-    return overlay.get((course.id, "description"))
+    return overlay.get(dkey)
 
 
 def build_localized_course_summary(

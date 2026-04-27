@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.content_translation import ContentTranslation
+from app.models.course import Course
 from app.services.translation.orchestrator import OrchestratorReport
 from tests.conftest import TEACHER_ID
 
@@ -365,3 +366,64 @@ class TestCatalogLocalizedMetadata:
         )
         assert r.status_code == 200
         assert r.json()["title"] == "English catalog title"
+
+    def test_ru_ct_row_preferred_over_course_columns_when_source_locale_mismatch(
+        self,
+        client: TestClient,
+        db: Session,
+        anon_client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """``content_translations`` for the active UI locale should win over
+        course rows when both exist, so a Russian CT row is shown for RU UI
+        even if the course row is still in English and ``source_locale`` is ru
+        (legacy / mixed authoring)."""
+        monkeypatch.setattr(
+            "app.api.v1.courses.crud.translate_course_metadata",
+            lambda *args, **kwargs: OrchestratorReport(),
+        )
+        course = _create_course(
+            client,
+            title="Placeholder",
+            description="Placeholder",
+        )
+        cid = course["id"]
+        client.put(f"{PREFIX}/{cid}", json={"status": "published"})
+        row = db.get(Course, cid)
+        assert row is not None
+        row.title = "EN title in DB not matching RU"
+        row.description = "EN desc in DB"
+        db.add(
+            ContentTranslation(
+                entity_type="course",
+                entity_id=cid,
+                field="title",
+                locale="ru",
+                text="Правильный RU title",
+                source_hash="h1",
+                status="ok",
+                origin="mt",
+            )
+        )
+        db.add(
+            ContentTranslation(
+                entity_type="course",
+                entity_id=cid,
+                field="description",
+                locale="ru",
+                text="Правильный RU desc",
+                source_hash="h2",
+                status="ok",
+                origin="mt",
+            )
+        )
+        db.commit()
+
+        r = anon_client.get(
+            PREFIX,
+            headers={"Accept-Language": "ru"},
+        )
+        assert r.status_code == 200
+        c = next(c for c in r.json() if c["id"] == cid)
+        assert c["title"] == "Правильный RU title"
+        assert c["description"] == "Правильный RU desc"
