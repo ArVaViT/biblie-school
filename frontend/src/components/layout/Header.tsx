@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/useAuth"
 import { PenTool, ShieldCheck, User as UserIcon, Menu, X, CalendarDays, Award } from "lucide-react"
 import { toProxyImage } from "@/lib/images"
-import LanguageSwitcher from "./LanguageSwitcher"
 
 const NotificationBell = lazy(() => import("./NotificationBell"))
 
@@ -82,7 +81,6 @@ export default function Header() {
                   </Button>
                 </Link>
               )}
-              <LanguageSwitcher variant="compact" />
               <Suspense fallback={<div className="h-8 w-8" />}>
                 <NotificationBell />
               </Suspense>
@@ -110,7 +108,6 @@ export default function Header() {
             </>
           ) : (
             <>
-              <LanguageSwitcher variant="compact" />
               <Link to="/login">
                 <Button variant="ghost" size="sm" className="h-8 text-xs">
                   {t("common.signIn")}
@@ -193,9 +190,6 @@ export default function Header() {
                 >
                   {t("header.profileAndSettings")}
                 </Link>
-                <div className="px-3 pt-2">
-                  <LanguageSwitcher />
-                </div>
               </>
             ) : (
               <>
@@ -213,9 +207,6 @@ export default function Header() {
                 >
                   {t("common.register")}
                 </Link>
-                <div className="px-3 pt-2">
-                  <LanguageSwitcher />
-                </div>
               </>
             )}
           </nav>
