@@ -182,7 +182,12 @@ def student_client(db: Session, teacher: User, student: User) -> TestClient:
 
 @pytest.fixture()
 def anon_client(db: Session, teacher: User) -> TestClient:
-    """TestClient with NO auth override — exercises the real auth pipeline."""
+    """TestClient with ``get_optional_user`` forced to None.
+
+    Note: it overwrites the same ``app.dependency_overrides`` slot as
+    :func:`client`. If a test needs both, list ``anon_client`` *after* ``client``
+    when the anonymous behaviour must win for the final request.
+    """
 
     def _override_db():
         yield db
