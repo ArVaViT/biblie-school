@@ -1,7 +1,11 @@
 """Tests for the /api/v1/courses endpoints."""
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
+from app.models.content_translation import ContentTranslation
+from app.services.translation.orchestrator import OrchestratorReport
 from tests.conftest import TEACHER_ID
 
 PREFIX = "/api/v1/courses"
@@ -236,3 +240,128 @@ class TestCloneCourse:
         cloned_quiz = cloned_quiz_resp.json()
         assert cloned_quiz["questions"][0]["question_type"] == "essay"
         assert cloned_quiz["questions"][0]["min_words"] == 150
+
+
+# ---------------------------------------------------------------------------
+# Localized catalog (content_translations read path)
+# ---------------------------------------------------------------------------
+
+
+class TestCatalogLocalizedMetadata:
+    def _seed_en_translations(self, db: Session, course_id: str) -> None:
+        db.add(
+            ContentTranslation(
+                entity_type="course",
+                entity_id=course_id,
+                field="title",
+                locale="en",
+                text="English catalog title",
+                source_hash="testhash",
+                status="ok",
+                origin="mt",
+            )
+        )
+        db.add(
+            ContentTranslation(
+                entity_type="course",
+                entity_id=course_id,
+                field="description",
+                locale="en",
+                text="English catalog description",
+                source_hash="testhash2",
+                status="ok",
+                origin="mt",
+            )
+        )
+        db.commit()
+
+    def test_list_applies_translations_for_accept_language(
+        self,
+        client: TestClient,
+        db: Session,
+        anon_client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(
+            "app.api.v1.courses.crud.translate_course_metadata",
+            lambda *args, **kwargs: OrchestratorReport(),
+        )
+        course = _create_course(
+            client,
+            title="Заголовок RU",
+            description="Описание RU",
+        )
+        cid = course["id"]
+        client.put(
+            f"{PREFIX}/{cid}",
+            json={"status": "published"},
+        )
+        self._seed_en_translations(db, cid)
+
+        r_ru = anon_client.get(PREFIX, headers={"Accept-Language": "ru"})
+        assert r_ru.status_code == 200
+        row = next(c for c in r_ru.json() if c["id"] == cid)
+        assert row["title"] == "Заголовок RU"
+        assert row["description"] == "Описание RU"
+
+        r_en = anon_client.get(PREFIX, headers={"Accept-Language": "en"})
+        assert r_en.status_code == 200
+        row_en = next(c for c in r_en.json() if c["id"] == cid)
+        assert row_en["title"] == "English catalog title"
+        assert row_en["description"] == "English catalog description"
+
+    def test_get_detail_owner_sees_source_when_ui_is_en(
+        self,
+        client: TestClient,
+        db: Session,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        # Do not request ``anon_client`` in the same test: it shares
+        # ``app.dependency_overrides`` and whichever fixture runs last would
+        # clobber the other's ``get_optional_user`` override.
+        monkeypatch.setattr(
+            "app.api.v1.courses.crud.translate_course_metadata",
+            lambda *args, **kwargs: OrchestratorReport(),
+        )
+        course = _create_course(
+            client,
+            title="Заголовок RU",
+            description="Описание RU",
+        )
+        cid = course["id"]
+        client.put(f"{PREFIX}/{cid}", json={"status": "published"})
+        self._seed_en_translations(db, cid)
+
+        owner = client.get(
+            f"{PREFIX}/{cid}",
+            headers={"Accept-Language": "en"},
+        )
+        assert owner.status_code == 200
+        assert owner.json()["title"] == "Заголовок RU"
+
+    def test_get_detail_anon_sees_translated_metadata_with_accept_language(
+        self,
+        client: TestClient,
+        db: Session,
+        anon_client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(
+            "app.api.v1.courses.crud.translate_course_metadata",
+            lambda *args, **kwargs: OrchestratorReport(),
+        )
+        course = _create_course(
+            client,
+            title="Заголовок RU",
+            description="Описание RU",
+        )
+        cid = course["id"]
+        client.put(f"{PREFIX}/{cid}", json={"status": "published"})
+        self._seed_en_translations(db, cid)
+
+        r = anon_client.get(
+            f"{PREFIX}/{cid}",
+            headers={"Accept-Language": "en"},
+        )
+        assert r.status_code == 200
+        assert r.json()["title"] == "English catalog title"

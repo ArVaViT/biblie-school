@@ -36,6 +36,9 @@ htmlcov/
 # CI virtual environments
 .ci-venv*/
 
+# TypeScript incremental build
+*.tsbuildinfo
+
 # Node
 node_modules/
 npm-debug.log*

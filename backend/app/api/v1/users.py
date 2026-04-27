@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -19,10 +19,16 @@ from app.models.quiz import QuizAnswer, QuizAttempt
 from app.models.review import CourseReview
 from app.models.student_grade import StudentGrade
 from app.models.user import User
-from app.schemas.course import EnrollmentSummaryResponse
+from app.schemas.course import CourseSummary, EnrollmentSummaryResponse
+from app.schemas.locale import LocaleCode, normalize_locale
 from app.schemas.user import PreferredLocaleUpdate, UserResponse
 from app.services.audit_service import log_action
 from app.services.course_service import get_user_courses
+from app.services.translation.resolve_for_display import (
+    batch_fetch_course_translations,
+    build_localized_course_summary,
+    should_apply_course_translation_overlay,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +51,36 @@ def _parse_user_uuid(user_id: str) -> UUID:
 
 @router.get("/me/courses", response_model=list[EnrollmentSummaryResponse])
 def get_my_courses(
+    response: Response,
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[Enrollment]:
+) -> list[EnrollmentSummaryResponse]:
     # Dashboard view: slim payload (chapter body content stripped).
-    return get_user_courses(db, current_user.id, skip=skip, limit=limit)
+    response.headers["Vary"] = "Accept-Language"
+    display_locale: LocaleCode = normalize_locale(accept_language)
+    rows = get_user_courses(db, current_user.id, skip=skip, limit=limit)
+    if not rows:
+        return []
+    courses = [e.course for e in rows if e.course is not None]
+    if not courses:
+        return [EnrollmentSummaryResponse.model_validate(e, from_attributes=True) for e in rows]
+    overlay = batch_fetch_course_translations(db, course_ids=[c.id for c in courses], display_locale=display_locale)
+    out: list[EnrollmentSummaryResponse] = []
+    for e in rows:
+        if e.course is None:
+            out.append(EnrollmentSummaryResponse.model_validate(e, from_attributes=True))
+            continue
+        c = e.course
+        if should_apply_course_translation_overlay(course=c, current_user=current_user):
+            summary = build_localized_course_summary(c, overlay, display_locale)
+        else:
+            summary = CourseSummary.model_validate(c, from_attributes=True)
+        base = EnrollmentSummaryResponse.model_validate(e, from_attributes=True)
+        out.append(base.model_copy(update={"course": summary}))
+    return out
 
 
 @router.patch("/me/preferences", response_model=UserResponse)

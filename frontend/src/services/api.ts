@@ -1,5 +1,6 @@
 import axios, { isAxiosError } from "axios"
 import type { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios"
+import i18n, { isSupportedLocale } from "@/i18n/config"
 import { supabase } from "@/lib/supabase"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
@@ -33,6 +34,12 @@ supabase.auth.onAuthStateChange((_event, session) => {
   cachedToken = session?.access_token ?? null
 })
 
+function currentAcceptLanguage(): string {
+  const raw = (i18n.resolvedLanguage ?? i18n.language ?? "ru").toLowerCase()
+  const head = raw.split("-", 1)[0] ?? "ru"
+  return isSupportedLocale(head) ? head : "ru"
+}
+
 async function getAccessToken(): Promise<string | null> {
   if (cachedToken) return cachedToken
   if (primed) {
@@ -46,6 +53,7 @@ async function getAccessToken(): Promise<string | null> {
 }
 
 api.interceptors.request.use(async (config) => {
+  config.headers["Accept-Language"] = currentAcceptLanguage()
   const token = await getAccessToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -115,9 +123,13 @@ const inflight = new Map<string, Promise<AxiosResponse<unknown>>>()
 function dedupeKey(url: string, token: string | null, params?: Record<string, unknown>): string {
   // Include the auth token in the key so a request that fires right before
   // login doesn't get its unauthenticated response served to a logged-in
-  // caller a millisecond later.
+  // caller a millisecond later. Include Accept-Language so a locale change
+  // does not serve a cached payload from a previous `i18n` language.
   const tokenBucket = token ? token.slice(-12) : "anon"
-  return params ? `${url}?${JSON.stringify(params)}|${tokenBucket}` : `${url}|${tokenBucket}`
+  const lang = currentAcceptLanguage()
+  return params
+    ? `${url}?${JSON.stringify(params)}|${tokenBucket}|${lang}`
+    : `${url}|${tokenBucket}|${lang}`
 }
 
 const originalGet = api.get.bind(api)

@@ -1,6 +1,6 @@
 """Course catalog read endpoints (listings + detail views)."""
 
-from fastapi import Depends, HTTPException, Query, Response, status
+from fastapi import Depends, Header, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_optional_user, require_teacher
@@ -8,11 +8,18 @@ from app.core.database import get_db
 from app.models.course import Course, Module
 from app.models.user import User, UserRole
 from app.schemas.course import CourseResponse, CourseSummary, ModuleResponse
+from app.schemas.locale import LocaleCode, normalize_locale
 from app.services.course_service import (
     get_course,
     get_courses,
     get_module,
     get_teacher_courses,
+)
+from app.services.translation.resolve_for_display import (
+    batch_fetch_course_translations,
+    build_localized_course_response,
+    build_localized_course_summary,
+    should_apply_course_translation_overlay,
 )
 
 from ._router import router
@@ -21,11 +28,12 @@ from ._router import router
 @router.get("", response_model=list[CourseSummary])
 def list_courses(
     response: Response,
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     search: str | None = Query(None, min_length=1, max_length=200),
     db: Session = Depends(get_db),
-):
+) -> list[CourseSummary]:
     # Catalog view: slim payload (no chapter body content).
     # Full tree is served from GET /courses/{id}.
     #
@@ -34,7 +42,17 @@ def list_courses(
     # cache + a slightly longer CDN window with stale-while-revalidate keeps the
     # home page snappy without holding onto stale content for long.
     response.headers["Cache-Control"] = "public, max-age=30, s-maxage=60, stale-while-revalidate=120"
-    return get_courses(db, skip=skip, limit=limit, search=search)
+    response.headers["Vary"] = "Accept-Language"
+    display_locale: LocaleCode = normalize_locale(accept_language)
+    courses = get_courses(db, skip=skip, limit=limit, search=search)
+    if not courses:
+        return []
+    overlay = batch_fetch_course_translations(
+        db,
+        course_ids=[c.id for c in courses],
+        display_locale=display_locale,
+    )
+    return [build_localized_course_summary(c, overlay, display_locale) for c in courses]
 
 
 @router.get("/my", response_model=list[CourseSummary])
@@ -60,9 +78,12 @@ def list_my_trashed_courses(
 @router.get("/{course_id}", response_model=CourseResponse)
 def get_course_detail(
     course_id: str,
+    response: Response,
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
     current_user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
-) -> Course:
+) -> CourseResponse:
+    display_locale: LocaleCode = normalize_locale(accept_language)
     course = get_course(db, course_id)
     if not course:
         raise HTTPException(
@@ -77,7 +98,15 @@ def get_course_detail(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Course '{course_id}' not found",
             )
-    return course
+    response.headers["Vary"] = "Accept-Language"
+    if not should_apply_course_translation_overlay(course=course, current_user=current_user):
+        return CourseResponse.model_validate(course, from_attributes=True)
+    overlay = batch_fetch_course_translations(
+        db,
+        course_ids=[course.id],
+        display_locale=display_locale,
+    )
+    return build_localized_course_response(course, overlay, display_locale)
 
 
 @router.get("/{course_id}/modules/{module_id}", response_model=ModuleResponse)
