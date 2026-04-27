@@ -1,6 +1,7 @@
 import type { ChapterType } from '@/lib/chapterTypes'
 
 export type UserRole = 'admin' | 'teacher' | 'pending_teacher' | 'student'
+export type PreferredLocale = 'ru' | 'en'
 
 export interface User {
   id: string
@@ -8,6 +9,7 @@ export interface User {
   full_name: string | null
   avatar_url: string | null
   role: UserRole
+  preferred_locale: PreferredLocale
   created_at: string
   updated_at: string
 }
@@ -309,6 +311,7 @@ export interface Profile {
   full_name: string | null
   avatar_url: string | null
   role: UserRole
+  preferred_locale: PreferredLocale
   created_at: string
   updated_at: string | null
 }

@@ -58,6 +58,13 @@ class Course(Base):
     assignment_weight: Mapped[int] = mapped_column(default=50, server_default="50")
     participation_weight: Mapped[int] = mapped_column(default=20, server_default="20")
 
+    # Authoring language for this course's content. The original text always
+    # lives on the source rows (this table, ``modules``, ``chapters``,
+    # ``chapter_blocks``, ``quizzes`` …). Translations to *other* locales are
+    # stored in ``content_translations`` and are looked up by entity_id +
+    # field. See supabase/migrations/...add_content_translations.
+    source_locale: Mapped[str] = mapped_column(default="ru", server_default="ru")
+
     search_vector: Mapped[str | None] = mapped_column(TSVector())
 
     # ``order_by`` guarantees deterministic ordering whenever the relationship is

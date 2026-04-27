@@ -1,13 +1,12 @@
 import { lazy, Suspense } from "react"
 import { BrowserRouter, Route, Navigate, useLocation } from "react-router-dom"
-// Datadog's drop-in <Routes> keys RUM views by the route template
-// ("/courses/:id") instead of the concrete URL, so analytics aggregate across
-// ids and navigation stays inside a single RUM session.
+import { Trans, useTranslation } from "react-i18next"
 import { Routes } from "@datadog/browser-rum-react/react-router-v6"
 import { AuthProvider } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import { useAuth } from "./context/useAuth"
 import { usePageTitle } from "./hooks/usePageTitle"
+import { useLocaleSync } from "./i18n/useLocaleSync"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { Toaster } from "./components/ui/sonner"
 import { ConfirmProvider } from "./components/ui/alert-dialog"
@@ -57,12 +56,23 @@ function Gate({ mode, children }: { mode: RouteMode; children: React.ReactNode }
 }
 
 function PendingTeacherBanner() {
+  const { t } = useTranslation()
   return (
     <div className="border-b border-border border-l-[3px] border-l-warning bg-warning/10">
       <div className="container mx-auto px-4 py-3 text-center">
         <p className="text-sm text-foreground">
-          Your teacher account is pending administrator approval. You can browse courses as a student in the meantime.
-          {" "}Contact <a href="mailto:support@bibleschool.com" className="underline font-medium hover:no-underline">support</a> if you have questions.
+          {t("pendingTeacher.banner")}{" "}
+          <Trans
+            i18nKey="pendingTeacher.contactSupport"
+            components={{
+              supportLink: (
+                <a
+                  href="mailto:support@bibleschool.com"
+                  className="underline font-medium hover:no-underline"
+                />
+              ),
+            }}
+          />
         </p>
       </div>
     </div>
@@ -74,11 +84,13 @@ const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/auth/reset-pass
 function AppRoutes() {
   const { user, loading } = useAuth()
   const location = useLocation()
+  const { t } = useTranslation()
   const isAuthPage = AUTH_PATHS.some((p) => location.pathname.startsWith(p))
   usePageTitle()
+  useLocaleSync()
 
   if (loading) {
-    return <PageSpinner variant="screen" label="Loading..." />
+    return <PageSpinner variant="screen" label={t("common.loading")} />
   }
 
   if (isAuthPage) {
@@ -131,7 +143,7 @@ function AppRoutes() {
       </main>
       <footer className="border-t border-border/60 bg-card/40 py-2">
         <div className="container mx-auto px-4 flex items-center justify-between text-[11px] text-muted-foreground">
-          <span className="font-serif tracking-tight">Bible School</span>
+          <span className="font-serif tracking-tight">{t("common.appName")}</span>
           <span>&copy; {new Date().getFullYear()}</span>
         </div>
       </footer>

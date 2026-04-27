@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,6 +27,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const { login, signInWithGoogle } = useAuth()
+  const { t } = useTranslation()
 
   const handleChange = (field: keyof LoginFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -52,7 +54,7 @@ export default function Login() {
       await login(result.data.email, result.data.password)
     } catch (err: unknown) {
       const supaErr = err as { message?: string }
-      setServerError(supaErr.message || "Login failed. Please try again.")
+      setServerError(supaErr.message || t("auth.loginFailed"))
     } finally {
       setLoading(false)
     }
@@ -64,14 +66,14 @@ export default function Login() {
       await signInWithGoogle()
     } catch (err: unknown) {
       const supaErr = err as { message?: string }
-      setServerError(supaErr.message || "Google login failed.")
+      setServerError(supaErr.message || t("auth.googleLoginFailed"))
     } finally {
       setGoogleLoading(false)
     }
   }
 
   return (
-    <AuthLayout heading="Welcome back" subheading="Sign in to continue your learning journey">
+    <AuthLayout heading={t("auth.welcomeBack")} subheading={t("auth.signInSubheading")}>
       <div className="space-y-6 animate-fade-in">
         {serverError && (
           <div role="alert" className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
@@ -87,9 +89,9 @@ export default function Login() {
           disabled={googleLoading || loading}
         >
           {googleLoading ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Connecting...</>
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("auth.connecting")}</>
           ) : (
-            <><GoogleIcon className="h-4 w-4 mr-2.5" />Continue with Google</>
+            <><GoogleIcon className="h-4 w-4 mr-2.5" />{t("auth.continueWithGoogle")}</>
           )}
         </Button>
 
@@ -98,13 +100,13 @@ export default function Login() {
             <div className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-3 text-muted-foreground">or continue with email</span>
+            <span className="bg-background px-3 text-muted-foreground">{t("auth.orContinueWithEmail")}</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.email")}</Label>
             <Input
               id="email"
               type="email"
@@ -122,9 +124,9 @@ export default function Login() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <Link to="/forgot-password" className="text-xs text-primary hover:text-primary/80 transition-colors">
-                Forgot password?
+                {t("auth.forgotPassword")}
               </Link>
             </div>
             <Input
@@ -144,18 +146,18 @@ export default function Login() {
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Signing in...
+                {t("auth.signingIn")}
               </>
             ) : (
-              "Sign In"
+              t("auth.signIn")
             )}
           </Button>
         </form>
 
         <p className="text-sm text-center text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          {t("auth.noAccount")}{" "}
           <Link to="/register" className="text-primary font-medium hover:text-primary/80 transition-colors">
-            Create one
+            {t("auth.createOne")}
           </Link>
         </p>
       </div>
