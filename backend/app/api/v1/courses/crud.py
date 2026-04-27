@@ -1,5 +1,7 @@
 """Course-level write endpoints: create / update / delete / clone / restore."""
 
+import logging
+
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
@@ -19,8 +21,11 @@ from app.services.course_service import (
     restore_course,
     update_course,
 )
+from app.services.translation.orchestrator import translate_course_metadata
 
 from ._router import router
+
+logger = logging.getLogger(__name__)
 
 
 @router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
@@ -61,8 +66,21 @@ def update_existing_course(
         details = {"old_status": old_status, "new_status": data.status}
     # Special-case draft→published so the audit log distinguishes a
     # publication event from a generic update.
-    action = "publish" if data.status == "published" and old_status != "published" else "update"
+    is_publish_event = data.status == "published" and old_status != "published"
+    action = "publish" if is_publish_event else "update"
     log_action(db, teacher.id, action, "course", course_id, details=details or None, request=request)
+
+    # Kick off the translation pipeline on first publish. We run it
+    # synchronously inside the request so the catalog has translated metadata
+    # by the time the teacher's "Publish" toast settles. Errors must NOT
+    # block the publish itself — the orchestrator already persists
+    # ``status='failed'`` rows for retries, so we just log and move on.
+    if is_publish_event:
+        try:
+            translate_course_metadata(db, result)
+        except Exception:
+            logger.exception("Translation hook failed for course %s", course_id)
+
     return result
 
 

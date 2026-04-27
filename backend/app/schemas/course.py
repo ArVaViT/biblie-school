@@ -167,3 +167,17 @@ class EnrollmentSummaryResponse(BaseModel):
     enrolled_at: datetime
     progress: int
     course: CourseSummary | None = None
+
+
+class CourseTranslationResponse(BaseModel):
+    """Summary returned by the manual ``POST /courses/{id}/translate`` hook.
+
+    Mirrors ``OrchestratorReport`` from the translation service so the
+    teacher UI can show "X translated, Y skipped, Z failed" without having
+    to re-shape the payload on the client.
+    """
+
+    translated: int = 0
+    skipped: int = 0
+    failed: int = 0
+    enabled: bool = True
