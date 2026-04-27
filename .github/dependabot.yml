@@ -39,6 +39,13 @@ updates:
       supabase:
         patterns:
           - "@supabase/*"
+      # @datadog/browser-rum and @datadog/browser-rum-react share an internal
+      # @datadog/browser-rum-core peer; bumping them out of sync produces a
+      # type-mismatch (two copies of the RumPlugin type), so they have to move
+      # together.
+      datadog:
+        patterns:
+          - "@datadog/*"
       dev-types:
         dependency-type: "development"
         patterns:
