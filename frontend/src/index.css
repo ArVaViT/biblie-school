@@ -192,6 +192,14 @@
       width: 100%;
     }
   }
+  @keyframes skeleton-shimmer-slide {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
   /* Full-bleed hero glow — soft mesh, no box border needed */
   .bg-home-hero-glow {
     border-radius: 9999px;
@@ -251,6 +259,31 @@
   .text-wrap-safe {
     overflow-wrap: anywhere;
     word-break: normal;
+  }
+}
+
+@layer components {
+  /* Loading placeholders — directional shimmer (pulse feels generic). */
+  .skeleton-shimmer {
+    @apply relative overflow-hidden rounded-md bg-muted;
+  }
+  .skeleton-shimmer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--foreground) / 0.07),
+      transparent
+    );
+    animation: skeleton-shimmer-slide 1.65s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer::before {
+      animation: none;
+    }
   }
 }
 

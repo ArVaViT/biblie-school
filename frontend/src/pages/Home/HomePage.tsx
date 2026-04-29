@@ -220,11 +220,11 @@ export default function HomePage() {
           </p>
           <h1
             id="home-catalog-heading"
-            className="animate-fade-in animate-delay-100 font-serif text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+            className="animate-fade-in animate-delay-100 text-balance font-serif text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
           >
             {user ? t("home.browseCourses") : t("home.courseCatalog")}
           </h1>
-          <p className="animate-fade-in animate-delay-200 mt-3 text-sm leading-relaxed text-muted-foreground md:text-base">
+          <p className="animate-fade-in animate-delay-200 mt-3 text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
             {user ? t("home.discoverMore") : t("home.browseSeminary")}
           </p>
           <div className="animate-fade-in animate-delay-300 relative mx-auto mt-8 max-w-md">
