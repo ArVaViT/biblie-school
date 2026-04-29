@@ -284,7 +284,7 @@ class TestCatalogLocalizedMetadata:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         monkeypatch.setattr(
-            "app.api.v1.courses.crud.translate_course_metadata",
+            "app.api.v1.courses.crud.translate_course_content",
             lambda *args, **kwargs: OrchestratorReport(),
         )
         course = _create_course(
@@ -321,7 +321,7 @@ class TestCatalogLocalizedMetadata:
         # ``app.dependency_overrides`` and whichever fixture runs last would
         # clobber the other's ``get_optional_user`` override.
         monkeypatch.setattr(
-            "app.api.v1.courses.crud.translate_course_metadata",
+            "app.api.v1.courses.crud.translate_course_content",
             lambda *args, **kwargs: OrchestratorReport(),
         )
         course = _create_course(
@@ -348,7 +348,7 @@ class TestCatalogLocalizedMetadata:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         monkeypatch.setattr(
-            "app.api.v1.courses.crud.translate_course_metadata",
+            "app.api.v1.courses.crud.translate_course_content",
             lambda *args, **kwargs: OrchestratorReport(),
         )
         course = _create_course(
@@ -379,7 +379,7 @@ class TestCatalogLocalizedMetadata:
         even if the course row is still in English and ``source_locale`` is ru
         (legacy / mixed authoring)."""
         monkeypatch.setattr(
-            "app.api.v1.courses.crud.translate_course_metadata",
+            "app.api.v1.courses.crud.translate_course_content",
             lambda *args, **kwargs: OrchestratorReport(),
         )
         course = _create_course(

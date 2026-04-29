@@ -6,23 +6,31 @@ Every route here attaches to the shared ``router`` in ``_router.py``.
 import uuid
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Response, status
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import (
     get_current_user,
     require_teacher,
+    resolve_chapter_course_id,
     verify_chapter_access,
     verify_chapter_owner,
 )
 from app.core.database import get_db
 from app.models.quiz import Quiz, QuizExtraAttempt, QuizOption, QuizQuestion
 from app.models.user import User
+from app.schemas.locale import LocaleCode, normalize_locale
 from app.schemas.quiz import (
     QuizCreate,
     QuizResponse,
     QuizStudentResponse,
     QuizUpdate,
+)
+from app.services.translation.pipeline_hooks import run_course_translation_pipeline_if_published
+from app.services.translation.resolve_for_display import (
+    build_localized_quiz_student_response,
+    get_course_source_locale_for_chapter,
+    should_apply_course_translation_overlay_for_chapter,
 )
 
 from ._deps import verify_quiz_owner
@@ -32,10 +40,13 @@ from ._router import router
 @router.get("/chapter/{chapter_id}", response_model=QuizStudentResponse | None)
 def get_chapter_quiz(
     chapter_id: str,
+    response: Response,
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     verify_chapter_access(db, chapter_id, current_user)
+    response.headers["Vary"] = "Accept-Language"
     quiz = (
         db.query(Quiz)
         .options(selectinload(Quiz.questions).selectinload(QuizQuestion.options))
@@ -45,7 +56,12 @@ def get_chapter_quiz(
     if not quiz:
         return None
 
-    resp = QuizStudentResponse.model_validate(quiz)
+    display_locale: LocaleCode = normalize_locale(accept_language)
+    src = get_course_source_locale_for_chapter(db, chapter_id)
+    if should_apply_course_translation_overlay_for_chapter(db, chapter_id=chapter_id, current_user=current_user):
+        resp = build_localized_quiz_student_response(db, quiz, display_locale=display_locale, source_locale=src)
+    else:
+        resp = QuizStudentResponse.model_validate(quiz)
     if resp.max_attempts is not None:
         extra = (
             db.query(QuizExtraAttempt)
@@ -84,7 +100,7 @@ def create_quiz(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    verify_chapter_owner(db, data.chapter_id, teacher)
+    _, course_id = verify_chapter_owner(db, data.chapter_id, teacher)
     max_attempts = data.max_attempts
     if data.quiz_type == "exam" and max_attempts is None:
         max_attempts = 1
@@ -136,6 +152,7 @@ def create_quiz(
     )
     if reloaded is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    run_course_translation_pipeline_if_published(db, course_id)
     return reloaded
 
 
@@ -166,6 +183,8 @@ def update_quiz(
     )
     if reloaded is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    course_id = resolve_chapter_course_id(db, reloaded.chapter_id)
+    run_course_translation_pipeline_if_published(db, course_id)
     return reloaded
 
 
@@ -179,5 +198,7 @@ def delete_quiz(
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     verify_quiz_owner(db, quiz, teacher.id)
+    course_id = resolve_chapter_course_id(db, quiz.chapter_id)
     db.delete(quiz)
     db.commit()
+    run_course_translation_pipeline_if_published(db, course_id)

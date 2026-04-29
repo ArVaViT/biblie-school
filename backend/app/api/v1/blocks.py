@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,13 @@ from app.core.sanitize import sanitize_string
 from app.models.chapter_block import ChapterBlock
 from app.models.user import User
 from app.schemas.chapter_block import BlockCreate, BlockReorderItem, BlockResponse, BlockUpdate
+from app.schemas.locale import LocaleCode, normalize_locale
+from app.services.translation.pipeline_hooks import run_course_translation_pipeline_if_published
+from app.services.translation.resolve_for_display import (
+    get_course_source_locale_for_chapter,
+    localize_chapter_block_rows,
+    should_apply_course_translation_overlay_for_chapter,
+)
 
 router = APIRouter(prefix="/blocks", tags=["blocks"])
 
@@ -17,11 +24,19 @@ router = APIRouter(prefix="/blocks", tags=["blocks"])
 @router.get("/chapter/{chapter_id}", response_model=list[BlockResponse])
 def list_blocks(
     chapter_id: str,
+    response: Response,
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     verify_chapter_access(db, chapter_id, current_user)
-    return db.query(ChapterBlock).filter(ChapterBlock.chapter_id == chapter_id).order_by(ChapterBlock.order_index).all()
+    response.headers["Vary"] = "Accept-Language"
+    rows = db.query(ChapterBlock).filter(ChapterBlock.chapter_id == chapter_id).order_by(ChapterBlock.order_index).all()
+    display_locale: LocaleCode = normalize_locale(accept_language)
+    src = get_course_source_locale_for_chapter(db, chapter_id)
+    if should_apply_course_translation_overlay_for_chapter(db, chapter_id=chapter_id, current_user=current_user):
+        return localize_chapter_block_rows(db, rows, display_locale=display_locale, source_locale=src)
+    return rows
 
 
 @router.post("/chapter/{chapter_id}", response_model=BlockResponse, status_code=status.HTTP_201_CREATED)
@@ -31,7 +46,7 @@ def create_block(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    verify_chapter_owner(db, chapter_id, teacher)
+    _, course_id = verify_chapter_owner(db, chapter_id, teacher)
     # Defence-in-depth: the frontend runs DOMPurify before sending, but a
     # direct API caller can bypass that. We re-sanitize here so stored block
     # HTML is safe to render for every downstream consumer (admin preview,
@@ -61,6 +76,7 @@ def create_block(
             detail="Referenced quiz or assignment no longer exists",
         ) from exc
     db.refresh(block)
+    run_course_translation_pipeline_if_published(db, course_id)
     return block
 
 
@@ -74,7 +90,7 @@ def update_block(
     block = db.query(ChapterBlock).filter(ChapterBlock.id == block_id).first()
     if not block:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
-    verify_chapter_owner(db, block.chapter_id, teacher)
+    _, course_id = verify_chapter_owner(db, block.chapter_id, teacher)
     for field, value in data.model_dump(exclude_unset=True).items():
         if field == "content" and value:
             value = sanitize_string(value)
@@ -88,6 +104,7 @@ def update_block(
             detail="Referenced quiz or assignment no longer exists",
         ) from exc
     db.refresh(block)
+    run_course_translation_pipeline_if_published(db, course_id)
     return block
 
 
@@ -100,9 +117,10 @@ def delete_block(
     block = db.query(ChapterBlock).filter(ChapterBlock.id == block_id).first()
     if not block:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
-    verify_chapter_owner(db, block.chapter_id, teacher)
+    _, course_id = verify_chapter_owner(db, block.chapter_id, teacher)
     db.delete(block)
     db.commit()
+    run_course_translation_pipeline_if_published(db, course_id)
 
 
 @router.put("/chapter/{chapter_id}/reorder", response_model=list[BlockResponse])

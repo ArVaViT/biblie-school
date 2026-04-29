@@ -180,9 +180,8 @@ def translate_course_metadata(
 ) -> OrchestratorReport:
     """Translate ``title`` + ``description`` for a course into every other locale.
 
-    Wave 2 will extend this to module/chapter titles and chapter blocks; the
-    course-level metadata is what the catalog and SEO snippets read, so it's
-    the highest-leverage subset to ship first.
+    Full-tree translation (modules, chapters, blocks, quizzes) lives in
+    ``course_pipeline.translate_course_content``, which calls this helper first.
     """
     fields: list[TranslationFieldSpec] = [
         TranslationFieldSpec(field="title", text=course.title, content_kind="title"),

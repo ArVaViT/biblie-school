@@ -17,7 +17,7 @@ from app.services.course_service import (
 )
 from app.services.translation.resolve_for_display import (
     batch_fetch_course_translations,
-    build_localized_course_response,
+    build_localized_course_response_with_tree,
     build_localized_course_summary,
     should_apply_course_translation_overlay,
 )
@@ -101,12 +101,7 @@ def get_course_detail(
     response.headers["Vary"] = "Accept-Language"
     if not should_apply_course_translation_overlay(course=course, current_user=current_user):
         return CourseResponse.model_validate(course, from_attributes=True)
-    overlay = batch_fetch_course_translations(
-        db,
-        course_ids=[course.id],
-        display_locale=display_locale,
-    )
-    return build_localized_course_response(course, overlay, display_locale)
+    return build_localized_course_response_with_tree(db, course, display_locale)
 
 
 @router.get("/{course_id}/modules/{module_id}", response_model=ModuleResponse)

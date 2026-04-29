@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import (
@@ -24,9 +24,16 @@ from app.schemas.assignment import (
     SubmissionCreate,
     SubmissionResponse,
 )
+from app.schemas.locale import LocaleCode, normalize_locale
 from app.services.audit_service import log_action
 from app.services.course_service import sync_enrollment_progress
 from app.services.notification_service import create_notification
+from app.services.translation.pipeline_hooks import run_course_translation_pipeline_if_published
+from app.services.translation.resolve_for_display import (
+    get_course_source_locale_for_chapter,
+    localize_assignment_rows,
+    should_apply_course_translation_overlay_for_chapter,
+)
 
 router = APIRouter(prefix="/assignments", tags=["assignments"])
 
@@ -34,11 +41,19 @@ router = APIRouter(prefix="/assignments", tags=["assignments"])
 @router.get("/chapter/{chapter_id}", response_model=list[AssignmentResponse])
 def list_chapter_assignments(
     chapter_id: str,
+    response: Response,
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     verify_chapter_access(db, chapter_id, current_user)
-    return db.query(Assignment).filter(Assignment.chapter_id == chapter_id).order_by(Assignment.created_at).all()
+    response.headers["Vary"] = "Accept-Language"
+    rows = db.query(Assignment).filter(Assignment.chapter_id == chapter_id).order_by(Assignment.created_at).all()
+    display_locale: LocaleCode = normalize_locale(accept_language)
+    src = get_course_source_locale_for_chapter(db, chapter_id)
+    if should_apply_course_translation_overlay_for_chapter(db, chapter_id=chapter_id, current_user=current_user):
+        return localize_assignment_rows(db, rows, display_locale=display_locale, source_locale=src)
+    return rows
 
 
 @router.post("", response_model=AssignmentResponse, status_code=status.HTTP_201_CREATED)
@@ -52,6 +67,8 @@ def create_assignment(
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
+    course_id = resolve_chapter_course_id(db, data.chapter_id)
+    run_course_translation_pipeline_if_published(db, course_id)
     return assignment
 
 
@@ -72,6 +89,8 @@ def update_assignment(
 
     db.commit()
     db.refresh(assignment)
+    course_id = resolve_chapter_course_id(db, assignment.chapter_id)
+    run_course_translation_pipeline_if_published(db, course_id)
     return assignment
 
 

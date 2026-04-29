@@ -15,6 +15,7 @@ import pytest
 from app.models.content_translation import ContentTranslation
 from app.models.course import Course
 from app.models.user import User
+from app.services.translation.course_pipeline import translate_course_content
 from app.services.translation.orchestrator import (
     TranslationFieldSpec,
     other_locales,
@@ -290,13 +291,16 @@ def test_translate_entity_fields_no_op_when_provider_disabled(monkeypatch, db: S
 
 
 def _patch_provider(monkeypatch, provider: _RecordingProvider) -> None:
+    def _wrapped(db, course):
+        return translate_course_content(db, course, provider=provider)
+
     monkeypatch.setattr(
-        "app.api.v1.courses.crud.translate_course_metadata",
-        lambda db, course: translate_course_metadata(db, course, provider=provider),
+        "app.api.v1.courses.crud.translate_course_content",
+        _wrapped,
     )
     monkeypatch.setattr(
-        "app.api.v1.courses.translate.translate_course_metadata",
-        lambda db, course: translate_course_metadata(db, course, provider=provider),
+        "app.api.v1.courses.translate.translate_course_content",
+        _wrapped,
     )
 
 
@@ -340,11 +344,8 @@ def test_publish_hook_swallows_translation_failures(monkeypatch, client: TestCli
     def _boom(_db, _course):
         raise RuntimeError("simulated translation outage")
 
-    monkeypatch.setattr("app.api.v1.courses.crud.translate_course_metadata", _boom)
-    monkeypatch.setattr(
-        "app.api.v1.courses.translate.translate_course_metadata",
-        lambda db, course: translate_course_metadata(db, course, provider=provider),
-    )
+    monkeypatch.setattr("app.api.v1.courses.crud.translate_course_content", _boom)
+    monkeypatch.setattr("app.api.v1.courses.translate.translate_course_content", _boom)
 
     course = client.post("/api/v1/courses", json={"title": "Genesis"}).json()
     resp = client.put(f"/api/v1/courses/{course['id']}", json={"status": "published"})
@@ -365,7 +366,7 @@ def test_manual_translate_endpoint_backfills_existing_courses(monkeypatch, clien
     # published, no translations yet" state that prod is in for legacy
     # courses.
     monkeypatch.setattr(
-        "app.api.v1.courses.crud.translate_course_metadata",
+        "app.api.v1.courses.crud.translate_course_content",
         lambda db, course: None,
     )
     client.put(f"/api/v1/courses/{course['id']}", json={"status": "published"})

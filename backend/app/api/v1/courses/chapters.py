@@ -16,6 +16,7 @@ from app.services.course_service import (
     get_module,
     update_chapter,
 )
+from app.services.translation.pipeline_hooks import run_course_translation_pipeline_if_published
 
 from ._router import router
 
@@ -41,7 +42,9 @@ def create_new_chapter(
         )
     if data.title:
         data.title = sanitize_string(data.title)
-    return create_chapter(db, module_id, data)
+    created = create_chapter(db, module_id, data)
+    run_course_translation_pipeline_if_published(db, course_id)
+    return created
 
 
 @router.put(
@@ -65,7 +68,9 @@ def update_existing_chapter(
         )
     if data.title:
         data.title = sanitize_string(data.title)
-    return update_chapter(db, chapter, data)
+    updated = update_chapter(db, chapter, data)
+    run_course_translation_pipeline_if_published(db, course_id)
+    return updated
 
 
 @router.delete(

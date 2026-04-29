@@ -21,7 +21,7 @@ from app.services.course_service import (
     restore_course,
     update_course,
 )
-from app.services.translation.orchestrator import translate_course_metadata
+from app.services.translation.course_pipeline import translate_course_content
 
 from ._router import router
 
@@ -70,14 +70,14 @@ def update_existing_course(
     action = "publish" if is_publish_event else "update"
     log_action(db, teacher.id, action, "course", course_id, details=details or None, request=request)
 
-    # Kick off the translation pipeline on first publish. We run it
-    # synchronously inside the request so the catalog has translated metadata
-    # by the time the teacher's "Publish" toast settles. Errors must NOT
-    # block the publish itself — the orchestrator already persists
-    # ``status='failed'`` rows for retries, so we just log and move on.
-    if is_publish_event:
+    # Full-course translation when published (initial publish or edits while live).
+    # Runs synchronously so the catalog and chapter surfaces stay consistent.
+    # Failures must NOT block the save — failed rows are persisted for retry.
+    if result.status == "published":
         try:
-            translate_course_metadata(db, result)
+            to_translate = get_course(db, course_id)
+            if to_translate:
+                translate_course_content(db, to_translate)
         except Exception:
             logger.exception("Translation hook failed for course %s", course_id)
 
