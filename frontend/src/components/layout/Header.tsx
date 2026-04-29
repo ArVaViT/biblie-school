@@ -4,39 +4,45 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useAuth } from "@/context/useAuth"
-import {
-  PenTool,
-  ShieldCheck,
-  User as UserIcon,
-  Menu,
-  CalendarDays,
-  Award,
-} from "lucide-react"
+import { User as UserIcon, Menu } from "lucide-react"
 import { toProxyImage } from "@/lib/images"
-import LanguageSwitcher from "@/components/layout/LanguageSwitcher"
+import { cn } from "@/lib/utils"
 
 const NotificationBell = lazy(() => import("./NotificationBell"))
 
 const ICON_STROKE = 1.75 as const
 
-function NavLinkButton({
+function HeaderNavLink({
   to,
   active,
   children,
+  onNavigate,
+  variant = "bar",
 }: {
   to: string
   active: boolean
   children: React.ReactNode
+  onNavigate?: () => void
+  variant?: "bar" | "sheet"
 }) {
+  const isSheet = variant === "sheet"
   return (
-    <Link to={to}>
-      <Button
-        variant={active ? "secondary" : "ghost"}
-        size="sm"
-        className={`h-8 rounded-full px-3 text-xs font-medium ${active ? "shadow-none" : ""}`}
-      >
-        {children}
-      </Button>
+    <Link
+      to={to}
+      onClick={onNavigate}
+      className={cn(
+        "text-sm font-medium transition-colors",
+        isSheet
+          ? "flex min-h-11 w-full items-center rounded-md px-3 active:bg-muted/80"
+          : "rounded-md px-3 py-2",
+        active
+          ? "bg-muted/80 text-foreground"
+          : isSheet
+            ? "text-foreground hover:bg-muted"
+            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+      )}
+    >
+      {children}
     </Link>
   )
 }
@@ -55,13 +61,12 @@ export default function Header() {
     setMobileOpen(false)
   }, [location.pathname])
 
-  const mobileNavLinkClass =
-    "flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted active:bg-muted/80"
+  const closeMobile = () => setMobileOpen(false)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/90">
       <div className="container mx-auto max-w-[1400px] px-4">
-        <div className="flex h-14 items-center justify-between gap-3 md:h-[3.5rem] md:gap-4">
+        <div className="flex h-14 items-center justify-between gap-4 md:h-14">
           <Link
             to="/"
             className="shrink-0 font-serif text-lg font-semibold tracking-tight text-foreground transition-opacity hover:opacity-85"
@@ -70,67 +75,48 @@ export default function Header() {
           </Link>
 
           {user ? (
-            <div className="hidden min-w-0 flex-1 justify-center px-2 md:flex">
-              <nav
-                className="flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-border/80 bg-muted/40 p-1 shadow-none"
-                aria-label={t("header.navAriaLabel")}
-              >
-                <NavLinkButton to="/" active={location.pathname === "/"}>
-                  {t("header.courses")}
-                </NavLinkButton>
-                <Link to="/calendar">
-                  <Button
-                    variant={isActive("/calendar") ? "secondary" : "ghost"}
-                    size="sm"
-                    className="h-8 w-8 rounded-full p-0"
-                    aria-label={t("header.calendar")}
-                    title={t("header.calendar")}
-                  >
-                    <CalendarDays className="h-4 w-4" strokeWidth={ICON_STROKE} />
-                  </Button>
-                </Link>
-                <NavLinkButton to="/certificates" active={isActive("/certificates")}>
-                  <span className="flex items-center gap-1">
-                    <Award className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
-                    {t("header.certificates")}
-                  </span>
-                </NavLinkButton>
-                {isTeacher && (
-                  <NavLinkButton to="/teacher" active={isActive("/teacher")}>
-                    <span className="flex items-center gap-1">
-                      <PenTool className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
-                      {t("header.manage")}
-                    </span>
-                  </NavLinkButton>
-                )}
-                {user.role === "admin" && (
-                  <NavLinkButton to="/admin" active={isActive("/admin")}>
-                    <span className="flex items-center gap-1">
-                      <ShieldCheck className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
-                      {t("header.admin")}
-                    </span>
-                  </NavLinkButton>
-                )}
-              </nav>
-            </div>
+            <nav
+              className="hidden min-w-0 flex-1 flex-wrap items-center justify-center gap-0.5 md:flex"
+              aria-label={t("header.navAriaLabel")}
+            >
+              <HeaderNavLink to="/" active={location.pathname === "/"}>
+                {t("header.courses")}
+              </HeaderNavLink>
+              <HeaderNavLink to="/calendar" active={isActive("/calendar")}>
+                {t("header.calendar")}
+              </HeaderNavLink>
+              <HeaderNavLink to="/certificates" active={isActive("/certificates")}>
+                {t("header.certificates")}
+              </HeaderNavLink>
+              {isTeacher && (
+                <HeaderNavLink to="/teacher" active={isActive("/teacher")}>
+                  {t("header.manage")}
+                </HeaderNavLink>
+              )}
+              {user.role === "admin" && (
+                <HeaderNavLink to="/admin" active={isActive("/admin")}>
+                  {t("header.admin")}
+                </HeaderNavLink>
+              )}
+            </nav>
           ) : (
             <div className="hidden flex-1 md:block" aria-hidden />
           )}
 
-          <div className="flex shrink-0 items-center gap-1 md:gap-1.5">
+          <div className="flex shrink-0 items-center gap-2">
             <div className="hidden items-center gap-1 md:flex">
               {user ? (
                 <>
                   <Suspense fallback={<div className="h-8 w-8 shrink-0" aria-hidden />}>
                     <NotificationBell />
                   </Suspense>
-                  <LanguageSwitcher variant="compact" />
                   <Link to="/profile">
                     <Button
                       variant={isActive("/profile") ? "secondary" : "ghost"}
                       size="sm"
                       className="h-8 w-8 shrink-0 rounded-full p-0"
                       aria-label={t("header.profile")}
+                      title={t("header.profileAndSettings")}
                     >
                       {user.avatar_url ? (
                         <img
@@ -149,14 +135,13 @@ export default function Header() {
                 </>
               ) : (
                 <>
-                  <LanguageSwitcher variant="compact" />
                   <Link to="/login">
-                    <Button variant="ghost" size="sm" className="h-8 px-3 text-xs font-medium">
+                    <Button variant="ghost" size="sm" className="h-8 px-3 text-sm font-medium">
                       {t("common.signIn")}
                     </Button>
                   </Link>
                   <Link to="/register">
-                    <Button size="sm" className="h-8 px-3 text-xs font-medium">
+                    <Button size="sm" className="h-8 px-3 text-sm font-medium">
                       {t("common.register")}
                     </Button>
                   </Link>
@@ -164,18 +149,17 @@ export default function Header() {
               )}
             </div>
 
-            <div className="flex items-center gap-0.5 md:hidden">
-              <LanguageSwitcher variant="compact" />
+            <div className="flex md:hidden">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-9 w-9 shrink-0 p-0"
+                className="h-9 min-w-9 px-2"
                 onClick={() => setMobileOpen(true)}
                 aria-label={t("header.menu")}
                 aria-expanded={mobileOpen}
               >
-                <Menu className="h-5 w-5" strokeWidth={ICON_STROKE} />
+                <Menu className="h-4 w-4" strokeWidth={ICON_STROKE} />
               </Button>
             </div>
           </div>
@@ -188,29 +172,37 @@ export default function Header() {
             <SheetTitle>{t("header.mobileMenuTitle")}</SheetTitle>
             <SheetDescription className="sr-only">{t("header.mobileMenuDescription")}</SheetDescription>
           </SheetHeader>
-          <nav className="flex flex-1 flex-col overflow-y-auto px-4 py-4" aria-label={t("header.navAriaLabel")}>
+          <nav
+            className="flex flex-1 flex-col overflow-y-auto px-4 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+            aria-label={t("header.navAriaLabel")}
+          >
             {user ? (
               <>
-                <Link to="/" className={mobileNavLinkClass} onClick={() => setMobileOpen(false)}>
+                <HeaderNavLink variant="sheet" to="/" active={location.pathname === "/"} onNavigate={closeMobile}>
                   {t("header.courses")}
-                </Link>
-                <Link to="/calendar" className={mobileNavLinkClass} onClick={() => setMobileOpen(false)}>
+                </HeaderNavLink>
+                <HeaderNavLink variant="sheet" to="/calendar" active={isActive("/calendar")} onNavigate={closeMobile}>
                   {t("header.calendar")}
-                </Link>
-                <Link to="/certificates" className={mobileNavLinkClass} onClick={() => setMobileOpen(false)}>
+                </HeaderNavLink>
+                <HeaderNavLink
+                  variant="sheet"
+                  to="/certificates"
+                  active={isActive("/certificates")}
+                  onNavigate={closeMobile}
+                >
                   {t("header.certificates")}
-                </Link>
+                </HeaderNavLink>
                 {isTeacher && (
-                  <Link to="/teacher" className={mobileNavLinkClass} onClick={() => setMobileOpen(false)}>
+                  <HeaderNavLink variant="sheet" to="/teacher" active={isActive("/teacher")} onNavigate={closeMobile}>
                     {t("header.manageCourses")}
-                  </Link>
+                  </HeaderNavLink>
                 )}
                 {user.role === "admin" && (
-                  <Link to="/admin" className={mobileNavLinkClass} onClick={() => setMobileOpen(false)}>
+                  <HeaderNavLink variant="sheet" to="/admin" active={isActive("/admin")} onNavigate={closeMobile}>
                     {t("header.adminPanel")}
-                  </Link>
+                  </HeaderNavLink>
                 )}
-                <div className="my-2 border-t border-border px-1 py-2">
+                <div className="my-3 border-t border-border pt-3">
                   <Suspense fallback={null}>
                     <NotificationBell
                       panelVariant="sheet"
@@ -218,34 +210,32 @@ export default function Header() {
                     />
                   </Suspense>
                 </div>
-                <Link to="/profile" className={mobileNavLinkClass} onClick={() => setMobileOpen(false)}>
+                <Link
+                  to="/profile"
+                  className="flex min-h-11 w-full items-center rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted active:bg-muted/80"
+                  onClick={closeMobile}
+                >
                   {t("header.profileAndSettings")}
                 </Link>
               </>
             ) : (
               <>
-                <Link to="/" className={mobileNavLinkClass} onClick={() => setMobileOpen(false)}>
+                <HeaderNavLink variant="sheet" to="/" active={location.pathname === "/"} onNavigate={closeMobile}>
                   {t("header.courses")}
-                </Link>
-                <Link to="/login" className={mobileNavLinkClass} onClick={() => setMobileOpen(false)}>
+                </HeaderNavLink>
+                <HeaderNavLink variant="sheet" to="/login" active={isActive("/login")} onNavigate={closeMobile}>
                   {t("common.signIn")}
-                </Link>
+                </HeaderNavLink>
                 <Link
                   to="/register"
-                  className={`${mobileNavLinkClass} font-semibold text-primary`}
-                  onClick={() => setMobileOpen(false)}
+                  className="flex min-h-11 w-full items-center rounded-md px-3 text-sm font-semibold text-primary transition-colors hover:bg-muted active:bg-muted/80"
+                  onClick={closeMobile}
                 >
                   {t("common.register")}
                 </Link>
               </>
             )}
           </nav>
-          <div className="border-t border-border bg-muted/20 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              {t("language.label")}
-            </p>
-            <LanguageSwitcher variant="full" />
-          </div>
         </SheetContent>
       </Sheet>
     </header>
