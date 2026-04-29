@@ -191,7 +191,7 @@ export default function HomePage() {
     <div className="container mx-auto px-4 py-10">
       {user && <MyCoursesSection />}
 
-      <div className="max-w-2xl mx-auto text-center mb-12">
+      <div className="bg-gradient-accent-subtle mx-auto mb-12 max-w-2xl rounded-lg border border-border/40 px-4 py-8 text-center sm:px-8">
         <p className="text-xs uppercase tracking-[0.2em] text-accent font-medium mb-3">{t("home.academicPrograms")}</p>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight mb-3">
           {user ? t("home.browseCourses") : t("home.courseCatalog")}
