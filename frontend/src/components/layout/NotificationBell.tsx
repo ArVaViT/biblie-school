@@ -11,6 +11,8 @@ import { NotificationPanel } from "./notifications/NotificationPanel"
 export interface NotificationBellProps {
   /** Full-width panel under the bell inside narrow drawers (e.g. mobile header sheet). */
   panelVariant?: "popover" | "sheet"
+  /** Icon-only (header) vs full-width label row (mobile drawer — matches text nav links). */
+  triggerVariant?: "icon" | "navRow"
   /** Called when the user opens a notification link (closes parent UI such as the mobile menu). */
   onNotificationNavigate?: () => void
 }
@@ -24,6 +26,7 @@ export interface NotificationBellProps {
  */
 export default function NotificationBell({
   panelVariant = "popover",
+  triggerVariant = "icon",
   onNotificationNavigate,
 }: NotificationBellProps) {
   const { t } = useTranslation()
@@ -71,6 +74,7 @@ export default function NotificationBell({
   )
 
   const isSheet = panelVariant === "sheet"
+  const isNavRow = triggerVariant === "navRow"
 
   return (
     <div className={cn("relative", isSheet && "w-full")}>
@@ -79,19 +83,39 @@ export default function NotificationBell({
         variant="ghost"
         size="sm"
         className={cn(
-          "relative p-0",
-          isSheet ? "h-11 min-h-11 w-11 min-w-11" : "h-8 w-8",
+          "relative shadow-none ring-offset-background focus-visible:ring-1",
+          isNavRow
+            ? "flex h-auto min-h-11 w-full flex-row items-center justify-between rounded-md px-3 py-2.5 text-left font-normal hover:bg-muted"
+            : "p-0",
+          !isNavRow && isSheet && "h-11 min-h-11 w-11 min-w-11",
+          !isNavRow && !isSheet && "h-8 w-8",
+          isNavRow && open && "bg-muted/80",
         )}
         onClick={() => setOpen((prev) => !prev)}
-        aria-label={t("notifications.menuAriaLabel")}
+        aria-label={isNavRow ? undefined : t("notifications.menuAriaLabel")}
         aria-expanded={open}
         aria-haspopup="true"
       >
-        <Bell className="h-4 w-4" />
-        {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
+        {isNavRow ? (
+          <>
+            <span className="text-sm font-medium text-foreground">{t("notifications.title")}</span>
+            <span className="flex min-w-[1.25rem] items-center justify-end">
+              {unreadCount > 0 ? (
+                <span className="rounded-full bg-destructive px-2 py-0.5 text-xs font-semibold tabular-nums text-destructive-foreground">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              ) : null}
+            </span>
+          </>
+        ) : (
+          <>
+            <Bell className="h-4 w-4" strokeWidth={1.75} />
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </>
         )}
       </Button>
 

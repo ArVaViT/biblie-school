@@ -152,14 +152,14 @@ export default function Header() {
             <div className="flex md:hidden">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-9 min-w-9 px-2"
+                className="h-9 min-w-9 px-2 text-muted-foreground hover:text-foreground"
                 onClick={() => setMobileOpen(true)}
                 aria-label={t("header.menu")}
                 aria-expanded={mobileOpen}
               >
-                <Menu className="h-4 w-4" strokeWidth={ICON_STROKE} />
+                <Menu className="h-5 w-5" strokeWidth={ICON_STROKE} />
               </Button>
             </div>
           </div>
@@ -167,75 +167,86 @@ export default function Header() {
       </div>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="right" className="flex flex-col overflow-hidden p-0">
-          <SheetHeader>
-            <SheetTitle>{t("header.mobileMenuTitle")}</SheetTitle>
+        <SheetContent
+          side="right"
+          className="flex max-h-[100dvh] flex-col gap-0 overflow-hidden p-0"
+        >
+          <SheetHeader className="shrink-0 px-5 pb-4 pt-6">
+            <SheetTitle className="font-sans text-base font-semibold tracking-normal text-foreground">
+              {t("header.mobileMenuTitle")}
+            </SheetTitle>
             <SheetDescription className="sr-only">{t("header.mobileMenuDescription")}</SheetDescription>
           </SheetHeader>
-          <nav
-            className="flex flex-1 flex-col overflow-y-auto px-4 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
-            aria-label={t("header.navAriaLabel")}
-          >
-            {user ? (
-              <>
-                <HeaderNavLink variant="sheet" to="/" active={location.pathname === "/"} onNavigate={closeMobile}>
-                  {t("header.courses")}
-                </HeaderNavLink>
-                <HeaderNavLink variant="sheet" to="/calendar" active={isActive("/calendar")} onNavigate={closeMobile}>
-                  {t("header.calendar")}
-                </HeaderNavLink>
-                <HeaderNavLink
-                  variant="sheet"
-                  to="/certificates"
-                  active={isActive("/certificates")}
-                  onNavigate={closeMobile}
-                >
-                  {t("header.certificates")}
-                </HeaderNavLink>
-                {isTeacher && (
-                  <HeaderNavLink variant="sheet" to="/teacher" active={isActive("/teacher")} onNavigate={closeMobile}>
-                    {t("header.manageCourses")}
+          <div className="flex min-h-0 flex-1 flex-col">
+            <nav
+              className="flex flex-col gap-0.5 overflow-y-auto px-4 pb-2 pt-1"
+              aria-label={t("header.navAriaLabel")}
+            >
+              {user ? (
+                <>
+                  <HeaderNavLink variant="sheet" to="/" active={location.pathname === "/"} onNavigate={closeMobile}>
+                    {t("header.courses")}
                   </HeaderNavLink>
-                )}
-                {user.role === "admin" && (
-                  <HeaderNavLink variant="sheet" to="/admin" active={isActive("/admin")} onNavigate={closeMobile}>
-                    {t("header.adminPanel")}
+                  <HeaderNavLink variant="sheet" to="/calendar" active={isActive("/calendar")} onNavigate={closeMobile}>
+                    {t("header.calendar")}
                   </HeaderNavLink>
-                )}
-                <div className="my-3 border-t border-border pt-3">
-                  <Suspense fallback={null}>
-                    <NotificationBell
-                      panelVariant="sheet"
-                      onNotificationNavigate={() => setMobileOpen(false)}
-                    />
-                  </Suspense>
-                </div>
-                <Link
-                  to="/profile"
-                  className="flex min-h-11 w-full items-center rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted active:bg-muted/80"
-                  onClick={closeMobile}
-                >
-                  {t("header.profileAndSettings")}
-                </Link>
-              </>
-            ) : (
-              <>
-                <HeaderNavLink variant="sheet" to="/" active={location.pathname === "/"} onNavigate={closeMobile}>
-                  {t("header.courses")}
-                </HeaderNavLink>
-                <HeaderNavLink variant="sheet" to="/login" active={isActive("/login")} onNavigate={closeMobile}>
-                  {t("common.signIn")}
-                </HeaderNavLink>
-                <Link
-                  to="/register"
-                  className="flex min-h-11 w-full items-center rounded-md px-3 text-sm font-semibold text-primary transition-colors hover:bg-muted active:bg-muted/80"
-                  onClick={closeMobile}
-                >
-                  {t("common.register")}
-                </Link>
-              </>
-            )}
-          </nav>
+                  <HeaderNavLink
+                    variant="sheet"
+                    to="/certificates"
+                    active={isActive("/certificates")}
+                    onNavigate={closeMobile}
+                  >
+                    {t("header.certificates")}
+                  </HeaderNavLink>
+                  {isTeacher && (
+                    <HeaderNavLink variant="sheet" to="/teacher" active={isActive("/teacher")} onNavigate={closeMobile}>
+                      {t("header.manageCourses")}
+                    </HeaderNavLink>
+                  )}
+                  {user.role === "admin" && (
+                    <HeaderNavLink variant="sheet" to="/admin" active={isActive("/admin")} onNavigate={closeMobile}>
+                      {t("header.adminPanel")}
+                    </HeaderNavLink>
+                  )}
+                  <div className="mt-2 border-t border-border/80 pt-2">
+                    <Suspense fallback={null}>
+                      <NotificationBell
+                        triggerVariant="navRow"
+                        panelVariant="sheet"
+                        onNotificationNavigate={() => setMobileOpen(false)}
+                      />
+                    </Suspense>
+                  </div>
+                  <Link
+                    to="/profile"
+                    className="flex min-h-11 w-full items-center rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted active:bg-muted/80"
+                    onClick={closeMobile}
+                  >
+                    {t("header.profileAndSettings")}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <HeaderNavLink variant="sheet" to="/" active={location.pathname === "/"} onNavigate={closeMobile}>
+                    {t("header.courses")}
+                  </HeaderNavLink>
+                  <HeaderNavLink variant="sheet" to="/login" active={isActive("/login")} onNavigate={closeMobile}>
+                    {t("common.signIn")}
+                  </HeaderNavLink>
+                  <Link
+                    to="/register"
+                    className="flex min-h-11 w-full items-center rounded-md px-3 text-sm font-semibold text-primary transition-colors hover:bg-muted active:bg-muted/80"
+                    onClick={closeMobile}
+                  >
+                    {t("common.register")}
+                  </Link>
+                </>
+              )}
+            </nav>
+            <div className="mt-auto border-t border-border/80 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+              <p className="text-xs text-muted-foreground">{t("common.appName")}</p>
+            </div>
+          </div>
         </SheetContent>
       </Sheet>
     </header>
