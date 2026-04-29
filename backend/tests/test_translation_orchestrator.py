@@ -339,7 +339,6 @@ def test_publishing_does_not_translate_again_on_idempotent_update(monkeypatch, c
 
 def test_publish_hook_swallows_translation_failures(monkeypatch, client: TestClient):
     """A Gemini outage must not block ``draft → published``."""
-    provider = _RecordingProvider()
 
     def _boom(_db, _course):
         raise RuntimeError("simulated translation outage")
