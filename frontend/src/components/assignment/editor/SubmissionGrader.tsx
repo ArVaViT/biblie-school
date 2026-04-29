@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { FileText, Loader2, MessageSquare, Save, Star, User } from "lucide-react"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/lib/toast"
@@ -87,7 +88,8 @@ export function SubmissionGrader({ submission, maxScore, onUpdate }: Props) {
               max={maxScore}
               value={grade}
               onChange={(e) => setGrade(Number(e.target.value))}
-              className="h-7 text-xs w-20"
+              fieldSize="sm"
+              className="w-20"
             />
             <span className="text-xs text-muted-foreground">/ {maxScore}</span>
           </div>
@@ -106,11 +108,12 @@ export function SubmissionGrader({ submission, maxScore, onUpdate }: Props) {
             <MessageSquare className="h-3 w-3" />
             Feedback
           </Label>
-          <textarea
+          <Textarea
+            fieldSize="sm"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             placeholder="Optional feedback for the student..."
-            className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
+            className="min-h-[50px] text-xs"
           />
         </div>
 

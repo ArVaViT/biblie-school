@@ -259,7 +259,8 @@ function GradeTableRow({
                   value={form.grade}
                   onChange={(e) => onUpdateForm(student.id, "grade", e.target.value)}
                   placeholder="A, B+, 95..."
-                  className="h-8 w-28 text-xs"
+                  fieldSize="sm"
+                  className="w-28"
                 />
               </div>
               <div className="space-y-1 flex-1 min-w-[180px]">
@@ -270,7 +271,8 @@ function GradeTableRow({
                   value={form.comment}
                   onChange={(e) => onUpdateForm(student.id, "comment", e.target.value)}
                   placeholder="Teacher's note..."
-                  className="h-8 text-xs"
+                  fieldSize="sm"
+                  className="min-w-0 flex-1"
                 />
               </div>
               <Button

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { coursesService } from "@/services/courses"
 import { getErrorDetail } from "@/lib/errorDetail"
 import { toast } from "@/lib/toast"
@@ -225,11 +226,12 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
             )}
             <div className="space-y-1.5">
               <Label className="text-xs">{t("assignment.yourResponse")}</Label>
-              <textarea
+              <Textarea
+                fieldSize="default"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder={t("assignment.responsePlaceholder")}
-                className="w-full min-h-[120px] p-3 text-sm bg-background border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
+                className="min-h-[120px]"
               />
             </div>
             <div className="space-y-1.5">
@@ -241,7 +243,8 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
                 value={fileUrl}
                 onChange={(e) => setFileUrl(e.target.value)}
                 placeholder="https://drive.google.com/..."
-                className="h-8 text-sm"
+                fieldSize="sm"
+                className="text-sm"
               />
             </div>
             <Button

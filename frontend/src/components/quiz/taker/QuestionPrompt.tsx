@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import type { QuizQuestion } from "@/types"
 import { EssayAnswer } from "./EssayAnswer"
 import type { QuizAnswer } from "./types"
+import { Textarea } from "@/components/ui/textarea"
 
 interface Props {
   question: QuizQuestion
@@ -77,11 +78,11 @@ export function QuestionPrompt({ question, index, answer, onAnswer }: Props) {
 
       {question.question_type === "short_answer" && (
         <div className="ml-8">
-          <textarea
+          <Textarea
+            fieldSize="default"
             value={answer?.text_answer ?? ""}
             onChange={(e) => onAnswer({ text_answer: e.target.value })}
             placeholder={t("quiz.typeAnswerPlaceholder")}
-            className="w-full min-h-[80px] p-3 text-sm bg-background border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
           />
         </div>
       )}

@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 interface Props {
   title: string
@@ -32,16 +33,18 @@ export function QuizHeaderFields({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. Chapter Review Quiz"
-          className="h-8 text-sm"
+          fieldSize="sm"
+          className="text-sm"
         />
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs">Description (optional)</Label>
-        <textarea
+        <Textarea
+          fieldSize="sm"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Brief description of the quiz..."
-          className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
+          className="text-sm"
         />
       </div>
       <div className="space-y-1.5">
@@ -52,7 +55,8 @@ export function QuizHeaderFields({
           max={100}
           value={passingScore}
           onChange={(e) => setPassingScore(Number(e.target.value))}
-          className="h-8 text-sm w-28"
+          fieldSize="sm"
+          className="w-28 text-sm"
         />
       </div>
       {chapterType === "exam" && (
@@ -66,7 +70,8 @@ export function QuizHeaderFields({
             onChange={(e) =>
               setMaxAttempts(Math.min(10, Math.max(1, Number(e.target.value) || 1)))
             }
-            className="h-8 text-sm w-28"
+            fieldSize="sm"
+            className="w-28 text-sm"
           />
         </div>
       )}

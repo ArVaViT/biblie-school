@@ -1,3 +1,5 @@
+import { Textarea } from "@/components/ui/textarea"
+
 interface Props {
   value: string
   minWords: number | null
@@ -9,7 +11,8 @@ export function EssayAnswer({ value, minWords, onChange }: Props) {
   const minReached = !minWords || words >= minWords
   return (
     <div className="ml-8 space-y-1.5">
-      <textarea
+      <Textarea
+        fieldSize="default"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={
@@ -17,7 +20,7 @@ export function EssayAnswer({ value, minWords, onChange }: Props) {
             ? `Write at least ${minWords} words. Your response will be reviewed by the teacher.`
             : "Write your essay response…"
         }
-        className="w-full min-h-[220px] p-3 text-sm bg-background border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
+        className="min-h-[220px]"
       />
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">Essay · graded by the teacher</span>

@@ -162,7 +162,8 @@ function FilterDate({
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 w-40"
+        fieldSize="md"
+        className="w-40"
       />
     </div>
   )

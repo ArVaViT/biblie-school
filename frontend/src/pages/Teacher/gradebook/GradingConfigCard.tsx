@@ -104,7 +104,7 @@ function WeightField({ label, value, onChange }: WeightFieldProps) {
         max={100}
         value={value}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
-        className="h-9"
+        fieldSize="md"
       />
     </div>
   )

@@ -11,6 +11,7 @@ import CourseCard from "@/components/course/CourseCard"
 import CourseCardSkeleton from "@/components/skeletons/CourseCardSkeleton"
 import { Search, BookOpen, LogIn, ArrowRight, CheckCircle } from "lucide-react"
 import { EmptyState, ErrorState } from "@/components/patterns"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 function MyCoursesSectionHeader() {
@@ -77,8 +78,8 @@ function MyCoursesSection() {
       <div className="space-y-0 divide-y divide-border/80">
         {Array.from({ length: 2 }).map((_, i) => (
           <div key={i} className="py-5 first:pt-0">
-            <div className="h-5 w-48 max-w-full animate-pulse rounded-md bg-muted" />
-            <div className="mt-4 h-1.5 max-w-xs animate-pulse rounded-full bg-muted" />
+            <Skeleton className="h-5 w-48 max-w-full" />
+            <Skeleton className="mt-4 h-1.5 max-w-xs rounded-full" />
           </div>
         ))}
       </div>,

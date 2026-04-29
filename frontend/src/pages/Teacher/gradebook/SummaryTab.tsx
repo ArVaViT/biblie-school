@@ -292,7 +292,7 @@ function StudentSummaryRow({
                 value={form.grade}
                 onChange={(e) => onUpdateForm(student.student_id, "grade", e.target.value)}
                 placeholder="A, B+, 95..."
-                className="h-9"
+                fieldSize="md"
               />
             </div>
             <div className="space-y-1.5">
@@ -303,7 +303,7 @@ function StudentSummaryRow({
                 value={form.comment}
                 onChange={(e) => onUpdateForm(student.student_id, "comment", e.target.value)}
                 placeholder="Teacher's note..."
-                className="h-9"
+                fieldSize="md"
               />
             </div>
           </div>
