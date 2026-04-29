@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Megaphone, Trash2 } from "lucide-react"
 import { Modal } from "@/components/patterns"
-import { TEXTAREA_CLASS } from "./types"
 import type { Announcement } from "@/types"
 
 interface Props {
@@ -39,8 +39,8 @@ export function AnnouncementsModal({
             onChange={(e) => onTitleChange(e.target.value)}
             placeholder="Title"
           />
-          <textarea
-            className={`${TEXTAREA_CLASS} min-h-[60px]`}
+          <Textarea
+            fieldSize="sm"
             value={content}
             onChange={(e) => onContentChange(e.target.value)}
             placeholder="Content (optional)"

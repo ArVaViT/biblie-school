@@ -73,7 +73,7 @@ export default function ResetPassword() {
             <br />Redirecting to dashboard...
           </p>
           <div className="h-1 w-24 rounded-full bg-muted overflow-hidden">
-            <div className="h-full bg-primary animate-[grow_2.5s_ease-out_forwards] rounded-full" />
+            <div className="animate-grow-bar h-full rounded-full bg-primary" />
           </div>
         </div>
       </AuthLayout>
@@ -84,7 +84,7 @@ export default function ResetPassword() {
     <AuthLayout heading="Set new password" subheading="Choose a strong password for your account">
       <div className="space-y-6 animate-fade-in">
         {serverError && (
-          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
+          <div role="alert" className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
             {serverError}
           </div>
         )}
@@ -96,16 +96,21 @@ export default function ResetPassword() {
               id="password"
               type="password"
               autoComplete="new-password"
-              className="h-11"
+              fieldSize="lg"
               value={form.password}
               onChange={(e) => {
                 setForm((prev) => ({ ...prev, password: e.target.value }))
                 setErrors((prev) => ({ ...prev, password: undefined }))
               }}
               aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "reset-password-error" : undefined}
               autoFocus
             />
-            {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
+            {errors.password && (
+              <p id="reset-password-error" role="alert" className="text-xs text-destructive mt-1">
+                {errors.password}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -114,20 +119,23 @@ export default function ResetPassword() {
               id="confirmPassword"
               type="password"
               autoComplete="new-password"
-              className="h-11"
+              fieldSize="lg"
               value={form.confirmPassword}
               onChange={(e) => {
                 setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
                 setErrors((prev) => ({ ...prev, confirmPassword: undefined }))
               }}
               aria-invalid={!!errors.confirmPassword}
+              aria-describedby={errors.confirmPassword ? "reset-confirm-error" : undefined}
             />
             {errors.confirmPassword && (
-              <p className="text-xs text-destructive mt-1">{errors.confirmPassword}</p>
+              <p id="reset-confirm-error" role="alert" className="text-xs text-destructive mt-1">
+                {errors.confirmPassword}
+              </p>
             )}
           </div>
 
-          <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+          <Button type="submit" size="lg" className="w-full font-medium" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

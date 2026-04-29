@@ -54,7 +54,7 @@ export default function ForgotPassword() {
             </p>
           </div>
           <Link to="/login" className="block">
-            <Button variant="outline" className="w-full h-11">
+            <Button variant="outline" size="lg" className="w-full">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Sign In
             </Button>
@@ -81,14 +81,14 @@ export default function ForgotPassword() {
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
-              className="h-11"
+              fieldSize="lg"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
             />
           </div>
 
-          <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+          <Button type="submit" size="lg" className="w-full font-medium" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

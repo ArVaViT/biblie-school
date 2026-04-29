@@ -66,7 +66,8 @@ export function RegisterForm({
         <Button
           type="button"
           variant="outline"
-          className="w-full h-11 font-medium rounded-md"
+          size="lg"
+          className="w-full font-medium rounded-md"
           onClick={onGoogleSignUp}
           disabled={googleLoading || loading}
         >
@@ -152,7 +153,7 @@ export function RegisterForm({
               id="fullName"
               placeholder="John Doe"
               autoComplete="name"
-              className="h-11"
+              fieldSize="lg"
               value={form.full_name}
               onChange={(e) => onChange("full_name", e.target.value)}
               aria-invalid={!!errors.full_name}
@@ -177,7 +178,7 @@ export function RegisterForm({
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
-              className="h-11"
+              fieldSize="lg"
               value={form.email}
               onChange={(e) => onChange("email", e.target.value)}
               aria-invalid={!!errors.email}
@@ -201,7 +202,7 @@ export function RegisterForm({
                 id="password"
                 type="password"
                 autoComplete="new-password"
-                className="h-11"
+                fieldSize="lg"
                 value={form.password}
                 onChange={(e) => onChange("password", e.target.value)}
                 aria-invalid={!!errors.password}
@@ -223,7 +224,7 @@ export function RegisterForm({
                 id="confirmPassword"
                 type="password"
                 autoComplete="new-password"
-                className="h-11"
+                fieldSize="lg"
                 value={form.confirmPassword}
                 onChange={(e) => onChange("confirmPassword", e.target.value)}
                 aria-invalid={!!errors.confirmPassword}
@@ -245,7 +246,8 @@ export function RegisterForm({
 
           <Button
             type="submit"
-            className="w-full h-11 font-medium rounded-md"
+            size="lg"
+            className="w-full font-medium rounded-md"
             disabled={loading}
           >
             {loading ? (

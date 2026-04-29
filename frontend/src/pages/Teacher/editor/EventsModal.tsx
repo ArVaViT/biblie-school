@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Pencil, Save, Trash2 } from "lucide-react"
 import { Modal } from "@/components/patterns"
 import { EventTypeBadge } from "./badges"
-import { TEXTAREA_CLASS, type EventFormState } from "./types"
+import type { EventFormState } from "./types"
 import type { CourseEvent } from "@/types"
 
 interface Props {
@@ -56,8 +57,8 @@ export function EventsModal({
             onChange={(e) => patch({ title: e.target.value })}
             placeholder="Event title"
           />
-          <textarea
-            className={`${TEXTAREA_CLASS} min-h-[60px]`}
+          <Textarea
+            fieldSize="sm"
             value={form.description}
             onChange={(e) => patch({ description: e.target.value })}
             placeholder="Description (optional)"

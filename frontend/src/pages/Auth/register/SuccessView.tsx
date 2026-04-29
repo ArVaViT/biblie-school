@@ -54,7 +54,7 @@ export function SuccessView({ email, isTeacher }: Props) {
           </div>
         </div>
         <Link to="/login" className="block">
-          <Button variant="outline" className="w-full h-11">
+          <Button variant="outline" size="lg" className="w-full">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Sign In
           </Button>

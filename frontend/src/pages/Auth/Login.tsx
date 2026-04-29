@@ -84,7 +84,8 @@ export default function Login() {
         <Button
           type="button"
           variant="outline"
-          className="w-full h-11 font-medium rounded-md"
+          size="lg"
+          className="w-full font-medium rounded-md"
           onClick={handleGoogleLogin}
           disabled={googleLoading || loading}
         >
@@ -112,7 +113,7 @@ export default function Login() {
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
-              className="h-11"
+              fieldSize="lg"
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
               aria-invalid={!!errors.email}
@@ -133,7 +134,7 @@ export default function Login() {
               id="password"
               type="password"
               autoComplete="current-password"
-              className="h-11"
+              fieldSize="lg"
               value={form.password}
               onChange={(e) => handleChange("password", e.target.value)}
               aria-invalid={!!errors.password}
@@ -142,7 +143,7 @@ export default function Login() {
             {errors.password && <p id="password-error" role="alert" className="text-xs text-destructive mt-1">{errors.password}</p>}
           </div>
 
-          <Button type="submit" className="w-full h-11 font-medium rounded-md" disabled={loading}>
+          <Button type="submit" size="lg" className="w-full font-medium rounded-md" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

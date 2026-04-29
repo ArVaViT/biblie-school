@@ -192,6 +192,17 @@
       width: 100%;
     }
   }
+  /* Password-reset success rail — named alias for reduced-motion parity */
+  .animate-grow-bar {
+    width: 0;
+    animation: grow 2.5s ease-out forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-grow-bar {
+      animation: none;
+      width: 100%;
+    }
+  }
   @keyframes skeleton-shimmer-slide {
     0% {
       transform: translateX(-100%);

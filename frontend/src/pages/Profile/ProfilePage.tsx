@@ -57,14 +57,17 @@ function NameForm({ user, onSaved }: { user: User; onSaved: () => Promise<void> 
       <div className="flex gap-2">
         <Input
           id="name"
+          fieldSize="lg"
           value={name}
           onChange={(e) => {
             setName(e.target.value)
             setSaved(false)
             setError("")
           }}
+          aria-invalid={!!error}
+          aria-describedby={error ? "profile-name-error" : undefined}
         />
-        <Button onClick={handleSave} disabled={saving || saved} size="sm" className="shrink-0">
+        <Button onClick={handleSave} disabled={saving || saved} size="lg" className="shrink-0">
           {saved ? (
             <>
               <Check className="h-4 w-4 mr-1.5" />
@@ -78,7 +81,11 @@ function NameForm({ user, onSaved }: { user: User; onSaved: () => Promise<void> 
           )}
         </Button>
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id="profile-name-error" role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

@@ -43,10 +43,3 @@ export type CourseEditorModal =
   | "cohorts"
   | "events"
   | null
-
-/**
- * Shared textarea classes. Lifted out of each modal because three of the
- * five modals rendered the exact same `<textarea>` wrapper inline.
- */
-export const TEXTAREA_CLASS =
-  "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

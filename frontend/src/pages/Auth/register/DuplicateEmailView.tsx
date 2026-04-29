@@ -32,15 +32,17 @@ export function DuplicateEmailView({ email }: { email: string }) {
         </div>
         <div className="space-y-3">
           <Link to="/login" className="block">
-            <Button className="w-full h-11">Go to Sign In</Button>
+            <Button size="lg" className="w-full">
+              Go to Sign In
+            </Button>
           </Link>
           <Link to="/forgot-password" className="block">
-            <Button variant="outline" className="w-full h-11">
+            <Button variant="outline" size="lg" className="w-full">
               Forgot Password?
             </Button>
           </Link>
           <a href="mailto:support@bibleschool.com" className="block">
-            <Button variant="ghost" className="w-full h-11 text-muted-foreground">
+            <Button variant="ghost" size="lg" className="w-full text-muted-foreground">
               Contact Support
             </Button>
           </a>
