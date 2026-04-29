@@ -20,6 +20,7 @@ import {
 import { isGradableChapterType } from "@/lib/chapterTypes"
 import ChapterTypeBadge from "@/components/course/ChapterTypeBadge"
 import { ErrorState } from "@/components/patterns"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function ModuleView() {
   const { t } = useTranslation()
@@ -69,15 +70,15 @@ export default function ModuleView() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-6 max-w-3xl">
-        <div className="h-8 w-28 animate-pulse bg-muted rounded mb-4" />
+        <Skeleton className="h-8 w-28 mb-4" />
         <div className="mb-4 space-y-2">
-          <div className="h-7 w-2/3 animate-pulse bg-muted rounded" />
-          <div className="h-4 w-full animate-pulse bg-muted rounded" />
+          <Skeleton className="h-7 w-2/3" />
+          <Skeleton className="h-4 w-full" />
         </div>
-        <div className="h-2 w-full animate-pulse bg-muted rounded-full mb-4" />
+        <Skeleton className="h-2 w-full rounded-full mb-4" />
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-14 animate-pulse bg-muted rounded-lg" />
+            <Skeleton key={i} className="h-14 rounded-lg" />
           ))}
         </div>
       </div>

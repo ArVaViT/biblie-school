@@ -23,6 +23,7 @@ import {
   type ChapterType,
 } from "@/lib/chapterTypes"
 import { ErrorState } from "@/components/patterns"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const EDITOR_OPTIONS = CHAPTER_TYPES.map((value) => {
   const meta = CHAPTER_TYPE_META[value]
@@ -163,14 +164,14 @@ export default function ChapterEditor() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="h-5 w-48 bg-muted rounded animate-pulse mb-6" />
-        <div className="h-10 w-3/4 bg-muted rounded animate-pulse mb-4" />
+        <Skeleton className="h-5 w-48 mb-6" />
+        <Skeleton className="h-10 w-3/4 mb-4" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
+            <Skeleton key={i} className="h-24 rounded-lg" />
           ))}
         </div>
-        <div className="h-64 bg-muted rounded animate-pulse" />
+        <Skeleton className="h-64" />
       </div>
     )
   }
