@@ -31,15 +31,18 @@ function HeaderNavLink({
       to={to}
       onClick={onNavigate}
       className={cn(
-        "font-medium transition-colors",
+        "font-medium transition-colors duration-200 ease-editorial",
         isSheet
-          ? "flex min-h-10 w-full items-center rounded-md px-3 text-sm active:bg-muted/80"
-          : "rounded-md px-2.5 py-1.5 text-xs leading-none",
-        active
-          ? "bg-muted/80 text-foreground"
-          : isSheet
-            ? "text-foreground hover:bg-muted"
-            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          ? "flex min-h-10 w-full items-center border-l-2 border-transparent py-2 pl-[calc(0.75rem-2px)] pr-3 text-sm active:bg-muted/60"
+          : "relative flex h-full items-center px-3 text-sm",
+        isSheet &&
+          (active
+            ? "border-primary bg-muted/25 font-medium text-foreground"
+            : "text-foreground hover:border-border hover:bg-muted/40"),
+        !isSheet &&
+          (active
+            ? "text-foreground after:pointer-events-none after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-sm after:bg-primary"
+            : "text-muted-foreground hover:text-foreground"),
       )}
     >
       {children}
@@ -64,19 +67,19 @@ export default function Header() {
   const closeMobile = () => setMobileOpen(false)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-50 border-b border-border/90 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
       <div className="container mx-auto max-w-[1400px] px-4">
-        <div className="flex h-12 items-center justify-between gap-2 md:gap-3">
+        <div className="flex h-11 items-stretch justify-between gap-2 md:h-12 md:gap-4">
           <Link
             to="/"
-            className="shrink-0 font-serif text-base font-semibold leading-none tracking-tight text-foreground transition-opacity hover:opacity-85"
+            className="flex shrink-0 items-center font-serif text-sm font-semibold leading-none tracking-tight text-foreground transition-opacity hover:opacity-85 md:text-base"
           >
             {t("common.appName")}
           </Link>
 
           {user ? (
             <nav
-              className="hidden min-w-0 flex-1 flex-wrap items-center justify-center gap-0.5 md:flex"
+              className="hidden min-w-0 flex-1 flex-wrap items-stretch justify-center md:flex"
               aria-label={t("header.navAriaLabel")}
             >
               <HeaderNavLink to="/" active={location.pathname === "/"}>
@@ -103,7 +106,7 @@ export default function Header() {
             <div className="hidden flex-1 md:block" aria-hidden />
           )}
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
             <div className="hidden items-center gap-1 md:flex">
               {user ? (
                 <>
