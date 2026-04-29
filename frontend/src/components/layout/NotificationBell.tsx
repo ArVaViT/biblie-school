@@ -85,10 +85,10 @@ export default function NotificationBell({
         className={cn(
           "relative shadow-none ring-offset-background focus-visible:ring-1",
           isNavRow
-            ? "flex h-auto min-h-11 w-full flex-row items-center justify-between rounded-md px-3 py-2.5 text-left font-normal hover:bg-muted"
+            ? "flex h-auto min-h-10 w-full flex-row items-center justify-between rounded-md px-3 py-2 text-left text-sm font-normal hover:bg-muted"
             : "p-0",
-          !isNavRow && isSheet && "h-11 min-h-11 w-11 min-w-11",
-          !isNavRow && !isSheet && "h-8 w-8",
+          !isNavRow && isSheet && "h-10 min-h-10 w-10 min-w-10",
+          !isNavRow && !isSheet && "h-7 w-7",
           isNavRow && open && "bg-muted/80",
         )}
         onClick={() => setOpen((prev) => !prev)}
@@ -109,9 +109,9 @@ export default function NotificationBell({
           </>
         ) : (
           <>
-            <Bell className="h-4 w-4" strokeWidth={1.75} />
+            <Bell className="h-3.5 w-3.5" strokeWidth={1.75} />
             {unreadCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+              <span className="absolute -right-0.5 -top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold leading-none text-destructive-foreground">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}

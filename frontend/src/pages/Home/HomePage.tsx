@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { coursesService } from "@/services/courses"
 import type { Course, Enrollment, StudentGrade } from "@/types"
 import { useAuth } from "@/context/useAuth"
@@ -12,6 +11,23 @@ import CourseCard from "@/components/course/CourseCard"
 import CourseCardSkeleton from "@/components/skeletons/CourseCardSkeleton"
 import { Search, BookOpen, LogIn, ArrowRight, CheckCircle } from "lucide-react"
 import { EmptyState, ErrorState } from "@/components/patterns"
+import { cn } from "@/lib/utils"
+
+function MyCoursesSectionHeader() {
+  const { t } = useTranslation()
+  return (
+    <div className="border-b border-border bg-muted/20 px-5 py-4 sm:px-8 sm:py-5">
+      <h2 className="font-serif text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+        {t("home.myCourses")}
+      </h2>
+      <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">{t("home.myCoursesLead")}</p>
+    </div>
+  )
+}
+
+function MyCoursesSectionBody({ children }: { children: React.ReactNode }) {
+  return <div className="px-5 py-4 sm:px-8 sm:py-5">{children}</div>
+}
 
 function MyCoursesSection() {
   const { t } = useTranslation()
@@ -44,126 +60,103 @@ function MyCoursesSection() {
 
   const filtered = enrollments.filter((e) => e.course?.created_by !== user?.id)
 
+  const shell = (body: React.ReactNode) => (
+    <section className="mb-12 overflow-hidden rounded-lg border border-border bg-card">
+      <MyCoursesSectionHeader />
+      <MyCoursesSectionBody>{body}</MyCoursesSectionBody>
+    </section>
+  )
+
   if (loading) {
-    return (
-      <Card className="mb-10">
-        <CardHeader>
-          <CardTitle className="font-serif text-lg flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-accent" />
-            {t("home.myCourses")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
-            ))}
+    return shell(
+      <div className="space-y-0 divide-y divide-border/80">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="py-5 first:pt-0">
+            <div className="h-5 w-48 max-w-full animate-pulse rounded-md bg-muted" />
+            <div className="mt-4 h-1.5 max-w-xs animate-pulse rounded-full bg-muted" />
           </div>
-        </CardContent>
-      </Card>
+        ))}
+      </div>,
     )
   }
 
-  if (fetchError) return (
-    <Card className="mb-10">
-      <CardHeader>
-        <CardTitle className="font-serif text-lg flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-accent" />
-          {t("home.myCourses")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-destructive py-4 text-center">
-          {t("home.loadCoursesError")}
-        </p>
-      </CardContent>
-    </Card>
-  )
+  if (fetchError) {
+    return shell(
+      <p className="py-2 text-center text-sm text-destructive">{t("home.loadCoursesError")}</p>,
+    )
+  }
 
-  if (filtered.length === 0) return (
-    <Card className="mb-10">
-      <CardHeader>
-        <CardTitle className="font-serif text-lg flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-accent" />
-          {t("home.myCourses")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          {t("home.noEnrollments")}
-        </p>
-      </CardContent>
-    </Card>
-  )
+  if (filtered.length === 0) {
+    return shell(
+      <p className="py-2 text-center text-sm text-muted-foreground">{t("home.noEnrollments")}</p>,
+    )
+  }
 
-  return (
-    <Card className="mb-10">
-      <CardHeader>
-        <CardTitle className="font-serif text-lg flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-accent" />
-          {t("home.myCourses")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {filtered.map((enrollment) => {
-            const grade = grades.find((g) => g.course_id === enrollment.course_id)
-            const progressColor =
-              enrollment.progress >= 100
-                ? "bg-success"
-                : enrollment.progress >= 60
-                  ? "bg-primary"
-                  : enrollment.progress >= 30
-                    ? "bg-warning"
-                    : "bg-destructive"
+  return shell(
+    <div className="space-y-0 divide-y divide-border/80">
+      {filtered
+        .filter((e) => e.course?.id)
+        .map((enrollment) => {
+        const grade = grades.find((g) => g.course_id === enrollment.course_id)
+        const progressColor =
+          enrollment.progress >= 100
+            ? "bg-success"
+            : enrollment.progress >= 60
+              ? "bg-primary"
+              : enrollment.progress >= 30
+                ? "bg-warning"
+                : "bg-destructive"
+        const courseId = enrollment.course!.id
 
-            return (
-              <div
-                key={enrollment.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-sm truncate">
-                      {enrollment.course?.title || t("home.course")}
-                    </h3>
-                    {enrollment.progress >= 100 && (
-                      <CheckCircle className="h-4 w-4 shrink-0 text-success" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4 mt-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-32 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${progressColor}`}
-                          style={{ width: `${Math.min(enrollment.progress, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium text-muted-foreground tabular-nums">
-                        {enrollment.progress}%
-                      </span>
-                    </div>
-                    {grade?.grade && (
-                      <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        {t("home.grade", { grade: grade.grade })}
-                      </span>
-                    )}
-                  </div>
+        return (
+          <Link
+            key={enrollment.id}
+            to={`/courses/${courseId}`}
+            className="group block py-5 transition-colors first:pt-0 last:pb-0 hover:bg-muted/20 sm:-mx-2 sm:rounded-md sm:px-2"
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="flex items-start gap-2">
+                  <h3 className="min-w-0 flex-1 font-serif text-base font-medium leading-snug text-foreground transition-colors group-hover:text-primary">
+                    {enrollment.course?.title || t("home.course")}
+                  </h3>
+                  {enrollment.progress >= 100 && (
+                    <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
+                  )}
                 </div>
-                {enrollment.course && (
-                  <Link to={`/courses/${enrollment.course.id}`}>
-                    <Button variant="ghost" size="sm" className="h-8 text-xs shrink-0 ml-4">
-                      {enrollment.progress >= 100 ? t("common.view") : t("common.continue")}
-                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                    </Button>
-                  </Link>
-                )}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="flex min-w-0 flex-1 items-center gap-3 sm:max-w-md">
+                    <div className="h-1.5 min-w-24 flex-1 rounded-full bg-muted">
+                      <div
+                        className={cn("h-full rounded-full transition-all duration-500", progressColor)}
+                        style={{ width: `${Math.min(enrollment.progress, 100)}%` }}
+                      />
+                    </div>
+                    <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                      {enrollment.progress}%
+                    </span>
+                  </div>
+                  {grade?.grade ? (
+                    <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-xs font-medium text-foreground">
+                      {t("home.grade", { grade: grade.grade })}
+                    </span>
+                  ) : null}
+                </div>
               </div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              <span className="inline-flex shrink-0 items-center text-xs font-medium text-primary sm:flex-col sm:items-end">
+                <span className="flex items-center gap-1">
+                  {enrollment.progress >= 100 ? t("common.view") : t("common.continue")}
+                  <ArrowRight
+                    className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </span>
+              </span>
+            </div>
+          </Link>
+        )
+      })}
+    </div>,
   )
 }
 

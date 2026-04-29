@@ -95,6 +95,7 @@
   },
   "home": {
     "myCourses": "My Courses",
+    "myCoursesLead": "Your enrollments and progress in one place.",
     "loadCoursesError": "Could not load your courses. Please try refreshing the page.",
     "noEnrollments": "You haven't enrolled in any courses yet. Browse the catalog below to get started.",
     "course": "Course",
