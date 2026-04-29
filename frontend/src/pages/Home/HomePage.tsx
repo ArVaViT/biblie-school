@@ -209,13 +209,17 @@ export default function HomePage() {
             {user ? t("home.discoverMore") : t("home.browseSeminary")}
           </p>
           <div className="animate-fade-in animate-delay-300 relative mx-auto mt-8 max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              strokeWidth={1.75}
+              aria-hidden
+            />
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value.slice(0, maxLength))}
               maxLength={maxLength}
               placeholder={t("home.searchPlaceholder")}
-              className="rounded-md border-border/80 bg-background/80 pl-9 shadow-sm backdrop-blur-sm transition-shadow focus-visible:ring-2"
+              className="rounded-md border-border/80 bg-background/85 pl-9 backdrop-blur-sm focus-visible:ring-2"
               aria-label={t("home.searchPlaceholder")}
             />
           </div>

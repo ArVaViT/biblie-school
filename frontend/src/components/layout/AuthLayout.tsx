@@ -47,20 +47,28 @@ export default function AuthLayout({ children, heading, subheading }: AuthLayout
       {/* Form panel */}
       <div className="flex-1 flex flex-col">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-4 border-b border-border/60 bg-background/90 backdrop-blur-sm">
-          <Link to="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
-            <BookOpen className="h-5 w-5 text-accent" />
-            <span className="font-serif font-bold tracking-tight">Bible School</span>
+        <div className="flex items-center justify-between border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur-sm lg:hidden">
+          <Link to="/" className="flex items-center gap-2.5 text-foreground transition-opacity hover:opacity-80">
+            <BookOpen className="h-5 w-5 shrink-0 text-accent" strokeWidth={1.75} aria-hidden />
+            <span className="font-serif text-base font-bold leading-none tracking-tight">Bible School</span>
           </Link>
-          <Button variant="ghost" size="sm" onClick={toggleTheme} className="h-8 w-8 p-0">
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          <Button variant="ghost" size="sm" onClick={toggleTheme} className="h-9 w-9 shrink-0 rounded-full p-0">
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            ) : (
+              <Moon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            )}
           </Button>
         </div>
 
         {/* Desktop theme toggle */}
-        <div className="hidden lg:flex justify-end p-4">
-          <Button variant="ghost" size="sm" onClick={toggleTheme} className="h-8 w-8 p-0">
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        <div className="hidden justify-end p-4 lg:flex">
+          <Button variant="ghost" size="sm" onClick={toggleTheme} className="h-9 w-9 rounded-full p-0">
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            ) : (
+              <Moon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            )}
           </Button>
         </div>
 

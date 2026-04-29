@@ -33,8 +33,8 @@ function HeaderNavLink({
       className={cn(
         "font-medium transition-colors",
         isSheet
-          ? "flex min-h-9 w-full items-center rounded-md px-3 text-sm active:bg-muted/80"
-          : "rounded-md px-2 py-1 text-xs leading-none",
+          ? "flex min-h-10 w-full items-center rounded-md px-3 text-sm active:bg-muted/80"
+          : "rounded-md px-2.5 py-1.5 text-xs leading-none",
         active
           ? "bg-muted/80 text-foreground"
           : isSheet
@@ -66,10 +66,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
       <div className="container mx-auto max-w-[1400px] px-4">
-        <div className="flex h-10 items-center justify-between gap-2 md:gap-3">
+        <div className="flex h-12 items-center justify-between gap-2 md:gap-3">
           <Link
             to="/"
-            className="shrink-0 font-serif text-sm font-semibold leading-none tracking-tight text-foreground transition-opacity hover:opacity-85"
+            className="shrink-0 font-serif text-base font-semibold leading-none tracking-tight text-foreground transition-opacity hover:opacity-85"
           >
             {t("common.appName")}
           </Link>
@@ -107,14 +107,14 @@ export default function Header() {
             <div className="hidden items-center gap-1 md:flex">
               {user ? (
                 <>
-                  <Suspense fallback={<div className="h-6 w-6 shrink-0" aria-hidden />}>
+                  <Suspense fallback={<div className="h-7 w-7 shrink-0" aria-hidden />}>
                     <NotificationBell />
                   </Suspense>
                   <Link to="/profile">
                     <Button
                       variant={isActive("/profile") ? "secondary" : "ghost"}
                       size="sm"
-                      className="h-6 w-6 shrink-0 rounded-full p-0"
+                      className="h-7 w-7 shrink-0 rounded-full p-0"
                       aria-label={t("header.profile")}
                       title={t("header.profileAndSettings")}
                     >
@@ -122,13 +122,13 @@ export default function Header() {
                         <img
                           src={toProxyImage(user.avatar_url)}
                           alt=""
-                          className="h-5 w-5 rounded-full object-cover"
+                          className="h-6 w-6 rounded-full object-cover"
                           onError={(e) => {
                             e.currentTarget.style.display = "none"
                           }}
                         />
                       ) : (
-                        <UserIcon className="h-3 w-3" strokeWidth={ICON_STROKE} />
+                        <UserIcon className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
                       )}
                     </Button>
                   </Link>
@@ -136,12 +136,12 @@ export default function Header() {
               ) : (
                 <>
                   <Link to="/login">
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs font-medium leading-none">
+                    <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs font-medium leading-none">
                       {t("common.signIn")}
                     </Button>
                   </Link>
                   <Link to="/register">
-                    <Button size="sm" className="h-7 px-2.5 text-xs font-medium leading-none">
+                    <Button size="sm" className="h-8 px-3 text-xs font-medium leading-none">
                       {t("common.register")}
                     </Button>
                   </Link>
@@ -154,7 +154,7 @@ export default function Header() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 min-w-7 px-1 text-muted-foreground hover:text-foreground"
+                className="h-8 min-w-8 px-1 text-muted-foreground hover:text-foreground"
                 onClick={() => setMobileOpen(true)}
                 aria-label={t("header.menu")}
                 aria-expanded={mobileOpen}
@@ -171,7 +171,7 @@ export default function Header() {
           side="right"
           className="flex max-h-[100dvh] flex-col gap-0 overflow-hidden p-0"
         >
-          <SheetHeader className="shrink-0 px-4 pb-2.5 pt-4">
+          <SheetHeader className="shrink-0 px-5 pb-3 pt-5">
             <SheetTitle className="font-sans text-sm font-semibold tracking-normal text-foreground">
               {t("header.mobileMenuTitle")}
             </SheetTitle>
@@ -219,7 +219,7 @@ export default function Header() {
                   </div>
                   <Link
                     to="/profile"
-                    className="flex min-h-9 w-full items-center rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted active:bg-muted/80"
+                    className="flex min-h-10 w-full items-center rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted active:bg-muted/80"
                     onClick={closeMobile}
                   >
                     {t("header.profileAndSettings")}
@@ -235,7 +235,7 @@ export default function Header() {
                   </HeaderNavLink>
                   <Link
                     to="/register"
-                    className="flex min-h-9 w-full items-center rounded-md px-3 text-sm font-semibold text-primary transition-colors hover:bg-muted active:bg-muted/80"
+                    className="flex min-h-10 w-full items-center rounded-md px-3 text-sm font-semibold text-primary transition-colors hover:bg-muted active:bg-muted/80"
                     onClick={closeMobile}
                   >
                     {t("common.register")}
