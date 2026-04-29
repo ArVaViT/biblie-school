@@ -208,9 +208,9 @@ function GradeTableRow({
         <td className="sticky left-0 z-10 bg-card border-b border-r px-3 py-2 font-medium">
           <div className="flex items-center gap-1.5 min-w-0">
             {expanded ? (
-              <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
             ) : (
-              <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
             )}
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold max-w-[140px]">
@@ -252,8 +252,8 @@ function GradeTableRow({
           <td colSpan={allChapters.length + 2} className="bg-muted/10 border-b px-4 py-3">
             <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium flex items-center gap-1">
-                  <Award className="h-3 w-3" /> Override Grade
+                <label className="flex items-center gap-1 text-xs font-medium">
+                  <Award className="h-3.5 w-3.5" strokeWidth={1.75} /> Override Grade
                 </label>
                 <Input
                   value={form.grade}
@@ -263,8 +263,8 @@ function GradeTableRow({
                 />
               </div>
               <div className="space-y-1 flex-1 min-w-[180px]">
-                <label className="text-xs font-medium flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" /> Comment
+                <label className="flex items-center gap-1 text-xs font-medium">
+                  <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.75} /> Comment
                 </label>
                 <Input
                   value={form.comment}
@@ -279,7 +279,7 @@ function GradeTableRow({
                 onClick={() => onSaveGrade(student.id)}
                 disabled={saving}
               >
-                <Save className="h-3 w-3 mr-1" />
+                <Save className="mr-1 h-3.5 w-3.5" strokeWidth={1.75} />
                 {saving ? "Saving..." : "Save Grade"}
               </Button>
             </div>

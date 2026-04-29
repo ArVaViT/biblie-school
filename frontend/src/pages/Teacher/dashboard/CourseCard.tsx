@@ -63,7 +63,7 @@ export function CourseCard({
           )}
           <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Layers className="h-3.5 w-3.5" />
+              <Layers className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               {course.modules?.length ?? 0} modules
             </span>
             <span>Created {new Date(course.created_at).toLocaleDateString()}</span>

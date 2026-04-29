@@ -172,9 +172,13 @@ function SortHeader({ field, label, sortField, sortDir, onToggle, className }: S
     >
       {label}
       {active ? (
-        sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+        sortDir === "asc" ? (
+          <ArrowUp className="h-3.5 w-3.5" strokeWidth={1.75} />
+        ) : (
+          <ArrowDown className="h-3.5 w-3.5" strokeWidth={1.75} />
+        )
       ) : (
-        <ArrowUpDown className="h-3 w-3 opacity-40" />
+        <ArrowUpDown className="h-3.5 w-3.5 opacity-40" strokeWidth={1.75} />
       )}
     </button>
   )
@@ -214,9 +218,9 @@ function StudentSummaryRow({
       >
         <div className="flex items-center gap-2 min-w-0">
           {expanded ? (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
           ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
           )}
           <div className="min-w-0">
             <p className="text-sm font-medium truncate">{student.student_name || "Unknown"}</p>
@@ -281,8 +285,8 @@ function StudentSummaryRow({
 
           <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium flex items-center gap-1">
-                <Award className="h-3 w-3" /> Override Grade
+              <label className="flex items-center gap-1 text-xs font-medium">
+                <Award className="h-3.5 w-3.5" strokeWidth={1.75} /> Override Grade
               </label>
               <Input
                 value={form.grade}
@@ -292,8 +296,8 @@ function StudentSummaryRow({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" /> Comment
+              <label className="flex items-center gap-1 text-xs font-medium">
+                <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.75} /> Comment
               </label>
               <Input
                 value={form.comment}
@@ -309,7 +313,7 @@ function StudentSummaryRow({
             onClick={() => onSaveGrade(student.student_id)}
             disabled={saving}
           >
-            <Save className="h-3.5 w-3.5 mr-1.5" />
+            <Save className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.75} />
             {saving ? "Saving..." : "Save Manual Grade"}
           </Button>
         </div>

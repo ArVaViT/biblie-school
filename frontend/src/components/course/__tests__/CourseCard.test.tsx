@@ -1,6 +1,9 @@
+import type { ReactNode } from "react"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
+import { I18nextProvider } from "react-i18next"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import i18n from "@/i18n/config"
 import CourseCard from "../CourseCard"
 import type { Course } from "@/types"
 
@@ -22,12 +25,16 @@ function makeCourse(overrides: Partial<Course> = {}): Course {
   }
 }
 
-function renderCard(course: Course) {
-  return render(
-    <MemoryRouter>
-      <CourseCard course={course} />
-    </MemoryRouter>,
+function TestWrapper({ children }: { children: ReactNode }) {
+  return (
+    <I18nextProvider i18n={i18n}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </I18nextProvider>
   )
+}
+
+function renderCard(course: Course) {
+  return render(<CourseCard course={course} />, { wrapper: TestWrapper })
 }
 
 describe("CourseCard", () => {

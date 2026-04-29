@@ -1,5 +1,6 @@
 import { useState, memo } from "react"
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Course } from "@/types"
@@ -23,32 +24,36 @@ function enrollmentState(start?: string | null, end?: string | null): { state: E
 }
 
 function EnrollmentBadge({ start, end }: { start?: string | null; end?: string | null }) {
+  const { t, i18n } = useTranslation()
   const { state, date } = enrollmentState(start, end)
+  const locale = (i18n.language ?? "en").startsWith("ru") ? "ru-RU" : "en-US"
   if (!state) return null
   if (state === "opens") {
     return (
-      <Badge variant="info" className="absolute top-3 right-3 z-10">
-        Opens {date!.toLocaleDateString()}
+      <Badge variant="info" className="absolute right-3 top-3 z-10">
+        {t("courseCard.opensOn", { date: date!.toLocaleDateString(locale) })}
       </Badge>
     )
   }
   if (state === "closed") {
     return (
-      <Badge variant="destructive" className="absolute top-3 right-3 z-10">
-        Enrollment closed
+      <Badge variant="destructive" className="absolute right-3 top-3 z-10">
+        {t("courseCard.enrollmentClosed")}
       </Badge>
     )
   }
   return (
-    <Badge variant="success" className="absolute top-3 right-3 z-10">
-      Enrolling now
+    <Badge variant="success" className="absolute right-3 top-3 z-10">
+      {t("courseCard.enrollingNow")}
     </Badge>
   )
 }
 
 function CourseCard({ course }: CourseCardProps) {
+  const { t } = useTranslation()
   const [imgError, setImgError] = useState(false)
   const coverSrc = toProxyImage(course.image_url)
+  const moduleCount = course.modules?.length ?? 0
 
   return (
     <Link
@@ -71,7 +76,7 @@ function CourseCard({ course }: CourseCardProps) {
             </div>
           ) : (
             <div className="flex aspect-[16/10] w-full items-center justify-center bg-muted">
-              <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+              <BookOpen className="h-10 w-10 text-muted-foreground/30" strokeWidth={1.75} aria-hidden />
             </div>
           )}
         </div>
@@ -86,12 +91,14 @@ function CourseCard({ course }: CourseCardProps) {
           )}
         </CardHeader>
         <CardContent className="mt-auto flex items-center justify-between pt-2 text-xs text-muted-foreground">
-          <span className="uppercase tracking-wide">
-            {course.modules?.length ?? 0} modules
-          </span>
+          <span className="uppercase tracking-wide">{t("courseCard.modulesLabel", { count: moduleCount })}</span>
           <span className="inline-flex items-center gap-1 text-foreground/80 transition-colors group-hover:text-primary">
-            Open
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            {t("courseCard.openCourse")}
+            <ArrowRight
+              className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+              strokeWidth={1.75}
+              aria-hidden
+            />
           </span>
         </CardContent>
       </Card>

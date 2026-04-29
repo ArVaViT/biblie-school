@@ -36,10 +36,13 @@ function MyCoursesSection() {
   const [grades, setGrades] = useState<StudentGrade[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
+      setLoading(true)
+      setFetchError(false)
       try {
         const [enrollData, gradeData] = await Promise.all([
           coursesService.getMyCourses(),
@@ -48,20 +51,22 @@ function MyCoursesSection() {
         if (cancelled) return
         setEnrollments(enrollData)
         setGrades(gradeData)
-        setFetchError(false)
       } catch {
         if (!cancelled) setFetchError(true)
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      finally { if (!cancelled) setLoading(false) }
     }
-    load()
-    return () => { cancelled = true }
-  }, [user?.id])
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id, retryCount])
 
   const filtered = enrollments.filter((e) => e.course?.created_by !== user?.id)
 
   const shell = (body: React.ReactNode) => (
-    <section className="mb-12 overflow-hidden rounded-lg border border-border bg-card">
+    <section className="mb-12 overflow-hidden rounded-md border border-border bg-card">
       <MyCoursesSectionHeader />
       <MyCoursesSectionBody>{body}</MyCoursesSectionBody>
     </section>
@@ -82,13 +87,26 @@ function MyCoursesSection() {
 
   if (fetchError) {
     return shell(
-      <p className="py-2 text-center text-sm text-destructive">{t("home.loadCoursesError")}</p>,
+      <ErrorState
+        className="py-10"
+        title={t("home.loadCoursesError")}
+        action={
+          <Button type="button" variant="outline" size="sm" onClick={() => setRetryCount((c) => c + 1)}>
+            {t("common.tryAgain")}
+          </Button>
+        }
+      />,
     )
   }
 
   if (filtered.length === 0) {
     return shell(
-      <p className="py-2 text-center text-sm text-muted-foreground">{t("home.noEnrollments")}</p>,
+      <EmptyState
+        className="border-none bg-transparent px-4 py-8 sm:py-10"
+        icon={<BookOpen className="text-muted-foreground" strokeWidth={1.75} />}
+        title={t("home.myCoursesEmptyTitle")}
+        description={t("home.noEnrollments")}
+      />,
     )
   }
 
@@ -121,7 +139,7 @@ function MyCoursesSection() {
                     {enrollment.course?.title || t("home.course")}
                   </h3>
                   {enrollment.progress >= 100 && (
-                    <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
+                    <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-success" strokeWidth={1.75} aria-hidden />
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -147,7 +165,8 @@ function MyCoursesSection() {
                 <span className="flex items-center gap-1">
                   {enrollment.progress >= 100 ? t("common.view") : t("common.continue")}
                   <ArrowRight
-                    className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+                    className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                    strokeWidth={1.75}
                     aria-hidden
                   />
                 </span>

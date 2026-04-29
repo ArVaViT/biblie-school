@@ -29,7 +29,7 @@ export function ModuleList({ courseId, modules, completedChapterIds }: Props) {
   return (
     <div>
       <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-        <BookOpen className="h-4 w-4" />
+        <BookOpen className="h-4 w-4" strokeWidth={1.75} aria-hidden />
         Modules
         <span className="text-sm font-normal text-muted-foreground">({modules.length})</span>
       </h2>
@@ -127,7 +127,7 @@ function ModuleRow({
             <Link to={`/courses/${courseId}/modules/${module.id}`}>
               <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0">
                 Open
-                <ArrowRight className="h-3 w-3 ml-1" />
+                <ArrowRight className="ml-1 h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
               </Button>
             </Link>
           )}
@@ -159,9 +159,9 @@ function ModuleRow({
               }`}
             >
               {overdue ? (
-                <AlertTriangle className="h-2.5 w-2.5" />
+                <AlertTriangle className="h-3 w-3" strokeWidth={1.75} aria-hidden />
               ) : (
-                <Clock className="h-2.5 w-2.5" />
+                <Clock className="h-3 w-3" strokeWidth={1.75} aria-hidden />
               )}
               <span>
                 {overdue ? "Overdue" : "Due"}: {formatDate(module.due_date)}

@@ -233,7 +233,7 @@ export default function ProfilePage() {
             {certificateCount > 0 && (
               <Link to="/certificates" className="mt-4 inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
                 {t("profile.viewAllCertificates")}
-                <ArrowRight className="h-3.5 w-3.5" />
+                <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               </Link>
             )}
           </CardContent>
@@ -292,7 +292,11 @@ export default function ProfilePage() {
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={toggleTheme}>
-                {theme === "dark" ? <Sun className="h-3.5 w-3.5 mr-1.5" /> : <Moon className="h-3.5 w-3.5 mr-1.5" />}
+                {theme === "dark" ? (
+                  <Sun className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
+                ) : (
+                  <Moon className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
+                )}
                 {theme === "dark" ? t("profile.switchToLight") : t("profile.switchToDark")}
               </Button>
             </div>
