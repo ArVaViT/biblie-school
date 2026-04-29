@@ -1,4 +1,5 @@
 import { CheckCircle, Clock, XCircle } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import type { QuizAttempt } from "@/types"
 
 interface Props {
@@ -7,17 +8,16 @@ interface Props {
 }
 
 export function PreviousAttempts({ attempts, autoMaxScore }: Props) {
+  const { t } = useTranslation()
   if (attempts.length === 0) return null
   return (
     <div className="border-t p-5">
       <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
         <Clock className="h-4 w-4 text-muted-foreground" />
-        Previous Attempts
+        {t("quiz.previousAttempts")}
       </h4>
       <div className="space-y-2">
         {attempts.map((att) => {
-          // An in-progress attempt has ``completed_at === null`` and
-          // ``passed === null`` — don't paint it as a failed attempt.
           const inProgress = !att.completed_at
           const style = inProgress
             ? "bg-muted/30 border border-border"
@@ -38,13 +38,14 @@ export function PreviousAttempts({ attempts, autoMaxScore }: Props) {
                   <XCircle className="h-4 w-4 text-destructive" />
                 )}
                 <span>
-                  {att.score ?? 0}/{att.max_score ?? autoMaxScore} points
+                  {t("quiz.attemptPoints", {
+                    score: att.score ?? 0,
+                    max: att.max_score ?? autoMaxScore,
+                  })}
                 </span>
               </div>
               <span className="text-xs text-muted-foreground">
-                {att.completed_at
-                  ? new Date(att.completed_at).toLocaleDateString()
-                  : "In progress"}
+                {att.completed_at ? new Date(att.completed_at).toLocaleDateString() : t("quiz.inProgress")}
               </span>
             </div>
           )

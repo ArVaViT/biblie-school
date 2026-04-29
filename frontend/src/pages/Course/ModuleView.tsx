@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { useParams, Link } from "react-router-dom"
+import i18n from "@/i18n/config"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
@@ -20,6 +22,7 @@ import ChapterTypeBadge from "@/components/course/ChapterTypeBadge"
 import { ErrorState } from "@/components/patterns"
 
 export default function ModuleView() {
+  const { t } = useTranslation()
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>()
   const { user } = useAuth()
   const [module, setModule] = useState<Module | null>(null)
@@ -32,7 +35,7 @@ export default function ModuleView() {
     const load = async () => {
       if (!courseId || !moduleId) {
         setLoading(false)
-        setError("Invalid course or module link.")
+        setError(t("errors.invalidCourseLink"))
         return
       }
       setLoading(true)
@@ -46,14 +49,14 @@ export default function ModuleView() {
         setModule(mod)
         setCompletedIds(new Set(completedChapterIds))
       } catch {
-        if (!cancelled) setError("Failed to load module. Please try again.")
+        if (!cancelled) setError(t("errors.loadModuleFailed"))
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     load()
     return () => { cancelled = true }
-  }, [courseId, moduleId, user?.id])
+  }, [courseId, moduleId, user?.id, t])
 
   const sortedChapters = useMemo(
     () => [...(module?.chapters ?? [])].sort((a, b) => a.order_index - b.order_index),
@@ -86,10 +89,10 @@ export default function ModuleView() {
       <div className="container mx-auto px-4">
         <ErrorState
           icon={<Book />}
-          title={error ?? "Module not found"}
+          title={error ?? t("toast.moduleNotFound")}
           action={
             <Link to={courseId ? `/courses/${courseId}` : "/"}>
-              <Button variant="outline" size="sm">Back to Course</Button>
+              <Button variant="outline" size="sm">{t("course.backToCourse")}</Button>
             </Link>
           }
         />
@@ -99,13 +102,14 @@ export default function ModuleView() {
 
   const completedCount = gradableChapters.filter((c) => completedIds.has(c.id)).length
   const progressPercent = gradableChapters.length > 0 ? Math.round((completedCount / gradableChapters.length) * 100) : 100
+  const dateLocale = i18n.language?.startsWith("en") ? "en-US" : "ru-RU"
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-3xl">
       <Link to={`/courses/${courseId}`}>
         <Button variant="ghost" size="sm" className="mb-4 h-8 text-xs">
           <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
-          Back to Course
+          {t("course.backToCourse")}
         </Button>
       </Link>
 
@@ -139,8 +143,15 @@ export default function ModuleView() {
             <span className={`text-sm font-medium ${
               isOverdue ? "text-destructive" : isUpcoming ? "text-warning" : "text-foreground"
             }`}>
-              {isOverdue ? "Overdue" : "Due"}: {dueDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-              {" at "}{dueDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+              {isOverdue ? t("module.overdue") : t("module.due")}:{" "}
+              {dueDate.toLocaleString(dateLocale, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           </div>
         )
@@ -149,7 +160,7 @@ export default function ModuleView() {
       {allComplete && (
         <div className="mb-4 flex items-center gap-2 rounded-md border border-border border-l-[3px] border-l-success bg-success/10 px-3 py-2">
           <CheckCircle className="h-4 w-4 shrink-0 text-success" />
-          <span className="text-sm font-medium text-success">Module complete — well done!</span>
+          <span className="text-sm font-medium text-success">{t("module.moduleComplete")}</span>
         </div>
       )}
 
@@ -157,7 +168,7 @@ export default function ModuleView() {
         <div className="mb-4">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="font-medium">
-              {completedCount}/{gradableChapters.length} completed
+              {t("module.completedProgress", { done: completedCount, total: gradableChapters.length })}
             </span>
             <span className="text-muted-foreground">{progressPercent}%</span>
           </div>
@@ -173,7 +184,7 @@ export default function ModuleView() {
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <Book className="h-4 w-4" />
-          Chapters
+          {t("module.chaptersHeading")}
           <span className="text-sm font-normal text-muted-foreground">
             ({sortedChapters.length})
           </span>
@@ -250,7 +261,7 @@ export default function ModuleView() {
         ) : (
           <Card className="border-dashed">
             <CardContent className="py-12 text-center text-muted-foreground text-sm">
-              No chapters added yet
+              {t("module.noChaptersYet")}
             </CardContent>
           </Card>
         )}

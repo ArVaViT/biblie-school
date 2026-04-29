@@ -1,4 +1,5 @@
 import { AlertCircle, BookOpen, CheckCircle, Trophy, XCircle } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent } from "@/components/ui/card"
 import type { Quiz, QuizAttempt, QuizQuestion } from "@/types"
 import type { AnswerMap } from "./types"
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function ResultsView({ result, quiz, questions, answers }: Props) {
+  const { t } = useTranslation()
   const scorePercent = result.max_score
     ? Math.round(((result.score ?? 0) / result.max_score) * 100)
     : 0
@@ -36,24 +38,24 @@ export function ResultsView({ result, quiz, questions, answers }: Props) {
             <AlertCircle className="mx-auto mb-3 h-10 w-10 text-destructive" />
           )}
           <h3 className="text-lg font-bold mb-1">
-            {result.passed ? "You Passed!" : "Not Quite"}
+            {result.passed ? t("quiz.passedTitle") : t("quiz.notPassedTitle")}
           </h3>
           <p className="text-2xl font-bold mb-1">
             {result.score ?? 0}/{result.max_score ?? 0}
           </p>
           <p className="text-sm text-muted-foreground">
-            {scorePercent}% — Passing score: {quiz.passing_score}%
+            {t("quiz.passingScoreLine", { percent: scorePercent, passing: quiz.passing_score })}
           </p>
           {hasOpenEnded && (
             <p className="mt-2 text-xs text-warning">
-              Open-ended answers are pending teacher review
+              {t("quiz.pendingTeacherReview")}
             </p>
           )}
         </CardContent>
       </Card>
 
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold">Review Answers</h4>
+        <h4 className="text-sm font-semibold">{t("quiz.reviewAnswers")}</h4>
         {questions.map((q, idx) => {
           const userAnswer = answers[q.id]
           const answerResult = answerMap.get(q.id)
@@ -132,8 +134,15 @@ export function ResultsView({ result, quiz, questions, answers }: Props) {
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2 py-1 font-medium text-success">
                         <CheckCircle className="h-3.5 w-3.5" />
-                        Graded · {answerResult?.points_earned ?? 0}/{q.points} pt
-                        {q.points !== 1 ? "s" : ""}
+                        {q.points === 1
+                          ? t("quiz.gradedPoints", {
+                              earned: answerResult?.points_earned ?? 0,
+                              max: q.points,
+                            })
+                          : t("quiz.gradedPointsPlural", {
+                              earned: answerResult?.points_earned ?? 0,
+                              max: q.points,
+                            })}
                       </span>
                       {answerResult?.grader_comment && (
                         <span className="text-muted-foreground">
@@ -144,12 +153,12 @@ export function ResultsView({ result, quiz, questions, answers }: Props) {
                   ) : (
                     <div className="flex w-fit items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning">
                       <BookOpen className="h-3.5 w-3.5 shrink-0" />
-                      Sent for teacher review
+                      {t("quiz.sentForReview")}
                     </div>
                   )}
                   {userAnswer?.text_answer && (
                     <p className="text-xs text-muted-foreground italic whitespace-pre-wrap">
-                      Your answer: {userAnswer.text_answer}
+                      {t("quiz.yourAnswer")} {userAnswer.text_answer}
                     </p>
                   )}
                 </div>

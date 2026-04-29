@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,6 +31,7 @@ interface AssignmentPanelProps {
 }
 
 export default function AssignmentPanel({ chapterId, assignmentId, onSubmitted, onCountLoaded }: AssignmentPanelProps) {
+  const { t } = useTranslation()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [submissionsMap, setSubmissionsMap] = useState<Record<string, AssignmentSubmission | null>>({})
   const [loading, setLoading] = useState(true)
@@ -77,7 +79,7 @@ export default function AssignmentPanel({ chapterId, assignmentId, onSubmitted, 
     return <PageSpinner variant="section" />
   }
   if (fetchError) return (
-    <p className="text-sm text-destructive py-4 text-center">Failed to load assignments. Please try refreshing.</p>
+    <p className="text-sm text-destructive py-4 text-center">{t("assignment.loadFailed")}</p>
   )
   if (assignments.length === 0) return null
 
@@ -96,6 +98,7 @@ export default function AssignmentPanel({ chapterId, assignmentId, onSubmitted, 
 }
 
 function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assignment: Assignment; initialSubmission: AssignmentSubmission | null; onSubmitted?: () => void }) {
+  const { t } = useTranslation()
   const [submission, setSubmission] = useState<AssignmentSubmission | null>(initialSubmission)
   const [content, setContent] = useState("")
   const [fileUrl, setFileUrl] = useState("")
@@ -119,7 +122,7 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
       onSubmitted?.()
     } catch (error: unknown) {
       const detail = getErrorDetail(error)
-      toast({ title: detail || "Failed to submit assignment", variant: "destructive" })
+      toast({ title: detail || t("toast.assignmentSubmitFailed"), variant: "destructive" })
     } finally {
       setSubmitting(false)
     }
@@ -130,23 +133,26 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
 
   const isOverdue = assignment.due_date && new Date(assignment.due_date) < new Date()
 
-  const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-    submitted: {
-      icon: <Clock className="h-4 w-4" />,
-      label: "Submitted — Awaiting Review",
-      color: "border-info/30 bg-info/10 text-info",
-    },
-    graded: {
-      icon: <CheckCircle className="h-4 w-4" />,
-      label: "Graded",
-      color: "border-success/30 bg-success/10 text-success",
-    },
-    returned: {
-      icon: <RotateCcw className="h-4 w-4" />,
-      label: "Returned — Resubmission Requested",
-      color: "border-warning/30 bg-warning/10 text-warning",
-    },
-  }
+  const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = useMemo(
+    () => ({
+      submitted: {
+        icon: <Clock className="h-4 w-4" />,
+        label: t("assignment.statusSubmitted"),
+        color: "border-info/30 bg-info/10 text-info",
+      },
+      graded: {
+        icon: <CheckCircle className="h-4 w-4" />,
+        label: t("assignment.statusGraded"),
+        color: "border-success/30 bg-success/10 text-success",
+      },
+      returned: {
+        icon: <RotateCcw className="h-4 w-4" />,
+        label: t("assignment.statusReturned"),
+        color: "border-warning/30 bg-warning/10 text-warning",
+      },
+    }),
+    [t],
+  )
 
   return (
     <div className="border rounded-lg bg-card">
@@ -161,13 +167,14 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
         <div className="flex items-center gap-4 ml-7 mt-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Star className="h-3 w-3" />
-            Max: {assignment.max_score} pts
+            {t("assignment.maxPoints", { max: assignment.max_score })}
           </span>
           {assignment.due_date && (
             <span className={`flex items-center gap-1 ${isOverdue ? "font-medium text-destructive" : ""}`}>
               <Calendar className="h-3 w-3" />
-              Due: {new Date(assignment.due_date).toLocaleDateString()}
-              {isOverdue && " (overdue)"}
+              {t("assignment.due")}{" "}
+              {new Date(assignment.due_date).toLocaleDateString()}
+              {isOverdue && ` ${t("assignment.overdue")}`}
             </span>
           )}
         </div>
@@ -186,7 +193,7 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
                 <span className="font-semibold text-lg">
                   {submission.grade}/{assignment.max_score}
                 </span>
-                <span className="text-muted-foreground">points</span>
+                <span className="text-muted-foreground">{t("assignment.points")}</span>
               </div>
             )}
 
@@ -194,7 +201,7 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
               <div className="rounded-md border bg-muted/30 p-3">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
                   <MessageSquare className="h-3 w-3" />
-                  Instructor Feedback
+                  {t("assignment.instructorFeedback")}
                 </div>
                 <p className="text-sm text-wrap-safe whitespace-pre-wrap">{submission.feedback}</p>
               </div>
@@ -202,7 +209,7 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
 
             {submission.content && (
               <div className="rounded-md border bg-muted/30 p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Your Submission</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">{t("assignment.yourSubmission")}</p>
                 <p className="text-sm text-wrap-safe whitespace-pre-wrap">{submission.content}</p>
               </div>
             )}
@@ -213,22 +220,22 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
           <div className="space-y-3">
             {canResubmit && (
               <p className="text-xs font-medium text-warning">
-                Your instructor has returned this assignment. Please revise and resubmit.
+                {t("assignment.returnedHint")}
               </p>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs">Your Response</Label>
+              <Label className="text-xs">{t("assignment.yourResponse")}</Label>
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your assignment response here..."
+                placeholder={t("assignment.responsePlaceholder")}
                 className="w-full min-h-[120px] p-3 text-sm bg-background border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs flex items-center gap-1.5">
                 <LinkIcon className="h-3 w-3" />
-                File Link (optional)
+                {t("assignment.fileLinkOptional")}
               </Label>
               <Input
                 value={fileUrl}
@@ -247,7 +254,7 @@ function SingleAssignment({ assignment, initialSubmission, onSubmitted }: { assi
               ) : (
                 <Send className="h-3.5 w-3.5 mr-1.5" />
               )}
-              {submitting ? "Submitting..." : canResubmit ? "Resubmit" : "Submit"}
+              {submitting ? t("assignment.submitting") : canResubmit ? t("assignment.resubmit") : t("assignment.submit")}
             </Button>
           </div>
         )}

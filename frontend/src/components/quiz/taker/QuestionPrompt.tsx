@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { QuizQuestion } from "@/types"
 import { EssayAnswer } from "./EssayAnswer"
 import type { QuizAnswer } from "./types"
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function QuestionPrompt({ question, index, answer, onAnswer }: Props) {
+  const { t } = useTranslation()
   const sortedOptions = [...(question.options ?? [])].sort(
     (a, b) => a.order_index - b.order_index,
   )
@@ -25,7 +27,7 @@ export function QuestionPrompt({ question, index, answer, onAnswer }: Props) {
             {question.question_text}
           </p>
           <span className="text-xs text-muted-foreground">
-            {question.points} pt{question.points !== 1 ? "s" : ""}
+            {t("quiz.questionPoints", { points: question.points })}
           </span>
         </div>
       </div>
@@ -78,7 +80,7 @@ export function QuestionPrompt({ question, index, answer, onAnswer }: Props) {
           <textarea
             value={answer?.text_answer ?? ""}
             onChange={(e) => onAnswer({ text_answer: e.target.value })}
-            placeholder="Type your answer..."
+            placeholder={t("quiz.typeAnswerPlaceholder")}
             className="w-full min-h-[80px] p-3 text-sm bg-background border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50"
           />
         </div>

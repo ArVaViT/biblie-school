@@ -1,4 +1,5 @@
 import { Navigate, useSearchParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Shield } from "lucide-react"
 import { useAuth } from "@/context/useAuth"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ import { useAdminAudit } from "./dashboard/useAdminAudit"
  * the matching section for the active tab. This file is layout-only.
  */
 export default function AdminDashboard() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [params, setParams] = useSearchParams()
 
@@ -46,9 +48,9 @@ export default function AdminDashboard() {
           <Shield className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("admin.title")}</h1>
           <p className="text-muted-foreground mt-0.5">
-            Manage users, roles, and monitor platform activity
+            {t("admin.subtitle")}
           </p>
         </div>
       </div>
@@ -61,7 +63,7 @@ export default function AdminDashboard() {
           description={overview.error}
           action={
             <Button onClick={overview.reload} size="sm" variant="outline">
-              Try again
+              {t("common.tryAgain")}
             </Button>
           }
           className="mb-8"

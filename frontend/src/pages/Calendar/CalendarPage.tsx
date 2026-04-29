@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { CalendarDays, Filter, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { useCalendarData } from "./useCalendarData";
 import { useMonthGrid } from "./useMonthGrid";
 
 export default function CalendarPage() {
+  const { t } = useTranslation();
   const {
     events,
     enrollments,
@@ -47,7 +49,7 @@ export default function CalendarPage() {
           action={
             <Button variant="outline" size="sm" onClick={retry}>
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              Retry
+              {t("calendar.retry")}
             </Button>
           }
         />
@@ -61,10 +63,10 @@ export default function CalendarPage() {
         <div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
             <CalendarDays className="h-6 w-6 text-primary" />
-            Calendar
+            {t("calendar.title")}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Your deadlines, events, and schedule in one place
+            {t("calendar.subtitle")}
           </p>
         </div>
 
@@ -75,9 +77,9 @@ export default function CalendarPage() {
               value={filterCourseId}
               onChange={(e) => setFilterCourseId(e.target.value)}
               className="text-sm border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label="Filter by course"
+              aria-label={t("calendar.filterByCourse")}
             >
-              <option value="">All Courses</option>
+              <option value="">{t("calendar.allCourses")}</option>
               {enrollments.map((e) => (
                 <option key={e.course_id} value={e.course_id}>
                   {e.course?.title ?? e.course_id}

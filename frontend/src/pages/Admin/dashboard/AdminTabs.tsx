@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Users, FileText } from "lucide-react"
 import type { AdminTab } from "./constants"
 
@@ -8,19 +9,20 @@ interface Props {
 
 /** Underlined tab bar used at the top of the Admin dashboard. */
 export function AdminTabs({ active, onChange }: Props) {
+  const { t } = useTranslation()
   return (
     <div className="flex gap-1 mb-8 border-b">
       <TabButton
         active={active === "overview"}
         onClick={() => onChange("overview")}
         icon={<Users className="h-4 w-4" />}
-        label="Overview"
+        label={t("admin.tabOverview")}
       />
       <TabButton
         active={active === "audit"}
         onClick={() => onChange("audit")}
         icon={<FileText className="h-4 w-4" />}
-        label="Audit Log"
+        label={t("admin.tabAudit")}
       />
     </div>
   )

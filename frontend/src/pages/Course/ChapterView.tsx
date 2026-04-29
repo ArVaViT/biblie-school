@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, memo } from "react"
+import { useTranslation } from "react-i18next"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { sanitizeHtml as sanitize } from "@/lib/sanitize"
 import PageSpinner from "@/components/ui/PageSpinner"
@@ -37,6 +38,7 @@ const BlockRenderer = memo(function BlockRenderer({
   onProgressChanged?: () => void
   onAssignmentCountLoaded?: (count: number) => void
 }) {
+  const { t } = useTranslation()
   const sanitizedContent = useMemo(
     () => (block.content ? sanitize(block.content) : ""),
     [block.content],
@@ -71,7 +73,7 @@ const BlockRenderer = memo(function BlockRenderer({
         <FileBlockLink
           bucket={block.file_bucket}
           path={block.file_path}
-          label={block.file_name || block.content || "Download file"}
+          label={block.file_name || block.content || t("chapter.downloadFile")}
         />
       ) : null
 
@@ -89,6 +91,7 @@ function FileBlockLink({
   path: string
   label: string
 }) {
+  const { t } = useTranslation()
   const [opening, setOpening] = useState(false)
 
   // Sign on click so the URL is always valid against the current Supabase
@@ -101,11 +104,11 @@ function FileBlockLink({
       const url = await storageService.getSignedBlockFileUrl(bucket, path)
       window.open(url, "_blank", "noopener,noreferrer")
     } catch {
-      toast({ title: "Could not open file. Please try again.", variant: "destructive" })
+      toast({ title: t("toast.openFileFailed"), variant: "destructive" })
     } finally {
       setOpening(false)
     }
-  }, [bucket, path, opening])
+  }, [bucket, path, opening, t])
 
   return (
     <button
@@ -140,11 +143,12 @@ function ChapterBodyBlocks({
   onProgressChanged?: () => void
   onAssignmentCountLoaded?: (count: number) => void
 }) {
+  const { t } = useTranslation()
   if (loading) return <PageSpinner variant="section" />
   if (blocks.length === 0) {
     return (
       <p className="text-muted-foreground text-center py-8">
-        No content has been added to this chapter yet.
+        {t("chapter.emptyContent")}
       </p>
     )
   }
@@ -179,6 +183,7 @@ function ChapterNav({
   moduleId?: string
   isNextLocked: boolean
 }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   return (
@@ -190,12 +195,12 @@ function ChapterNav({
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Previous Chapter
+          {t("chapter.prevChapter")}
         </Button>
       ) : (
         <Button variant="outline" disabled className="gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Previous Chapter
+          {t("chapter.prevChapter")}
         </Button>
       )}
 
@@ -207,7 +212,7 @@ function ChapterNav({
         isNextLocked ? (
           <Button variant="outline" disabled className="gap-2">
             <Lock className="h-4 w-4" />
-            Next Chapter
+            {t("chapter.nextChapter")}
           </Button>
         ) : (
           <Button
@@ -215,13 +220,13 @@ function ChapterNav({
             onClick={() => navigate(`/courses/${courseId}/modules/${moduleId}/chapters/${nextChapter.id}`)}
             className="gap-2"
           >
-            Next Chapter
+            {t("chapter.nextChapter")}
             <ArrowRight className="h-4 w-4" />
           </Button>
         )
       ) : (
         <Button variant="outline" disabled className="gap-2">
-          Next Chapter
+          {t("chapter.nextChapter")}
           <ArrowRight className="h-4 w-4" />
         </Button>
       )}
@@ -230,6 +235,7 @@ function ChapterNav({
 }
 
 export default function ChapterView() {
+  const { t } = useTranslation()
   const { courseId, moduleId, chapterId } = useParams<{
     courseId: string
     moduleId: string
@@ -250,7 +256,7 @@ export default function ChapterView() {
     const load = async () => {
       if (!courseId || !moduleId) {
         setLoading(false)
-        setError("Invalid course or module link.")
+        setError(t("errors.invalidCourseLink"))
         return
       }
       setLoading(true)
@@ -264,14 +270,14 @@ export default function ChapterView() {
         setMod(m)
         setCompletedIds(new Set(completedChapterIds))
       } catch {
-        if (!cancelled) setError("Failed to load chapter. Please try again.")
+        if (!cancelled) setError(t("errors.loadChapterFailed"))
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     load()
     return () => { cancelled = true }
-  }, [courseId, moduleId, user?.id])
+  }, [courseId, moduleId, user?.id, t])
 
   const sortedChapters = useMemo(
     () => [...(mod?.chapters ?? [])].sort((a, b) => a.order_index - b.order_index),
@@ -343,15 +349,15 @@ export default function ChapterView() {
       <div className="container mx-auto px-4">
         <ErrorState
           icon={<Book />}
-          title={error ?? "Chapter not found"}
+          title={error ?? t("toast.chapterNotFound")}
           action={
             courseId && moduleId ? (
               <Link to={`/courses/${courseId}/modules/${moduleId}`}>
-                <Button variant="outline" size="sm">Back to Module</Button>
+                <Button variant="outline" size="sm">{t("course.backToModule")}</Button>
               </Link>
             ) : (
               <Link to="/">
-                <Button variant="outline" size="sm">Go Home</Button>
+                <Button variant="outline" size="sm">{t("course.goHome")}</Button>
               </Link>
             )
           }
@@ -369,17 +375,17 @@ export default function ChapterView() {
         <Link to={`/courses/${courseId}/modules/${moduleId}`}>
           <Button variant="ghost" size="sm" className="mb-4 h-8 text-xs">
             <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
-            Back to Module
+            {t("course.backToModule")}
           </Button>
         </Link>
 
         <div className="text-center py-16">
           <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="font-serif text-xl font-semibold mb-2">Chapter Locked</h2>
-          <p className="text-muted-foreground">Complete the previous chapter to unlock this one.</p>
+          <h2 className="font-serif text-xl font-semibold mb-2">{t("chapter.lockedTitle")}</h2>
+          <p className="text-muted-foreground">{t("chapter.lockedHint")}</p>
           {prevChapter && (
             <Link to={`/courses/${courseId}/modules/${moduleId}/chapters/${prevChapter.id}`}>
-              <Button className="mt-4">Go to Previous Chapter</Button>
+              <Button className="mt-4">{t("chapter.goToPreviousChapter")}</Button>
             </Link>
           )}
         </div>
@@ -394,7 +400,7 @@ export default function ChapterView() {
       <Link to={`/courses/${courseId}/modules/${moduleId}`}>
         <Button variant="ghost" size="sm" className="mb-6 h-8 text-xs">
           <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
-          Back to Module
+          {t("course.backToModule")}
         </Button>
       </Link>
 
@@ -406,7 +412,7 @@ export default function ChapterView() {
           {chapter.title}
         </h1>
         <p className="text-sm text-muted-foreground text-wrap-safe">
-          Chapter {currentIdx + 1} of {sortedChapters.length}
+          {t("chapter.chapterOf", { current: currentIdx + 1, total: sortedChapters.length })}
           {mod.title && <> &middot; {mod.title}</>}
         </p>
       </div>
@@ -439,12 +445,12 @@ export default function ChapterView() {
           {isCompleted ? (
             <p className="flex items-center gap-2 text-sm text-success">
               <CheckCircle className="h-4 w-4" />
-              Completed
+              {t("chapter.completed")}
             </p>
           ) : (
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               <Circle className="h-4 w-4" />
-              Submit the assignment to complete this chapter
+              {t("chapter.submitAssignmentToComplete")}
             </p>
           )}
         </div>

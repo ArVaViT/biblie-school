@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useParams, Link } from "react-router-dom"
 import { BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,7 @@ import {
 } from "./detail"
 
 export default function CourseDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const [course, setCourse] = useState<Course | null>(null)
@@ -77,7 +79,7 @@ export default function CourseDetail() {
           setCalendarEvents(evts)
         }
       } catch {
-        if (!cancelled) setError("Failed to load course. Please try again.")
+        if (!cancelled) setError(t("errors.loadCourseFailed"))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -107,9 +109,9 @@ export default function CourseDetail() {
       setCompletedChapterIds(new Set(progress))
       setMaterials(mats)
       setCalendarEvents(evts)
-      toast({ title: "Enrolled successfully", variant: "success" })
+      toast({ title: t("toast.enrolledSuccess"), variant: "success" })
     } catch {
-      toast({ title: "Failed to enroll. Please try again.", variant: "destructive" })
+      toast({ title: t("toast.enrolledFailed"), variant: "destructive" })
     } finally {
       setEnrolling(false)
     }
@@ -124,11 +126,11 @@ export default function CourseDetail() {
       <div className="container mx-auto px-4">
         <ErrorState
           icon={<BookOpen />}
-          title={error ?? "Course not found"}
+          title={error ?? t("toast.courseNotFound")}
           action={
             <Link to="/">
               <Button variant="outline" size="sm">
-                Back to Courses
+                {t("course.backToCourses")}
               </Button>
             </Link>
           }

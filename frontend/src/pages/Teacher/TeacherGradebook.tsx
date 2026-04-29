@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { useParams, useSearchParams, Link } from "react-router-dom"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { Button } from "@/components/ui/button"
@@ -30,6 +31,7 @@ import { GradeTableTab } from "./gradebook/GradeTableTab"
  * per-tab components are pure, prop-driven render layers.
  */
 export default function TeacherGradebook() {
+  const { t } = useTranslation()
   const { courseId } = useParams<{ courseId: string }>()
   const [params, setParams] = useSearchParams()
 
@@ -128,7 +130,7 @@ export default function TeacherGradebook() {
           setProgressData(progress as ProgressResponse)
         }
       } catch {
-        if (!cancelled) setError("Failed to load gradebook. Please try again.")
+        if (!cancelled) setError(t("gradebook.failedLoad"))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -136,7 +138,7 @@ export default function TeacherGradebook() {
     return () => {
       cancelled = true
     }
-  }, [courseId, reloadKey])
+  }, [courseId, reloadKey, t])
 
   const saveConfig = async () => {
     if (!courseId) return
@@ -147,11 +149,11 @@ export default function TeacherGradebook() {
     try {
       const updated = await coursesService.updateGradingConfig(courseId, configDraft)
       setConfig(updated)
-      toast({ title: "Grading weights saved", variant: "success" })
+      toast({ title: t("toast.gradingWeightsSaved"), variant: "success" })
       const gradeSummary = await coursesService.getGradeSummary(courseId)
       setSummary(gradeSummary)
     } catch {
-      toast({ title: "Failed to save grading config", variant: "destructive" })
+      toast({ title: t("toast.gradingConfigSaveFailed"), variant: "destructive" })
     } finally {
       setSavingConfig(false)
     }
@@ -187,9 +189,9 @@ export default function TeacherGradebook() {
         comment: form.comment.trim() || undefined,
       })
       setManualGrades((prev) => new Map(prev).set(userId, data))
-      toast({ title: "Grade saved", variant: "success" })
+      toast({ title: t("toast.gradeSaved"), variant: "success" })
     } catch {
-      toast({ title: "Failed to save grade", variant: "destructive" })
+      toast({ title: t("toast.gradeSaveFailed"), variant: "destructive" })
     } finally {
       setSaving(null)
     }
@@ -211,7 +213,7 @@ export default function TeacherGradebook() {
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      toast({ title: "Failed to export grades", variant: "destructive" })
+      toast({ title: t("toast.exportGradesFailed"), variant: "destructive" })
     } finally {
       setExporting(false)
     }
@@ -265,14 +267,14 @@ export default function TeacherGradebook() {
           description={error}
           action={
             <Button onClick={reload} size="sm" variant="outline">
-              Try again
+              {t("common.tryAgain")}
             </Button>
           }
           secondaryAction={
             <Link to="/teacher">
               <Button size="sm" variant="ghost">
                 <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
-                Back to courses
+                {t("teacher.backToCourses")}
               </Button>
             </Link>
           }
@@ -288,24 +290,24 @@ export default function TeacherGradebook() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
         <Link to="/teacher" className="hover:text-foreground transition-colors">
-          My Courses
+          {t("gradebook.breadcrumbCourses")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground font-medium">Gradebook</span>
+        <span className="text-foreground font-medium">{t("gradebook.pageHeading")}</span>
       </div>
 
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Award className="h-7 w-7 text-primary" />
-            Gradebook
+            {t("gradebook.pageHeading")}
           </h1>
           {courseTitle && <p className="text-muted-foreground mt-1">{courseTitle}</p>}
         </div>
         {studentCount > 0 && (
           <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={exporting}>
             <Download className="h-4 w-4 mr-1.5" />
-            {exporting ? "Exporting..." : "Export CSV"}
+            {exporting ? t("gradebook.exporting") : t("gradebook.exportCsv")}
           </Button>
         )}
       </div>

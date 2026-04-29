@@ -1,4 +1,5 @@
 import { ClipboardList } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import type { Quiz } from "@/types"
 
 interface Props {
@@ -18,7 +19,13 @@ export function QuizHeader({
   maxAttempts,
   attemptsUsed,
 }: Props) {
+  const { t } = useTranslation()
   const totalMaxScore = autoMaxScore + manualMaxScore
+  const questionsLabel =
+    questionCount === 1 ? t("quiz.oneQuestion") : t("quiz.nQuestions", { n: questionCount })
+  const pointsLabel =
+    totalMaxScore === 1 ? t("quiz.onePoint") : t("quiz.nPoints", { n: totalMaxScore })
+
   return (
     <div className="p-5 border-b">
       <div className="flex items-center gap-2 mb-1">
@@ -32,24 +39,20 @@ export function QuizHeader({
           {quiz.description}
         </p>
       )}
-      <div className="flex items-center gap-4 ml-7 mt-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-4 ml-7 mt-2 text-xs text-muted-foreground flex-wrap">
+        <span>{questionsLabel}</span>
         <span>
-          {questionCount} question{questionCount !== 1 ? "s" : ""}
-        </span>
-        <span>
-          {totalMaxScore} point{totalMaxScore !== 1 ? "s" : ""}
+          {pointsLabel}
           {manualMaxScore > 0 && autoMaxScore > 0 && (
             <>
               {" "}
-              ({autoMaxScore} auto + {manualMaxScore} review)
+              {t("quiz.pointsBreakdown", { auto: autoMaxScore, manual: manualMaxScore })}
             </>
           )}
         </span>
-        <span>Passing: {quiz.passing_score}%</span>
+        <span>{t("quiz.passingShort", { score: quiz.passing_score })}</span>
         {maxAttempts !== null && (
-          <span>
-            Attempts: {attemptsUsed}/{maxAttempts}
-          </span>
+          <span>{t("quiz.attemptsShort", { used: attemptsUsed, max: maxAttempts })}</span>
         )}
       </div>
     </div>

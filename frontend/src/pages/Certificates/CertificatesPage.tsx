@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -7,11 +8,14 @@ import type { Certificate, Enrollment } from "@/types"
 import { toast } from "@/lib/toast"
 import { Award, ArrowLeft, ScrollText } from "lucide-react"
 import PageSpinner from "@/components/ui/PageSpinner"
+import i18n from "@/i18n/config"
 
 export default function CertificatesPage() {
+  const { t } = useTranslation()
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [loading, setLoading] = useState(true)
+  const dateLocale = i18n.language?.startsWith("en") ? "en-US" : "ru-RU"
 
   useEffect(() => {
     let cancelled = false
@@ -25,18 +29,23 @@ export default function CertificatesPage() {
         setCertificates(certs)
         setEnrollments(courses)
       } catch {
-        if (!cancelled) toast({ title: "Failed to load certificates", variant: "destructive" })
+        if (!cancelled) toast({ title: t("toast.certificatesLoadFailed"), variant: "destructive" })
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     load()
-    return () => { cancelled = true }
-  }, [])
+    return () => {
+      cancelled = true
+    }
+  }, [t])
 
   const courseTitle = (courseId: string) => {
     const enrollment = enrollments.find((e) => e.course_id === courseId)
-    return enrollment?.course?.title ?? `Course ${courseId.slice(0, 8)}…`
+    return (
+      enrollment?.course?.title ??
+      t("certificates.courseFallback", { id: `${courseId.slice(0, 8)}…` })
+    )
   }
 
   if (loading) {
@@ -48,7 +57,7 @@ export default function CertificatesPage() {
       <Link to="/">
         <Button variant="ghost" size="sm" className="mb-6 h-8 text-xs">
           <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
-          Dashboard
+          {t("certificates.dashboard")}
         </Button>
       </Link>
 
@@ -57,11 +66,9 @@ export default function CertificatesPage() {
           <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
             <Award className="h-5 w-5 text-muted-foreground" />
           </div>
-          My Certificates
+          {t("certificates.title")}
         </h1>
-        <p className="mt-2 text-muted-foreground">
-          Certificates you've earned for completing courses
-        </p>
+        <p className="mt-2 text-muted-foreground">{t("certificates.subtitle")}</p>
       </div>
 
       {certificates.length === 0 ? (
@@ -70,12 +77,12 @@ export default function CertificatesPage() {
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
               <ScrollText className="h-8 w-8 text-muted-foreground/50" />
             </div>
-            <h3 className="mb-1 text-lg font-medium">No certificates yet</h3>
+            <h3 className="mb-1 text-lg font-medium">{t("certificates.emptyTitle")}</h3>
             <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-              Complete a course to earn your first certificate. Keep learning and collecting achievements!
+              {t("certificates.emptyDescription")}
             </p>
             <Link to="/">
-              <Button size="sm">Browse Courses</Button>
+              <Button size="sm">{t("certificates.browseCourses")}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -92,7 +99,7 @@ export default function CertificatesPage() {
                     <Award className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">
-                    Certificate
+                    {t("certificates.badge")}
                   </span>
                 </div>
 
@@ -103,7 +110,7 @@ export default function CertificatesPage() {
                 <dl className="space-y-2 text-xs">
                   {cert.certificate_number && (
                     <div className="flex items-center justify-between">
-                      <dt className="text-muted-foreground">Certificate No.</dt>
+                      <dt className="text-muted-foreground">{t("certificates.certificateNo")}</dt>
                       <dd className="font-mono font-medium text-foreground">
                         {cert.certificate_number}
                       </dd>
@@ -111,22 +118,22 @@ export default function CertificatesPage() {
                   )}
                   <div className="flex items-center justify-between">
                     <dt className="text-muted-foreground">
-                      {cert.status === "approved" ? "Issued" : "Status"}
+                      {cert.status === "approved" ? t("certificates.issuedOrStatus") : t("certificates.statusColumn")}
                     </dt>
                     <dd className="font-medium">
                       {cert.status === "approved" && cert.issued_at
-                        ? new Date(cert.issued_at).toLocaleDateString("en-US", {
+                        ? new Date(cert.issued_at).toLocaleDateString(dateLocale, {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
                           })
                         : cert.status === "pending"
-                          ? "Pending approval"
+                          ? t("certificates.pendingApproval")
                           : cert.status === "teacher_approved"
-                            ? "Awaiting admin"
+                            ? t("certificates.awaitingAdmin")
                             : cert.status === "rejected"
-                              ? "Rejected"
-                              : "Pending"}
+                              ? t("certificates.rejected")
+                              : t("certificates.pending")}
                     </dd>
                   </div>
                 </dl>

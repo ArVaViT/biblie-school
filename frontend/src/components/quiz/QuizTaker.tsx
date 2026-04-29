@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { coursesService } from "@/services/courses"
@@ -32,6 +33,7 @@ interface QuizTakerProps {
 }
 
 export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerProps) {
+  const { t } = useTranslation()
   const { loading, fetchError, quiz, attempts, setAttempts } = useQuizTaker({
     chapterId,
     quizId,
@@ -47,7 +49,7 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
   if (fetchError) {
     return (
       <p className="text-sm text-destructive py-4 text-center">
-        Failed to load quiz. Please try refreshing the page.
+        {t("quiz.failedLoad")}
       </p>
     )
   }
@@ -59,7 +61,7 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
   const maxAttempts = quiz.max_attempts ?? null
   const attemptsUsed = attempts.filter((a) => !!a.completed_at).length
   const attemptsReached = maxAttempts !== null && attemptsUsed >= maxAttempts
-  const assessmentLabel = quiz.quiz_type === "exam" ? "Exam" : "Quiz"
+  const assessmentTypeKey = quiz.quiz_type === "exam" ? "quiz.exam" : "quiz.quiz"
 
   const setAnswer = (questionId: string, value: QuizAnswer) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }))
@@ -112,7 +114,9 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
     } catch (error: unknown) {
       const detail = getErrorDetail(error)
       toast({
-        title: detail || `Failed to submit ${assessmentLabel.toLowerCase()}`,
+        title:
+          detail ||
+          (quiz.quiz_type === "exam" ? t("quiz.submitFailedExam") : t("quiz.submitFailedQuiz")),
         variant: "destructive",
       })
     } finally {
@@ -148,7 +152,7 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
           {!attemptsReached && (
             <div className="px-5 pb-5">
               <Button variant="outline" className="w-full" onClick={handleTryAgain}>
-                Try Again
+                {t("quiz.tryAgain")}
               </Button>
             </div>
           )}
@@ -157,7 +161,7 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
         <div className="p-5 space-y-6">
           {attemptsReached && (
             <div className="rounded-md border border-border border-l-[3px] border-l-warning bg-warning/10 px-3 py-2 text-xs text-foreground">
-              Maximum attempts reached for this {assessmentLabel.toLowerCase()}.
+              {t("quiz.maxAttemptsReached", { type: t(assessmentTypeKey).toLowerCase() })}
             </div>
           )}
           {sortedQuestions.map((question, idx) => (
@@ -178,15 +182,17 @@ export default function QuizTaker({ chapterId, quizId, onSubmitted }: QuizTakerP
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Submitting...
+                {t("quiz.submitting")}
               </>
+            ) : quiz.quiz_type === "exam" ? (
+              t("quiz.submitExam")
             ) : (
-              `Submit ${assessmentLabel}`
+              t("quiz.submitQuiz")
             )}
           </Button>
           {!allAnswered && !attemptsReached && (
             <p className="text-xs text-muted-foreground text-center">
-              Answer all questions to submit
+              {t("quiz.answerAll")}
             </p>
           )}
         </div>
