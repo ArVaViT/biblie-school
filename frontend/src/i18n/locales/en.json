@@ -77,6 +77,8 @@
   },
   "profile": {
     "title": "Profile",
+    "pageEyebrow": "Your account",
+    "pageLead": "Name, avatar, progress, and preferences in one place.",
     "fullName": "Full Name",
     "changeAvatar": "Change avatar",
     "uploadFailed": "Failed to upload avatar",
