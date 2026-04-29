@@ -17,17 +17,24 @@ import { cn } from "@/lib/utils"
 function MyCoursesSectionHeader() {
   const { t } = useTranslation()
   return (
-    <div className="border-b border-border bg-muted/20 px-5 py-4 sm:px-8 sm:py-5">
-      <h2 className="font-serif text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-        {t("home.myCourses")}
-      </h2>
-      <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">{t("home.myCoursesLead")}</p>
+    <div className="border-b border-border bg-gradient-accent-subtle px-5 py-6 sm:px-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-border/80 bg-card shadow-none">
+          <BookOpen className="h-6 w-6 text-muted-foreground" strokeWidth={1.75} aria-hidden />
+        </div>
+        <div className="min-w-0">
+          <h2 className="font-serif text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            {t("home.myCourses")}
+          </h2>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">{t("home.myCoursesLead")}</p>
+        </div>
+      </div>
     </div>
   )
 }
 
 function MyCoursesSectionBody({ children }: { children: React.ReactNode }) {
-  return <div className="px-5 py-4 sm:px-8 sm:py-5">{children}</div>
+  return <div className="px-5 py-5 sm:px-8 sm:py-6">{children}</div>
 }
 
 function MyCoursesSection() {
@@ -67,7 +74,7 @@ function MyCoursesSection() {
   const filtered = enrollments.filter((e) => e.course?.created_by !== user?.id)
 
   const shell = (body: React.ReactNode) => (
-    <section className="mb-12 overflow-hidden rounded-md border border-border bg-card">
+    <section className="animate-fade-in mb-12 overflow-hidden rounded-md border border-border bg-card transition-[border-color] duration-300 hover:border-primary/25">
       <MyCoursesSectionHeader />
       <MyCoursesSectionBody>{body}</MyCoursesSectionBody>
     </section>
@@ -112,31 +119,25 @@ function MyCoursesSection() {
   }
 
   return shell(
-    <div className="space-y-0 divide-y divide-border/80">
+    <div className="stagger-fade-in flex flex-col gap-4">
       {filtered
         .filter((e) => e.course?.id)
         .map((enrollment) => {
         const grade = grades.find((g) => g.course_id === enrollment.course_id)
         const progressColor =
-          enrollment.progress >= 100
-            ? "bg-success"
-            : enrollment.progress >= 60
-              ? "bg-primary"
-              : enrollment.progress >= 30
-                ? "bg-warning"
-                : "bg-destructive"
+          enrollment.progress >= 100 ? "bg-success" : "bg-primary"
         const courseId = enrollment.course!.id
 
         return (
           <Link
             key={enrollment.id}
             to={`/courses/${courseId}`}
-            className="group block py-5 transition-colors first:pt-0 last:pb-0 hover:bg-muted/20 sm:-mx-2 sm:rounded-md sm:px-2"
+            className="motion-safe-hover-lift group block rounded-md border border-border/90 bg-muted/10 px-4 py-4 transition-colors hover:border-primary/30 hover:bg-muted/25 sm:px-5"
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
               <div className="min-w-0 flex-1 space-y-3">
                 <div className="flex items-start gap-2">
-                  <h3 className="min-w-0 flex-1 font-serif text-base font-medium leading-snug text-foreground transition-colors group-hover:text-primary">
+                  <h3 className="min-w-0 flex-1 font-serif text-base font-medium leading-snug text-foreground transition-colors duration-200 group-hover:text-primary">
                     {enrollment.course?.title || t("home.course")}
                   </h3>
                   {enrollment.progress >= 100 && (
@@ -145,9 +146,12 @@ function MyCoursesSection() {
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <div className="flex min-w-0 flex-1 items-center gap-3 sm:max-w-md">
-                    <div className="h-1.5 min-w-24 flex-1 rounded-full bg-muted">
+                    <div className="h-2 min-w-28 flex-1 rounded-full bg-muted">
                       <div
-                        className={cn("h-full rounded-full transition-all duration-500", progressColor)}
+                        className={cn(
+                          "h-full rounded-full transition-[width] duration-700 ease-out",
+                          progressColor,
+                        )}
                         style={{ width: `${Math.min(enrollment.progress, 100)}%` }}
                       />
                     </div>
@@ -156,17 +160,17 @@ function MyCoursesSection() {
                     </span>
                   </div>
                   {grade?.grade ? (
-                    <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-xs font-medium text-foreground">
+                    <span className="rounded-md border border-border bg-background/80 px-2 py-0.5 text-xs font-medium text-foreground">
                       {t("home.grade", { grade: grade.grade })}
                     </span>
                   ) : null}
                 </div>
               </div>
               <span className="inline-flex shrink-0 items-center text-xs font-medium text-primary sm:flex-col sm:items-end">
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5">
                   {enrollment.progress >= 100 ? t("common.view") : t("common.continue")}
                   <ArrowRight
-                    className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                    className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
                     strokeWidth={1.75}
                     aria-hidden
                   />
@@ -283,7 +287,7 @@ export default function HomePage() {
           className="border-none bg-transparent py-20"
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+        <div className="stagger-fade-in grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3">
           {courses.map((course) => (
             <CourseCard key={course.id} course={course} />
           ))}

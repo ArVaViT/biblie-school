@@ -159,13 +159,13 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 md:px-6">
-      <header className="mb-8">
+      <header className="animate-fade-in mb-8 rounded-md border border-border bg-card px-5 py-6 sm:px-8">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {t("profile.pageEyebrow")}
         </p>
-        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted">
-            <UserIcon className="h-6 w-6 text-muted-foreground" strokeWidth={1.75} aria-hidden />
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border border-border/80 bg-muted">
+            <UserIcon className="h-7 w-7 text-muted-foreground" strokeWidth={1.75} aria-hidden />
           </div>
           <div className="min-w-0 space-y-1">
             <h1 className="font-serif text-3xl font-bold tracking-tight">{t("profile.title")}</h1>
@@ -174,9 +174,9 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <div className="space-y-6">
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b border-border bg-muted/30">
+      <div className="stagger-fade-in space-y-6">
+        <Card className="overflow-hidden transition-[border-color] duration-200 hover:border-primary/25">
+          <CardHeader className="border-b border-border bg-gradient-accent-subtle">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
               <div className="relative shrink-0">
                 {user.avatar_url ? (
@@ -226,7 +226,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-[border-color] duration-200 hover:border-primary/25">
           <CardHeader className="space-y-1">
             <CardTitle className="font-serif text-lg font-semibold tracking-tight">
               {t("profile.learningProgress")}
@@ -235,7 +235,7 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="flex items-center gap-3 rounded-md border border-border bg-muted/20 p-4">
+              <div className="flex items-center gap-3 rounded-md border border-border bg-muted/15 p-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
                   <BookOpen className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} aria-hidden />
                 </div>
@@ -244,7 +244,7 @@ export default function ProfilePage() {
                   <p className="mt-1 text-xs text-muted-foreground">{t("profile.coursesCompleted")}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 rounded-md border border-border bg-muted/20 p-4">
+              <div className="flex items-center gap-3 rounded-md border border-border bg-muted/15 p-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
                   <Award className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} aria-hidden />
                 </div>
@@ -266,7 +266,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-[border-color] duration-200 hover:border-primary/25">
           <CardHeader>
             <CardTitle className="font-serif text-lg font-semibold tracking-tight">{t("profile.accountDetails")}</CardTitle>
           </CardHeader>
@@ -305,7 +305,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-[border-color] duration-200 hover:border-primary/25">
           <CardHeader>
             <CardTitle className="font-serif text-lg font-semibold tracking-tight">{t("profile.preferences")}</CardTitle>
           </CardHeader>
@@ -351,7 +351,7 @@ export default function ProfilePage() {
         <div className="border-t border-border pt-6">
           <Button
             variant="outline"
-            className="w-full border-destructive/35 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="w-full border-destructive/35 text-destructive transition-colors duration-200 hover:bg-destructive/10 hover:text-destructive"
             onClick={handleLogout}
           >
             <LogOut className="mr-2 h-4 w-4" strokeWidth={1.75} aria-hidden />
