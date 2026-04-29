@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import type { Notification } from "@/types"
 import { useNotifications } from "./notifications/useNotifications"
 import { NotificationPanel } from "./notifications/NotificationPanel"
+
+export interface NotificationBellProps {
+  /** Full-width panel under the bell inside narrow drawers (e.g. mobile header sheet). */
+  panelVariant?: "popover" | "sheet"
+  /** Called when the user opens a notification link (closes parent UI such as the mobile menu). */
+  onNotificationNavigate?: () => void
+}
 
 /**
  * Header bell: unread badge + on-click dropdown.
@@ -13,7 +22,11 @@ import { NotificationPanel } from "./notifications/NotificationPanel"
  * behaviour. Everything else (polling, pagination, mutations) lives in
  * `useNotifications`, and the dropdown itself is a pure `NotificationPanel`.
  */
-export default function NotificationBell() {
+export default function NotificationBell({
+  panelVariant = "popover",
+  onNotificationNavigate,
+}: NotificationBellProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -51,20 +64,26 @@ export default function NotificationBell() {
     (n: Notification) => {
       if (!n.is_read) void markRead(n.id)
       setOpen(false)
+      onNotificationNavigate?.()
       if (n.link && n.link.startsWith("/")) navigate(n.link)
     },
-    [markRead, navigate],
+    [markRead, navigate, onNotificationNavigate],
   )
 
+  const isSheet = panelVariant === "sheet"
+
   return (
-    <div className="relative">
+    <div className={cn("relative", isSheet && "w-full")}>
       <Button
         ref={buttonRef}
         variant="ghost"
         size="sm"
-        className="h-8 w-8 p-0 relative"
+        className={cn(
+          "relative p-0",
+          isSheet ? "h-11 min-h-11 w-11 min-w-11" : "h-8 w-8",
+        )}
         onClick={() => setOpen((prev) => !prev)}
-        aria-label="Notifications"
+        aria-label={t("notifications.menuAriaLabel")}
         aria-expanded={open}
         aria-haspopup="true"
       >
@@ -79,6 +98,7 @@ export default function NotificationBell() {
       {open && (
         <NotificationPanel
           ref={panelRef}
+          variant={panelVariant}
           notifications={notifications}
           unreadCount={unreadCount}
           loading={loading}

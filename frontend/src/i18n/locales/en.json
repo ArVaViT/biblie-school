@@ -24,7 +24,29 @@
     "adminPanel": "Admin Panel",
     "profile": "Profile",
     "profileAndSettings": "Profile & Settings",
-    "menu": "Menu"
+    "menu": "Menu",
+    "navAriaLabel": "Main navigation",
+    "mobileMenuTitle": "Navigation",
+    "mobileMenuDescription": "Site sections, notifications, profile, and language."
+  },
+  "footer": {
+    "tagline": "Structured biblical teaching for learners who take Scripture seriously.",
+    "explore": "Explore",
+    "teaching": "Teaching",
+    "teacherDashboard": "Teacher dashboard",
+    "support": "Contact support",
+    "rightsReserved": "All rights reserved."
+  },
+  "notifications": {
+    "menuAriaLabel": "Notifications",
+    "panelAriaLabel": "Notifications",
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet",
+    "loadFailed": "Failed to load notifications.",
+    "tryAgain": "Try again",
+    "loadMore": "Load more",
+    "loadingMore": "Loading..."
   },
   "language": {
     "label": "Language",

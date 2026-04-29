@@ -11,6 +11,7 @@ import ErrorBoundary from "./components/ErrorBoundary"
 import { Toaster } from "./components/ui/sonner"
 import { ConfirmProvider } from "./components/ui/alert-dialog"
 import Header from "./components/layout/Header"
+import Footer from "./components/layout/Footer"
 import AnnouncementBanner from "./components/announcements/AnnouncementBanner"
 import PageSpinner from "./components/ui/PageSpinner"
 
@@ -141,12 +142,7 @@ function AppRoutes() {
           </Suspense>
         </ErrorBoundary>
       </main>
-      <footer className="border-t border-border/60 bg-card/40 py-2">
-        <div className="container mx-auto px-4 flex items-center justify-between text-[11px] text-muted-foreground">
-          <span className="font-serif tracking-tight">{t("common.appName")}</span>
-          <span>&copy; {new Date().getFullYear()}</span>
-        </div>
-      </footer>
+      <Footer />
       <Toaster />
     </div>
   )

@@ -24,7 +24,29 @@
     "adminPanel": "Панель администратора",
     "profile": "Профиль",
     "profileAndSettings": "Профиль и настройки",
-    "menu": "Меню"
+    "menu": "Меню",
+    "navAriaLabel": "Основная навигация",
+    "mobileMenuTitle": "Навигация",
+    "mobileMenuDescription": "Разделы сайта, уведомления, профиль и язык интерфейса."
+  },
+  "footer": {
+    "tagline": "Системное изучение Библии для тех, кто относится к Писанию серьёзно.",
+    "explore": "Разделы",
+    "teaching": "Преподавание",
+    "teacherDashboard": "Панель преподавателя",
+    "support": "Связаться с поддержкой",
+    "rightsReserved": "Все права защищены."
+  },
+  "notifications": {
+    "menuAriaLabel": "Уведомления",
+    "panelAriaLabel": "Уведомления",
+    "title": "Уведомления",
+    "markAllRead": "Прочитать все",
+    "empty": "Пока нет уведомлений",
+    "loadFailed": "Не удалось загрузить уведомления.",
+    "tryAgain": "Повторить",
+    "loadMore": "Ещё",
+    "loadingMore": "Загрузка..."
   },
   "language": {
     "label": "Язык",
