@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { CalendarDays, Filter, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
 import PageSpinner from "@/components/ui/PageSpinner";
 import { ErrorState } from "@/components/patterns";
 
@@ -73,10 +74,11 @@ export default function CalendarPage() {
         {enrollments.length > 0 && (
           <div className="flex items-center gap-2">
             <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-            <select
+            <NativeSelect
+              fieldSize="md"
               value={filterCourseId}
               onChange={(e) => setFilterCourseId(e.target.value)}
-              className="text-sm border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="max-w-xs min-w-[12rem]"
               aria-label={t("calendar.filterByCourse")}
             >
               <option value="">{t("calendar.allCourses")}</option>
@@ -85,7 +87,7 @@ export default function CalendarPage() {
                   {e.course?.title ?? e.course_id}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
         )}
       </div>

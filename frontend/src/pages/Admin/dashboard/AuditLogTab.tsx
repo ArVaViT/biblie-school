@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { NativeSelect } from "@/components/ui/native-select"
 import { Button } from "@/components/ui/button"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { FileText, ChevronLeft, ChevronRight } from "lucide-react"
@@ -130,10 +131,10 @@ function FilterSelect({ label, value, onChange, options, placeholder }: FilterSe
   return (
     <div className="space-y-1">
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
-      <select
+      <NativeSelect
+        fieldSize="md"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       >
         <option value="">{placeholder}</option>
         {options.map((o) => (
@@ -141,7 +142,7 @@ function FilterSelect({ label, value, onChange, options, placeholder }: FilterSe
             {o}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </div>
   )
 }

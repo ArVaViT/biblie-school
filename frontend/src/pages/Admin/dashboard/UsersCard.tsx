@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { NativeSelect } from "@/components/ui/native-select"
 import { Button } from "@/components/ui/button"
 import { Users, Search, Trash2 } from "lucide-react"
 import { toProxyImage } from "@/lib/images"
@@ -74,16 +75,16 @@ export function UsersCard({
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5">
               <span className="text-xs font-medium">{selectedIds.size} selected</span>
-              <select
+              <NativeSelect
+                fieldSize="xs"
                 value={bulkRole}
                 onChange={(e) => onBulkRoleChange(e.target.value as UserRole)}
-                className="h-7 rounded border border-input bg-background px-2 text-xs"
               >
                 <option value="student">Student</option>
                 <option value="pending_teacher">Pending Teacher</option>
                 <option value="teacher">Teacher</option>
                 <option value="admin">Admin</option>
-              </select>
+              </NativeSelect>
               <Button
                 size="sm"
                 className="h-7 text-xs"
@@ -300,17 +301,17 @@ function UserRow({
           >
             {ROLE_DISPLAY_NAMES[user.role]}
           </span>
-          <select
+          <NativeSelect
+            fieldSize="sm"
             value={user.role}
             disabled={updating || isSelf}
             onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
           >
             <option value="student">Student</option>
             <option value="pending_teacher">Pending Teacher</option>
             <option value="teacher">Teacher</option>
             <option value="admin">Admin</option>
-          </select>
+          </NativeSelect>
         </div>
       </td>
       <td className="px-6 py-3 text-muted-foreground">

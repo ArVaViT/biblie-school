@@ -1,6 +1,7 @@
 import { List, type RowComponentProps } from "react-window"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { NativeSelect } from "@/components/ui/native-select"
 import { toProxyImage } from "@/lib/images"
 import type { UserRole } from "@/types"
 
@@ -86,17 +87,17 @@ function UserRow({
         >
           {roleDisplayNames[u.role] ?? u.role}
         </span>
-        <select
+        <NativeSelect
+          fieldSize="sm"
           value={u.role}
           disabled={updatingId === u.id || u.id === currentUserId}
           onChange={(e) => onRoleChange(u.id, e.target.value as UserRole)}
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
         >
           <option value="student">Student</option>
           <option value="pending_teacher">Pending Teacher</option>
           <option value="teacher">Teacher</option>
           <option value="admin">Admin</option>
-        </select>
+        </NativeSelect>
       </div>
       <div role="cell" className="px-3 text-muted-foreground">
         {new Date(u.created_at).toLocaleDateString()}
