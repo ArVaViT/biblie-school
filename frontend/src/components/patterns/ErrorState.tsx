@@ -40,11 +40,11 @@ export function ErrorState({
         className,
       )}
     >
-      <span className="text-destructive/60 [&_svg]:h-12 [&_svg]:w-12">
-        {icon ?? <AlertTriangle />}
+      <span className="text-destructive/60 [&_svg]:h-12 [&_svg]:w-12 [&_svg]:stroke-[1.75]">
+        {icon ?? <AlertTriangle strokeWidth={1.75} aria-hidden />}
       </span>
       <div className="space-y-1">
-        <h2 className="text-lg font-medium">{title}</h2>
+        <h2 className="font-serif text-base font-semibold tracking-tight text-foreground">{title}</h2>
         {description && (
           <p className="max-w-md text-sm text-muted-foreground">{description}</p>
         )}

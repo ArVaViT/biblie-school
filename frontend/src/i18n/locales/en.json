@@ -69,7 +69,11 @@
     "noAccount": "Don't have an account?",
     "createOne": "Create one",
     "loginFailed": "Login failed. Please try again.",
-    "googleLoginFailed": "Google login failed."
+    "googleLoginFailed": "Google login failed.",
+    "marketingQuote": "Study to shew thyself approved unto God, a workman that needeth not to be ashamed.",
+    "marketingReference": "2 Timothy 2:15",
+    "marketingPanelFooter": "© {{year}} {{appName}}",
+    "toggleColorTheme": "Toggle color theme"
   },
   "profile": {
     "title": "Profile",

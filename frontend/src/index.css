@@ -48,6 +48,13 @@
     --chart-3: 156 45% 34%;
     --chart-4: 30 85% 42%;
     --chart-5: 215 75% 42%;
+
+    /* Auth marketing column — semantic only (no raw hsl() in components) */
+    --auth-panel-bg: 262 42% 17%;
+    --auth-panel-glow-warm: 38 48% 52%;
+    --auth-panel-accent-line: 38 42% 58%;
+    --auth-panel-text: 40 35% 96%;
+    --auth-panel-text-muted: 40 18% 70%;
   }
 
   .dark {
@@ -89,6 +96,12 @@
     --chart-3: 156 38% 46%;
     --chart-4: 32 78% 54%;
     --chart-5: 215 72% 58%;
+
+    --auth-panel-bg: 262 38% 9%;
+    --auth-panel-glow-warm: 38 38% 48%;
+    --auth-panel-accent-line: 38 35% 45%;
+    --auth-panel-text: 40 25% 94%;
+    --auth-panel-text-muted: 40 12% 58%;
   }
 }
 
@@ -126,6 +139,12 @@
       radial-gradient(ellipse 85% 65% at 88% 8%, hsl(146 25% 35% / 0.12) 0%, transparent 52%),
       radial-gradient(ellipse 80% 55% at 48% 105%, hsl(240 8% 14%) 0%, transparent 55%),
       linear-gradient(195deg, hsl(var(--background)) 0%, hsl(240 8% 11%) 100%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body::before {
+      animation: none;
+    }
   }
 }
 
@@ -198,6 +217,18 @@
       transform: scale(1);
     }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+    .bg-home-hero-glow {
+      animation: none;
+    }
+  }
+
   /* Cards / panels — optional radial wash */
   .bg-gradient-accent-subtle {
     background-image: radial-gradient(

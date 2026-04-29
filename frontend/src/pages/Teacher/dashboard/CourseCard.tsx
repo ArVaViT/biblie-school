@@ -35,7 +35,7 @@ export function CourseCard({
   onDelete,
 }: Props) {
   return (
-    <Card className="group hover:shadow-md transition-shadow">
+    <Card className="group transition-colors hover:border-primary/30">
       <div className="flex items-start gap-4 p-6">
         {course.image_url ? (
           <img
