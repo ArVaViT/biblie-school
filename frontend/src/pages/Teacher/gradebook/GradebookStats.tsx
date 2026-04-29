@@ -16,23 +16,23 @@ export function GradebookStats({ studentCount, classAverage, gradedCount, config
       <StatCard
         label="Students"
         value={String(studentCount)}
-        icon={<Users className="h-7 w-7 text-muted-foreground/60" />}
+        icon={<Users className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.75} aria-hidden />}
       />
       <StatCard
         label="Class Average"
         value={`${classAverage.toFixed(1)}%`}
-        icon={<TrendingUp className="h-7 w-7 text-muted-foreground/60" />}
+        icon={<TrendingUp className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.75} aria-hidden />}
       />
       <StatCard
         label="Manually Graded"
         value={`${gradedCount}/${studentCount}`}
-        icon={<Award className="h-7 w-7 text-muted-foreground/60" />}
+        icon={<Award className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.75} aria-hidden />}
       />
       <StatCard
         label="Weights Q/A/P"
         value={`${config.quiz_weight}/${config.assignment_weight}/${config.participation_weight}`}
         valueClassName="text-sm font-medium mt-0.5"
-        icon={<Calculator className="h-7 w-7 text-muted-foreground/60" />}
+        icon={<Calculator className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.75} aria-hidden />}
       />
     </div>
   )

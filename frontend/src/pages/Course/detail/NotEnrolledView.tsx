@@ -58,7 +58,7 @@ export function NotEnrolledView({
     <div className="container mx-auto px-4 py-6 max-w-3xl">
       <Link to="/">
         <Button variant="ghost" size="sm" className="mb-4 h-8 text-xs">
-          <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+          <ArrowLeft className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
           All Courses
         </Button>
       </Link>
@@ -78,7 +78,7 @@ export function NotEnrolledView({
         </div>
       )}
 
-      <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight mb-3 text-wrap-safe">
+      <h1 className="mb-3 font-serif text-3xl font-bold tracking-tight text-wrap-safe sm:text-4xl">
         {course.title}
       </h1>
 
@@ -92,7 +92,7 @@ export function NotEnrolledView({
         <Card className="mb-6">
           <CardContent className="py-4">
             <div className="flex items-center gap-2 mb-1">
-              <CalendarDays className="h-4 w-4 text-primary" />
+              <CalendarDays className="h-4 w-4 text-primary" strokeWidth={1.75} aria-hidden />
               <span className="font-medium">{activeCohort.name}</span>
               <Badge variant={activeCohort.status === "active" ? "success" : "info"}>
                 {activeCohort.status}
@@ -103,7 +103,7 @@ export function NotEnrolledView({
             </p>
             {activeCohort.enrollment_start && activeCohort.enrollment_end && (
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+                <Clock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
                 Enrollment: {formatDate(activeCohort.enrollment_start)} &mdash;{" "}
                 {formatDate(activeCohort.enrollment_end)}
               </p>
@@ -121,7 +121,7 @@ export function NotEnrolledView({
         cohorts.length === 0 &&
         (course.enrollment_start || course.enrollment_end) && (
           <div className="flex flex-wrap items-center gap-2 text-sm mb-6">
-            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+            <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden />
             {course.enrollment_start && course.enrollment_end && (
               <span className="text-muted-foreground text-xs">
                 Enrollment: {formatDate(course.enrollment_start)} &mdash;{" "}
@@ -141,7 +141,7 @@ export function NotEnrolledView({
         ) : isSignedIn ? (
           <div>
             <Button onClick={handleEnrollClick} disabled={enrolling || !canEnroll} size="lg">
-              <Users className="h-4 w-4 mr-2" />
+              <Users className="mr-2 h-4 w-4" strokeWidth={1.75} aria-hidden />
               {!canEnroll
                 ? "Enrollment not available"
                 : enrolling

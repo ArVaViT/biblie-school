@@ -69,7 +69,7 @@ export function AuditLogTab({
       <Card>
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+            <FileText className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
             Audit Log
             <span className="text-sm font-normal text-muted-foreground ml-2">
               {total.toLocaleString()} entries
@@ -81,13 +81,13 @@ export function AuditLogTab({
             <PageSpinner />
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-center">
-              <FileText className="h-12 w-12 text-muted-foreground/40 mb-3" />
+              <FileText className="mb-3 h-12 w-12 text-muted-foreground/40" strokeWidth={1.75} aria-hidden />
               <p className="text-muted-foreground">No audit logs found</p>
             </div>
           ) : (
             <>
               <AuditTable logs={logs} userMap={userMap} />
-              <div className="flex items-center justify-between pt-4 px-6">
+              <div className="flex items-center justify-between px-5 pb-1 pt-4">
                 <p className="text-xs text-muted-foreground">
                   Page {page} of {totalPages}
                 </p>
@@ -98,7 +98,7 @@ export function AuditLogTab({
                     disabled={page <= 1}
                     onClick={() => onPageChange(page - 1)}
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                   </Button>
                   <Button
                     variant="outline"
@@ -106,7 +106,7 @@ export function AuditLogTab({
                     disabled={page >= totalPages}
                     onClick={() => onPageChange(page + 1)}
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                   </Button>
                 </div>
               </div>

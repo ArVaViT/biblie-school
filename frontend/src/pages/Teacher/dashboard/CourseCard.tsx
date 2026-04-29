@@ -46,7 +46,7 @@ export function CourseCard({
           />
         ) : (
           <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
-            <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+            <BookOpen className="h-8 w-8 text-muted-foreground/40" strokeWidth={1.75} aria-hidden />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -72,19 +72,19 @@ export function CourseCard({
         <div className="flex items-center gap-1 shrink-0">
           <Link to={`/teacher/courses/${course.id}/analytics`}>
             <Button variant="ghost" size="sm" title="Analytics">
-              <BarChart3 className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               <span className="sr-only">Analytics</span>
             </Button>
           </Link>
           <Link to={`/teacher/courses/${course.id}/gradebook`}>
             <Button variant="ghost" size="sm" title="Gradebook">
-              <ClipboardList className="h-4 w-4" />
+              <ClipboardList className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               <span className="sr-only">Gradebook</span>
             </Button>
           </Link>
           <Link to={`/teacher/courses/${course.id}/progress`}>
             <Button variant="ghost" size="sm" title="Student Progress">
-              <Users className="h-4 w-4" />
+              <Users className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               <span className="sr-only">Progress</span>
             </Button>
           </Link>
@@ -96,9 +96,9 @@ export function CourseCard({
             onClick={() => onToggleStatus(course)}
           >
             {course.status === "published" ? (
-              <EyeOff className="h-4 w-4" />
+              <EyeOff className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             ) : (
-              <Eye className="h-4 w-4" />
+              <Eye className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             )}
             <span className="sr-only">
               {course.status === "published" ? "Unpublish" : "Publish"}
@@ -114,18 +114,18 @@ export function CourseCard({
             {cloningId === course.id ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             ) : (
-              <Copy className="h-4 w-4" />
+              <Copy className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             )}
             <span className="sr-only">Clone</span>
           </Button>
           <Link to={`/teacher/courses/${course.id}`}>
             <Button variant="ghost" size="sm" aria-label="Edit course">
-              <Pencil className="h-4 w-4" />
+              <Pencil className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               <span className="hidden sm:inline">Edit</span>
             </Button>
           </Link>
           <Button variant="destructive" size="sm" onClick={() => onDelete(course.id)}>
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             Delete
           </Button>
         </div>

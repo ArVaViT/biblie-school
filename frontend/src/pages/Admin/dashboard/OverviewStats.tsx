@@ -19,9 +19,9 @@ export function OverviewStats({ stats, loading }: Props) {
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
       {CARDS.map(({ key, label, icon: Icon }) => (
         <Card key={label}>
-          <CardContent className="flex items-center gap-4 p-6">
+          <CardContent className="flex items-center gap-4 p-5">
             <div className="rounded-md bg-muted p-3">
-              <Icon className="h-6 w-6 text-muted-foreground" />
+              <Icon className="h-6 w-6 text-muted-foreground" strokeWidth={1.75} aria-hidden />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{label}</p>

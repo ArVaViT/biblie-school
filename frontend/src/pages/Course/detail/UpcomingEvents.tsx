@@ -21,8 +21,8 @@ export function UpcomingEvents({ events }: Props) {
 
   return (
     <div className="mb-5">
-      <h2 className="text-sm font-semibold mb-2 flex items-center gap-2 text-muted-foreground">
-        <CalendarDays className="h-3.5 w-3.5" />
+      <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+        <CalendarDays className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
         Upcoming Deadlines & Events
       </h2>
       <div className="space-y-1.5">
@@ -39,7 +39,7 @@ export function UpcomingEvents({ events }: Props) {
               }`}
             >
               {overdue ? (
-                <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" strokeWidth={1.75} aria-hidden />
               ) : (
                 <span
                   className={`h-2 w-2 shrink-0 rounded-full ${

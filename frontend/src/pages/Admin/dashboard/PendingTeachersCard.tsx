@@ -20,7 +20,7 @@ export function PendingTeachersCard({ pending, updatingId, onApprove, onDeny }: 
     <Card className="mb-8 border-l-[3px] border-l-warning">
       <CardHeader>
         <CardTitle className="text-xl flex items-center gap-2">
-          <Clock className="h-5 w-5 text-warning" />
+          <Clock className="h-5 w-5 text-warning" strokeWidth={1.75} aria-hidden />
           Pending Teacher Approvals
           <Badge variant="warning" className="font-normal">
             {pending.length}
@@ -56,7 +56,7 @@ export function PendingTeachersCard({ pending, updatingId, onApprove, onDeny }: 
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-4">
                 <Button size="sm" onClick={() => onApprove(u)} disabled={updatingId === u.id}>
-                  <CheckCircle className="h-4 w-4 mr-1.5" />
+                  <CheckCircle className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
                   Approve
                 </Button>
                 <Button
@@ -66,7 +66,7 @@ export function PendingTeachersCard({ pending, updatingId, onApprove, onDeny }: 
                   disabled={updatingId === u.id}
                   className="text-destructive hover:text-destructive"
                 >
-                  <XCircle className="h-4 w-4 mr-1.5" />
+                  <XCircle className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
                   Deny
                 </Button>
               </div>

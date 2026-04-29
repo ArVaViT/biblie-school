@@ -263,7 +263,7 @@ export default function TeacherGradebook() {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <ErrorState
-          icon={<Award />}
+          icon={<Award strokeWidth={1.75} aria-hidden />}
           description={error}
           action={
             <Button onClick={reload} size="sm" variant="outline">
@@ -273,7 +273,7 @@ export default function TeacherGradebook() {
           secondaryAction={
             <Link to="/teacher">
               <Button size="sm" variant="ghost">
-                <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+                <ArrowLeft className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
                 {t("teacher.backToCourses")}
               </Button>
             </Link>
@@ -292,21 +292,21 @@ export default function TeacherGradebook() {
         <Link to="/teacher" className="hover:text-foreground transition-colors">
           {t("gradebook.breadcrumbCourses")}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-4 w-4 shrink-0 opacity-70" strokeWidth={1.75} aria-hidden />
         <span className="text-foreground font-medium">{t("gradebook.pageHeading")}</span>
       </div>
 
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Award className="h-7 w-7 text-primary" />
+          <h1 className="flex items-center gap-2 font-serif text-3xl font-bold tracking-tight">
+            <Award className="h-6 w-6 shrink-0 text-primary" strokeWidth={1.75} aria-hidden />
             {t("gradebook.pageHeading")}
           </h1>
           {courseTitle && <p className="text-muted-foreground mt-1">{courseTitle}</p>}
         </div>
         {studentCount > 0 && (
           <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={exporting}>
-            <Download className="h-4 w-4 mr-1.5" />
+            <Download className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
             {exporting ? t("gradebook.exporting") : t("gradebook.exportCsv")}
           </Button>
         )}

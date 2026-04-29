@@ -35,7 +35,7 @@ export function GradingConfigCard({
       <CardHeader className="cursor-pointer select-none py-4" onClick={onToggle}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5 text-muted-foreground" />
+            <Settings2 className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} aria-hidden />
             <div>
               <CardTitle className="text-base">Grading Configuration</CardTitle>
               <CardDescription className="text-xs">
@@ -44,9 +44,9 @@ export function GradingConfigCard({
             </div>
           </div>
           {open ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} aria-hidden />
           ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} aria-hidden />
           )}
         </div>
       </CardHeader>
@@ -78,7 +78,7 @@ export function GradingConfigCard({
               Total: {total}% {valid ? "✓" : "(must equal 100%)"}
             </p>
             <Button size="sm" onClick={onSave} disabled={!valid || saving}>
-              <Save className="h-3.5 w-3.5 mr-1.5" />
+              <Save className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
               {saving ? "Saving..." : "Save Weights"}
             </Button>
           </div>

@@ -42,7 +42,7 @@ export function MaterialsModal({
                 {downloadingPath === file.path ? (
                   <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 ) : (
-                  <Download className="h-3.5 w-3.5" />
+                  <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                 )}
               </Button>
             </div>

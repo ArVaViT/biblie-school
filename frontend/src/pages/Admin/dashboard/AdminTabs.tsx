@@ -15,13 +15,13 @@ export function AdminTabs({ active, onChange }: Props) {
       <TabButton
         active={active === "overview"}
         onClick={() => onChange("overview")}
-        icon={<Users className="h-4 w-4" />}
+        icon={<Users className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
         label={t("admin.tabOverview")}
       />
       <TabButton
         active={active === "audit"}
         onClick={() => onChange("audit")}
-        icon={<FileText className="h-4 w-4" />}
+        icon={<FileText className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
         label={t("admin.tabAudit")}
       />
     </div>

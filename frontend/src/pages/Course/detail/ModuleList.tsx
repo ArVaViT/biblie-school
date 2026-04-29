@@ -109,9 +109,9 @@ function ModuleRow({
               }`}
             >
               {isLocked ? (
-                <Lock className="h-3 w-3" />
+                <Lock className="h-3 w-3" strokeWidth={1.75} aria-hidden />
               ) : allComplete ? (
-                <CheckCircle className="h-3 w-3" />
+                <CheckCircle className="h-3 w-3" strokeWidth={1.75} aria-hidden />
               ) : (
                 idx + 1
               )}
@@ -133,7 +133,7 @@ function ModuleRow({
           )}
           {isLocked && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Lock className="h-3 w-3" />
+              <Lock className="h-3 w-3" strokeWidth={1.75} aria-hidden />
               Locked
             </span>
           )}

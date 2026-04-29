@@ -15,13 +15,13 @@ export function GradebookTabs({ active, onChange }: Props) {
       <TabButton
         active={active === "summary"}
         onClick={() => onChange("summary")}
-        icon={<TrendingUp className="h-4 w-4" />}
+        icon={<TrendingUp className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
         label={t("gradebook.summaryTab")}
       />
       <TabButton
         active={active === "table"}
         onClick={() => onChange("table")}
-        icon={<LayoutGrid className="h-4 w-4" />}
+        icon={<LayoutGrid className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
         label={t("gradebook.tableTab")}
       />
     </div>

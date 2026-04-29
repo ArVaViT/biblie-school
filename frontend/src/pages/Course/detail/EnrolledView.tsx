@@ -97,12 +97,12 @@ export function EnrolledView({
       <div className="flex items-center gap-2 mt-6">
         {materials.length > 0 && (
           <Button variant="outline" size="sm" onClick={() => setMaterialsModal(true)}>
-            <Paperclip className="h-3.5 w-3.5 mr-1.5" />
+            <Paperclip className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
             Materials ({materials.length})
           </Button>
         )}
         <Button variant="outline" size="sm" onClick={() => setReviewsModal(true)}>
-          <Star className="h-3.5 w-3.5 mr-1.5" />
+          <Star className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
           Reviews
         </Button>
       </div>

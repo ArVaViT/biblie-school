@@ -26,7 +26,7 @@ export function PendingCertsCard({ certs, actionId, onApprove, onReject }: Props
     <Card className="mb-8 border-l-[3px] border-l-primary">
       <CardHeader>
         <CardTitle className="text-xl flex items-center gap-2">
-          <Award className="h-5 w-5 text-primary" />
+          <Award className="h-5 w-5 text-primary" strokeWidth={1.75} aria-hidden />
           Certificate Approvals
           <Badge variant="default" className="font-normal">
             {certs.length}
@@ -48,13 +48,13 @@ export function PendingCertsCard({ certs, actionId, onApprove, onReject }: Props
                 <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                   {cert.approved_by_name && (
                     <span className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-success" />
+                      <CheckCircle className="h-3.5 w-3.5 text-success" strokeWidth={1.75} aria-hidden />
                       Approved by {cert.approved_by_name}
                     </span>
                   )}
                   {cert.approved_at && (
                     <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <Clock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
                       {new Date(cert.approved_at).toLocaleDateString()}
                     </span>
                   )}
@@ -66,7 +66,7 @@ export function PendingCertsCard({ certs, actionId, onApprove, onReject }: Props
                   onClick={() => onApprove(cert.id)}
                   disabled={actionId === cert.id}
                 >
-                  <CheckCircle className="h-4 w-4 mr-1.5" />
+                  <CheckCircle className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
                   Approve
                 </Button>
                 <Button
@@ -76,7 +76,7 @@ export function PendingCertsCard({ certs, actionId, onApprove, onReject }: Props
                   disabled={actionId === cert.id}
                   className="text-destructive hover:text-destructive"
                 >
-                  <XCircle className="h-4 w-4 mr-1.5" />
+                  <XCircle className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
                   Reject
                 </Button>
               </div>
