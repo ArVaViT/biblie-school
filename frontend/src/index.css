@@ -3,92 +3,92 @@
 @tailwind utilities;
 
 /*
- * Semantic palette — single cool-neutral family + indigo brand + amber highlights.
- * Light: airy paper surfaces; dark: ink surfaces with luminous primary for CTAs.
- * Optional body gradient is intentionally subtle (enterprise, not marketing splash).
+ * Theme: warm editorial paper (light) + zinc-depth dark (2025–2026 practice).
+ * Brand = deep violet ink (light) / soft violet glow (dark) — not generic “tech blue”.
+ * Accent = sage (heritage / calm). Mesh gradients + slow ambient motion on :before.
  */
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 231 52% 28%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 220 16% 92%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 14% 93%;
-    --muted-foreground: 220 10% 42%;
-    --accent: 36 92% 42%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 72% 44%;
+    --background: 38 32% 97%;
+    --foreground: 265 28% 13%;
+    --card: 40 35% 99%;
+    --card-foreground: 265 28% 13%;
+    --popover: 40 35% 99%;
+    --popover-foreground: 265 28% 13%;
+    --primary: 262 56% 30%;
+    --primary-foreground: 40 40% 98%;
+    --secondary: 265 18% 93%;
+    --secondary-foreground: 265 28% 13%;
+    --muted: 38 22% 94%;
+    --muted-foreground: 265 12% 38%;
+    --accent: 146 32% 37%;
+    --accent-foreground: 265 28% 13%;
+    --destructive: 0 70% 42%;
     --destructive-foreground: 0 0% 98%;
-    --success: 158 48% 34%;
+    --success: 156 45% 34%;
     --success-foreground: 0 0% 98%;
-    --warning: 32 88% 44%;
-    --warning-foreground: 222 47% 11%;
-    --info: 212 78% 42%;
+    --warning: 30 85% 42%;
+    --warning-foreground: 265 28% 13%;
+    --info: 215 75% 42%;
     --info-foreground: 0 0% 98%;
-    --border: 220 13% 86%;
-    --input: 220 13% 86%;
-    --ring: 231 52% 38%;
+    --border: 265 12% 87%;
+    --input: 265 12% 87%;
+    --ring: 262 56% 38%;
     --radius: 0.5rem;
 
-    --sidebar: 220 18% 96%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 88%;
-    --sidebar-accent: 220 16% 92%;
-    --sidebar-accent-foreground: 231 52% 28%;
-    --sidebar-ring: 231 52% 38%;
+    --sidebar: 38 28% 96%;
+    --sidebar-foreground: 265 28% 13%;
+    --sidebar-border: 265 12% 88%;
+    --sidebar-accent: 265 18% 92%;
+    --sidebar-accent-foreground: 262 56% 30%;
+    --sidebar-ring: 262 56% 38%;
 
-    --chart-1: 231 52% 35%;
-    --chart-2: 36 92% 42%;
-    --chart-3: 158 48% 34%;
-    --chart-4: 32 88% 44%;
-    --chart-5: 212 78% 42%;
+    --chart-1: 262 56% 32%;
+    --chart-2: 146 32% 37%;
+    --chart-3: 156 45% 34%;
+    --chart-4: 30 85% 42%;
+    --chart-5: 215 75% 42%;
   }
 
   .dark {
-    --background: 224 48% 6%;
-    --foreground: 210 36% 96%;
-    --card: 224 38% 11%;
-    --card-foreground: 210 36% 96%;
-    --popover: 224 38% 11%;
-    --popover-foreground: 210 36% 96%;
-    --primary: 217 86% 64%;
-    --primary-foreground: 224 55% 10%;
-    --secondary: 224 32% 16%;
-    --secondary-foreground: 210 36% 96%;
-    --muted: 224 28% 14%;
-    --muted-foreground: 215 18% 60%;
-    --accent: 42 78% 56%;
-    --accent-foreground: 224 55% 10%;
-    --destructive: 0 62% 48%;
+    --background: 240 7% 9%;
+    --foreground: 40 14% 96%;
+    --card: 240 6% 12%;
+    --card-foreground: 40 14% 96%;
+    --popover: 240 6% 12%;
+    --popover-foreground: 40 14% 96%;
+    --primary: 262 58% 72%;
+    --primary-foreground: 240 12% 10%;
+    --secondary: 240 5% 16%;
+    --secondary-foreground: 40 14% 96%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 58%;
+    --accent: 146 28% 52%;
+    --accent-foreground: 240 12% 10%;
+    --destructive: 0 58% 50%;
     --destructive-foreground: 0 0% 98%;
-    --success: 158 42% 46%;
-    --success-foreground: 224 55% 10%;
-    --warning: 32 82% 54%;
-    --warning-foreground: 224 55% 10%;
-    --info: 210 78% 58%;
-    --info-foreground: 224 55% 10%;
-    --border: 224 24% 18%;
-    --input: 224 24% 18%;
-    --ring: 217 86% 64%;
+    --success: 156 38% 46%;
+    --success-foreground: 240 12% 10%;
+    --warning: 32 78% 54%;
+    --warning-foreground: 240 12% 10%;
+    --info: 215 72% 58%;
+    --info-foreground: 240 12% 10%;
+    --border: 240 5% 19%;
+    --input: 240 5% 19%;
+    --ring: 262 58% 72%;
 
-    --sidebar: 224 42% 8%;
-    --sidebar-foreground: 210 36% 96%;
-    --sidebar-border: 224 24% 18%;
-    --sidebar-accent: 224 32% 14%;
-    --sidebar-accent-foreground: 217 86% 64%;
-    --sidebar-ring: 217 86% 64%;
+    --sidebar: 240 7% 8%;
+    --sidebar-foreground: 40 14% 96%;
+    --sidebar-border: 240 5% 19%;
+    --sidebar-accent: 240 5% 14%;
+    --sidebar-accent-foreground: 262 58% 72%;
+    --sidebar-ring: 262 58% 72%;
 
-    --chart-1: 217 86% 64%;
-    --chart-2: 42 78% 56%;
-    --chart-3: 158 42% 46%;
-    --chart-4: 32 82% 54%;
-    --chart-5: 210 78% 58%;
+    --chart-1: 262 58% 72%;
+    --chart-2: 146 28% 52%;
+    --chart-3: 156 38% 46%;
+    --chart-4: 32 78% 54%;
+    --chart-5: 215 72% 58%;
   }
 }
 
@@ -103,35 +103,62 @@
   body {
     @apply min-h-[100dvh] text-foreground antialiased;
     transition:
-      background-color 0.25s ease,
-      color 0.25s ease;
+      background-color 0.3s ease,
+      color 0.3s ease;
     background-color: hsl(var(--background));
-    background-image: linear-gradient(
-      165deg,
-      hsl(var(--primary) / 0.045) 0%,
-      hsl(var(--background)) 42%,
-      hsl(var(--muted) / 0.65) 100%
-    );
-    background-attachment: fixed;
   }
-  html.dark body {
-    background-image: linear-gradient(
-      165deg,
-      hsl(var(--primary) / 0.09) 0%,
-      hsl(var(--background)) 38%,
-      hsl(224 40% 8%) 100%
-    );
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      radial-gradient(ellipse 120% 90% at 10% -25%, hsl(var(--primary) / 0.11) 0%, transparent 55%),
+      radial-gradient(ellipse 90% 70% at 92% 5%, hsl(var(--accent) / 0.09) 0%, transparent 52%),
+      radial-gradient(ellipse 70% 50% at 50% 100%, hsl(var(--muted) / 0.85) 0%, transparent 58%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(38 28% 96%) 100%);
+    animation: ambient-mesh 26s ease-in-out infinite alternate;
+  }
+  html.dark body::before {
+    background-image:
+      radial-gradient(ellipse 110% 85% at 12% -20%, hsl(var(--primary) / 0.18) 0%, transparent 58%),
+      radial-gradient(ellipse 85% 65% at 88% 8%, hsl(146 25% 35% / 0.12) 0%, transparent 52%),
+      radial-gradient(ellipse 80% 55% at 48% 105%, hsl(240 8% 14%) 0%, transparent 55%),
+      linear-gradient(195deg, hsl(var(--background)) 0%, hsl(240 8% 11%) 100%);
   }
 }
 
 @layer utilities {
+  @keyframes ambient-mesh {
+    0% {
+      transform: scale(1) translate3d(0, 0, 0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1.035) translate3d(-1.5%, 1.2%, 0);
+      opacity: 0.94;
+    }
+  }
   .animate-fade-in {
-    animation: fade-in 0.35s ease-out;
+    animation: fade-in 0.55s ease-out both;
+  }
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animate-delay-400 {
+    animation-delay: 400ms;
   }
   @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
@@ -146,18 +173,43 @@
       width: 100%;
     }
   }
-  /* Optional hero / panel wash — use sparingly on landing or CTAs */
+  /* Full-bleed hero glow — soft mesh, no box border needed */
+  .bg-home-hero-glow {
+    border-radius: 9999px;
+    background-image:
+      radial-gradient(closest-side at 50% 40%, hsl(var(--primary) / 0.2) 0%, transparent 85%),
+      radial-gradient(closest-side at 70% 30%, hsl(var(--accent) / 0.14) 0%, transparent 80%),
+      radial-gradient(closest-side at 25% 60%, hsl(265 45% 82% / 0.35) 0%, transparent 75%);
+    animation: hero-breathe 18s ease-in-out infinite alternate;
+  }
+  html.dark .bg-home-hero-glow {
+    background-image:
+      radial-gradient(closest-side at 50% 38%, hsl(var(--primary) / 0.28) 0%, transparent 85%),
+      radial-gradient(closest-side at 72% 28%, hsl(146 30% 40% / 0.12) 0%, transparent 80%),
+      radial-gradient(closest-side at 22% 58%, hsl(265 40% 46% / 0.14) 0%, transparent 78%);
+  }
+  @keyframes hero-breathe {
+    0% {
+      opacity: 0.85;
+      transform: scale(0.96);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  /* Cards / panels — optional radial wash */
   .bg-gradient-accent-subtle {
     background-image: radial-gradient(
       120% 80% at 50% -10%,
-      hsl(var(--accent) / 0.12) 0%,
+      hsl(var(--accent) / 0.1) 0%,
       transparent 55%
     );
   }
   html.dark .bg-gradient-accent-subtle {
     background-image: radial-gradient(
       120% 80% at 50% -10%,
-      hsl(var(--accent) / 0.08) 0%,
+      hsl(var(--accent) / 0.07) 0%,
       transparent 55%
     );
   }

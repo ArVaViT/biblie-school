@@ -191,26 +191,36 @@ export default function HomePage() {
     <div className="container mx-auto px-4 py-10">
       {user && <MyCoursesSection />}
 
-      <div className="bg-gradient-accent-subtle mx-auto mb-12 max-w-2xl rounded-lg border border-border/40 px-4 py-8 text-center sm:px-8">
-        <p className="text-xs uppercase tracking-[0.2em] text-accent font-medium mb-3">{t("home.academicPrograms")}</p>
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-          {user ? t("home.browseCourses") : t("home.courseCatalog")}
-        </h1>
-        <p className="text-muted-foreground text-sm mb-8">
-          {user ? t("home.discoverMore") : t("home.browseSeminary")}
-        </p>
-        <div className="relative max-w-md mx-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value.slice(0, maxLength))}
-            maxLength={maxLength}
-            placeholder={t("home.searchPlaceholder")}
-            className="pl-9 rounded-md"
-            aria-label={t("home.searchPlaceholder")}
-          />
+      <section className="relative mb-14 md:mb-20" aria-labelledby="home-catalog-heading">
+        <div className="pointer-events-none absolute left-1/2 top-0 -z-0 h-[min(22rem,55vw)] w-[min(120vw,44rem)] -translate-x-1/2 md:h-[26rem] md:w-[52rem]">
+          <div className="bg-home-hero-glow h-full w-full blur-3xl" aria-hidden />
         </div>
-      </div>
+        <div className="relative z-10 mx-auto max-w-2xl px-4 pb-2 pt-6 text-center md:pt-10">
+          <p className="animate-fade-in text-xs font-medium uppercase tracking-[0.22em] text-primary/90 mb-3">
+            {t("home.academicPrograms")}
+          </p>
+          <h1
+            id="home-catalog-heading"
+            className="animate-fade-in animate-delay-100 font-serif text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+          >
+            {user ? t("home.browseCourses") : t("home.courseCatalog")}
+          </h1>
+          <p className="animate-fade-in animate-delay-200 mt-3 text-sm leading-relaxed text-muted-foreground md:text-base">
+            {user ? t("home.discoverMore") : t("home.browseSeminary")}
+          </p>
+          <div className="animate-fade-in animate-delay-300 relative mx-auto mt-8 max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value.slice(0, maxLength))}
+              maxLength={maxLength}
+              placeholder={t("home.searchPlaceholder")}
+              className="rounded-md border-border/80 bg-background/80 pl-9 shadow-sm backdrop-blur-sm transition-shadow focus-visible:ring-2"
+              aria-label={t("home.searchPlaceholder")}
+            />
+          </div>
+        </div>
+      </section>
 
       {!user && (
         <div className="mb-8 flex items-center justify-center gap-2 rounded-md border border-border border-l-[3px] border-l-info bg-info/5 px-4 py-3">
