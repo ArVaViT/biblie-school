@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="frontend/public/favicon.svg" width="80" alt="Bible School LMS logo" />
+  <img src="frontend/public/favicon.svg" width="72" alt="Bible School LMS logo" />
 </p>
 
-<h1 align="center">Bible School LMS</h1>
+<p align="center">
+  <img src="docs/readme/banner.svg" width="920" alt="Bible School LMS — banner" />
+</p>
 
 <p align="center">
   A free, open-source learning management system built for Bible schools,
@@ -25,11 +27,28 @@
 </p>
 
 <p align="center">
-  <a href="https://biblie-school-frontend.vercel.app">Live demo</a> &middot;
+  <a href="https://biblie-school-frontend.vercel.app"><strong>Live demo</strong></a> &middot;
   <a href="ROADMAP.md">Roadmap</a> &middot;
   <a href="CONTRIBUTING.md">Contributing</a> &middot;
   <a href="CHANGELOG.md">Changelog</a>
 </p>
+
+---
+
+## Table of contents
+
+- [Why this project?](#why-this-project)
+- [Screenshots](#screenshots)
+- [Architecture](#architecture)
+- [Observability](#observability)
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Quick start](#quick-start)
+- [Project structure](#project-structure)
+- [Contributing](#contributing)
+- [For nonprofits](#for-nonprofits)
+- [Community](#community)
+- [License](#license)
 
 ---
 
@@ -49,6 +68,40 @@ technical expertise that volunteer-run organizations simply don't have.
   pricing models.
 - **Contributor-friendly** — clear docs, conventional commits, issue
   templates, and a welcoming community.
+
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/readme/ui-preview.svg" width="920" alt="Wireframe preview of dashboard, course reader, and quiz" />
+</p>
+
+**Wireframe preview** (above) always renders in GitHub; swap it for real captures when ready.
+
+Add PNG or WebP files under [`docs/readme/screenshots/`](docs/readme/screenshots/) and reference them here, for example:
+
+| Student dashboard | Course reader | Teacher gradebook |
+|:---:|:---:|:---:|
+| `dashboard.png` | `course-reader.png` | `gradebook.png` |
+
+Suggested filenames: `dashboard-light.png`, `dashboard-dark.png`, `quiz-taking.png`, `editor-chapter.png`. Keep captures **1280–1600px wide** and compress (e.g. `pngquant` or WebP) so the README stays fast.
+
+---
+
+## Architecture
+
+<p align="center">
+  <img src="docs/readme/architecture.svg" width="920" alt="Request flow: Browser to Vercel, FastAPI, Supabase" />
+</p>
+
+---
+
+## Observability
+
+The frontend can send **opt-in** analytics to **Datadog RUM** when `VITE_DATADOG_*` variables are set (`frontend/src/lib/datadog.ts`). Session Replay and Core Web Vitals can be reviewed in your Datadog org — useful for demos to sponsors or infra-minded contributors.
+
+If you export a **sanitized** screenshot (no PII, no session tokens), you can place it as `docs/readme/screenshots/datadog-rum-overview.png` and add a row under Screenshots. Never commit API keys or application secrets.
 
 ---
 
@@ -94,7 +147,7 @@ technical expertise that volunteer-run organizations simply don't have.
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/<your-username>/biblie-school.git
+git clone https://github.com/ArVaViT/biblie-school.git
 cd biblie-school
 
 # Frontend
@@ -153,6 +206,9 @@ frontend/           React SPA (Vite + TypeScript)
 
 supabase/
   migrations/       SQL migration files (production schema source of truth)
+
+docs/
+  readme/           README artwork (SVG) and optional screenshots/
 
 .github/
   workflows/        CI pipelines

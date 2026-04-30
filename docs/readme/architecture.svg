@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="280" viewBox="0 0 920 280" fill="none" role="img" aria-label="High-level architecture">
+  <defs>
+    <filter id="s" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="920" height="280" rx="16" fill="#f8fafc"/>
+  <text x="460" y="52" text-anchor="middle" fill="#0f172a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="700">Request flow (simplified)</text>
+  <rect x="40" y="100" width="140" height="72" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="2" filter="url(#s)"/>
+  <text x="110" y="142" text-anchor="middle" fill="#334155" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="600">Browser</text>
+  <text x="110" y="160" text-anchor="middle" fill="#64748b" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11">React SPA</text>
+  <path d="M180 136 L230 136" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="230" y="88" width="160" height="96" rx="10" fill="#ffffff" stroke="#c7d2fe" stroke-width="2" filter="url(#s)"/>
+  <text x="310" y="124" text-anchor="middle" fill="#3730a3" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="600">Vercel</text>
+  <text x="310" y="144" text-anchor="middle" fill="#64748b" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11">Static frontend</text>
+  <text x="310" y="164" text-anchor="middle" fill="#64748b" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11">Serverless API</text>
+  <path d="M390 136 L430 136" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="430" y="100" width="150" height="72" rx="10" fill="#ffffff" stroke="#bbf7d0" stroke-width="2" filter="url(#s)"/>
+  <text x="505" y="133" text-anchor="middle" fill="#166534" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="600">FastAPI</text>
+  <text x="505" y="152" text-anchor="middle" fill="#64748b" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11">Python 3.12</text>
+  <path d="M580 136 L630 136" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="630" y="88" width="250" height="96" rx="10" fill="#ffffff" stroke="#fecaca" stroke-width="2" filter="url(#s)"/>
+  <text x="755" y="124" text-anchor="middle" fill="#991b1b" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="600">Supabase</text>
+  <text x="755" y="144" text-anchor="middle" fill="#64748b" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11">PostgreSQL + RLS</text>
+  <text x="755" y="164" text-anchor="middle" fill="#64748b" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11">Auth, Storage</text>
+</svg>
