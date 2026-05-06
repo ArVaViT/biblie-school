@@ -82,8 +82,7 @@ def main() -> None:
     with eng.connect() as c:
         rows = c.execute(
             text(
-                "SELECT id::text, image_url FROM courses "
-                "WHERE deleted_at IS NULL AND image_url IS NOT NULL",
+                "SELECT id::text, image_url FROM courses WHERE deleted_at IS NULL AND image_url IS NOT NULL",
             ),
         ).fetchall()
 

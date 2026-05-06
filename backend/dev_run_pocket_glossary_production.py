@@ -64,11 +64,7 @@ def _actor_id() -> uuid.UUID:
     with eng.connect() as conn:
         if email:
             row = conn.execute(
-                text(
-                    "SELECT id::text FROM profiles "
-                    "WHERE lower(email) = :e AND role IN ('teacher', 'admin') "
-                    "LIMIT 1"
-                ),
+                text("SELECT id::text FROM profiles WHERE lower(email) = :e AND role IN ('teacher', 'admin') LIMIT 1"),
                 {"e": email},
             ).fetchone()
             if not row:
@@ -79,9 +75,7 @@ def _actor_id() -> uuid.UUID:
         ).fetchone()
         if row:
             return uuid.UUID(str(row[0]))
-        row = conn.execute(
-            text("SELECT id::text FROM profiles WHERE role = 'teacher' LIMIT 1")
-        ).fetchone()
+        row = conn.execute(text("SELECT id::text FROM profiles WHERE role = 'teacher' LIMIT 1")).fetchone()
     if not row:
         raise SystemExit("No teacher or admin in profiles — create one in the app first.")
     return uuid.UUID(str(row[0]))
