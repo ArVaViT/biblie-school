@@ -35,7 +35,15 @@ class Settings(BaseSettings):
     # ``SecretStr`` keeps the value out of any incidental ``Settings``
     # repr/log dump; callers must use ``.get_secret_value()`` to read it.
     GEMINI_API_KEY: SecretStr | None = Field(default=None, description="Google AI Studio API key (server-only)")
-    GEMINI_MODEL: str = Field(default="gemini-flash-latest", description="Gemini model id used for translations")
+    # gemini-2.5-flash-lite: no "thinking" tokens (translation doesn't need
+    # them) so the full GEMINI_MAX_OUTPUT_TOKENS budget goes to the actual
+    # translation. The previous default ``gemini-flash-latest`` resolves to
+    # the thinking-enabled 2.5-Flash, which consumed the budget on long
+    # course blocks and tripped finishReason=MAX_TOKENS. Lite is also
+    # cheaper for our volume. Switch to ``gemini-2.5-flash`` only if a
+    # specific course needs the higher quality and you've raised the
+    # output cap accordingly (or set thinkingConfig in the payload).
+    GEMINI_MODEL: str = Field(default="gemini-2.5-flash-lite", description="Gemini model id used for translations")
     # 30s headroom: a 5 KB Russian HTML block (lesson-overview callout in
     # the Acts course backfill) on ``gemini-flash-latest`` regularly takes
     # 18-25s to translate to English. The earlier 15s default produced
