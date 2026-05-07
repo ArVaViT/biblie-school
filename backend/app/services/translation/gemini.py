@@ -128,10 +128,12 @@ class GeminiTranslationProvider:
                     raise TranslationError(f"Gemini returned {response.status_code}: {response.text[:200]}")
 
             if attempt < self._max_retries:
-                # Exponential back-off with a small floor: keeps us from
-                # hammering on a 429 burst but doesn't add noticeable latency
-                # to the happy path.
-                time.sleep(min(2.0, 0.25 * (2**attempt)))
+                # Exponential back-off, but capped so the *total* sleep
+                # budget across all retries is ≤ 1.5s. Combined with the
+                # per-call read timeout this bounds worst-case time on a
+                # bad batch instead of letting one stuck call pile retries
+                # on top of a 30s timeout.
+                time.sleep(min(0.5, 0.1 * (2**attempt)))
 
         raise TranslationError(f"Gemini call failed after retries: {last_error!r}")
 

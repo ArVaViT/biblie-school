@@ -13,6 +13,7 @@ from typing import Any
 
 import httpx
 import pytest
+from pydantic import SecretStr
 
 from app.services.translation import (
     NoopTranslationProvider,
@@ -125,7 +126,11 @@ def test_factory_returns_noop_when_disabled(monkeypatch):
 
 def test_factory_returns_gemini_when_enabled(monkeypatch):
     reset_translation_provider_cache()
-    monkeypatch.setattr("app.services.translation.service.settings.GEMINI_API_KEY", "fake-key", raising=False)
+    monkeypatch.setattr(
+        "app.services.translation.service.settings.GEMINI_API_KEY",
+        SecretStr("fake-key"),
+        raising=False,
+    )
     monkeypatch.setattr("app.services.translation.service.settings.GEMINI_MODEL", "gemini-flash-latest", raising=False)
     monkeypatch.setattr("app.services.translation.service.settings.GEMINI_TIMEOUT_SECONDS", 5.0, raising=False)
     monkeypatch.setattr("app.services.translation.service.settings.GEMINI_MAX_OUTPUT_TOKENS", 256, raising=False)
@@ -134,6 +139,38 @@ def test_factory_returns_gemini_when_enabled(monkeypatch):
         assert isinstance(provider, GeminiTranslationProvider)
         # Conforms to the structural protocol the service relies on.
         assert isinstance(provider, TranslationProvider)
+    finally:
+        reset_translation_provider_cache()
+
+
+def test_factory_rebuilds_when_api_key_rotates(monkeypatch):
+    """Rotating the API key on a warm worker MUST yield a fresh provider —
+    the previous lru_cache pinned the old key forever."""
+    reset_translation_provider_cache()
+    try:
+        monkeypatch.setattr(
+            "app.services.translation.service.settings.GEMINI_API_KEY",
+            SecretStr("old-key"),
+            raising=False,
+        )
+        first = get_translation_provider()
+        assert isinstance(first, GeminiTranslationProvider)
+
+        # Same settings — must return the same cached instance.
+        again = get_translation_provider()
+        assert again is first
+
+        # Rotate key (simulating an env-var update on a warm Vercel worker).
+        monkeypatch.setattr(
+            "app.services.translation.service.settings.GEMINI_API_KEY",
+            SecretStr("new-key"),
+            raising=False,
+        )
+        rotated = get_translation_provider()
+        assert isinstance(rotated, GeminiTranslationProvider)
+        assert rotated is not first
+        # And the underlying api_key actually carries the new value.
+        assert rotated._api_key == "new-key"
     finally:
         reset_translation_provider_cache()
 

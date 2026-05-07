@@ -11,6 +11,7 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 import pytest
+from pydantic import SecretStr
 
 from app.models.content_translation import ContentTranslation
 from app.models.course import Course
@@ -126,7 +127,7 @@ def _enable_translation(monkeypatch):
     """
     monkeypatch.setattr(
         "app.services.translation.service.settings.GEMINI_API_KEY",
-        "fake-test-key",
+        SecretStr("fake-test-key"),
         raising=False,
     )
     reset_translation_provider_cache()

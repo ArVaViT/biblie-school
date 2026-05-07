@@ -97,10 +97,7 @@ def build_user_prompt(*, text: str, content_kind: str, context: str | None) -> s
 
     safe_text = _scrub_fence_lookalikes(text)
 
-    return (
-        f"{hint}Translate the text between the fences. Output the translation only.\n"
-        f"{begin}\n{safe_text}\n{end}"
-    )
+    return f"{hint}Translate the text between the fences. Output the translation only.\n{begin}\n{safe_text}\n{end}"
 
 
 def _scrub_fence_lookalikes(value: str) -> str:
