@@ -179,8 +179,22 @@ class GeminiTranslationProvider:
             content = candidates[0].get("content") or {}
             parts = content.get("parts") or []
             text = "".join(p.get("text", "") for p in parts).strip()
+            finish_reason = candidates[0].get("finishReason")
         except (AttributeError, KeyError, TypeError, IndexError) as exc:
             raise TranslationError(f"Gemini returned malformed candidate: {body!r}") from exc
+
+        # Only ``STOP`` represents a complete, voluntarily-terminated response.
+        # Anything else (``MAX_TOKENS``, ``SAFETY``, ``RECITATION``, ``OTHER``,
+        # …) means the model bailed mid-flight and we'd be persisting a
+        # truncated or refused output as if it were a real translation. Fail
+        # so the orchestrator records ``status='failed'`` and we can fix the
+        # cause (bump ``maxOutputTokens``, adjust the prompt, etc.).
+        # ``finish_reason`` is only allowed to be missing entirely; older
+        # Gemini API shapes occasionally omitted it for short responses.
+        if finish_reason is not None and finish_reason != "STOP":
+            raise TranslationError(
+                f"Gemini stopped with finishReason={finish_reason!r}; discarding partial output ({len(text)} chars)"
+            )
 
         if not text:
             raise TranslationError("Gemini returned an empty translation")

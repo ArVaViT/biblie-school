@@ -43,7 +43,13 @@ class Settings(BaseSettings):
     # bounded retry schedule in ``GeminiTranslationProvider`` (≤0.3s budget)
     # this still keeps a single bad batch from monopolising a worker.
     GEMINI_TIMEOUT_SECONDS: float = Field(default=30.0, description="Per-request timeout for Gemini calls")
-    GEMINI_MAX_OUTPUT_TOKENS: int = Field(default=4096, description="Cap on generation length")
+    # 8192 is the per-call ceiling on ``gemini-flash-latest``; the previous
+    # 4096 default truncated long course-block translations (e.g. an 11.8 KB
+    # Russian HTML appendix in the Acts course came back at 715 chars with
+    # ``finishReason='MAX_TOKENS'``). Bumping to the model's actual ceiling
+    # plus the new ``finishReason`` check in ``GeminiTranslationProvider``
+    # closes that hole. Cost-wise the cap only matters when actually emitted.
+    GEMINI_MAX_OUTPUT_TOKENS: int = Field(default=8192, description="Cap on generation length")
 
     @model_validator(mode="after")
     def load_alternative_env_vars(self):
