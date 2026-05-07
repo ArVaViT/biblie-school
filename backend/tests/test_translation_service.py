@@ -278,6 +278,66 @@ def test_gemini_raises_typed_error_on_malformed_candidate():
         provider.translate(TranslationRequest(text="hi", source_locale="en", target_locale="ru"))
 
 
+@pytest.mark.parametrize("finish_reason", ["MAX_TOKENS", "SAFETY", "RECITATION", "OTHER"])
+def test_gemini_rejects_non_stop_finish_reason(finish_reason: str):
+    """Translations that didn't finish naturally (truncated, refused, blocked)
+    must surface as ``TranslationError`` so the orchestrator persists
+    ``status='failed'`` instead of silently caching a partial output."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {"parts": [{"text": "<p>Partial output cut off here"}]},
+                        "finishReason": finish_reason,
+                    }
+                ]
+            },
+        )
+
+    provider = _gemini_with(handler)
+    with pytest.raises(TranslationError, match=f"finishReason={finish_reason!r}"):
+        provider.translate(TranslationRequest(text="long text", source_locale="ru", target_locale="en"))
+
+
+def test_gemini_accepts_stop_finish_reason():
+    """``finishReason='STOP'`` is the only complete-response signal; output is kept."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {"parts": [{"text": "<p>Hello world</p>"}]},
+                        "finishReason": "STOP",
+                    }
+                ]
+            },
+        )
+
+    provider = _gemini_with(handler)
+    result = provider.translate(TranslationRequest(text="Привет мир", source_locale="ru", target_locale="en"))
+    assert result.text == "<p>Hello world</p>"
+
+
+def test_gemini_accepts_missing_finish_reason_for_back_compat():
+    """Older Gemini API shapes occasionally omit ``finishReason`` on short
+    successful responses; we keep the output rather than fail the batch."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"candidates": [{"content": {"parts": [{"text": "<p>OK</p>"}]}}]},
+        )
+
+    provider = _gemini_with(handler)
+    result = provider.translate(TranslationRequest(text="Хорошо", source_locale="ru", target_locale="en"))
+    assert result.text == "<p>OK</p>"
+
+
 def test_gemini_does_not_close_caller_owned_client():
     """If the caller injected an ``httpx.Client``, the provider must never
     close it — closing a client the caller still owns broke tests in the past."""
