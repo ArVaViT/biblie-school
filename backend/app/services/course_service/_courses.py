@@ -18,7 +18,22 @@ if TYPE_CHECKING:
     from app.schemas.course import CourseCreate, CourseUpdate
 
 
-def create_course(db: Session, data: CourseCreate, user_id: str | UUID) -> Course:
+def create_course(
+    db: Session,
+    data: CourseCreate,
+    user_id: str | UUID,
+    *,
+    source_locale: str | None = None,
+) -> Course:
+    """Create a new course owned by ``user_id``.
+
+    ``source_locale`` is the language the teacher is authoring in. The API
+    layer derives it from the teacher's ``preferred_locale`` profile
+    setting so the teacher never sees a "what language are you writing in?"
+    prompt — the system already knows from their UI choice. Passing
+    ``None`` (legacy callers, scripts) falls back to the column's DB
+    default (``'ru'``) to keep migrations / fixtures working unchanged.
+    """
     course = Course(
         id=str(uuid.uuid4()),
         title=data.title,
@@ -26,6 +41,8 @@ def create_course(db: Session, data: CourseCreate, user_id: str | UUID) -> Cours
         image_url=data.image_url,
         created_by=user_id,
     )
+    if source_locale is not None:
+        course.source_locale = source_locale
     db.add(course)
     db.commit()
     db.refresh(course)
