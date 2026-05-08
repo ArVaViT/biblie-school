@@ -213,7 +213,13 @@
     "loadCourseFailed": "Failed to load course. Please try again.",
     "loadGradebookFailed": "Failed to load gradebook. Please try again.",
     "genericLoadFailed": "Something went wrong",
-    "loadTeacherCoursesFailed": "Failed to load your courses. Please try again."
+    "loadTeacherCoursesFailed": "Failed to load your courses. Please try again.",
+    "boundary": {
+      "heading": "Something went wrong",
+      "body": "An unexpected error occurred. Please try again.",
+      "tryAgain": "Try Again",
+      "refresh": "Refresh Page"
+    }
   },
   "toast": {
     "enrolledSuccess": "Enrolled successfully",
