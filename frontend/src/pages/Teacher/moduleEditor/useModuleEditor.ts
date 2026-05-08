@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { DropResult } from "@hello-pangea/dnd";
 
 import { coursesService } from "@/services/courses";
@@ -25,6 +26,7 @@ export function useModuleEditor(
   confirm: ConfirmFn,
 ) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [mod, setMod] = useState<Module | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,13 +44,13 @@ export function useModuleEditor(
         setModDueDate(data.due_date ? data.due_date.slice(0, 16) : "");
       } catch {
         if (signal?.cancelled) return;
-        toast({ title: "Module not found", variant: "destructive" });
+        toast({ title: t("moduleEditor.toast.moduleNotFound"), variant: "destructive" });
         navigate(`/teacher/courses/${courseId}`);
       } finally {
         if (!signal?.cancelled) setLoading(false);
       }
     },
-    [courseId, moduleId, navigate],
+    [courseId, moduleId, navigate, t],
   );
 
   useEffect(() => {
@@ -67,7 +69,8 @@ export function useModuleEditor(
       .safeParse({ [field]: value });
     if (!check.success) {
       toast({
-        title: check.error.issues[0]?.message ?? `Invalid ${field}`,
+        title:
+          check.error.issues[0]?.message ?? t("moduleEditor.invalidField", { field }),
         variant: "destructive",
       });
       throw new Error("validation");
@@ -76,7 +79,7 @@ export function useModuleEditor(
       await coursesService.updateModule(courseId, moduleId, { [field]: value });
       setMod((prev) => (prev ? { ...prev, [field]: value } : prev));
     } catch {
-      toast({ title: "Failed to save module", variant: "destructive" });
+      toast({ title: t("moduleEditor.toast.failedSaveModule"), variant: "destructive" });
       throw new Error("save failed");
     }
   };
@@ -88,7 +91,7 @@ export function useModuleEditor(
       await coursesService.updateModule(courseId, moduleId, { due_date: due });
       setMod((prev) => (prev ? { ...prev, due_date: due } : prev));
     } catch {
-      toast({ title: "Failed to save due date", variant: "destructive" });
+      toast({ title: t("moduleEditor.toast.failedSaveDueDate"), variant: "destructive" });
     }
   };
 
@@ -108,12 +111,12 @@ export function useModuleEditor(
       setMod((prev) =>
         prev ? { ...prev, chapters: [...(prev.chapters ?? []), ch] } : prev,
       );
-      toast({ title: "Chapter added", variant: "success" });
+      toast({ title: t("moduleEditor.toast.chapterAdded"), variant: "success" });
       navigate(
         `/teacher/courses/${courseId}/modules/${moduleId}/chapters/${ch.id}/edit`,
       );
     } catch {
-      toast({ title: "Failed to add chapter", variant: "destructive" });
+      toast({ title: t("moduleEditor.toast.failedAddChapter"), variant: "destructive" });
     }
   };
 
@@ -136,7 +139,8 @@ export function useModuleEditor(
     const check = chapterSchema.pick({ title: true }).safeParse({ title: trimmed });
     if (!check.success) {
       toast({
-        title: check.error.issues[0]?.message ?? "Invalid chapter title",
+        title:
+          check.error.issues[0]?.message ?? t("moduleEditor.invalidChapterTitle"),
         variant: "destructive",
       });
       return;
@@ -149,16 +153,19 @@ export function useModuleEditor(
       });
     } catch {
       updateChapterLocal(ch.id, { title: previousTitle });
-      toast({ title: "Failed to rename chapter", variant: "destructive" });
+      toast({
+        title: t("moduleEditor.toast.failedRenameChapter"),
+        variant: "destructive",
+      });
     }
   };
 
   const deleteChapter = async (chId: string) => {
     if (!courseId || !moduleId) return;
     const ok = await confirm({
-      title: "Delete this chapter?",
-      description: "The chapter and its content will be removed.",
-      confirmLabel: "Delete",
+      title: t("moduleEditor.confirmDelete.title"),
+      description: t("moduleEditor.confirmDelete.description"),
+      confirmLabel: t("moduleEditor.confirmDelete.confirm"),
       tone: "destructive",
     });
     if (!ok) return;
@@ -169,9 +176,12 @@ export function useModuleEditor(
           ? { ...prev, chapters: prev.chapters?.filter((c) => c.id !== chId) }
           : prev,
       );
-      toast({ title: "Chapter deleted", variant: "success" });
+      toast({ title: t("moduleEditor.toast.chapterDeleted"), variant: "success" });
     } catch {
-      toast({ title: "Failed to delete chapter", variant: "destructive" });
+      toast({
+        title: t("moduleEditor.toast.failedDeleteChapter"),
+        variant: "destructive",
+      });
     }
   };
 
@@ -184,14 +194,16 @@ export function useModuleEditor(
         is_locked: newLocked,
       });
       toast({
-        title: newLocked ? "Chapter locked" : "Chapter unlocked",
+        title: newLocked
+          ? t("moduleEditor.toast.chapterLocked")
+          : t("moduleEditor.toast.chapterUnlocked"),
         variant: "success",
       });
     } catch (error: unknown) {
       updateChapterLocal(ch.id, { is_locked: ch.is_locked });
-      const detail = getErrorDetail(error) || "Unknown error";
+      const detail = getErrorDetail(error) || t("moduleEditor.unknownError");
       toast({
-        title: `Failed to toggle lock: ${detail}`,
+        title: t("moduleEditor.toast.failedToggleLock", { detail }),
         variant: "destructive",
       });
     }
@@ -234,13 +246,16 @@ export function useModuleEditor(
             .filter(Boolean),
         );
       } catch {
-        toast({ title: "Failed to save chapter order", variant: "destructive" });
+        toast({
+          title: t("moduleEditor.toast.failedReorderChapters"),
+          variant: "destructive",
+        });
         load();
       } finally {
         setReordering(false);
       }
     },
-    [mod, courseId, moduleId, load, reordering],
+    [mod, courseId, moduleId, load, reordering, t],
   );
 
   return {

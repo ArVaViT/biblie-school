@@ -447,7 +447,61 @@
       "upcoming": "Upcoming",
       "closed": "Closed",
       "open": "Open"
+    },
+    "modulesHeading": "Modules",
+    "addModule": "Add module",
+    "noModulesYet": "No modules yet",
+    "noModulesYetDescription": "Add your first module to start building the course.",
+    "chapterCount_one": "{{count}} chapter",
+    "chapterCount_other": "{{count}} chapters"
+  },
+  "moduleEditor": {
+    "toast": {
+      "moduleNotFound": "Module not found",
+      "failedSaveModule": "Failed to save module",
+      "failedSaveDueDate": "Failed to save due date",
+      "chapterAdded": "Chapter added",
+      "failedAddChapter": "Failed to add chapter",
+      "failedRenameChapter": "Failed to rename chapter",
+      "chapterDeleted": "Chapter deleted",
+      "failedDeleteChapter": "Failed to delete chapter",
+      "chapterLocked": "Chapter locked",
+      "chapterUnlocked": "Chapter unlocked",
+      "failedToggleLock": "Failed to toggle lock: {{detail}}",
+      "failedReorderChapters": "Failed to save chapter order"
+    },
+    "invalidField": "Invalid {{field}}",
+    "invalidChapterTitle": "Invalid chapter title",
+    "unknownError": "Unknown error",
+    "confirmDelete": {
+      "title": "Delete this chapter?",
+      "description": "The chapter and its content will be removed.",
+      "confirm": "Delete"
     }
+  },
+  "courseDetail": {
+    "allCourses": "All Courses",
+    "manageCourse": "Manage Course",
+    "enrollInCourse": "Enroll in Course",
+    "enrolling": "Enrolling...",
+    "enrollmentNotAvailable": "Enrollment not available",
+    "signInToEnroll": "Sign in to Enroll",
+    "enrollmentClosedAllCohorts": "Enrollment window is closed for all available cohorts.",
+    "noCohortsAvailable": "No cohorts are currently available for this course.",
+    "enrollmentRangeLabel": "Enrollment: {{start}} — {{end}}",
+    "studentsEnrolledOfMax": "{{enrolled}}/{{max}} students enrolled",
+    "moduleCount_one": "{{count}} module",
+    "moduleCount_other": "{{count}} modules",
+    "chapterCount_one": "{{count}} chapter",
+    "chapterCount_other": "{{count}} chapters",
+    "percentComplete": "{{percent}}% complete",
+    "modulesHeading": "Modules",
+    "noModulesAddedYet": "No modules added yet",
+    "openModule": "Open",
+    "moduleLocked": "Locked",
+    "moduleLockHint": "Complete all assessments in the previous module to unlock.",
+    "due": "Due",
+    "overdue": "Overdue"
   },
   "gradebook": {
     "summaryTab": "Summary Grades",

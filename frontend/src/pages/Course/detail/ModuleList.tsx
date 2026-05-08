@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import {
   AlertTriangle,
   ArrowRight,
@@ -26,11 +27,12 @@ interface Props {
 }
 
 export function ModuleList({ courseId, modules, completedChapterIds }: Props) {
+  const { t } = useTranslation()
   return (
     <div>
       <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
         <BookOpen className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-        Modules
+        {t("courseDetail.modulesHeading")}
         <span className="text-sm font-normal text-muted-foreground">({modules.length})</span>
       </h2>
 
@@ -50,7 +52,7 @@ export function ModuleList({ courseId, modules, completedChapterIds }: Props) {
       ) : (
         <Card className="border-dashed">
           <CardContent className="py-8 text-center text-muted-foreground text-sm">
-            No modules added yet
+            {t("courseDetail.noModulesAddedYet")}
           </CardContent>
         </Card>
       )}
@@ -73,6 +75,7 @@ function ModuleRow({
   modules,
   completedChapterIds,
 }: ModuleRowProps) {
+  const { t } = useTranslation()
   const chapters = [...(module.chapters ?? [])].sort(
     (a, b) => a.order_index - b.order_index,
   )
@@ -126,7 +129,7 @@ function ModuleRow({
           {!isLocked && (
             <Link to={`/courses/${courseId}/modules/${module.id}`}>
               <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0">
-                Open
+                {t("courseDetail.openModule")}
                 <ArrowRight className="ml-1 h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
               </Button>
             </Link>
@@ -134,13 +137,13 @@ function ModuleRow({
           {isLocked && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Lock className="h-3 w-3" strokeWidth={1.75} aria-hidden />
-              Locked
+              {t("courseDetail.moduleLocked")}
             </span>
           )}
         </div>
         {isLocked && (
           <p className="text-xs text-muted-foreground ml-8 mt-1">
-            Complete all assessments in the previous module to unlock.
+            {t("courseDetail.moduleLockHint")}
           </p>
         )}
         {module.description && (
@@ -164,7 +167,7 @@ function ModuleRow({
                 <Clock className="h-3 w-3" strokeWidth={1.75} aria-hidden />
               )}
               <span>
-                {overdue ? "Overdue" : "Due"}: {formatDate(module.due_date)}
+                {overdue ? t("courseDetail.overdue") : t("courseDetail.due")}: {formatDate(module.due_date)}
               </span>
             </div>
           )
