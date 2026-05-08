@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import {
   DragDropContext,
   Draggable,
@@ -22,29 +23,30 @@ interface Props {
 /** Sortable module list for the course editor. */
 export function ModulesList({ courseId, modules, onDragEnd, onAdd, onRemove }: Props) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-serif text-xl font-semibold flex items-center gap-2">
           <Layers className="h-5 w-5 text-primary/60" />
-          Modules
+          {t("teacherEditor.modulesHeading")}
         </h2>
         <Button onClick={onAdd} size="sm" variant="outline">
           <Plus className="h-4 w-4 mr-1.5" />
-          Add module
+          {t("teacherEditor.addModule")}
         </Button>
       </div>
 
       {modules.length === 0 ? (
         <EmptyState
           icon={<Layers />}
-          title="No modules yet"
-          description="Add your first module to start building the course."
+          title={t("teacherEditor.noModulesYet")}
+          description={t("teacherEditor.noModulesYetDescription")}
           action={
             <Button onClick={onAdd} size="sm">
               <Plus className="h-4 w-4 mr-1.5" />
-              Add module
+              {t("teacherEditor.addModule")}
             </Button>
           }
         />
@@ -83,8 +85,9 @@ export function ModulesList({ courseId, modules, onDragEnd, onAdd, onRemove }: P
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{mod.title}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {mod.chapters?.length ?? 0} chapter
-                            {(mod.chapters?.length ?? 0) !== 1 ? "s" : ""}
+                            {t("teacherEditor.chapterCount", {
+                              count: mod.chapters?.length ?? 0,
+                            })}
                           </p>
                         </div>
                         <Button

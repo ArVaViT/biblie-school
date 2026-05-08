@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { ArrowLeft, CalendarDays, Clock, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,6 +27,7 @@ export function NotEnrolledView({
   enrolling,
   onEnroll,
 }: Props) {
+  const { t } = useTranslation()
   const [cohortSelectModal, setCohortSelectModal] = useState(false)
   const [selectedCohortId, setSelectedCohortId] = useState<string | null>(null)
 
@@ -59,7 +61,7 @@ export function NotEnrolledView({
       <Link to="/">
         <Button variant="ghost" size="sm" className="mb-4 h-8 text-xs">
           <ArrowLeft className="mr-1.5 h-4 w-4" strokeWidth={1.75} aria-hidden />
-          All Courses
+          {t("courseDetail.allCourses")}
         </Button>
       </Link>
 
@@ -104,13 +106,18 @@ export function NotEnrolledView({
             {activeCohort.enrollment_start && activeCohort.enrollment_end && (
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
-                Enrollment: {formatDate(activeCohort.enrollment_start)} &mdash;{" "}
-                {formatDate(activeCohort.enrollment_end)}
+                {t("courseDetail.enrollmentRangeLabel", {
+                  start: formatDate(activeCohort.enrollment_start),
+                  end: formatDate(activeCohort.enrollment_end),
+                })}
               </p>
             )}
             {activeCohort.max_students && (
               <p className="text-xs text-muted-foreground mt-1">
-                {activeCohort.student_count}/{activeCohort.max_students} students enrolled
+                {t("courseDetail.studentsEnrolledOfMax", {
+                  enrolled: activeCohort.student_count,
+                  max: activeCohort.max_students,
+                })}
               </p>
             )}
           </CardContent>
@@ -124,8 +131,10 @@ export function NotEnrolledView({
             <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden />
             {course.enrollment_start && course.enrollment_end && (
               <span className="text-muted-foreground text-xs">
-                Enrollment: {formatDate(course.enrollment_start)} &mdash;{" "}
-                {formatDate(course.enrollment_end)}
+                {t("courseDetail.enrollmentRangeLabel", {
+                  start: formatDate(course.enrollment_start),
+                  end: formatDate(course.enrollment_end),
+                })}
               </span>
             )}
           </div>
@@ -133,32 +142,49 @@ export function NotEnrolledView({
 
       <div>
         {isOwner ? (
-          <Link to={`/teacher/courses/${course.id}`}>
-            <Button size="lg" variant="outline">
-              Manage Course
+          // Owner / admin: show BOTH "Manage Course" (primary, what they
+          // usually want) AND "Enroll in Course" so they can preview the
+          // course as a student or take their own quizzes. Issue #88
+          // surfaced the prior conditional that hid Enroll from owners.
+          <div className="flex flex-wrap items-center gap-3">
+            <Link to={`/teacher/courses/${course.id}`}>
+              <Button size="lg">{t("courseDetail.manageCourse")}</Button>
+            </Link>
+            <Button
+              onClick={handleEnrollClick}
+              disabled={enrolling || !canEnroll}
+              size="lg"
+              variant="outline"
+            >
+              <Users className="mr-2 h-4 w-4" strokeWidth={1.75} aria-hidden />
+              {!canEnroll
+                ? t("courseDetail.enrollmentNotAvailable")
+                : enrolling
+                  ? t("courseDetail.enrolling")
+                  : t("courseDetail.enrollInCourse")}
             </Button>
-          </Link>
+          </div>
         ) : isSignedIn ? (
           <div>
             <Button onClick={handleEnrollClick} disabled={enrolling || !canEnroll} size="lg">
               <Users className="mr-2 h-4 w-4" strokeWidth={1.75} aria-hidden />
               {!canEnroll
-                ? "Enrollment not available"
+                ? t("courseDetail.enrollmentNotAvailable")
                 : enrolling
-                  ? "Enrolling..."
-                  : "Enroll in Course"}
+                  ? t("courseDetail.enrolling")
+                  : t("courseDetail.enrollInCourse")}
             </Button>
             {!canEnroll && (
               <p className="text-sm text-muted-foreground mt-2">
                 {cohorts.length > 0
-                  ? "Enrollment window is closed for all available cohorts."
-                  : "No cohorts are currently available for this course."}
+                  ? t("courseDetail.enrollmentClosedAllCohorts")
+                  : t("courseDetail.noCohortsAvailable")}
               </p>
             )}
           </div>
         ) : (
           <Link to="/login">
-            <Button size="lg">Sign in to Enroll</Button>
+            <Button size="lg">{t("courseDetail.signInToEnroll")}</Button>
           </Link>
         )}
       </div>
