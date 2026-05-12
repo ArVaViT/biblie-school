@@ -465,6 +465,59 @@
       "saveGrade": "Сохранить оценку"
     }
   },
+  "assignmentEditor": {
+    "validation": {
+      "titleRequired": "Укажите название задания"
+    },
+    "toast": {
+      "created": "Задание создано",
+      "createFailed": "Не удалось создать задание",
+      "updated": "Задание обновлено",
+      "updateFailed": "Не удалось обновить задание",
+      "deleted": "Задание удалено",
+      "deleteFailed": "Не удалось удалить задание",
+      "graded": "Оценка сохранена",
+      "gradeFailed": "Не удалось сохранить оценку"
+    },
+    "confirmDelete": {
+      "title": "Удалить это задание?",
+      "description": "Также будут удалены все ответы студентов.",
+      "confirm": "Удалить задание"
+    },
+    "loadFailed": "Не удалось загрузить задания. Попробуйте обновить страницу.",
+    "heading": "Задания ({{count}})",
+    "newAssignment": "Новое задание",
+    "empty": "К этой главе нет заданий.",
+    "form": {
+      "title": "Название",
+      "titlePlaceholder": "напр. Размышление по главе",
+      "description": "Описание (необязательно)",
+      "descriptionPlaceholder": "Инструкции к заданию...",
+      "maxScore": "Макс. балл",
+      "dueDate": "Срок сдачи (необязательно)",
+      "creating": "Создание...",
+      "create": "Создать задание",
+      "updating": "Обновление...",
+      "update": "Обновить задание",
+      "cancel": "Отмена"
+    },
+    "item": {
+      "maxPts": "Макс.: {{max}} б.",
+      "due": "Сдать до: {{date}}",
+      "noSubmissions": "Пока нет ответов.",
+      "submissionsCount": "Ответы ({{count}})"
+    },
+    "grader": {
+      "viewFile": "Открыть прикреплённый файл",
+      "statusGrade": "Оценить",
+      "statusReturn": "Вернуть на доработку",
+      "feedback": "Отзыв",
+      "feedbackPlaceholder": "Необязательный отзыв студенту...",
+      "saving": "Сохранение...",
+      "save": "Сохранить оценку",
+      "studentIdPrefix": "{{prefix}}..."
+    }
+  },
   "assignment": {
     "loadFailed": "Не удалось загрузить задания. Обновите страницу.",
     "statusSubmitted": "Отправлено — на проверке",
