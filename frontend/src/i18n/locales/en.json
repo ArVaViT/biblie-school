@@ -692,7 +692,25 @@
     "moduleLocked": "Locked",
     "moduleLockHint": "Complete all assessments in the previous module to unlock.",
     "due": "Due",
-    "overdue": "Overdue"
+    "overdue": "Overdue",
+    "downloadFailed": "Failed to download file",
+    "materialsButton": "Materials ({{count}})",
+    "reviewsButton": "Reviews",
+    "reviewsModalTitle": "Course Reviews",
+    "materialsModal": {
+      "title": "Course Materials",
+      "empty": "No materials available."
+    },
+    "cohortSelect": {
+      "title": "Select a Cohort",
+      "intro": "Multiple cohorts are available. Choose one to enroll in:",
+      "spotsFilled": "{{enrolled}}/{{max}} spots filled",
+      "enrolling": "Enrolling...",
+      "enroll": "Enroll"
+    },
+    "upcoming": {
+      "heading": "Upcoming Deadlines & Events"
+    }
   },
   "gradebook": {
     "summaryTab": "Summary Grades",
