@@ -451,6 +451,59 @@
       "saveGrade": "Save grade"
     }
   },
+  "assignmentEditor": {
+    "validation": {
+      "titleRequired": "Assignment title is required"
+    },
+    "toast": {
+      "created": "Assignment created",
+      "createFailed": "Failed to create assignment",
+      "updated": "Assignment updated",
+      "updateFailed": "Failed to update assignment",
+      "deleted": "Assignment deleted",
+      "deleteFailed": "Failed to delete assignment",
+      "graded": "Submission graded",
+      "gradeFailed": "Failed to grade"
+    },
+    "confirmDelete": {
+      "title": "Delete this assignment?",
+      "description": "All student submissions will also be deleted.",
+      "confirm": "Delete assignment"
+    },
+    "loadFailed": "Failed to load assignments. Please try refreshing.",
+    "heading": "Assignments ({{count}})",
+    "newAssignment": "New Assignment",
+    "empty": "No assignments for this chapter.",
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "e.g. Chapter Reflection Essay",
+      "description": "Description (optional)",
+      "descriptionPlaceholder": "Assignment instructions...",
+      "maxScore": "Max Score",
+      "dueDate": "Due Date (optional)",
+      "creating": "Creating...",
+      "create": "Create Assignment",
+      "updating": "Updating...",
+      "update": "Update Assignment",
+      "cancel": "Cancel"
+    },
+    "item": {
+      "maxPts": "Max: {{max}} pts",
+      "due": "Due: {{date}}",
+      "noSubmissions": "No submissions yet.",
+      "submissionsCount": "Submissions ({{count}})"
+    },
+    "grader": {
+      "viewFile": "View attached file",
+      "statusGrade": "Grade",
+      "statusReturn": "Return for revision",
+      "feedback": "Feedback",
+      "feedbackPlaceholder": "Optional feedback for the student...",
+      "saving": "Saving...",
+      "save": "Save Grade",
+      "studentIdPrefix": "{{prefix}}..."
+    }
+  },
   "assignment": {
     "loadFailed": "Failed to load assignments. Please try refreshing.",
     "statusSubmitted": "Submitted — Awaiting Review",
