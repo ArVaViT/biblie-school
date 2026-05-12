@@ -1,5 +1,6 @@
 import { AlertCircle, BookOpen, CheckCircle, Trophy, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { motion, useReducedMotion } from "motion/react"
 import { Card, CardContent } from "@/components/ui/card"
 import type { Quiz, QuizAttempt, QuizQuestion } from "@/types"
 import type { AnswerMap } from "./types"
@@ -13,6 +14,7 @@ interface Props {
 
 export function ResultsView({ result, quiz, questions, answers }: Props) {
   const { t } = useTranslation()
+  const prefersReducedMotion = useReducedMotion()
   const scorePercent = result.max_score
     ? Math.round(((result.score ?? 0) / result.max_score) * 100)
     : 0
@@ -21,6 +23,9 @@ export function ResultsView({ result, quiz, questions, answers }: Props) {
   const hasOpenEnded = questions.some(
     (q) => q.question_type === "short_answer" || q.question_type === "essay",
   )
+
+  const ResultIcon = result.passed ? Trophy : AlertCircle
+  const iconColor = result.passed ? "text-success" : "text-destructive"
 
   return (
     <div className="p-5 space-y-6">
@@ -32,10 +37,17 @@ export function ResultsView({ result, quiz, questions, answers }: Props) {
         }
       >
         <CardContent className="py-6 text-center">
-          {result.passed ? (
-            <Trophy className="mx-auto mb-3 h-10 w-10 text-success" />
+          {prefersReducedMotion ? (
+            <ResultIcon className={`mx-auto mb-3 h-10 w-10 ${iconColor}`} />
           ) : (
-            <AlertCircle className="mx-auto mb-3 h-10 w-10 text-destructive" />
+            <motion.div
+              className="mx-auto mb-3 w-fit"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 320, damping: 18, delay: 0.05 }}
+            >
+              <ResultIcon className={`h-10 w-10 ${iconColor}`} />
+            </motion.div>
           )}
           <h3 className="text-lg font-bold mb-1">
             {result.passed ? t("quiz.passedTitle") : t("quiz.notPassedTitle")}
