@@ -712,7 +712,25 @@
     "moduleLocked": "Заблокировано",
     "moduleLockHint": "Завершите все задания предыдущего модуля, чтобы разблокировать.",
     "due": "Сдать до",
-    "overdue": "Просрочено"
+    "overdue": "Просрочено",
+    "downloadFailed": "Не удалось скачать файл",
+    "materialsButton": "Материалы ({{count}})",
+    "reviewsButton": "Отзывы",
+    "reviewsModalTitle": "Отзывы о курсе",
+    "materialsModal": {
+      "title": "Материалы курса",
+      "empty": "Материалов пока нет."
+    },
+    "cohortSelect": {
+      "title": "Выберите когорту",
+      "intro": "Доступно несколько когорт. Выберите, в какую записаться:",
+      "spotsFilled": "{{enrolled}}/{{max}} мест занято",
+      "enrolling": "Запись...",
+      "enroll": "Записаться"
+    },
+    "upcoming": {
+      "heading": "Ближайшие дедлайны и события"
+    }
   },
   "gradebook": {
     "summaryTab": "Сводка оценок",
