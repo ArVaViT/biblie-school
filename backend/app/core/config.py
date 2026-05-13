@@ -22,9 +22,18 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str | None = Field(default=None, description="JWT secret key")
     JWT_ALGORITHM: str = "HS256"
 
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,https://biblie-school-frontend.vercel.app"
+    CORS_ORIGINS: str = (
+        "http://localhost:3000,http://localhost:5173,"
+        "https://equipbible.com,https://www.equipbible.com,"
+        "https://equip-frontend.vercel.app"
+    )
+    # Accept both the new `equip-frontend` slug AND the legacy
+    # `biblie-school-frontend` slug during the rebrand transition. Drop the
+    # legacy alternation once the rename has settled and any old preview
+    # URLs have stopped circulating.
     CORS_ORIGIN_REGEX: str = (
-        r"^https://biblie-school-frontend(?:-[\w-]+)?\.vercel\.app$"
+        r"^https://(?:equip-frontend|biblie-school-frontend)(?:-[\w-]+)?\.vercel\.app$"
+        r"|^https://(?:www\.)?equipbible\.com$"
         r"|^http://localhost:\d+$"
     )
 
