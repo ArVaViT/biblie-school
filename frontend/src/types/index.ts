@@ -246,17 +246,19 @@ export interface CourseReview {
 
 export interface Cohort {
   id: string
-  course_id: string
   name: string
   start_date: string
   end_date: string
   enrollment_start: string | null
   enrollment_end: string | null
-  status: 'upcoming' | 'active' | 'completed' | 'archived'
+  status: 'upcoming' | 'active' | 'completed'
   max_students: number | null
-  student_count: number
+  created_by: string | null
   created_at: string
-  updated_at: string
+  updated_at: string | null
+  // Computed on the server from cohort_courses + enrollments — see ADR-010.
+  course_ids: string[]
+  student_count: number
 }
 
 export type NotificationType =
