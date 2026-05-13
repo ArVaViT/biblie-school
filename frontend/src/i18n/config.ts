@@ -89,14 +89,14 @@ updateHtmlLang(i18n.language)
 // registration to avoid stacking duplicate handlers across hot reloads.
 declare global {
   interface Window {
-    __bibleSchoolLocaleListener?: boolean
+    __equipLocaleListener?: boolean
   }
 }
-const globalScope: { __bibleSchoolLocaleListener?: boolean } =
-  typeof window !== "undefined" ? window : (globalThis as { __bibleSchoolLocaleListener?: boolean })
-if (!globalScope.__bibleSchoolLocaleListener) {
+const globalScope: { __equipLocaleListener?: boolean } =
+  typeof window !== "undefined" ? window : (globalThis as { __equipLocaleListener?: boolean })
+if (!globalScope.__equipLocaleListener) {
   i18n.on("languageChanged", updateHtmlLang)
-  globalScope.__bibleSchoolLocaleListener = true
+  globalScope.__equipLocaleListener = true
 }
 
 export default i18n
