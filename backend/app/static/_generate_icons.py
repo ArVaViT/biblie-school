@@ -58,8 +58,8 @@ def draw_equip_e(size: int) -> Image.Image:
     draw.rounded_rectangle((0, 0, size - 1, size - 1), radius=radius, fill=SAGE)
 
     # Inverse "E" — four warm-paper bars matching the SVG.
-    draw.rectangle(r(9, 8, 3, 16), fill=PAPER)   # vertical spine
-    draw.rectangle(r(9, 8, 14, 3), fill=PAPER)   # top arm
+    draw.rectangle(r(9, 8, 3, 16), fill=PAPER)  # vertical spine
+    draw.rectangle(r(9, 8, 14, 3), fill=PAPER)  # top arm
     draw.rectangle(r(9, 15, 11, 3), fill=PAPER)  # middle arm (shorter)
     draw.rectangle(r(9, 21, 14, 3), fill=PAPER)  # bottom arm
 
