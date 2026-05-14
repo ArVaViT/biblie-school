@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.dependencies import (
     get_current_user,
     require_teacher,
-    resolve_chapter_course_id,
     verify_chapter_access,
     verify_chapter_owner,
 )
@@ -26,7 +25,10 @@ from app.schemas.quiz import (
     QuizStudentResponse,
     QuizUpdate,
 )
-from app.services.translation.pipeline_hooks import run_course_translation_pipeline_if_published
+from app.services.translation.pipeline_hooks import (
+    reconcile_entity_if_course_published,
+    run_course_translation_pipeline_if_published,
+)
 from app.services.translation.resolve_for_display import (
     build_localized_quiz_student_response,
     get_course_source_locale_for_chapter,
@@ -152,6 +154,9 @@ def create_quiz(
     )
     if reloaded is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    # Create flow seeds the quiz + every question + every option in one go.
+    # Full-tree pipeline is cheaper here than N+1 per-entity reconcile calls
+    # because the course gets loaded once and every child re-walks once.
     run_course_translation_pipeline_if_published(db, course_id)
     return reloaded
 
@@ -183,8 +188,9 @@ def update_quiz(
     )
     if reloaded is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
-    course_id = resolve_chapter_course_id(db, reloaded.chapter_id)
-    run_course_translation_pipeline_if_published(db, course_id)
+    # ``update_quiz`` only mutates the quiz row itself; questions + options
+    # have their own endpoints. Per-entity reconcile is enough.
+    reconcile_entity_if_course_published(db, "quiz", reloaded)
     return reloaded
 
 
@@ -198,7 +204,6 @@ def delete_quiz(
     if not quiz:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     verify_quiz_owner(db, quiz, teacher.id)
-    course_id = resolve_chapter_course_id(db, quiz.chapter_id)
     db.delete(quiz)
     db.commit()
-    run_course_translation_pipeline_if_published(db, course_id)
+    # No reconcile after delete — content_translations rows cascade via FK.

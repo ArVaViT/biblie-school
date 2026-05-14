@@ -28,7 +28,7 @@ from app.schemas.locale import LocaleCode, normalize_locale
 from app.services.audit_service import log_action
 from app.services.course_service import sync_enrollment_progress
 from app.services.notification_service import create_notification
-from app.services.translation.pipeline_hooks import run_course_translation_pipeline_if_published
+from app.services.translation.pipeline_hooks import reconcile_entity_if_course_published
 from app.services.translation.resolve_for_display import (
     get_course_source_locale_for_chapter,
     localize_assignment_rows,
@@ -67,8 +67,7 @@ def create_assignment(
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
-    course_id = resolve_chapter_course_id(db, data.chapter_id)
-    run_course_translation_pipeline_if_published(db, course_id)
+    reconcile_entity_if_course_published(db, "assignment", assignment)
     return assignment
 
 
@@ -89,8 +88,7 @@ def update_assignment(
 
     db.commit()
     db.refresh(assignment)
-    course_id = resolve_chapter_course_id(db, assignment.chapter_id)
-    run_course_translation_pipeline_if_published(db, course_id)
+    reconcile_entity_if_course_published(db, "assignment", assignment)
     return assignment
 
 
