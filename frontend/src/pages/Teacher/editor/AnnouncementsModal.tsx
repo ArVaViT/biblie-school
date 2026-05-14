@@ -49,7 +49,7 @@ export function AnnouncementsModal({
             placeholder={t("teacherEditor.modals.announcements.contentPlaceholder")}
           />
           <Button size="sm" onClick={onPost} disabled={posting || !title.trim()}>
-            <Megaphone className="h-3.5 w-3.5 mr-1.5" />
+            <Megaphone className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.75} />
             {posting
               ? t("teacherEditor.modals.announcements.posting")
               : t("teacherEditor.modals.announcements.post")}
@@ -63,7 +63,7 @@ export function AnnouncementsModal({
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {announcements.map((a) => (
               <div key={a.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-info" />
+                <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-info" strokeWidth={1.75} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-wrap-safe">{a.title}</p>
                   {a.content && (
@@ -81,7 +81,7 @@ export function AnnouncementsModal({
                   className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
                   onClick={() => onDelete(a.id)}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </Button>
               </div>
             ))}

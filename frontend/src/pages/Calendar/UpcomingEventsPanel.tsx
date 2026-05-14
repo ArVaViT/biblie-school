@@ -20,7 +20,7 @@ export function UpcomingEventsPanel({ events }: UpcomingEventsPanelProps) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
+          <Clock className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
           {t("calendar.upcomingTitle")}
         </CardTitle>
       </CardHeader>

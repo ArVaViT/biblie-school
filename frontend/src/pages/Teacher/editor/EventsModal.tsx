@@ -90,7 +90,7 @@ export function EventsModal({
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={onSave} disabled={!canSubmit}>
-              <Save className="h-3.5 w-3.5 mr-1.5" />
+              <Save className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.75} />
               {saving
                 ? t("teacherEditor.modals.events.saving")
                 : editingId
@@ -148,7 +148,7 @@ function EventRow({
       </div>
       <div className="flex flex-col gap-1 shrink-0">
         <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onEdit(event)}>
-          <Pencil className="h-3 w-3" />
+          <Pencil className="h-3 w-3" strokeWidth={1.75} />
         </Button>
         <Button
           variant="ghost"
@@ -156,7 +156,7 @@ function EventRow({
           className="h-7 text-xs text-destructive hover:text-destructive"
           onClick={() => onDelete(event.id)}
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-3 w-3" strokeWidth={1.75} />
         </Button>
       </div>
     </div>
