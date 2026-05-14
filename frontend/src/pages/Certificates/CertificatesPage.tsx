@@ -8,7 +8,7 @@ import type { Certificate, Enrollment } from "@/types"
 import { toast } from "@/lib/toast"
 import { Award, ArrowLeft, ScrollText } from "lucide-react"
 import PageSpinner from "@/components/ui/PageSpinner"
-import { formatDate } from "@/i18n/format"
+import { formatDateLong } from "@/i18n/format"
 
 export default function CertificatesPage() {
   const { t } = useTranslation()
@@ -118,11 +118,7 @@ export default function CertificatesPage() {
                     </dt>
                     <dd className="font-medium">
                       {cert.status === "approved" && cert.issued_at
-                        ? formatDate(cert.issued_at, {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })
+                        ? formatDateLong(cert.issued_at, { month: "short" })
                         : cert.status === "pending"
                           ? t("certificates.pendingApproval")
                           : cert.status === "teacher_approved"

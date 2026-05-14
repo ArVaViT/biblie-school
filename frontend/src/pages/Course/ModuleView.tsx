@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams, Link } from "react-router-dom"
-import { formatDateTime } from "@/i18n/format"
+import { formatDateLong } from "@/i18n/format"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { coursesService } from "@/services/courses"
@@ -144,11 +144,9 @@ export default function ModuleView() {
               isOverdue ? "text-destructive" : isUpcoming ? "text-warning" : "text-foreground"
             }`}>
               {isOverdue ? t("module.overdue") : t("module.due")}:{" "}
-              {formatDateTime(dueDate, {
+              {formatDateLong(dueDate, {
                 weekday: "short",
                 month: "short",
-                day: "numeric",
-                year: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
               })}
