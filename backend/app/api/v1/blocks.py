@@ -11,7 +11,7 @@ from app.models.chapter_block import ChapterBlock
 from app.models.user import User
 from app.schemas.chapter_block import BlockCreate, BlockReorderItem, BlockResponse, BlockUpdate
 from app.schemas.locale import LocaleCode, normalize_locale
-from app.services.translation.pipeline_hooks import run_course_translation_pipeline_if_published
+from app.services.translation.pipeline_hooks import reconcile_entity_if_course_published
 from app.services.translation.resolve_for_display import (
     get_course_source_locale_for_chapter,
     localize_chapter_block_rows,
@@ -46,7 +46,7 @@ def create_block(
     teacher: User = Depends(require_teacher),
     db: Session = Depends(get_db),
 ):
-    _, course_id = verify_chapter_owner(db, chapter_id, teacher)
+    verify_chapter_owner(db, chapter_id, teacher)
     # Defence-in-depth: the frontend runs DOMPurify before sending, but a
     # direct API caller can bypass that. We re-sanitize here so stored block
     # HTML is safe to render for every downstream consumer (admin preview,
@@ -76,7 +76,7 @@ def create_block(
             detail="Referenced quiz or assignment no longer exists",
         ) from exc
     db.refresh(block)
-    run_course_translation_pipeline_if_published(db, course_id)
+    reconcile_entity_if_course_published(db, "chapter_block", block)
     return block
 
 
@@ -90,7 +90,7 @@ def update_block(
     block = db.query(ChapterBlock).filter(ChapterBlock.id == block_id).first()
     if not block:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
-    _, course_id = verify_chapter_owner(db, block.chapter_id, teacher)
+    verify_chapter_owner(db, block.chapter_id, teacher)
     for field, value in data.model_dump(exclude_unset=True).items():
         if field == "content" and value:
             value = sanitize_string(value)
@@ -104,7 +104,7 @@ def update_block(
             detail="Referenced quiz or assignment no longer exists",
         ) from exc
     db.refresh(block)
-    run_course_translation_pipeline_if_published(db, course_id)
+    reconcile_entity_if_course_published(db, "chapter_block", block)
     return block
 
 
@@ -117,10 +117,11 @@ def delete_block(
     block = db.query(ChapterBlock).filter(ChapterBlock.id == block_id).first()
     if not block:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
-    _, course_id = verify_chapter_owner(db, block.chapter_id, teacher)
+    verify_chapter_owner(db, block.chapter_id, teacher)
     db.delete(block)
     db.commit()
-    run_course_translation_pipeline_if_published(db, course_id)
+    # No reconcile after delete — the entity is gone; translation rows
+    # cascade out via FK ON DELETE on content_translations.
 
 
 @router.put("/chapter/{chapter_id}/reorder", response_model=list[BlockResponse])

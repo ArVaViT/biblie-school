@@ -15,7 +15,7 @@ from app.schemas.calendar import (
     CourseEventUpdate,
 )
 from app.schemas.locale import LocaleCode, normalize_locale
-from app.services.translation.pipeline_hooks import run_course_translation_pipeline_if_published
+from app.services.translation.pipeline_hooks import reconcile_entity_if_course_published
 from app.services.translation.resolve_for_display import (
     fetch_overlay_triples_bulk,
     localize_course_event_rows,
@@ -216,7 +216,7 @@ def create_course_event(
     db.add(event)
     db.commit()
     db.refresh(event)
-    run_course_translation_pipeline_if_published(db, course_id)
+    reconcile_entity_if_course_published(db, "course_event", event)
     return event
 
 
@@ -289,7 +289,7 @@ def update_course_event(
         setattr(event, field, value)
     db.commit()
     db.refresh(event)
-    run_course_translation_pipeline_if_published(db, course_id)
+    reconcile_entity_if_course_published(db, "course_event", event)
     return event
 
 
