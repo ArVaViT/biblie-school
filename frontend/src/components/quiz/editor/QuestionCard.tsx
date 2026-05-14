@@ -41,7 +41,7 @@ export function QuestionCard({
               disabled={qIdx === 0}
               className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground"
             >
-              <ArrowUp className="h-3.5 w-3.5" />
+              <ArrowUp className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
             <button
               type="button"
@@ -49,7 +49,7 @@ export function QuestionCard({
               disabled={qIdx === total - 1}
               className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground"
             >
-              <ArrowDown className="h-3.5 w-3.5" />
+              <ArrowDown className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
           </div>
           <div className="flex-1 space-y-3">
@@ -69,7 +69,7 @@ export function QuestionCard({
                 className="text-destructive hover:text-destructive h-7 w-7 p-0 shrink-0"
                 onClick={onRemove}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
               </Button>
             </div>
 
@@ -151,13 +151,13 @@ export function QuestionCard({
                         className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
                         onClick={() => onRemoveOption(oIdx)}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-3 w-3" strokeWidth={1.75} />
                       </Button>
                     )}
                   </div>
                 ))}
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onAddOption}>
-                  <Plus className="h-3 w-3 mr-1" />
+                  <Plus className="h-3 w-3 mr-1" strokeWidth={1.75} />
                   {t("quizEditor.questions.addOption")}
                 </Button>
               </div>

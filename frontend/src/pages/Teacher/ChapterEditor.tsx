@@ -201,21 +201,21 @@ export default function ChapterEditor() {
         <Link to="/teacher" className="hover:text-foreground transition-colors">
           {t("chapterEditor.breadcrumb.myCourses")}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.75} />
         <Link
           to={`/teacher/courses/${courseId}`}
           className="hover:text-foreground transition-colors"
         >
           {t("chapterEditor.breadcrumb.course")}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.75} />
         <Link
           to={`/teacher/courses/${courseId}/modules/${moduleId}/edit`}
           className="hover:text-foreground transition-colors"
         >
           {moduleName}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.75} />
         <span className="text-foreground font-medium truncate max-w-[200px]">
           {title || t("chapterEditor.chapterFallback")}
         </span>
@@ -240,7 +240,7 @@ export default function ChapterEditor() {
             navigate(`/teacher/courses/${courseId}/modules/${moduleId}/edit`)
           }}
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
+          <ArrowLeft className="h-4 w-4 mr-1" strokeWidth={1.75} />
           {t("chapterEditor.back")}
         </Button>
         <Input
@@ -314,9 +314,9 @@ export default function ChapterEditor() {
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={saving}>
           {saving ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" strokeWidth={1.75} />
           ) : (
-            <Save className="h-4 w-4 mr-2" />
+            <Save className="h-4 w-4 mr-2" strokeWidth={1.75} />
           )}
           {saving ? t("chapterEditor.saving") : t("chapterEditor.save")}
         </Button>

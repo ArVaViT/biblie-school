@@ -42,9 +42,9 @@ export function MaterialsModal({
           disabled={uploading}
         >
           {uploading ? (
-            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" strokeWidth={1.75} />
           ) : (
-            <Paperclip className="h-4 w-4 mr-1.5" />
+            <Paperclip className="h-4 w-4 mr-1.5" strokeWidth={1.75} />
           )}
           {t("teacherEditor.modals.materials.upload")}
         </Button>
@@ -66,7 +66,7 @@ export function MaterialsModal({
                 key={m.path}
                 className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" strokeWidth={1.75} />
                 <span className="text-sm flex-1 truncate">{m.name}</span>
                 {m.size && (
                   <span className="text-xs text-muted-foreground shrink-0">
@@ -79,7 +79,7 @@ export function MaterialsModal({
                   className="h-7 w-7 p-0 shrink-0"
                   onClick={() => onDownload(m)}
                 >
-                  <Download className="h-3.5 w-3.5" />
+                  <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </Button>
                 <Button
                   variant="ghost"
@@ -87,7 +87,7 @@ export function MaterialsModal({
                   className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
                   onClick={() => onDelete(m)}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </Button>
               </div>
             ))}
