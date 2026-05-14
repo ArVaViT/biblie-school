@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { FileText, Loader2, MessageSquare, Save, Star, User } from "lucide-react"
 import { coursesService } from "@/services/courses"
 import { toast } from "@/lib/toast"
@@ -16,10 +17,12 @@ interface Props {
   onUpdate: (updated: AssignmentSubmission) => void
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  submitted: "bg-info/15 text-info",
-  graded: "bg-success/15 text-success",
-  returned: "bg-warning/15 text-warning",
+type StatusVariant = "infoSubtle" | "successSubtle" | "warningSubtle" | "muted"
+
+const STATUS_VARIANT: Record<string, StatusVariant> = {
+  submitted: "infoSubtle",
+  graded: "successSubtle",
+  returned: "warningSubtle",
 }
 
 export function SubmissionGrader({ submission, maxScore, onUpdate }: Props) {
@@ -56,11 +59,11 @@ export function SubmissionGrader({ submission, maxScore, onUpdate }: Props) {
               {submission.student_id.slice(0, 8)}...
             </span>
           </div>
-          <span
-            className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[submission.status]}`}
-          >
-            {t(`assignment.statusValue.${submission.status}`, { defaultValue: submission.status })}
-          </span>
+          <Badge variant={STATUS_VARIANT[submission.status] ?? "muted"}>
+            {t(`assignment.statusValue.${submission.status}`, {
+              defaultValue: submission.status,
+            })}
+          </Badge>
         </div>
 
         {submission.content && (

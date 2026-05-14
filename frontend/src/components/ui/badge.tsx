@@ -23,6 +23,12 @@ const badgeVariants = cva(
           "border-transparent bg-muted text-muted-foreground hover:bg-muted/80",
         accent:
           "border-transparent bg-accent text-accent-foreground hover:bg-accent/80",
+        successSubtle: "border-transparent bg-success/15 text-success",
+        warningSubtle: "border-transparent bg-warning/15 text-warning",
+        infoSubtle: "border-transparent bg-info/15 text-info",
+        destructiveSubtle:
+          "border-transparent bg-destructive/15 text-destructive",
+        primarySubtle: "border-transparent bg-primary/15 text-primary",
       },
     },
     defaultVariants: { variant: "default" },
