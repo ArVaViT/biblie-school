@@ -544,7 +544,8 @@
       "verse": "Библейский стих",
       "takeaway": "Ключевая мысль",
       "warning": "Предупреждение"
-    }
+    },
+    "deleteBlockAria": "Удалить блок «{{label}}»"
   },
   "assignmentEditor": {
     "validation": {
@@ -586,7 +587,9 @@
       "maxPts": "Макс.: {{max}} б.",
       "due": "Сдать до: {{date}}",
       "noSubmissions": "Пока нет ответов.",
-      "submissionsCount": "Ответы ({{count}})"
+      "submissionsCount": "Ответы ({{count}})",
+      "editAria": "Редактировать задание «{{title}}»",
+      "deleteAria": "Удалить задание «{{title}}»"
     },
     "grader": {
       "viewFile": "Открыть прикреплённый файл",
@@ -921,13 +924,16 @@
         "contentPlaceholder": "Текст (необязательно)",
         "post": "Опубликовать",
         "posting": "Публикация…",
-        "empty": "Пока нет объявлений."
+        "empty": "Пока нет объявлений.",
+        "deleteAria": "Удалить объявление «{{title}}»"
       },
       "materials": {
         "title": "Материалы курса",
         "upload": "Загрузить файл",
         "empty": "Пока нет загруженных материалов.",
-        "sizeKb": "{{kb}} КБ"
+        "sizeKb": "{{kb}} КБ",
+        "downloadAria": "Скачать «{{name}}»",
+        "deleteAria": "Удалить «{{name}}»"
       },
       "events": {
         "title": "События курса",
@@ -947,7 +953,9 @@
           "live_session": "Прямая сессия",
           "exam": "Экзамен",
           "other": "Другое"
-        }
+        },
+        "editAria": "Редактировать событие «{{title}}»",
+        "deleteAria": "Удалить событие «{{title}}»"
       }
     },
     "toast": {

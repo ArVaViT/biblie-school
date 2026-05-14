@@ -80,6 +80,7 @@ export function MaterialsModal({
                   size="sm"
                   className="h-7 w-7 p-0 shrink-0"
                   onClick={() => onDownload(m)}
+                  aria-label={t("teacherEditor.modals.materials.downloadAria", { name: m.name })}
                 >
                   <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </Button>
@@ -88,6 +89,7 @@ export function MaterialsModal({
                   size="sm"
                   className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
                   onClick={() => onDelete(m)}
+                  aria-label={t("teacherEditor.modals.materials.deleteAria", { name: m.name })}
                 >
                   <X className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </Button>
