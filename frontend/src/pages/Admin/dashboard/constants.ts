@@ -26,16 +26,23 @@ export const RESOURCE_OPTIONS = [
 
 export const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
-/** Background/foreground pair used in audit-log action pills. */
-export const ACTION_BADGE_CLASS: Record<string, string> = {
-  create: "bg-success/15 text-success",
-  update: "bg-info/15 text-info",
-  delete: "bg-destructive/15 text-destructive",
-  publish: "bg-primary/15 text-primary",
-  enroll: "bg-info/15 text-info",
-  approve: "bg-success/15 text-success",
-  reject: "bg-destructive/15 text-destructive",
-  grade: "bg-warning/15 text-warning",
+/** Maps each audit-log action to a `<Badge>` variant. */
+export const ACTION_BADGE_VARIANT: Record<
+  string,
+  | "successSubtle"
+  | "infoSubtle"
+  | "destructiveSubtle"
+  | "primarySubtle"
+  | "warningSubtle"
+> = {
+  create: "successSubtle",
+  update: "infoSubtle",
+  delete: "destructiveSubtle",
+  publish: "primarySubtle",
+  enroll: "infoSubtle",
+  approve: "successSubtle",
+  reject: "destructiveSubtle",
+  grade: "warningSubtle",
 }
 
 /** Maps each role to its i18n key. Use with ``useTranslation().t`` to

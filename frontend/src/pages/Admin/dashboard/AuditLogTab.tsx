@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { NativeSelect } from "@/components/ui/native-select"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import PageSpinner from "@/components/ui/PageSpinner"
 import { FileText, ChevronLeft, ChevronRight } from "lucide-react"
 import type { AuditLogEntry } from "@/types"
 import {
   ACTION_OPTIONS,
   RESOURCE_OPTIONS,
-  ACTION_BADGE_CLASS,
+  ACTION_BADGE_VARIANT,
 } from "./constants"
 import { formatDateTime } from "@/i18n/format"
 
@@ -221,13 +222,11 @@ function AuditTable({
                   : "—"}
               </td>
               <td className="px-6 py-3">
-                <span
-                  className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${
-                    ACTION_BADGE_CLASS[log.action] || "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {t(`admin.audit.actionValue.${log.action}`, { defaultValue: log.action })}
-                </span>
+                <Badge variant={ACTION_BADGE_VARIANT[log.action] ?? "muted"}>
+                  {t(`admin.audit.actionValue.${log.action}`, {
+                    defaultValue: log.action,
+                  })}
+                </Badge>
               </td>
               <td className="px-6 py-3 text-muted-foreground">
                 {t(`admin.audit.resourceValue.${log.resource_type}`, { defaultValue: log.resource_type })}

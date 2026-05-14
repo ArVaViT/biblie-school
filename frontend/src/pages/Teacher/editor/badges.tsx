@@ -13,11 +13,17 @@ export function EnrollmentStatusBadge({ start, end }: { start: string; end: stri
   return <Badge variant="success">{t("teacherEditor.badges.open")}</Badge>
 }
 
-const EVENT_BADGE_CLASS: Record<string, string> = {
-  deadline: "bg-destructive/15 text-destructive",
-  live_session: "bg-info/15 text-info",
-  exam: "bg-warning/15 text-warning",
-  other: "bg-muted text-muted-foreground",
+type EventVariant =
+  | "destructiveSubtle"
+  | "infoSubtle"
+  | "warningSubtle"
+  | "muted"
+
+const EVENT_BADGE_VARIANT: Record<string, EventVariant> = {
+  deadline: "destructiveSubtle",
+  live_session: "infoSubtle",
+  exam: "warningSubtle",
+  other: "muted",
 }
 
 const KNOWN_EVENT_TYPES = new Set(["deadline", "live_session", "exam", "other"])
@@ -28,13 +34,9 @@ export function EventTypeBadge({ type }: { type: string }) {
   // localized label (the i18n keys cover the four supported types).
   const key = KNOWN_EVENT_TYPES.has(type) ? type : "other"
   return (
-    <span
-      className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-        EVENT_BADGE_CLASS[type] ?? EVENT_BADGE_CLASS.other
-      }`}
-    >
+    <Badge variant={EVENT_BADGE_VARIANT[type] ?? "muted"}>
       {t(`teacherEditor.modals.events.types.${key}`)}
-    </span>
+    </Badge>
   )
 }
 
