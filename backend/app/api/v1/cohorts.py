@@ -28,7 +28,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_optional_user, require_admin
+from app.api.dependencies import get_optional_user, is_owner_or_admin, require_admin
 from app.core.database import get_db
 from app.models.cohort import Cohort, CohortCourse
 from app.models.course import Course
@@ -495,11 +495,8 @@ def list_cohorts_for_course(
     course = db.query(Course).filter(Course.id == course_id, Course.deleted_at.is_(None)).first()
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
-    if course.status != "published":
-        if not current_user or (
-            str(course.created_by) != str(current_user.id) and current_user.role != UserRole.ADMIN.value
-        ):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    if course.status != "published" and not is_owner_or_admin(course, current_user):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
 
     cohorts = (
         db.query(Cohort)
