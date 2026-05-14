@@ -5,7 +5,6 @@ import { BookOpen, Plus, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import PageSpinner from "@/components/ui/PageSpinner"
 import { useConfirm } from "@/components/ui/alert-dialog"
 import { useDebouncedSearchParam } from "@/hooks/useDebouncedSearchParam"
 import { courseSchema, type CourseFormData } from "@/lib/validations/course"
@@ -18,6 +17,7 @@ import {
   CreateCourseForm,
   EmptyCoursesCard,
   PendingCertsCard,
+  TeacherDashboardSkeleton,
   TrashSection,
   type PendingCert,
 } from "./dashboard"
@@ -241,7 +241,7 @@ export default function TeacherDashboard() {
       />
 
       {loading ? (
-        <PageSpinner />
+        <TeacherDashboardSkeleton />
       ) : error ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
