@@ -881,6 +881,8 @@
     "noModulesYetDescription": "Add your first module to start building the course.",
     "chapterCount_one": "{{count}} chapter",
     "chapterCount_other": "{{count}} chapters",
+    "dragModuleAria": "Reorder module {{title}}",
+    "deleteModuleAria": "Delete module {{title}}",
     "modals": {
       "enrollment": {
         "title": "Enrollment Period",
@@ -1012,7 +1014,8 @@
     "lockChapterTooltip": "Lock chapter",
     "unlockChapterTooltip": "Unlock chapter",
     "editChapterAria": "Edit chapter {{title}}",
-    "deleteChapterAria": "Delete chapter {{title}}"
+    "deleteChapterAria": "Delete chapter {{title}}",
+    "dragChapterAria": "Reorder chapter {{title}}"
   },
   "courseEditor": {
     "notFound": {

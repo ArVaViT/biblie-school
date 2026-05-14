@@ -50,8 +50,11 @@ export function ChapterRow({
             <div
               {...dragProvided.dragHandleProps}
               className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground shrink-0 transition-colors"
+              role="button"
+              tabIndex={0}
+              aria-label={t("moduleEditor.dragChapterAria", { title: chapter.title })}
             >
-              <GripVertical className="h-4 w-4" strokeWidth={1.75} />
+              <GripVertical className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             </div>
 
             <Input

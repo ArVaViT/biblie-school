@@ -76,8 +76,11 @@ export function ModulesList({ courseId, modules, onDragEnd, onAdd, onRemove }: P
                           {...dragProvided.dragHandleProps}
                           className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground shrink-0 transition-colors"
                           onClick={(e) => e.stopPropagation()}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={t("teacherEditor.dragModuleAria", { title: mod.title })}
                         >
-                          <GripVertical className="h-4 w-4" strokeWidth={1.75} />
+                          <GripVertical className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                         </div>
                         <span className="text-xs font-mono text-muted-foreground/50 w-6 text-right shrink-0">
                           {i + 1}
@@ -98,8 +101,9 @@ export function ModulesList({ courseId, modules, onDragEnd, onAdd, onRemove }: P
                             e.stopPropagation()
                             onRemove(mod.id)
                           }}
+                          aria-label={t("teacherEditor.deleteModuleAria", { title: mod.title })}
                         >
-                          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
                         </Button>
                       </Card>
                     )}

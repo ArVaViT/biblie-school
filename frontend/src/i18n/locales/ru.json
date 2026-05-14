@@ -913,6 +913,8 @@
     "chapterCount_few": "{{count}} главы",
     "chapterCount_many": "{{count}} глав",
     "chapterCount_other": "{{count}} глав",
+    "dragModuleAria": "Переместить модуль «{{title}}»",
+    "deleteModuleAria": "Удалить модуль «{{title}}»",
     "modals": {
       "enrollment": {
         "title": "Период записи",
@@ -1044,7 +1046,8 @@
     "lockChapterTooltip": "Заблокировать главу",
     "unlockChapterTooltip": "Разблокировать главу",
     "editChapterAria": "Редактировать главу {{title}}",
-    "deleteChapterAria": "Удалить главу {{title}}"
+    "deleteChapterAria": "Удалить главу {{title}}",
+    "dragChapterAria": "Переместить главу «{{title}}»"
   },
   "courseEditor": {
     "notFound": {
