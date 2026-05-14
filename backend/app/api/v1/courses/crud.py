@@ -79,11 +79,11 @@ def update_existing_course(
     # Full-course translation when published (initial publish or edits while live).
     # Runs synchronously so the catalog and chapter surfaces stay consistent.
     # Failures must NOT block the save — failed rows are persisted for retry.
+    # ``result`` is the same SQLAlchemy instance ``update_course`` mutated, so
+    # there's no need to re-load the full course tree just to translate it.
     if result.status == "published":
         try:
-            to_translate = get_course(db, course_id)
-            if to_translate:
-                translate_course_content(db, to_translate)
+            translate_course_content(db, result)
         except Exception:
             logger.exception("Translation hook failed for course %s", course_id)
 
