@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/patterns";
 import type { CalendarEvent } from "@/types";
 import { getEventColor } from "./constants";
 import { formatTime } from "./utils";
-import { formatDate } from "@/i18n/format";
+import { formatDateLong } from "@/i18n/format";
 
 interface SelectedDayPanelProps {
   selectedDay: Date;
@@ -21,7 +21,8 @@ export function SelectedDayPanel({ selectedDay, events }: SelectedDayPanelProps)
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-primary" strokeWidth={1.75} />
-          {formatDate(selectedDay, {
+          {formatDateLong(selectedDay, {
+            year: undefined,
             weekday: "long",
             month: "long",
             day: "numeric",

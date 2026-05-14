@@ -4,7 +4,7 @@ import type {
   StudentProgressEntry,
   StudentQuizResult,
 } from "@/types"
-import { formatDate as formatDateI18n } from "@/i18n/format"
+import { formatDateLong } from "@/i18n/format"
 
 export type StudentData = StudentProgressEntry
 export type QuizResult = StudentQuizResult
@@ -49,11 +49,7 @@ export function overallGrade(student: StudentData): number | null {
 
 export function formatDate(d: string | null): string {
   if (!d) return "—"
-  return formatDateI18n(d, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
+  return formatDateLong(d, { month: "short" })
 }
 
 /** Translator type matches react-i18next's ``useTranslation().t``. */

@@ -15,7 +15,7 @@ import { coursesService } from "@/services/courses"
 import { makeProfileSchema } from "@/lib/validations/course"
 import { toProxyImage } from "@/lib/images"
 import { ROLE_I18N_KEY } from "@/lib/roles"
-import { formatDate } from "@/i18n/format"
+import { formatDateLong } from "@/i18n/format"
 import { toast } from "@/lib/toast"
 import {
   User as UserIcon, Mail, Shield, Calendar, Camera, Globe,
@@ -262,11 +262,7 @@ export default function ProfilePage() {
                   <div>
                     <dt className="text-xs text-muted-foreground">{t("profile.memberSince")}</dt>
                     <dd className="text-sm font-medium">
-                      {formatDate(user.created_at, {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
+                      {formatDateLong(user.created_at)}
                     </dd>
                   </div>
                 </div>
