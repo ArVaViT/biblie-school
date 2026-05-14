@@ -2,10 +2,11 @@ import { Draggable } from "@hello-pangea/dnd";
 import { GripVertical, Lock, Pencil, Trash2, Unlock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getChapterTypeMeta, normalizeChapterType } from "@/lib/chapterTypes";
+import { normalizeChapterType } from "@/lib/chapterTypes";
 import type { Chapter } from "@/types";
 
 interface ChapterRowProps {
@@ -34,7 +35,6 @@ export function ChapterRow({
 }: ChapterRowProps) {
   const { t } = useTranslation();
   const type = normalizeChapterType(chapter.chapter_type);
-  const badgeClass = getChapterTypeMeta(type).badgeColor;
 
   return (
     <Draggable draggableId={chapter.id} index={index}>
@@ -61,11 +61,9 @@ export function ChapterRow({
               className="font-medium border-none shadow-none focus-visible:ring-1 h-8 text-sm flex-1"
             />
 
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 ${badgeClass}`}
-            >
+            <Badge variant="muted" className="shrink-0">
               {t(`chapterTypes.${type}.label`)}
-            </span>
+            </Badge>
 
             <Button
               variant="ghost"
