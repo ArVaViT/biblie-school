@@ -3,7 +3,12 @@ import uuid
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import assert_course_owner, get_current_user, require_teacher
+from app.api.dependencies import (
+    assert_course_owner,
+    get_current_user,
+    is_owner_or_admin,
+    require_teacher,
+)
 from app.core.database import get_db
 from app.core.sanitize import sanitize_string
 from app.models.announcement import Announcement
@@ -173,7 +178,7 @@ def update_announcement(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Announcement not found",
         )
-    if str(announcement.created_by) != str(teacher.id) and teacher.role != UserRole.ADMIN.value:
+    if not is_owner_or_admin(announcement, teacher):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own announcements",
@@ -203,7 +208,7 @@ def delete_announcement(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Announcement not found",
         )
-    if str(announcement.created_by) != str(teacher.id) and teacher.role != UserRole.ADMIN.value:
+    if not is_owner_or_admin(announcement, teacher):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only delete your own announcements",

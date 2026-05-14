@@ -3,7 +3,7 @@
 from fastapi import Depends, Header, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_optional_user, require_teacher
+from app.api.dependencies import get_optional_user, is_owner_or_admin, require_teacher
 from app.core.database import get_db
 from app.models.course import Course
 from app.models.user import User, UserRole
@@ -91,14 +91,11 @@ def get_course_detail(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Course '{course_id}' not found",
         )
-    if course.status != "published":
-        if not current_user or (
-            str(course.created_by) != str(current_user.id) and current_user.role != UserRole.ADMIN.value
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Course '{course_id}' not found",
-            )
+    if course.status != "published" and not is_owner_or_admin(course, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course '{course_id}' not found",
+        )
     response.headers["Vary"] = "Accept-Language"
     if not should_apply_course_translation_overlay(course=course, current_user=current_user):
         return CourseResponse.model_validate(course, from_attributes=True)
