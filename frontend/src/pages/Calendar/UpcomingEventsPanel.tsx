@@ -19,9 +19,11 @@ export function UpcomingEventsPanel({ events }: UpcomingEventsPanelProps) {
   const { t } = useTranslation();
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+      <CardHeader className="pb-3">
+        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          {t("calendar.upcomingEyebrow")}
+        </p>
+        <CardTitle className="font-serif text-lg font-semibold tracking-tight">
           {t("calendar.upcomingTitle")}
         </CardTitle>
       </CardHeader>
@@ -40,30 +42,33 @@ export function UpcomingEventsPanel({ events }: UpcomingEventsPanelProps) {
               return (
                 <div
                   key={evt.id}
-                  className={`flex items-start gap-2 rounded-md border p-2 transition-colors ${
+                  className={`flex items-start gap-2.5 rounded-md border p-2.5 transition-colors ${
                     overdue
                       ? "border-destructive/30 bg-destructive/5"
-                      : "hover:bg-muted/50"
+                      : "border-border hover:bg-muted/40"
                   }`}
                 >
-                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color.dot}`} />
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color.dot}`} aria-hidden />
                   <div className="min-w-0 flex-1">
                     <p
-                      className={`truncate text-xs font-medium ${
+                      className={`truncate text-sm font-medium ${
                         overdue ? "text-destructive" : ""
                       }`}
                     >
                       {evt.title}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground tabular-nums">
                       <span>{formatShortDate(evt.event_date)}</span>
+                      <span aria-hidden className="text-muted-foreground/40">·</span>
                       <span>{formatTime(evt.event_date)}</span>
                       {overdue && (
-                        <span className="font-medium text-destructive">{t("calendar.overdue")}</span>
+                        <span className="rounded bg-destructive/10 px-1.5 py-0.5 font-medium text-destructive">
+                          {t("calendar.overdue")}
+                        </span>
                       )}
                     </div>
                     {evt.course_title && (
-                      <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground/70">
                         {evt.course_title}
                       </p>
                     )}
