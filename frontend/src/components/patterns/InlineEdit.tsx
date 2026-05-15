@@ -135,7 +135,7 @@ export function InlineEdit({
       disabled: saving,
       "aria-label": ariaLabel,
       className: cn(
-        "w-full rounded-md border border-input bg-background px-2 py-1 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "w-full rounded-md border border-input bg-background px-2 py-1 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         sizeClasses[size],
         textClassName,
       ),
@@ -163,7 +163,7 @@ export function InlineEdit({
             <>
               <button
                 type="button"
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => void commit()}
                 aria-label={t("inlineEdit.save")}
@@ -172,7 +172,7 @@ export function InlineEdit({
               </button>
               <button
                 type="button"
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={cancel}
                 aria-label={t("inlineEdit.cancel")}
@@ -214,7 +214,7 @@ export function InlineEdit({
         onClick={start}
         aria-label={ariaLabel ?? t("inlineEdit.editAria", { what: resolvedPlaceholder.toLowerCase() })}
         className={cn(
-          "flex-1 min-w-0 cursor-text rounded-md px-2 py-1 text-left transition-colors text-wrap-safe hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "flex-1 min-w-0 cursor-text rounded-md px-2 py-1 text-left transition-colors text-wrap-safe hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           multiline && "whitespace-pre-line",
           sizeClasses[size],
           isEmpty && "text-muted-foreground italic",
