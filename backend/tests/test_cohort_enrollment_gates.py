@@ -45,8 +45,8 @@ from datetime import datetime, timedelta
 import pytest
 import sqlalchemy.types as _sa_types
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from fastapi.testclient import TestClient  # noqa: TC002  (used at runtime by fixtures)
+from sqlalchemy.orm import Session  # noqa: TC002  (used at runtime by fixtures)
 
 from app.api.v1.courses.enrollment import _enforce_cohort_gates
 from app.models.cohort import Cohort, CohortCourse
