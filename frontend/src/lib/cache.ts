@@ -1,6 +1,22 @@
 const DEFAULT_TTL = 5 * 60 * 1000
 const MAX_ENTRIES = 200
 
+/**
+ * Named TTLs used by service caches. Picking from this menu keeps the
+ * meaning of each value visible at the call site — "this list mutates
+ * fast, hold it briefly" beats `30 * 1000`. Values are in milliseconds.
+ */
+export const CACHE_TTL = {
+  /** Fast-moving data (live analytics, in-flight student progress). */
+  THIRTY_SECONDS: 30 * 1000,
+  /** Default for per-user lists that change after writes (enrollments, grades, calendar). */
+  ONE_MINUTE: 60 * 1000,
+  /** Reference data that updates occasionally (announcements, course lists, cohorts). */
+  TWO_MINUTES: 2 * 60 * 1000,
+  /** Stable detail views (course detail, module detail). */
+  THREE_MINUTES: 3 * 60 * 1000,
+} as const
+
 interface CacheEntry<T = unknown> {
   value: T
   expiresAt: number

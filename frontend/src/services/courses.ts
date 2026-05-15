@@ -1,5 +1,5 @@
 import api from "./api"
-import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
+import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix, CACHE_TTL } from "@/lib/cache"
 import type { Course, Module, Chapter } from "@/types"
 
 import { adminUsersService } from "./adminUsers"
@@ -36,7 +36,7 @@ const courseCrud = {
     if (cached) return cached
     const params = search ? { search } : undefined
     const response = await api.get<Course[]>("/courses", { params })
-    cacheSet(key, response.data, 2 * 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.TWO_MINUTES)
     return response.data
   },
 
@@ -45,7 +45,7 @@ const courseCrud = {
     const cached = cacheGet<Course>(key)
     if (cached) return cached
     const response = await api.get<Course>(`/courses/${id}`)
-    cacheSet(key, response.data, 3 * 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.THREE_MINUTES)
     return response.data
   },
 
@@ -54,7 +54,7 @@ const courseCrud = {
     const cached = cacheGet<Course[]>(key)
     if (cached) return cached
     const response = await api.get<Course[]>("/courses/my")
-    cacheSet(key, response.data, 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.ONE_MINUTE)
     return response.data
   },
 
@@ -126,7 +126,7 @@ const courseCrud = {
     const cached = cacheGet<Module>(key)
     if (cached) return cached
     const response = await api.get<Module>(`/courses/${courseId}/modules/${moduleId}`)
-    cacheSet(key, response.data, 3 * 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.THREE_MINUTES)
     return response.data
   },
 

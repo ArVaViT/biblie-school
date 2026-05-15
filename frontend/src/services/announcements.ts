@@ -1,5 +1,5 @@
 import api from "./api"
-import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
+import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix, CACHE_TTL } from "@/lib/cache"
 import type { Announcement } from "@/types"
 
 export const announcementsService = {
@@ -9,7 +9,7 @@ export const announcementsService = {
     if (cached) return cached
     const params = courseId ? { course_id: courseId } : undefined
     const response = await api.get<Announcement[]>("/announcements", { params })
-    cacheSet(key, response.data, 2 * 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.TWO_MINUTES)
     return response.data
   },
 

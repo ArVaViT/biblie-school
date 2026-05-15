@@ -1,5 +1,5 @@
 import api from "./api"
-import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
+import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix, CACHE_TTL } from "@/lib/cache"
 import type { CalendarEvent, CourseEvent } from "@/types"
 
 export const calendarService = {
@@ -9,7 +9,7 @@ export const calendarService = {
     if (cached) return cached
     const params = courseId ? { course_id: courseId } : undefined
     const response = await api.get<CalendarEvent[]>("/calendar/events", { params })
-    cacheSet(key, response.data, 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.ONE_MINUTE)
     return response.data
   },
 
@@ -18,7 +18,7 @@ export const calendarService = {
     const cached = cacheGet<CourseEvent[]>(key)
     if (cached) return cached
     const response = await api.get<CourseEvent[]>(`/courses/${courseId}/events`)
-    cacheSet(key, response.data, 2 * 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.TWO_MINUTES)
     return response.data
   },
 
