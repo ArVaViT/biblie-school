@@ -127,9 +127,7 @@ def grade_answer(
     # (test path) treats ``with_for_update`` as a no-op so single-test
     # behaviour is unchanged; Postgres takes a row lock that serializes
     # the recompute + write of ``attempt.score`` / ``attempt.passed``.
-    attempt = (
-        db.query(QuizAttempt).filter(QuizAttempt.id == answer.attempt_id).with_for_update().first()
-    )
+    attempt = db.query(QuizAttempt).filter(QuizAttempt.id == answer.attempt_id).with_for_update().first()
     if not attempt:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt not found")
 
