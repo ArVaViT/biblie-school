@@ -1,5 +1,5 @@
 import api from "./api"
-import { cacheGet, cacheSet, cacheInvalidatePrefix } from "@/lib/cache"
+import { cacheGet, cacheSet, cacheInvalidatePrefix, CACHE_TTL } from "@/lib/cache"
 import type { StudentProgressResponse } from "@/types"
 
 export const progressService = {
@@ -20,7 +20,7 @@ export const progressService = {
     const cached = cacheGet<string[]>(key)
     if (cached) return cached
     const response = await api.get<string[]>(`/progress/course/${courseId}/my-progress`)
-    cacheSet(key, response.data, 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.ONE_MINUTE)
     return response.data
   },
 
@@ -31,7 +31,7 @@ export const progressService = {
     const response = await api.get<StudentProgressResponse>(
       `/progress/course/${courseId}/students`,
     )
-    cacheSet(key, response.data, 30 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.THIRTY_SECONDS)
     return response.data
   },
 }

@@ -1,5 +1,5 @@
 import api from "./api"
-import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
+import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix, CACHE_TTL } from "@/lib/cache"
 import type { Enrollment } from "@/types"
 
 export const enrollmentsService = {
@@ -23,7 +23,7 @@ export const enrollmentsService = {
     const cached = cacheGet<Enrollment[]>(key)
     if (cached) return cached
     const response = await api.get<Enrollment[]>("/users/me/courses")
-    cacheSet(key, response.data, 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.ONE_MINUTE)
     return response.data
   },
 
@@ -36,7 +36,7 @@ export const enrollmentsService = {
     const response = await api.get<{ enrolled: boolean; enrollment: Enrollment | null }>(
       `/courses/${courseId}/enrollment-status`,
     )
-    cacheSet(key, response.data, 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.ONE_MINUTE)
     return response.data
   },
 }

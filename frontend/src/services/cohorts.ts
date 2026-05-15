@@ -1,5 +1,5 @@
 import api from "./api"
-import { cacheGet, cacheSet, cacheInvalidatePrefix } from "@/lib/cache"
+import { cacheGet, cacheSet, cacheInvalidatePrefix, CACHE_TTL } from "@/lib/cache"
 import type { Cohort } from "@/types"
 
 export interface CohortStudent {
@@ -53,7 +53,7 @@ export const cohortsService = {
     const cached = cacheGet<Cohort[]>(key)
     if (cached) return cached
     const response = await api.get<Cohort[]>(`/cohorts/course/${courseId}`)
-    cacheSet(key, response.data, 2 * 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.TWO_MINUTES)
     return response.data
   },
 

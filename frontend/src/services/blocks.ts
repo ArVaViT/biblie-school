@@ -1,5 +1,5 @@
 import api from "./api"
-import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
+import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix, CACHE_TTL } from "@/lib/cache"
 import type { ChapterBlock, BlockType } from "@/types"
 
 type ChapterBlockCreateData = {
@@ -23,7 +23,7 @@ export const blocksService = {
     const cached = cacheGet<ChapterBlock[]>(key)
     if (cached) return cached
     const response = await api.get<ChapterBlock[]>(`/blocks/chapter/${chapterId}`)
-    cacheSet(key, response.data, 2 * 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.TWO_MINUTES)
     return response.data
   },
 

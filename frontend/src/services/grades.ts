@@ -1,5 +1,5 @@
 import api from "./api"
-import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache"
+import { cacheGet, cacheSet, cacheInvalidate, cacheInvalidatePrefix, CACHE_TTL } from "@/lib/cache"
 import type { GradingConfig, GradeSummaryResponse, StudentGrade } from "@/types"
 
 export const gradesService = {
@@ -8,7 +8,7 @@ export const gradesService = {
     const cached = cacheGet<StudentGrade[]>(key)
     if (cached) return cached
     const response = await api.get<StudentGrade[]>(`/grades/course/${courseId}`)
-    cacheSet(key, response.data, 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.ONE_MINUTE)
     return response.data
   },
 
@@ -32,7 +32,7 @@ export const gradesService = {
     const cached = cacheGet<StudentGrade[]>(key)
     if (cached) return cached
     const response = await api.get<StudentGrade[]>("/grades/my")
-    cacheSet(key, response.data, 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.ONE_MINUTE)
     return response.data
   },
 
@@ -51,7 +51,7 @@ export const gradesService = {
     const response = await api.get<GradeSummaryResponse>(
       `/grades/course/${courseId}/summary`,
     )
-    cacheSet(key, response.data, 60 * 1000)
+    cacheSet(key, response.data, CACHE_TTL.ONE_MINUTE)
     return response.data
   },
 
