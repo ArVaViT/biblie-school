@@ -1262,7 +1262,6 @@
       "errorCohortFull": "Cohort has reached its maximum capacity.",
       "noCoursesAttached": "No courses attached. Click \"Attach course\" to add one.",
       "noStudents": "No students yet. Click \"Add student\" to enroll one.",
-      "completeButton": "Complete cohort",
       "deleteButton": "Delete cohort",
       "completeConfirmTitle": "Mark this cohort as completed?",
       "completeConfirmDescription": "Students keep their enrollments and grades; the cohort just stops being editable.",
@@ -1293,8 +1292,6 @@
         "addStudentFailed": "Failed to add student",
         "studentRemoved": "Student removed",
         "removeFailed": "Failed to remove student",
-        "completed": "Cohort completed",
-        "completeFailed": "Failed to complete cohort",
         "deleted": "Cohort deleted",
         "deleteFailed": "Failed to delete cohort"
       }

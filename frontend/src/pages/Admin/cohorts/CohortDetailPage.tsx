@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next"
 import {
   ArrowLeft,
   Calendar,
-  CheckCircle2,
   Plus,
   Trash2,
   Users,
@@ -93,21 +92,25 @@ export default function CohortDetailPage() {
     }
   }
 
-  const handleComplete = async () => {
-    if (!cohortId) return
-    const ok = await confirm({
-      title: t("admin.cohorts.completeConfirmTitle"),
-      description: t("admin.cohorts.completeConfirmDescription"),
-      confirmLabel: t("admin.cohorts.completeConfirmAction"),
-    })
-    if (!ok) return
-    try {
-      const updated = await cohortsService.completeCohort(cohortId)
-      setCohort(updated)
-      toast({ title: t("admin.cohorts.toast.completed"), variant: "success" })
-    } catch {
-      toast({ title: t("admin.cohorts.toast.completeFailed"), variant: "destructive" })
+  /**
+   * Status is edited through the single ``NativeSelect`` in the Details
+   * card — the dedicated "Complete cohort" button used to be a third path
+   * to the same ``status="completed"`` transition (alongside the header
+   * Badge and that select), so it was collapsed away. Transitioning to
+   * ``completed`` still confirms first because it's a one-way operation
+   * in practice (the cohort stops being editable).
+   */
+  const handleStatusChange = async (next: Cohort["status"]) => {
+    if (!cohortId || next === cohort?.status) return
+    if (next === "completed") {
+      const ok = await confirm({
+        title: t("admin.cohorts.completeConfirmTitle"),
+        description: t("admin.cohorts.completeConfirmDescription"),
+        confirmLabel: t("admin.cohorts.completeConfirmAction"),
+      })
+      if (!ok) return
     }
+    await patch({ status: next })
   }
 
   const handleDelete = async () => {
@@ -209,12 +212,6 @@ export default function CohortDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {cohort.status !== "completed" && (
-            <Button variant="outline" size="sm" onClick={handleComplete}>
-              <CheckCircle2 className="h-4 w-4 mr-1.5" strokeWidth={1.75} aria-hidden />
-              {t("admin.cohorts.completeButton")}
-            </Button>
-          )}
           <Button variant="outline" size="sm" onClick={handleDelete} className="text-destructive hover:text-destructive">
             <Trash2 className="h-4 w-4 mr-1.5" strokeWidth={1.75} aria-hidden />
             {t("admin.cohorts.deleteButton")}
@@ -241,7 +238,9 @@ export default function CohortDetailPage() {
             <NativeSelect
               value={cohort.status}
               disabled={savingField}
-              onChange={(e) => void patch({ status: e.target.value as Cohort["status"] })}
+              onChange={(e) =>
+                void handleStatusChange(e.target.value as Cohort["status"])
+              }
             >
               <option value="upcoming">{t("admin.cohorts.statusUpcoming")}</option>
               <option value="active">{t("admin.cohorts.statusActive")}</option>
