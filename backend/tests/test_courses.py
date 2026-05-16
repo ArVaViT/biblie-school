@@ -311,12 +311,21 @@ class TestCatalogLocalizedMetadata:
         assert row_en["title"] == "English catalog title"
         assert row_en["description"] == "English catalog description"
 
-    def test_get_detail_owner_sees_source_when_ui_is_en(
+    def test_get_detail_owner_sees_translation_when_ui_is_en(
         self,
         client: TestClient,
         db: Session,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Regression: locale wins, even for the course owner.
+
+        Previously the overlay was skipped for owners/admins so editor pages
+        would render source text — but the student-facing course-detail
+        endpoint is the same endpoint, so owners (Vadym in production) could
+        not use their own platform in EN when the course source was RU. The
+        new rule is locale wins on this read path. Editors must use the
+        dedicated authoring endpoints to get source text.
+        """
         # Do not request ``anon_client`` in the same test: it shares
         # ``app.dependency_overrides`` and whichever fixture runs last would
         # clobber the other's ``get_optional_user`` override.
@@ -338,7 +347,36 @@ class TestCatalogLocalizedMetadata:
             headers={"Accept-Language": "en"},
         )
         assert owner.status_code == 200
-        assert owner.json()["title"] == "Заголовок RU"
+        assert owner.json()["title"] == "English catalog title"
+        assert owner.json()["description"] == "English catalog description"
+
+    def test_get_detail_admin_sees_translation_when_ui_is_en(
+        self,
+        client: TestClient,
+        admin_client: TestClient,
+        db: Session,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Same regression as the owner case, but for the ADMIN role."""
+        monkeypatch.setattr(
+            "app.api.v1.courses.crud.translate_course_content",
+            lambda *args, **kwargs: OrchestratorReport(),
+        )
+        course = _create_course(
+            client,
+            title="Заголовок RU",
+            description="Описание RU",
+        )
+        cid = course["id"]
+        client.put(f"{PREFIX}/{cid}", json={"status": "published"})
+        self._seed_en_translations(db, cid)
+
+        admin = admin_client.get(
+            f"{PREFIX}/{cid}",
+            headers={"Accept-Language": "en"},
+        )
+        assert admin.status_code == 200
+        assert admin.json()["title"] == "English catalog title"
 
     def test_get_detail_anon_sees_translated_metadata_with_accept_language(
         self,

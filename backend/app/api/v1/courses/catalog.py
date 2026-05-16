@@ -142,15 +142,9 @@ def get_module_detail(
 
     response.headers["Vary"] = "Accept-Language"
 
-    # Owner + admin always see source for editorial accuracy (matches the
-    # rule in ``should_apply_course_translation_overlay`` for the parent
-    # course-detail endpoint). Everyone else (students, anonymous catalog
-    # browsers, other teachers) gets the locale overlay.
-    is_owner = current_user is not None and str(course_owner_id) == str(current_user.id)
-    is_admin = current_user is not None and current_user.role == UserRole.ADMIN.value
-    if is_owner or is_admin:
-        return ModuleResponse.model_validate(module, from_attributes=True)
-
+    # Locale wins. Student-facing reads always respect the viewer's locale —
+    # owners and admins included. Editor pages that need source text must
+    # use dedicated authoring endpoints.
     display_locale: LocaleCode = normalize_locale(accept_language)
     source_locale: LocaleCode = normalize_locale(course_source_locale)
     return build_localized_module_response(

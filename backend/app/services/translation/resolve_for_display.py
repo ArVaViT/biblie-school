@@ -6,15 +6,16 @@ manual human edits) materialised one with ``status='ok'``. We **always prefer**
 that text for the **same** display locale, even if ``courses.source_locale`` is
 set to the same code but the source columns still contain a different
 language (legacy authoring drift). The canonical text still lives on
-``courses.*`` for owners/admins and as a fallback when no row exists.
+``courses.*`` as a fallback when no row exists.
 
-Authoring views (owner + admin) always see the source columns so editors are
-not surprised by machine translations when the UI is in another language.
+**Locale wins.** Student-facing reads always respect the viewer's
+``preferred_locale``/``Accept-Language``, regardless of role. Edit surfaces
+must use dedicated authoring endpoints that read source columns directly
+and never invoke this overlay.
 """
 
 from __future__ import annotations
 
-import uuid
 from dataclasses import dataclass
 from typing import cast
 
@@ -28,7 +29,7 @@ from app.models.content_translation import ContentTranslation
 from app.models.course import Chapter, Course, Module
 from app.models.course_event import CourseEvent  # noqa: TC001
 from app.models.quiz import Quiz  # noqa: TC001
-from app.models.user import User, UserRole
+from app.models.user import User  # noqa: TC001
 from app.schemas.announcement import AnnouncementResponse
 from app.schemas.assignment import AssignmentResponse
 from app.schemas.calendar import CourseEventResponse
@@ -38,19 +39,24 @@ from app.schemas.locale import LocaleCode, normalize_locale
 from app.schemas.quiz import QuizOptionStudentResponse, QuizQuestionStudentResponse, QuizStudentResponse
 
 
-def _str_uuid(v: str | uuid.UUID) -> str:
-    """Case-normalise UUIDs so SQLite/Postgres string forms compare equal."""
-    return str(uuid.UUID(str(v)))
-
-
 def should_apply_course_translation_overlay(*, course: Course, current_user: User | None) -> bool:
-    """Return True when the API should show localized metadata to this caller."""
-    if current_user is None:
-        return True
-    if current_user.role == UserRole.ADMIN.value:
-        return False
-    is_owner = course.created_by is not None and _str_uuid(course.created_by) == _str_uuid(current_user.id)
-    return not is_owner
+    """Return True when the API should show localized metadata to this caller.
+
+    **Locale wins.** Edit surfaces read source columns directly; this overlay
+    only fires on student-facing reads, where the viewer's locale should
+    always be respected — including for the course owner and admins. The
+    previous behaviour (skip overlay for admin/owner so editors saw source)
+    leaked into every student-facing read path, leaving owners and admins
+    unable to use their own platform as a user in a non-source UI locale.
+    Editor pages that need the canonical source language must call the
+    teacher-only endpoints (e.g. ``GET /quizzes/{quiz_id}``) which never
+    touch this overlay.
+    """
+    # ``current_user`` and ``course`` are kept in the signature so call sites
+    # don't have to change, and so future per-course exemptions remain easy
+    # to add. Today the rule is: always overlay when a translation exists.
+    del course, current_user
+    return True
 
 
 def batch_fetch_course_translations(
