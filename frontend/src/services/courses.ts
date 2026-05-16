@@ -29,6 +29,30 @@ import { analyticsService } from "./analytics"
  * keep working during migration. New code should import the specific
  * per-domain service (e.g. `import { quizzesService } from "./quizzes"`).
  */
+
+// ─── Cache invalidation helpers ─────────────────────────────────────────
+// Mutations to courses/modules/chapters have to nudge several keys in
+// lockstep — these three helpers centralize the "graph" so the picture
+// of which mutation invalidates what is in one place.
+
+/** Course list pages (search-scoped and teacher-scoped). Touched by any course mutation. */
+function invalidateCourseLists(): void {
+  cacheInvalidatePrefix("courses:list:")
+  cacheInvalidate("courses:teacher")
+}
+
+/** A specific course's detail and a specific module's snapshot. Touched by module/chapter mutations. */
+function invalidateModuleScope(courseId: string, moduleId: string): void {
+  cacheInvalidate(`courses:detail:${courseId}`)
+  cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
+}
+
+/** All modules under a course plus the course's detail. Used when wiping a whole course. */
+function invalidateAllModulesUnderCourse(courseId: string): void {
+  cacheInvalidate(`courses:detail:${courseId}`)
+  cacheInvalidatePrefix(`courses:module:${courseId}:`)
+}
+
 const courseCrud = {
   async getCourses(search?: string): Promise<Course[]> {
     return cached(`courses:list:${search ?? ""}`, CACHE_TTL.TWO_MINUTES, async () => {
@@ -56,8 +80,7 @@ const courseCrud = {
     data: { title: string; description?: string; image_url?: string },
   ): Promise<Course> {
     const response = await api.post<Course>("/courses", data)
-    cacheInvalidatePrefix("courses:list:")
-    cacheInvalidate("courses:teacher")
+    invalidateCourseLists()
     return response.data
   },
 
@@ -75,17 +98,14 @@ const courseCrud = {
   ): Promise<Course> {
     const response = await api.put<Course>(`/courses/${id}`, data)
     cacheInvalidate(`courses:detail:${id}`)
-    cacheInvalidatePrefix("courses:list:")
-    cacheInvalidate("courses:teacher")
+    invalidateCourseLists()
     return response.data
   },
 
   async deleteCourse(id: string): Promise<void> {
     await api.delete(`/courses/${id}`)
-    cacheInvalidate(`courses:detail:${id}`)
-    cacheInvalidatePrefix("courses:list:")
-    cacheInvalidatePrefix(`courses:module:${id}:`)
-    cacheInvalidate("courses:teacher")
+    invalidateAllModulesUnderCourse(id)
+    invalidateCourseLists()
   },
 
   async getTrashedCourses(): Promise<Course[]> {
@@ -95,23 +115,19 @@ const courseCrud = {
 
   async restoreCourse(id: string): Promise<Course> {
     const response = await api.post<Course>(`/courses/${id}/restore`)
-    cacheInvalidatePrefix("courses:list:")
-    cacheInvalidate("courses:teacher")
+    invalidateCourseLists()
     return response.data
   },
 
   async permanentlyDeleteCourse(id: string): Promise<void> {
     await api.delete(`/courses/${id}/permanent`)
-    cacheInvalidate(`courses:detail:${id}`)
-    cacheInvalidatePrefix("courses:list:")
-    cacheInvalidatePrefix(`courses:module:${id}:`)
-    cacheInvalidate("courses:teacher")
+    invalidateAllModulesUnderCourse(id)
+    invalidateCourseLists()
   },
 
   async cloneCourse(id: string): Promise<Course> {
     const response = await api.post<Course>(`/courses/${id}/clone`)
-    cacheInvalidatePrefix("courses:list:")
-    cacheInvalidate("courses:teacher")
+    invalidateCourseLists()
     return response.data
   },
 
@@ -127,8 +143,7 @@ const courseCrud = {
     data: { title: string; description?: string; order_index?: number },
   ): Promise<Module> {
     const response = await api.post<Module>(`/courses/${courseId}/modules`, data)
-    cacheInvalidate(`courses:detail:${courseId}`)
-    cacheInvalidatePrefix(`courses:module:${courseId}:`)
+    invalidateAllModulesUnderCourse(courseId)
     return response.data
   },
 
@@ -146,15 +161,13 @@ const courseCrud = {
       `/courses/${courseId}/modules/${moduleId}`,
       data,
     )
-    cacheInvalidate(`courses:detail:${courseId}`)
-    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
+    invalidateModuleScope(courseId, moduleId)
     return response.data
   },
 
   async deleteModule(courseId: string, moduleId: string): Promise<void> {
     await api.delete(`/courses/${courseId}/modules/${moduleId}`)
-    cacheInvalidate(`courses:detail:${courseId}`)
-    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
+    invalidateModuleScope(courseId, moduleId)
   },
 
   async createChapter(
@@ -166,8 +179,7 @@ const courseCrud = {
       `/courses/${courseId}/modules/${moduleId}/chapters`,
       data,
     )
-    cacheInvalidate(`courses:detail:${courseId}`)
-    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
+    invalidateModuleScope(courseId, moduleId)
     return response.data
   },
 
@@ -187,8 +199,7 @@ const courseCrud = {
       `/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}`,
       data,
     )
-    cacheInvalidate(`courses:detail:${courseId}`)
-    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
+    invalidateModuleScope(courseId, moduleId)
     return response.data
   },
 
@@ -200,8 +211,7 @@ const courseCrud = {
     await api.delete(
       `/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}`,
     )
-    cacheInvalidate(`courses:detail:${courseId}`)
-    cacheInvalidate(`courses:module:${courseId}:${moduleId}`)
+    invalidateModuleScope(courseId, moduleId)
   },
 }
 
