@@ -54,4 +54,4 @@ Equip is maintained primarily by one person, with growing contributor support. R
 | Feature request | Triaged within a week; implementation timing varies |
 | Pull request review | 2&ndash;5 business days for small PRs |
 
-If something is urgent and time-sensitive (the production deployment at equipbible.com is broken, a security issue is being actively exploited), email arvavitcorp@gmail.com directly.
+If something is urgent and time-sensitive (the production deployment at equipbible.com is broken, a security issue is being actively exploited), email supportequip@gmail.com directly.
