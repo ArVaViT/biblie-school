@@ -36,7 +36,7 @@ jobs:
             - **Feature requests:** mention the school / ministry context — what are you trying to do that Equip is making hard?
             - **Looking for something to work on?** Filter the issue tracker by [`good first issue`](https://github.com/ArVaViT/equip/labels/good%20first%20issue) or [`help wanted`](https://github.com/ArVaViT/equip/labels/help%20wanted). Comment on any of them to claim it.
 
-            A maintainer will respond within a few days. If it's something time-sensitive (security, broken production), please follow the disclosure path in [SECURITY.md](https://github.com/ArVaViT/equip/blob/main/SECURITY.md) or email arvavitcorp@gmail.com directly.
+            A maintainer will respond within a few days. If it's something time-sensitive (security, broken production), please follow the disclosure path in [SECURITY.md](https://github.com/ArVaViT/equip/blob/main/SECURITY.md) or email supportequip@gmail.com directly.
 
           pr-message: |
             Thanks for your first pull request to Equip 🎉
