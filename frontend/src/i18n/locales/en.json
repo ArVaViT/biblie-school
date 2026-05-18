@@ -1119,6 +1119,7 @@
     },
     "back": "Back",
     "titlePlaceholder": "Chapter title",
+    "editTitleAria": "Edit chapter title",
     "chapterType": "Chapter Type",
     "save": "Save Chapter",
     "saving": "Saving...",
