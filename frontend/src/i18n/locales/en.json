@@ -930,7 +930,11 @@
         "post": "Post",
         "posting": "Posting…",
         "empty": "No announcements yet.",
-        "deleteAria": "Delete announcement {{title}}"
+        "deleteAria": "Delete announcement {{title}}",
+        "carouselRole": "carousel",
+        "prevAria": "Previous announcement",
+        "nextAria": "Next announcement",
+        "position": "{{current}} / {{total}}"
       },
       "materials": {
         "title": "Course Materials",

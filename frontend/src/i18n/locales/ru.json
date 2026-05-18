@@ -919,7 +919,11 @@
         "post": "Опубликовать",
         "posting": "Публикация…",
         "empty": "Пока нет объявлений.",
-        "deleteAria": "Удалить объявление «{{title}}»"
+        "deleteAria": "Удалить объявление «{{title}}»",
+        "carouselRole": "карусель",
+        "prevAria": "Предыдущее объявление",
+        "nextAria": "Следующее объявление",
+        "position": "{{current}} / {{total}}"
       },
       "materials": {
         "title": "Материалы курса",
