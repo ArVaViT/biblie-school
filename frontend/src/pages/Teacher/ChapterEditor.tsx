@@ -249,12 +249,19 @@ export default function ChapterEditor() {
           <ArrowLeft className="h-4 w-4 mr-1" strokeWidth={1.75} />
           {t("chapterEditor.back")}
         </Button>
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="font-serif text-2xl font-bold border-none shadow-none hover:border-border/50 hover:shadow-sm focus-visible:ring-1 h-auto py-1 px-2 flex-1"
-          placeholder={t("chapterEditor.titlePlaceholder")}
-        />
+        {/* Render the editable title as a real ``<h1>`` so the page
+            outline has the chapter name at heading-level-1, and add
+            ``aria-label`` so the input still has an accessible name
+            even though its visual label is implicit. */}
+        <h1 className="m-0 flex-1">
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            aria-label={t("chapterEditor.editTitleAria")}
+            className="font-serif text-2xl font-bold border-none shadow-none hover:border-border/50 hover:shadow-sm focus-visible:ring-1 h-auto py-1 px-2 w-full"
+            placeholder={t("chapterEditor.titlePlaceholder")}
+          />
+        </h1>
       </div>
 
       {/* Chapter Type Selector */}
