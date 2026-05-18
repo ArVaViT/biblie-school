@@ -26,12 +26,12 @@ export default function AnnouncementBanner() {
       return
     }
     let cancelled = false
-    coursesService.getAnnouncements().then((list) => {
+    coursesService.getGlobalAnnouncements().then((list) => {
       if (cancelled) return
       // ``setAnnouncement(null)`` for the no-match case is load-
       // bearing: without it a previously-shown banner stays mounted
       // after the system-wide announcement is unpublished.
-      setAnnouncement(list.find((a) => !a.course_id) ?? null)
+      setAnnouncement(list[0] ?? null)
     }).catch(() => {
       /* non-critical UI, degrade silently */
     })
